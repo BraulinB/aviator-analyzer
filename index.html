@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>🎯 Aviator AI Pro - Inteligente</title>
+  <title>🎯 Aviator AI - Inteligente</title>
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
@@ -30,7 +32,11 @@
       border-radius: 6px;
       border: 1px solid #444;
     }
-    input { width: 120px; background: #2d2d3d; color: white; }
+    input {
+      width: 120px;
+      background: #2d2d3d;
+      color: white;
+    }
     button {
       background: #00ccff;
       color: white;
@@ -78,17 +84,15 @@
       margin: 20px 0;
     }
     .status { font-size: 12px; color: #888; }
-    .feedback { margin: 10px 0; }
   </style>
 </head>
 <body>
 
   <div class="container">
-    <h1>🎯 Aviator AI Pro - Inteligente</h1>
-    <p>IA selectiva: solo predice cuando hay alta probabilidad de ganar</p>
+    <h1>🎯 Aviator AI - Inteligente</h1>
+    <p>IA selectiva: solo predice cuando hay alta probabilidad</p>
     <div class="status" id="status">Conectando...</div>
 
-    <!-- Entrada manual -->
     <div>
       <input type="number" id="crashInput" step="0.01" placeholder="1.50x" autofocus>
       <button onclick="addCrash()">➕ Registrar</button>
@@ -104,19 +108,10 @@
       <div class="stat-box">Confianza: <span id="trend">-</span></div>
     </div>
 
-    <div id="signal" class="signal signal-wait">Analizando...</div>
-
-    <div class="feedback">
-      <button onclick="markResult(true)" style="background:green">✅ Ganó</button>
-      <button onclick="markResult(false)" style="background:red">❌ Perdió</button>
-    </div>
+    <div id="signal" class="signal signal-wait">Analizando datos...</div>
 
     <div class="chart-container">
       <canvas id="chart"></canvas>
-    </div>
-
-    <div class="chart-container">
-      <canvas id="accuracyChart"></canvas>
     </div>
   </div>
 
@@ -133,9 +128,11 @@
       measurementId: "G-325QCBSQMH"
     };
 
+    // Inicializar Firebase
     firebase.initializeApp(firebaseConfig);
     const dbCrashes = firebase.database().ref('crashes');
     const dbPredictions = firebase.database().ref('predictions');
+
     let crashes = [];
     let predictions = [];
     let lastPrediction = null;
@@ -144,7 +141,7 @@
     dbCrashes.on('value', (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        crashes = Object.values(data).map(d => parseFloat(d.value));
+        crashes = Object.values(data).map(item => parseFloat(item.value));
       } else {
         crashes = [];
       }
@@ -160,34 +157,23 @@
       } else {
         predictions = [];
       }
-      updateAccuracy();
-      updateAccuracyChart();
+      updateStats();
     });
 
-    // Gráfico principal
+    // Gráfico
     const ctx = document.getElementById('chart').getContext('2d');
     const chart = new Chart(ctx, {
       type: 'line',
-       
+      data: {
         labels: [],
-        datasets: [
-          {
-            label: 'Crash Real',
-             
-            borderColor: '#00ccff',
-            backgroundColor: 'rgba(0, 200, 255, 0.1)',
-            fill: true,
-            tension: 0.3
-          },
-          {
-            label: 'Predicción',
-             [],
-            borderColor: '#ff9900',
-            borderDash: [5, 5],
-            pointRadius: 4,
-            pointBackgroundColor: '#ff9900'
-          }
-        ]
+        datasets: [{
+          label: 'Crash Real',
+          data: [],
+          borderColor: '#00ccff',
+          backgroundColor: 'rgba(0, 200, 255, 0.1)',
+          fill: true,
+          tension: 0.3
+        }]
       },
       options: {
         responsive: true,
@@ -199,29 +185,8 @@
       }
     });
 
-    // Gráfico de aciertos por rango
-    const ctx2 = document.getElementById('accuracyChart').getContext('2d');
-    const accuracyChart = new Chart(ctx2, {
-      type: 'bar',
-       {
-        labels: ['1-2x', '2-3x', '3-5x', '5-10x'],
-        datasets: [{
-          label: 'Aciertos',
-           [0, 0, 0, 0],
-          backgroundColor: ['#ff6666', '#ffcc66', '#66cc66', '#00ccff']
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          y: { beginAtZero: true, ticks: { color: '#ccc' } },
-          x: { ticks: { color: '#ccc' } }
-        }
-      }
-    });
-
     function updateUI() {
+      // Lista de crashes
       const list = document.getElementById('crashList');
       list.innerHTML = crashes.slice(-10).reverse().map(c => `🔹 ${c}x`).join('<br>');
 
@@ -235,160 +200,77 @@
       if (analysis.shouldPredict && analysis.prediction >= 2.0) {
         lastPrediction = analysis.prediction;
         signal.className = 'signal signal-good';
-        signal.innerHTML = `🎯 <strong>¡ENTRADA CLARA! ${analysis.prediction.toFixed(2)}x</strong><br>💡 Confianza: ${analysis.confidence}`;
+        signal.innerHTML = `🎯 ¡ENTRADA! ${analysis.prediction.toFixed(2)}x`;
       } else if (analysis.zone === 'low') {
         lastPrediction = null;
         signal.className = 'signal signal-danger';
-        signal.innerHTML = `🔴 <strong>ZONA DE RIESGO</strong><br>Evita apostar (ráfaga de <1.70x)`;
+        signal.innerHTML = `🔴 Zona de riesgo: muchos <1.70x`;
       } else {
         lastPrediction = null;
         signal.className = 'signal signal-wait';
-        signal.innerHTML = `🟡 <strong>NO APOSTAR</strong><br>Espera mejor oportunidad`;
+        signal.innerHTML = `🟡 Espera mejor momento`;
       }
 
       // Actualizar gráfico
       chart.data.labels = crashes.map((_, i) => `#${i+1}`);
       chart.data.datasets[0].data = crashes;
-      chart.data.datasets[1].data = Array(crashes.length).fill(null);
-      if (lastPrediction && crashes.length > 0) {
-        const predData = Array(crashes.length).fill(null);
-        predData[crashes.length - 1] = lastPrediction;
-        chart.data.datasets[1].data = predData;
-      }
       chart.update();
     }
 
-    // 🔮 Análisis avanzado con IA selectiva
     function analyzeForPrediction(data) {
       if (data.length < 5) return { shouldPredict: false, zone: 'neutral', confidence: 'Baja' };
 
       const last5 = data.slice(-5);
-      const last3 = data.slice(-3);
-      const avg5 = last5.reduce((a,b) => a+b, 0) / 5;
       const lowCrashes = last5.filter(c => c < 1.7).length;
       const highCrashes = last5.filter(c => c > 2.0).length;
-      const veryHigh = last5.filter(c => c > 10.0).length;
 
-      // Detectar ZONA DE BAJOS (<1.70x)
+      // Zona de riesgo: muchos crashes bajos
       if (lowCrashes >= 4) {
         return { shouldPredict: false, zone: 'low', confidence: 'Muy Baja' };
       }
 
-      // Detectar ZONA DE BONUS (ráfaga alta)
-      if (highCrashes >= 3 || veryHigh >= 1) {
-        const pred = predictNext(last5);
-        if (pred >= 2.5) {
-          return {
-            shouldPredict: true,
-            prediction: pred,
-            zone: 'bonus',
-            confidence: 'Alta'
-          };
-        }
-      }
+      // Calcular predicción con promedio móvil ponderado
+      const avg = (last5[4]*3 + last5[3]*2 + last5[2]) / 6; // enfocado en lo reciente
+      const prediction = avg > 1.8 ? avg : 0;
 
-      // Regresión lineal para predicción
-      const pred = predictNext(last5);
-      const accuracy = getAccuracy();
-
-      // Solo predice si:
-      // - predicción > 2.0
-      // - confianza alta
-      // - no hay racha de bajos
-      if (pred >= 2.0 && accuracy > 0.4) {
-        return {
-          shouldPredict: true,
-          prediction: pred,
-          zone: 'normal',
-          confidence: accuracy > 0.6 ? 'Alta' : 'Media'
-        };
+      // Solo predecir si hay tendencia clara
+      if (prediction >= 2.0 && highCrashes >= 2) {
+        const confidence = getAccuracy() > 0.5 ? 'Alta' : 'Media';
+        return { shouldPredict: true, prediction, zone: 'bonus', confidence };
       }
 
       return { shouldPredict: false, zone: 'neutral', confidence: 'Media' };
     }
 
-    // 🔮 Predicción con regresión
-    function predictNext(data) {
-      const n = data.length;
-      let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
-      for (let i = 0; i < n; i++) {
-        sumX += i;
-        sumY += data[i];
-        sumXY += i * data[i];
-        sumXX += i * i;
-      }
-      const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-      const intercept = (sumY - slope * sumX) / n;
-      let pred = slope * n + intercept;
-
-      // Ajuste inteligente
-      const accuracy = getAccuracy();
-      if (accuracy > 0.6) pred *= 1.1;
-      if (accuracy < 0.4) pred *= 0.8;
-
-      return Math.max(1.8, Math.min(15, pred));
-    }
-
     function addCrash() {
       const input = document.getElementById('crashInput');
       const value = parseFloat(input.value);
-      if (isNaN(value) || value <= 0) return alert("Valor válido");
-      saveCrash(value);
-      input.value = '';
-    }
+      if (isNaN(value) || value <= 0) return alert("Ingresa un valor válido");
 
-    function saveCrash(value) {
-      dbCrashes.push({ value, t: Date.now() });
+      // Guardar crash
+      dbCrashes.push({ value: value, t: Date.now() });
+
+      // Si hay predicción activa, registrar resultado
       if (lastPrediction !== null) {
-        const result = value >= lastPrediction;
-        dbPredictions.push({
-          prediction: lastPrediction,
-          actual: value,
-          win: result,
-          timestamp: Date.now()
-        });
+        const win = value >= lastPrediction;
+        dbPredictions.push({ prediction: lastPrediction, actual: value, win: win });
         lastPrediction = null;
       }
-    }
 
-    function markResult(result) {
-      if (lastPrediction === null) return alert("No hay predicción activa");
-      dbPredictions.push({
-        prediction: lastPrediction,
-        actual: "manual",
-        win: result,
-        timestamp: Date.now(),
-        manual: true
-      });
-      lastPrediction = null;
-      setTimeout(() => updateUI(), 1000);
+      input.value = '';
     }
 
     function getAccuracy() {
       if (predictions.length === 0) return 0;
       const wins = predictions.filter(p => p.win).length;
-      return (wins / predictions.length);
+      return wins / predictions.length;
     }
 
-    function updateAccuracy() {
-      const acc = getAccuracy();
-      document.getElementById('accuracy').textContent = `${(acc * 100).toFixed(1)}%`;
+    function updateStats() {
+      const accuracy = getAccuracy();
+      document.getElementById('accuracy').textContent = predictions.length > 0 ? `${(accuracy * 100).toFixed(1)}%` : "-";
       document.getElementById('lastPred').textContent = predictions.length > 0 ? 
         predictions[predictions.length-1].prediction.toFixed(2) + "x" : "-";
-    }
-
-    function updateAccuracyChart() {
-      const ranges = [0, 0, 0, 0];
-      const wins = predictions.filter(p => p.win);
-      for (let p of wins) {
-        const pred = p.prediction;
-        if (pred < 2) ranges[0]++;
-        else if (pred < 3) ranges[1]++;
-        else if (pred < 5) ranges[2]++;
-        else if (pred < 10) ranges[3]++;
-      }
-      accuracyChart.data.datasets[0].data = ranges;
-      accuracyChart.update();
     }
 
     function clearAll() {
@@ -398,11 +280,9 @@
       }
     }
 
-    // Enter para registrar
+    // Presionar Enter para registrar
     document.getElementById('crashInput').addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') {
-        addCrash();
-      }
+      if (e.key === 'Enter') addCrash();
     });
   </script>
 </body>
