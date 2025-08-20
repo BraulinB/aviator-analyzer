@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>🧠 Aviator Analyzer + IA Simple</title>
+  <title>🧠 Aviator Analyzer + Señales</title>
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
@@ -61,47 +63,22 @@
       border-radius: 8px;
       font-size: 14px;
     }
-    .tip {
-      background: #2a332a;
-      padding: 15px;
-      border-radius: 8px;
-      margin: 15px 0;
-      font-style: italic;
-      color: #aaffaa;
-      text-align: center;
-    }
     .signal {
       padding: 15px;
       border-radius: 8px;
       font-weight: bold;
       margin: 15px 0;
+      text-align: center;
     }
-    .signal-good {
-      background: #2a4a2a;
-      color: #80ff80;
-      border: 1px solid #00cc00;
-    }
-    .signal-wait {
-      background: #4a332a;
-      color: #ffcc80;
-      border: 1px solid #cc8000;
-    }
-    .chart-container {
-      width: 100%;
-      height: 300px;
-      margin: 20px 0;
-    }
-    .status {
-      font-size: 12px;
-      color: #888;
-      margin-top: 5px;
-    }
+    .signal-good { background: #2a4a2a; color: #80ff80; }
+    .signal-wait { background: #4a332a; color: #ffcc80; }
+    .status { font-size: 12px; color: #888; }
   </style>
 </head>
 <body>
 
   <div class="container">
-    <h1>🧠 Aviator Analyzer + Señales</h1>
+    <h1>🚀 Aviator Analyzer + Señales</h1>
     <p>IA simple basada en tendencias reales 🔗 Firebase</p>
     <div class="status" id="status">Conectando...</div>
 
@@ -120,10 +97,7 @@
       <div class="stat-box">≥10x: <span id="over10">-</span></div>
     </div>
 
-    <!-- 🔮 SEÑAL DE ENTRADA -->
     <div id="signal" class="signal signal-wait">Analizando datos...</div>
-
-    <div class="tip" id="tip">Registra al menos 10 rondas para señales precisas.</div>
 
     <div class="chart-container">
       <canvas id="chart"></canvas>
@@ -131,7 +105,7 @@
   </div>
 
   <script>
-    // 🔥 TU CONFIGURACIÓN DE FIREBASE
+    // ✅ TU CONFIGURACIÓN DE FIREBASE (CORREGIDA)
     const firebaseConfig = {
       apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
       authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
@@ -143,129 +117,100 @@
       measurementId: "G-325QCBSQMH"
     };
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database().ref('aviator-crashes');
+    // Inicializar Firebase
+    try {
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.database().ref('crashes');
+      let crashes = [];
 
-    let crashes = [];
+      // Escuchar cambios
+      db.on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          crashes = Object.values(data).map(d => parseFloat(d.value));
+        } else {
+          crashes = [];
+        }
+        updateUI();
+        document.getElementById('status').textContent = `✅ ${crashes.length} rondas`;
+      });
 
-    db.on('value', (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        crashes = Object.values(data).map(item => parseFloat(item.value));
-      } else {
-        crashes = [];
-      }
-      updateDisplay();
-      document.getElementById('status').textContent = `✅ Sincronizado | ${crashes.length} rondas`;
-    });
-
-    const ctx = document.getElementById('chart').getContext('2d');
-    const chart = new Chart(ctx, {
-      type: 'line',
-      data: { labels: [], datasets: [{
-        label: 'Multiplicador',
-         [],
-        borderColor: '#00ccff',
-        backgroundColor: 'rgba(0, 200, 255, 0.1)',
-        fill: true,
-        tension: 0.3
-      }] },
-      options: {
-        animation: { duration: 0 },
-        scales: {
-          x: { ticks: { color: '#ccc' }, grid: { color: '#444' } },
-          y: { ticks: { color: '#ccc' }, grid: { color: '#444' } }
+      // Gráfico
+      const ctx = document.getElementById('chart').getContext('2d');
+      const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [{
+            label: 'Multiplicador',
+            data: [],
+            borderColor: '#00ccff',
+            backgroundColor: 'rgba(0, 200, 255, 0.1)',
+            fill: true,
+            tension: 0.3
+          }]
         },
-        plugins: { legend: { labels: { color: '#eee' } } },
-        responsive: true,
-        maintainAspectRatio: false
-      }
-    });
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { ticks: { color: '#ccc' }, grid: { color: '#444' } },
+            y: { ticks: { color: '#ccc' }, grid: { color: '#444' } }
+          }
+        }
+      });
 
-    function updateDisplay() {
-      const list = document.getElementById('crashList');
-      list.innerHTML = crashes.slice(-20).reverse().map(c => `🔹 ${c}x`).join('<br>');
+      function updateUI() {
+        const list = document.getElementById('crashList');
+        list.innerHTML = crashes.slice(-15).reverse().map(c => `🔹 ${c}x`).join('<br>');
 
-      if (crashes.length === 0) return;
+        // Estadísticas
+        const last10 = crashes.slice(-10);
+        const avg10 = last10.length > 0 ? (last10.reduce((a,b) => a+b, 0) / last10.length).toFixed(2) : '-';
+        const over2 = last10.filter(c => c >= 2).length;
+        const over5 = last10.filter(c => c >= 5).length;
+        const over10 = last10.filter(c => c >= 10).length;
 
-      const last10 = crashes.slice(-10);
-      const avg10 = (last10.reduce((a,b) => a+b, 0) / last10.length).toFixed(2);
-      const o2 = last10.filter(c => c >= 2).length;
-      const o5 = last10.filter(c => c >= 5).length;
-      const o10 = last10.filter(c => c >= 10).length;
+        document.getElementById('avg10').textContent = avg10;
+        document.getElementById('over2').textContent = `${over2}/10`;
+        document.getElementById('over5').textContent = `${over5}/10`;
+        document.getElementById('over10').textContent = `${over10}/10`;
 
-      document.getElementById('avg10').textContent = avg10;
-      document.getElementById('over2').textContent = `${o2}/10`;
-      document.getElementById('over5').textContent = `${o5}/10`;
-      document.getElementById('over10').textContent = `${o10}/10`;
+        // Señal
+        const signal = document.getElementById('signal');
+        if (over5 >= 2) {
+          signal.className = 'signal signal-good';
+          signal.innerHTML = "🟢 ¡BUEN MOMENTO PARA JUGAR!";
+        } else if (over2 < 3) {
+          signal.className = 'signal signal-wait';
+          signal.innerHTML = "🔴 Muchos crashes bajos";
+        } else {
+          signal.className = 'signal signal-wait';
+          signal.innerHTML = "🟡 Balanceado";
+        }
 
-      // 🔮 Generar señal
-      generateSignal(last10, o2, o5);
-
-      chart.data.labels = Array.from({length: crashes.length}, (_,i) => `R${i+1}`);
-      chart.data.datasets[0].data = crashes;
-      chart.update();
-    }
-
-    function generateSignal(last10, o2, o5) {
-      const signalDiv = document.getElementById('signal');
-      const tip = document.getElementById('tip');
-
-      if (last10.length < 5) {
-        signalDiv.className = 'signal signal-wait';
-        signalDiv.textContent = "🔍 Esperando más datos...";
-        tip.textContent = "Registra al menos 5 rondas para análisis.";
-        return;
-      }
-
-      // Calcular probabilidades estimadas
-      const p_2x = o2 / 10;
-      const p_5x = o5 / 10;
-
-      // Modelo simple de decisión
-      if (p_5x >= 0.3 || (p_5x >= 0.2 && p_2x >= 0.6)) {
-        signalDiv.className = 'signal signal-good';
-        signalDiv.innerHTML = "🟢 <strong>¡ENTRADA RECOMENDADA!</strong><br>🔍 Alta probabilidad de 2x y 5x";
-        tip.textContent = "💡 Estrategia sugerida: Apuesta → 50% en 2x, 50% en 5x";
-        tip.style.color = "#aaffaa";
-      } else if (p_2x < 0.4) {
-        signalDiv.className = 'signal signal-wait';
-        signalDiv.innerHTML = "🔴 <strong>NO RECOMENDADO</strong><br>📉 Muchos crashes bajos";
-        tip.textContent = "⚠️ Espera a que mejoren los patrones.";
-        tip.style.color = "#ffaaaa";
-      } else {
-        signalDiv.className = 'signal signal-wait';
-        signalDiv.innerHTML = "🟡 <strong>NEUTRAL</strong><br>📊 Juega con apuesta mínima";
-        tip.textContent = "Balanceado. Puedes probar con riesgo bajo.";
-        tip.style.color = "#aaaaff";
-      }
-    }
-
-    function addCrash() {
-      const input = document.getElementById('crashInput');
-      const value = parseFloat(input.value);
-      if (isNaN(value) || value <= 0) {
-        alert("Ingresa un número válido (ej: 1.50)");
-        return;
+        // Actualizar gráfico
+        chart.data.labels = crashes.map((_, i) => `#${i+1}`);
+        chart.data.datasets[0].data = crashes;
+        chart.update();
       }
 
-      const newCrash = {
-        value: value,
-        timestamp: Date.now()
-      };
-
-      db.push(newCrash);
-      input.value = '';
-      document.getElementById('status').textContent = "Agregando...";
-    }
-
-    function clearAll() {
-      if (confirm("¿Eliminar todo el historial? Esta acción no se puede deshacer.")) {
-        db.remove();
-        document.getElementById('status').textContent = "Limpiando...";
+      function addCrash() {
+        const input = document.getElementById('crashInput');
+        const value = parseFloat(input.value);
+        if (isNaN(value) || value <= 0) return alert("Ingresa un valor válido");
+        db.push({ value, t: Date.now() });
+        input.value = '';
       }
+
+      function clearAll() {
+        if (confirm("¿Limpiar todo?")) db.remove();
+      }
+
+    } catch (error) {
+      document.getElementById('status').textContent = "❌ Error: " + error.message;
+      console.error("Firebase error:", error);
     }
   </script>
-
 </body>
 </html>
