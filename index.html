@@ -3,11 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>🧠 Aviator Analyzer + Señales</title>
-  <!-- Firebase SDK -->
+  <title>🤖 Aviator AI + Regresión Lineal</title>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
@@ -72,14 +70,20 @@
     }
     .signal-good { background: #2a4a2a; color: #80ff80; }
     .signal-wait { background: #4a332a; color: #ffcc80; }
+    .signal-danger { background: #331a1a; color: #ff6666; }
+    .chart-container {
+      width: 100%;
+      height: 300px;
+      margin: 20px 0;
+    }
     .status { font-size: 12px; color: #888; }
   </style>
 </head>
 <body>
 
   <div class="container">
-    <h1>🚀 Aviator Analyzer + Señales</h1>
-    <p>IA simple basada en tendencias reales 🔗 Firebase</p>
+    <h1>🤖 Aviator AI + Regresión Lineal</h1>
+    <p>Predicción basada en tendencia matemática</p>
     <div class="status" id="status">Conectando...</div>
 
     <div>
@@ -105,7 +109,7 @@
   </div>
 
   <script>
-    // ✅ TU CONFIGURACIÓN DE FIREBASE (CORREGIDA)
+    // ✅ TU CONFIGURACIÓN DE FIREBASE
     const firebaseConfig = {
       apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
       authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
@@ -117,99 +121,154 @@
       measurementId: "G-325QCBSQMH"
     };
 
-    // Inicializar Firebase
-    try {
-      firebase.initializeApp(firebaseConfig);
-      const db = firebase.database().ref('crashes');
-      let crashes = [];
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database().ref('crashes');
+    let crashes = [];
 
-      // Escuchar cambios
-      db.on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-          crashes = Object.values(data).map(d => parseFloat(d.value));
-        } else {
-          crashes = [];
-        }
-        updateUI();
-        document.getElementById('status').textContent = `✅ ${crashes.length} rondas`;
-      });
+    db.on('value', (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        crashes = Object.values(data).map(d => parseFloat(d.value));
+      } else {
+        crashes = [];
+      }
+      updateUI();
+      document.getElementById('status').textContent = `✅ ${crashes.length} rondas`;
+    });
 
-      // Gráfico
-      const ctx = document.getElementById('chart').getContext('2d');
-      const chart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: [],
-          datasets: [{
+    const ctx = document.getElementById('chart').getContext('2d');
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          {
             label: 'Multiplicador',
             data: [],
             borderColor: '#00ccff',
             backgroundColor: 'rgba(0, 200, 255, 0.1)',
             fill: true,
-            tension: 0.3
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            x: { ticks: { color: '#ccc' }, grid: { color: '#444' } },
-            y: { ticks: { color: '#ccc' }, grid: { color: '#444' } }
+            tension: 0.3,
+            pointRadius: 3
+          },
+          {
+            label: 'Tendencia (Regresión)',
+            data: [],
+            borderColor: '#ff9900',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            pointRadius: 0,
+            fill: false
           }
-        }
-      });
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { ticks: { color: '#ccc' }, grid: { color: '#444' } },
+          y: { ticks: { color: '#ccc' }, grid: { color: '#444' } }
+        },
+        plugins: { legend: { labels: { color: '#eee' } } }
+      }
+    });
 
-      function updateUI() {
-        const list = document.getElementById('crashList');
-        list.innerHTML = crashes.slice(-15).reverse().map(c => `🔹 ${c}x`).join('<br>');
+    function updateUI() {
+      const list = document.getElementById('crashList');
+      list.innerHTML = crashes.slice(-15).reverse().map(c => `🔹 ${c}x`).join('<br>');
 
-        // Estadísticas
-        const last10 = crashes.slice(-10);
-        const avg10 = last10.length > 0 ? (last10.reduce((a,b) => a+b, 0) / last10.length).toFixed(2) : '-';
-        const over2 = last10.filter(c => c >= 2).length;
-        const over5 = last10.filter(c => c >= 5).length;
-        const over10 = last10.filter(c => c >= 10).length;
+      // Estadísticas
+      const last10 = crashes.slice(-10);
+      const avg10 = last10.length > 0 ? (last10.reduce((a,b) => a+b, 0) / last10.length).toFixed(2) : '-';
+      const over2 = last10.filter(c => c >= 2).length;
+      const over5 = last10.filter(c => c >= 5).length;
+      const over10 = last10.filter(c => c >= 10).length;
 
-        document.getElementById('avg10').textContent = avg10;
-        document.getElementById('over2').textContent = `${over2}/10`;
-        document.getElementById('over5').textContent = `${over5}/10`;
-        document.getElementById('over10').textContent = `${over10}/10`;
+      document.getElementById('avg10').textContent = avg10;
+      document.getElementById('over2').textContent = `${over2}/10`;
+      document.getElementById('over5').textContent = `${over5}/10`;
+      document.getElementById('over10').textContent = `${over10}/10`;
 
-        // Señal
-        const signal = document.getElementById('signal');
-        if (over5 >= 2) {
-          signal.className = 'signal signal-good';
-          signal.innerHTML = "🟢 ¡BUEN MOMENTO PARA JUGAR!";
-        } else if (over2 < 3) {
-          signal.className = 'signal signal-wait';
-          signal.innerHTML = "🔴 Muchos crashes bajos";
+      // Predicción con regresión lineal
+      const prediction = linearRegressionPrediction(crashes);
+      const signal = document.getElementById('signal');
+
+      if (prediction && prediction.slope > 0.1) {
+        signal.className = 'signal signal-good';
+        signal.innerHTML = `🟢 <strong>¡TENDENCIA ALCISTA!</strong><br>Próximo crash estimado: <strong>${prediction.min}x – ${prediction.max}x</strong>`;
+      } else if (prediction && prediction.slope < -0.1) {
+        signal.className = 'signal signal-danger';
+        signal.innerHTML = `🔴 <strong>¡TENDENCIA BAJISTA!</strong><br>Evita altos. Espera <strong>${prediction.min}x</strong>`;
+      } else {
+        signal.className = 'signal signal-wait';
+        signal.innerHTML = `🟡 <strong>Sin tendencia clara</strong><br>Apuesta mínima o espera`;
+      }
+
+      // Actualizar gráfico
+      chart.data.labels = crashes.map((_, i) => `#${i+1}`);
+      chart.data.datasets[0].data = crashes;
+
+      // Línea de regresión
+      const regressionLine = getRegressionLine(crashes);
+      chart.data.datasets[1].data = regressionLine;
+
+      chart.update();
+    }
+
+    // 🔢 Regresión lineal simple: y = mx + b
+    function linearRegressionPrediction(data) {
+      const n = data.length;
+      if (n < 5) return null;
+
+      const last5 = data.slice(-5).map((y, i) => ({ x: i, y })); // x = 0,1,2,3,4
+
+      let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+      for (let p of last5) {
+        sumX += p.x;
+        sumY += p.y;
+        sumXY += p.x * p.y;
+        sumXX += p.x * p.x;
+      }
+
+      const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+      const intercept = (sumY - slope * sumX) / n;
+
+      // Predicción para x = 5 (próxima ronda)
+      const predicted = slope * 5 + intercept;
+      const min = Math.max(1.0, (predicted * 0.7).toFixed(2));
+      const max = (predicted * 1.3).toFixed(2);
+
+      return { slope, intercept, predicted, min, max };
+    }
+
+    // Generar puntos de la línea de regresión
+    function getRegressionLine(data) {
+      const pred = linearRegressionPrediction(data);
+      if (!pred) return Array(data.length).fill(null);
+
+      const line = [];
+      for (let i = 0; i < data.length; i++) {
+        if (i >= data.length - 5) {
+          const x = i - (data.length - 5); // 0 a 4
+          const y = pred.slope * x + pred.intercept;
+          line.push(y);
         } else {
-          signal.className = 'signal signal-wait';
-          signal.innerHTML = "🟡 Balanceado";
+          line.push(null);
         }
-
-        // Actualizar gráfico
-        chart.data.labels = crashes.map((_, i) => `#${i+1}`);
-        chart.data.datasets[0].data = crashes;
-        chart.update();
       }
+      return line;
+    }
 
-      function addCrash() {
-        const input = document.getElementById('crashInput');
-        const value = parseFloat(input.value);
-        if (isNaN(value) || value <= 0) return alert("Ingresa un valor válido");
-        db.push({ value, t: Date.now() });
-        input.value = '';
-      }
+    function addCrash() {
+      const input = document.getElementById('crashInput');
+      const value = parseFloat(input.value);
+      if (isNaN(value) || value <= 0) return alert("Ingresa un valor válido");
+      db.push({ value, t: Date.now() });
+      input.value = '';
+    }
 
-      function clearAll() {
-        if (confirm("¿Limpiar todo?")) db.remove();
-      }
-
-    } catch (error) {
-      document.getElementById('status').textContent = "❌ Error: " + error.message;
-      console.error("Firebase error:", error);
+    function clearAll() {
+      if (confirm("¿Limpiar todo?")) db.remove();
     }
   </script>
 </body>
