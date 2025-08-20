@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>🎯 Aviator AI Pro - Manual</title>
+  <title>🧠 Aviator AI Pro - Inteligente</title>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -71,6 +71,7 @@
     }
     .signal-good { background: #2a4a2a; color: #80ff80; }
     .signal-wait { background: #4a332a; color: #ffcc80; }
+    .signal-danger { background: #331a1a; color: #ff6666; }
     .chart-container {
       width: 100%;
       height: 300px;
@@ -83,8 +84,8 @@
 <body>
 
   <div class="container">
-    <h1>🎯 Aviator AI Pro - Manual</h1>
-    <p>Ingresa el crash exacto y presiona Enter o ➕</p>
+    <h1>🧠 Aviator AI Pro - Inteligente</h1>
+    <p>IA selectiva: solo predice cuando hay alta probabilidad de ganar</p>
     <div class="status" id="status">Conectando...</div>
 
     <!-- Entrada manual -->
@@ -100,7 +101,7 @@
       <div class="stat-box">Predicción: <span id="nextPred">⏳</span></div>
       <div class="stat-box">Aciertos: <span id="accuracy">-</span></div>
       <div class="stat-box">Última: <span id="lastPred">-</span></div>
-      <div class="stat-box">Tendencia: <span id="trend">-</span></div>
+      <div class="stat-box">Confianza: <span id="trend">-</span></div>
     </div>
 
     <div id="signal" class="signal signal-wait">Analizando...</div>
@@ -167,12 +168,12 @@
     const ctx = document.getElementById('chart').getContext('2d');
     const chart = new Chart(ctx, {
       type: 'line',
-      data: {
+       {
         labels: [],
         datasets: [
           {
             label: 'Crash Real',
-            data: [],
+             [],
             borderColor: '#00ccff',
             backgroundColor: 'rgba(0, 200, 255, 0.1)',
             fill: true,
@@ -202,11 +203,11 @@
     const ctx2 = document.getElementById('accuracyChart').getContext('2d');
     const accuracyChart = new Chart(ctx2, {
       type: 'bar',
-      data: {
+       {
         labels: ['1-2x', '2-3x', '3-5x', '5-10x'],
         datasets: [{
           label: 'Aciertos',
-          data: [0, 0, 0, 0],
+           [0, 0, 0, 0],
           backgroundColor: ['#ff6666', '#ffcc66', '#66cc66', '#00ccff']
         }]
       },
@@ -224,25 +225,28 @@
       const list = document.getElementById('crashList');
       list.innerHTML = crashes.slice(-10).reverse().map(c => `🔹 ${c}x`).join('<br>');
 
-      if (crashes.length >= 5) {
-        const pred = predictNext(crashes);
-        lastPrediction = pred;
-        document.getElementById('nextPred').textContent = `${pred.toFixed(2)}x`;
-        document.getElementById('trend').textContent = pred > 3.0 ? "Alcista" : "Bajista";
+      // Analizar si debe predecir
+      const analysis = analyzeForPrediction(crashes);
+      document.getElementById('nextPred').textContent = analysis.prediction ? `${analysis.prediction.toFixed(2)}x` : "🚫";
+      document.getElementById('trend').textContent = analysis.confidence;
 
-        const signal = document.getElementById('signal');
-        if (pred >= 3.0) {
-          signal.className = 'signal signal-good';
-          signal.innerHTML = `🎯 <strong>ENTRADA: ${pred.toFixed(2)}x</strong>`;
-        } else {
-          signal.className = 'signal signal-wait';
-          signal.innerHTML = `🟡 Espera o juega bajo`;
-        }
+      const signal = document.getElementById('signal');
+
+      if (analysis.shouldPredict && analysis.prediction >= 2.0) {
+        lastPrediction = analysis.prediction;
+        signal.className = 'signal signal-good';
+        signal.innerHTML = `🎯 <strong>¡ENTRADA CLARA! ${analysis.prediction.toFixed(2)}x</strong><br>💡 Confianza: ${analysis.confidence}`;
+      } else if (analysis.zone === 'low') {
+        lastPrediction = null;
+        signal.className = 'signal signal-danger';
+        signal.innerHTML = `🔴 <strong>ZONA DE RIESGO</strong><br>Evita apostar (ráfaga de <1.70x)`;
       } else {
-        document.getElementById('nextPred').textContent = "⏳";
-        document.getElementById('trend').textContent = "-";
+        lastPrediction = null;
+        signal.className = 'signal signal-wait';
+        signal.innerHTML = `🟡 <strong>NO APOSTAR</strong><br>Espera mejor oportunidad`;
       }
 
+      // Actualizar gráfico
       chart.data.labels = crashes.map((_, i) => `#${i+1}`);
       chart.data.datasets[0].data = crashes;
       chart.data.datasets[1].data = Array(crashes.length).fill(null);
@@ -254,33 +258,75 @@
       chart.update();
     }
 
-    // 🔮 IA con pesos ajustables
-    function predictNext(data) {
+    // 🔮 Análisis avanzado con IA selectiva
+    function analyzeForPrediction(data) {
+      if (data.length < 5) return { shouldPredict: false, zone: 'neutral', confidence: 'Baja' };
+
       const last5 = data.slice(-5);
-      const n = last5.length;
+      const last3 = data.slice(-3);
+      const avg5 = last5.reduce((a,b) => a+b, 0) / 5;
+      const lowCrashes = last5.filter(c => c < 1.7).length;
+      const highCrashes = last5.filter(c => c > 2.0).length;
+      const veryHigh = last5.filter(c => c > 10.0).length;
+
+      // Detectar ZONA DE BAJOS (<1.70x)
+      if (lowCrashes >= 4) {
+        return { shouldPredict: false, zone: 'low', confidence: 'Muy Baja' };
+      }
+
+      // Detectar ZONA DE BONUS (ráfaga alta)
+      if (highCrashes >= 3 || veryHigh >= 1) {
+        const pred = predictNext(last5);
+        if (pred >= 2.5) {
+          return {
+            shouldPredict: true,
+            prediction: pred,
+            zone: 'bonus',
+            confidence: 'Alta'
+          };
+        }
+      }
+
+      // Regresión lineal para predicción
+      const pred = predictNext(last5);
+      const accuracy = getAccuracy();
+
+      // Solo predice si:
+      // - predicción > 2.0
+      // - confianza alta
+      // - no hay racha de bajos
+      if (pred >= 2.0 && accuracy > 0.4) {
+        return {
+          shouldPredict: true,
+          prediction: pred,
+          zone: 'normal',
+          confidence: accuracy > 0.6 ? 'Alta' : 'Media'
+        };
+      }
+
+      return { shouldPredict: false, zone: 'neutral', confidence: 'Media' };
+    }
+
+    // 🔮 Predicción con regresión
+    function predictNext(data) {
+      const n = data.length;
       let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
       for (let i = 0; i < n; i++) {
         sumX += i;
-        sumY += last5[i];
-        sumXY += i * last5[i];
+        sumY += data[i];
+        sumXY += i * data[i];
         sumXX += i * i;
       }
       const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
       const intercept = (sumY - slope * sumX) / n;
       let pred = slope * n + intercept;
 
-      // Ajuste con IA avanzada
+      // Ajuste inteligente
       const accuracy = getAccuracy();
-      const recentAvg = last5.reduce((a,b) => a+b, 0) / 5;
-      const volatility = Math.max(...last5) > 50 ? 0.7 : 1.0;
-
-      pred = pred * 0.6 + recentAvg * 0.4; // combinación
-      pred = pred * volatility;
-
       if (accuracy > 0.6) pred *= 1.1;
-      if (accuracy < 0.4) pred *= 0.85;
+      if (accuracy < 0.4) pred *= 0.8;
 
-      return Math.max(1.5, Math.min(15, pred));
+      return Math.max(1.8, Math.min(15, pred));
     }
 
     function addCrash() {
@@ -332,7 +378,7 @@
     }
 
     function updateAccuracyChart() {
-      const ranges = [0, 0, 0, 0]; // 1-2x, 2-3x, 3-5x, 5-10x
+      const ranges = [0, 0, 0, 0];
       const wins = predictions.filter(p => p.win);
       for (let p of wins) {
         const pred = p.prediction;
@@ -352,7 +398,7 @@
       }
     }
 
-    // 🔐 Detectar Enter en el input
+    // Enter para registrar
     document.getElementById('crashInput').addEventListener('keypress', function(e) {
       if (e.key === 'Enter') {
         addCrash();
