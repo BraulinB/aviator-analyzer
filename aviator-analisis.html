@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>📊 Aviator Analyzer - 1Win</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #121218;
+      color: #e0e0e0;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background: #1e1e2e;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 200, 255, 0.2);
+    }
+    h1 { color: #00ccff; }
+    input, button {
+      padding: 10px;
+      margin: 5px;
+      border-radius: 6px;
+      border: 1px solid #444;
+    }
+    input { width: 120px; background: #2d2d3d; color: white; }
+    button {
+      background: #00ccff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover { background: #00aadd; }
+    #crashList {
+      font-family: monospace;
+      text-align: left;
+      background: #2d2d3d;
+      padding: 15px;
+      height: 120px;
+      overflow-y: auto;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 15px 0;
+    }
+    .stat-box {
+      background: #2a2a3a;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .tip {
+      background: #2a332a;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 15px 0;
+      font-style: italic;
+      color: #aaffaa;
+      text-align: center;
+    }
+    .chart-container {
+      width: 100%;
+      height: 300px;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>🎯 Aviator Analyzer - 1Win</h1>
+    <p>Registra los crashes y obtén análisis en tiempo real</p>
+
+    <div>
+      <input type="number" id="crashInput" step="0.01" placeholder="1.50x">
+      <button onclick="addCrash()">➕ Añadir Crash</button>
+      <button onclick="clearAll()">🗑️ Limpiar Todo</button>
+    </div>
+
+    <div id="crashList"></div>
+
+    <div class="stats">
+      <div class="stat-box">Promedio (últimas 10): <span id="avg10">-</span></div>
+      <div class="stat-box">≥2x: <span id="over2">-</span></div>
+      <div class="stat-box">≥5x: <span id="over5">-</span></div>
+      <div class="stat-box">≥10x: <span id="over10">-</span></div>
+    </div>
+
+    <div class="tip" id="tip">Registra al menos 5 rondas para ver recomendaciones.</div>
+
+    <div class="chart-container">
+      <canvas id="chart"></canvas>
+    </div>
+  </div>
+
+  <script>
+    let crashes = [];
+
+    const ctx = document.getElementById('chart').getContext('2d');
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: { labels: [], datasets: [{
+        label: 'Multiplicador',
+        data: [],
+        borderColor: '#00ccff',
+        backgroundColor: 'rgba(0, 200, 255, 0.1)',
+        fill: true,
+        tension: 0.3
+      }] },
+      options: {
+        animation: { duration: 0 },
+        scales: {
+          x: { ticks: { color: '#ccc' }, grid: { color: '#444' } },
+          y: { ticks: { color: '#ccc' }, grid: { color: '#444' } }
+        },
+        plugins: { legend: { labels: { color: '#eee' } } },
+        responsive: true,
+        maintainAspectRatio: false
+      }
+    });
+
+    function updateDisplay() {
+      const list = document.getElementById('crashList');
+      list.innerHTML = crashes.slice(-20).reverse().map(c => `🔹 ${c}x`).join('<br>');
+
+      if (crashes.length === 0) return;
+
+      // Estadísticas
+      const last10 = crashes.slice(-10);
+      const avg10 = (last10.reduce((a,b) => a+b, 0) / last10.length).toFixed(2);
+      const o2 = last10.filter(c => c >= 2).length;
+      const o5 = last10.filter(c => c >= 5).length;
+      const o10 = last10.filter(c => c >= 10).length;
+
+      document.getElementById('avg10').textContent = avg10;
+      document.getElementById('over2').textContent = `${o2}/10`;
+      document.getElementById('over5').textContent = `${o5}/10`;
+      document.getElementById('over10').textContent = `${o10}/10`;
+
+      // Recomendación
+      const tip = document.getElementById('tip');
+      if (o5 >= 3) {
+        tip.textContent = "💡 ¡Racha alta! Considera jugar con estrategia 50% en 2x, 50% en 5x.";
+        tip.style.color = "#aaffaa";
+      } else if (o2 < 3) {
+        tip.textContent = "⚠️ Muchos crashes bajos. Espera o juega con apuestas mínimas.";
+        tip.style.color = "#ffaaaa";
+      } else {
+        tip.textContent = "✅ Balanceado. Buen momento para aplicar tu estrategia.";
+        tip.style.color = "#aaaaff";
+      }
+
+      // Gráfico
+      chart.data.labels = Array.from({length: crashes.length}, (_,i) => `R${i+1}`);
+      chart.data.datasets[0].data = crashes;
+      chart.update();
+    }
+
+    function addCrash() {
+      const input = document.getElementById('crashInput');
+      const value = parseFloat(input.value);
+      if (isNaN(value) || value <= 0) {
+        alert("Ingresa un número válido (ej: 1.50)");
+        return;
+      }
+      crashes.push(value);
+      input.value = '';
+      updateDisplay();
+    }
+
+    function clearAll() {
+      if (confirm("¿Limpiar todo el historial?")) {
+        crashes = [];
+        document.getElementById('crashList').innerHTML = '';
+        chart.data.labels = [];
+        chart.data.datasets[0].data = [];
+        chart.update();
+        document.getElementById('avg10').textContent = '-';
+        document.getElementById('over2').textContent = '-';
+        document.getElementById('over5').textContent = '-';
+        document.getElementById('over10').textContent = '-';
+        document.getElementById('tip').textContent = 'Registra al menos 5 rondas para ver recomendaciones.';
+      }
+    }
+
+    // Ejemplo inicial (opcional)
+    // crashes = [1.23, 4.56, 1.89, 2.34, 8.76, 1.45, 3.21, 5.67, 1.10, 6.54];
+    // updateDisplay();
+  </script>
+
+</body>
+</html>
