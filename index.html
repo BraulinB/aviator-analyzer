@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>🤖 Aviator AI Pro</title>
+  <title>🎯 Aviator AI Pro</title>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -89,7 +89,7 @@
 <body>
 
   <div class="container">
-    <h1>🤖 Aviator AI Pro</h1>
+    <h1>🎯 Aviator AI Pro</h1>
     <p>IA avanzada + análisis por rango</p>
     <div class="status" id="status">Conectando...</div>
 
@@ -181,12 +181,12 @@
     const ctx = document.getElementById('chart').getContext('2d');
     const chart = new Chart(ctx, {
       type: 'line',
-       {
+      data: {
         labels: [],
         datasets: [
           {
             label: 'Crash Real',
-             [],
+            data: [],
             borderColor: '#00ccff',
             backgroundColor: 'rgba(0, 200, 255, 0.1)',
             fill: true,
@@ -202,18 +202,25 @@
           }
         ]
       },
-      options: { responsive: true, maintainAspectRatio: false }
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { ticks: { color: '#ccc' }, grid: { color: '#444' } },
+          y: { ticks: { color: '#ccc' }, grid: { color: '#444' } }
+        }
+      }
     });
 
     // Gráfico de aciertos por rango
     const ctx2 = document.getElementById('accuracyChart').getContext('2d');
     const accuracyChart = new Chart(ctx2, {
       type: 'bar',
-       {
+      data: {
         labels: ['1-2x', '2-3x', '3-5x', '5-10x'],
         datasets: [{
           label: 'Aciertos',
-           [0, 0, 0, 0],
+          data: [0, 0, 0, 0],
           backgroundColor: ['#ff6666', '#ffcc66', '#66cc66', '#00ccff']
         }]
       },
