@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>📊 Aviator Analyzer - 1Win</title>
+  <title>📊 Aviator Analyzer - Sync</title>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
@@ -73,13 +75,19 @@
       height: 300px;
       margin: 20px 0;
     }
+    .status {
+      font-size: 12px;
+      color: #888;
+      margin-top: 5px;
+    }
   </style>
 </head>
 <body>
 
   <div class="container">
-    <h1>🎯 Aviator Analyzer - 1Win</h1>
-    <p>Registra los crashes y obtén análisis en tiempo real</p>
+    <h1>🎯 Aviator Analyzer - Sync</h1>
+    <p>Historial sincronizado con Firebase 🔗</p>
+    <div class="status" id="status">Conectando...</div>
 
     <div>
       <input type="number" id="crashInput" step="0.01" placeholder="1.50x">
@@ -96,7 +104,7 @@
       <div class="stat-box">≥10x: <span id="over10">-</span></div>
     </div>
 
-    <div class="tip" id="tip">Registra al menos 5 rondas para ver recomendaciones.</div>
+    <div class="tip" id="tip">Registra rondas para ver recomendaciones.</div>
 
     <div class="chart-container">
       <canvas id="chart"></canvas>
@@ -104,14 +112,42 @@
   </div>
 
   <script>
+    // 🔥 TU CONFIGURACIÓN DE FIREBASE (integrada)
+    const firebaseConfig = {
+      apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
+      authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
+      databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com",
+      projectId: "aviator-analyzer-b29a7",
+      storageBucket: "aviator-analyzer-b29a7.firebasestorage.app",
+      messagingSenderId: "575063626276",
+      appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
+      measurementId: "G-325QCBSQMH"
+    };
+
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database().ref('aviator-crashes');
+
     let crashes = [];
+
+    // Escuchar cambios en tiempo real
+    db.on('value', (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        crashes = Object.values(data).map(item => parseFloat(item.value));
+      } else {
+        crashes = [];
+      }
+      updateDisplay();
+      document.getElementById('status').textContent = `✅ Sincronizado | ${crashes.length} rondas`;
+    });
 
     const ctx = document.getElementById('chart').getContext('2d');
     const chart = new Chart(ctx, {
       type: 'line',
       data: { labels: [], datasets: [{
         label: 'Multiplicador',
-        data: [],
+         [],
         borderColor: '#00ccff',
         backgroundColor: 'rgba(0, 200, 255, 0.1)',
         fill: true,
@@ -135,7 +171,6 @@
 
       if (crashes.length === 0) return;
 
-      // Estadísticas
       const last10 = crashes.slice(-10);
       const avg10 = (last10.reduce((a,b) => a+b, 0) / last10.length).toFixed(2);
       const o2 = last10.filter(c => c >= 2).length;
@@ -147,7 +182,6 @@
       document.getElementById('over5').textContent = `${o5}/10`;
       document.getElementById('over10').textContent = `${o10}/10`;
 
-      // Recomendación
       const tip = document.getElementById('tip');
       if (o5 >= 3) {
         tip.textContent = "💡 ¡Racha alta! Considera jugar con estrategia 50% en 2x, 50% en 5x.";
@@ -160,7 +194,6 @@
         tip.style.color = "#aaaaff";
       }
 
-      // Gráfico
       chart.data.labels = Array.from({length: crashes.length}, (_,i) => `R${i+1}`);
       chart.data.datasets[0].data = crashes;
       chart.update();
@@ -173,29 +206,23 @@
         alert("Ingresa un número válido (ej: 1.50)");
         return;
       }
-      crashes.push(value);
+
+      const newCrash = {
+        value: value,
+        timestamp: Date.now()
+      };
+
+      db.push(newCrash);
       input.value = '';
-      updateDisplay();
+      document.getElementById('status').textContent = "Agregando...";
     }
 
     function clearAll() {
-      if (confirm("¿Limpiar todo el historial?")) {
-        crashes = [];
-        document.getElementById('crashList').innerHTML = '';
-        chart.data.labels = [];
-        chart.data.datasets[0].data = [];
-        chart.update();
-        document.getElementById('avg10').textContent = '-';
-        document.getElementById('over2').textContent = '-';
-        document.getElementById('over5').textContent = '-';
-        document.getElementById('over10').textContent = '-';
-        document.getElementById('tip').textContent = 'Registra al menos 5 rondas para ver recomendaciones.';
+      if (confirm("¿Eliminar todo el historial? Esta acción no se puede deshacer.")) {
+        db.remove();
+        document.getElementById('status').textContent = "Limpiando...";
       }
     }
-
-    // Ejemplo inicial (opcional)
-    // crashes = [1.23, 4.56, 1.89, 2.34, 8.76, 1.45, 3.21, 5.67, 1.10, 6.54];
-    // updateDisplay();
   </script>
 
 </body>
