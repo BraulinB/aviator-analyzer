@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>🎯 Aviator AI Pro</title>
+  <title>🎯 Aviator AI Pro - Manual</title>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -39,12 +39,6 @@
       font-weight: bold;
     }
     button:hover { background: #00aadd; }
-    .btn-large {
-      font-size: 18px;
-      padding: 15px;
-      margin: 10px;
-      width: 45%;
-    }
     #crashList {
       font-family: monospace;
       text-align: left;
@@ -89,23 +83,15 @@
 <body>
 
   <div class="container">
-    <h1>🎯 Aviator AI Pro</h1>
-    <p>IA avanzada + análisis por rango</p>
+    <h1>🎯 Aviator AI Pro - Manual</h1>
+    <p>Ingresa el crash exacto y presiona Enter o ➕</p>
     <div class="status" id="status">Conectando...</div>
 
-    <!-- Entrada rápida -->
+    <!-- Entrada manual -->
     <div>
-      <input type="number" id="crashInput" step="0.01" placeholder="1.50x">
+      <input type="number" id="crashInput" step="0.01" placeholder="1.50x" autofocus>
       <button onclick="addCrash()">➕ Registrar</button>
       <button onclick="clearAll()">🗑️ Limpiar</button>
-    </div>
-
-    <!-- Botones rápidos -->
-    <div>
-      <button class="btn-large" onclick="quickAdd(1.5)">1.5x</button>
-      <button class="btn-large" onclick="quickAdd(2.0)">2.0x</button>
-      <button class="btn-large" onclick="quickAdd(3.0)">3.0x</button>
-      <button class="btn-large" onclick="quickAdd(5.0)">5.0x</button>
     </div>
 
     <div id="crashList"></div>
@@ -305,10 +291,6 @@
       input.value = '';
     }
 
-    function quickAdd(value) {
-      saveCrash(value);
-    }
-
     function saveCrash(value) {
       dbCrashes.push({ value, t: Date.now() });
       if (lastPrediction !== null) {
@@ -370,13 +352,11 @@
       }
     }
 
-    // Atajos de teclado
-    document.addEventListener('keydown', (e) => {
-      if (e.key === '1') quickAdd(1.5);
-      if (e.key === '2') quickAdd(2.0);
-      if (e.key === '3') quickAdd(3.0);
-      if (e.key === '5') quickAdd(5.0);
-      if (e.key === 'Enter') addCrash();
+    // 🔐 Detectar Enter en el input
+    document.getElementById('crashInput').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        addCrash();
+      }
     });
   </script>
 </body>
