@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>📊 Aviator Analyzer - Sync</title>
+  <title>🧠 Aviator Analyzer + IA Simple</title>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -70,6 +70,22 @@
       color: #aaffaa;
       text-align: center;
     }
+    .signal {
+      padding: 15px;
+      border-radius: 8px;
+      font-weight: bold;
+      margin: 15px 0;
+    }
+    .signal-good {
+      background: #2a4a2a;
+      color: #80ff80;
+      border: 1px solid #00cc00;
+    }
+    .signal-wait {
+      background: #4a332a;
+      color: #ffcc80;
+      border: 1px solid #cc8000;
+    }
     .chart-container {
       width: 100%;
       height: 300px;
@@ -85,8 +101,8 @@
 <body>
 
   <div class="container">
-    <h1>🎯 Aviator Analyzer - Sync</h1>
-    <p>Historial sincronizado con Firebase 🔗</p>
+    <h1>🧠 Aviator Analyzer + Señales</h1>
+    <p>IA simple basada en tendencias reales 🔗 Firebase</p>
     <div class="status" id="status">Conectando...</div>
 
     <div>
@@ -104,7 +120,10 @@
       <div class="stat-box">≥10x: <span id="over10">-</span></div>
     </div>
 
-    <div class="tip" id="tip">Registra rondas para ver recomendaciones.</div>
+    <!-- 🔮 SEÑAL DE ENTRADA -->
+    <div id="signal" class="signal signal-wait">Analizando datos...</div>
+
+    <div class="tip" id="tip">Registra al menos 10 rondas para señales precisas.</div>
 
     <div class="chart-container">
       <canvas id="chart"></canvas>
@@ -112,7 +131,7 @@
   </div>
 
   <script>
-    // 🔥 TU CONFIGURACIÓN DE FIREBASE (integrada)
+    // 🔥 TU CONFIGURACIÓN DE FIREBASE
     const firebaseConfig = {
       apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
       authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
@@ -124,13 +143,11 @@
       measurementId: "G-325QCBSQMH"
     };
 
-    // Inicializar Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database().ref('aviator-crashes');
 
     let crashes = [];
 
-    // Escuchar cambios en tiempo real
     db.on('value', (snapshot) => {
       const data = snapshot.val();
       if (data) {
@@ -182,21 +199,46 @@
       document.getElementById('over5').textContent = `${o5}/10`;
       document.getElementById('over10').textContent = `${o10}/10`;
 
-      const tip = document.getElementById('tip');
-      if (o5 >= 3) {
-        tip.textContent = "💡 ¡Racha alta! Considera jugar con estrategia 50% en 2x, 50% en 5x.";
-        tip.style.color = "#aaffaa";
-      } else if (o2 < 3) {
-        tip.textContent = "⚠️ Muchos crashes bajos. Espera o juega con apuestas mínimas.";
-        tip.style.color = "#ffaaaa";
-      } else {
-        tip.textContent = "✅ Balanceado. Buen momento para aplicar tu estrategia.";
-        tip.style.color = "#aaaaff";
-      }
+      // 🔮 Generar señal
+      generateSignal(last10, o2, o5);
 
       chart.data.labels = Array.from({length: crashes.length}, (_,i) => `R${i+1}`);
       chart.data.datasets[0].data = crashes;
       chart.update();
+    }
+
+    function generateSignal(last10, o2, o5) {
+      const signalDiv = document.getElementById('signal');
+      const tip = document.getElementById('tip');
+
+      if (last10.length < 5) {
+        signalDiv.className = 'signal signal-wait';
+        signalDiv.textContent = "🔍 Esperando más datos...";
+        tip.textContent = "Registra al menos 5 rondas para análisis.";
+        return;
+      }
+
+      // Calcular probabilidades estimadas
+      const p_2x = o2 / 10;
+      const p_5x = o5 / 10;
+
+      // Modelo simple de decisión
+      if (p_5x >= 0.3 || (p_5x >= 0.2 && p_2x >= 0.6)) {
+        signalDiv.className = 'signal signal-good';
+        signalDiv.innerHTML = "🟢 <strong>¡ENTRADA RECOMENDADA!</strong><br>🔍 Alta probabilidad de 2x y 5x";
+        tip.textContent = "💡 Estrategia sugerida: Apuesta → 50% en 2x, 50% en 5x";
+        tip.style.color = "#aaffaa";
+      } else if (p_2x < 0.4) {
+        signalDiv.className = 'signal signal-wait';
+        signalDiv.innerHTML = "🔴 <strong>NO RECOMENDADO</strong><br>📉 Muchos crashes bajos";
+        tip.textContent = "⚠️ Espera a que mejoren los patrones.";
+        tip.style.color = "#ffaaaa";
+      } else {
+        signalDiv.className = 'signal signal-wait';
+        signalDiv.innerHTML = "🟡 <strong>NEUTRAL</strong><br>📊 Juega con apuesta mínima";
+        tip.textContent = "Balanceado. Puedes probar con riesgo bajo.";
+        tip.style.color = "#aaaaff";
+      }
     }
 
     function addCrash() {
