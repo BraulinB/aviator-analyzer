@@ -1,232 +1,289 @@
 <!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Aviator Assistant — OCR 60 + Firebase (estático)</title>
-    <style>
-      :root { color-scheme: light dark; }
-      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 24px; }
-      header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-      h1 { font-size: 20px; margin: 0; }
-      .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
-      .muted { color: #666; font-size: 12px; }
-      .list { max-height: 220px; overflow: auto; border: 1px dashed #ccc; padding: 8px; border-radius: 8px; }
-      textarea { width: 100%; min-height: 140px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-      input[type="file"] { padding: 6px 0; }
-      button { padding: 8px 12px; border-radius: 8px; border: 1px solid #ccc; background: #f5f5f5; cursor: pointer; }
-      button:disabled { opacity: .6; cursor: not-allowed; }
-      select { padding: 8px; border-radius: 8px; border: 1px solid #ccc; width: 100%; }
-      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-      @media (max-width: 900px) { .row { grid-template-columns: 1fr; } }
-      .status { font-size: 12px; padding: 4px 8px; border-radius: 999px; display: inline-block; }
-      .ok { background: #e6ffed; color: #0a5; border: 1px solid #0a5; }
-      .warn { background: #fff7e6; color: #a50; border: 1px solid #a50; }
-      .error { background: #ffe6e6; color: #a00; border: 1px solid #a00; }
-      code { background: rgba(0,0,0,0.06); padding: 2px 6px; border-radius: 6px; }
-      footer { margin-top: 24px; font-size: 12px; color: #666; }
-    </style>
-  </head>
-  <body>
-    <header>
-      <div>🧠</div>
-      <div>
-        <h1>Aviator Assistant — OCR 60 + Firebase</h1>
-        <div class="muted">Educativo: no predice resultados ni garantiza ganancias. Respeta Términos de uso.</div>
-      </div>
-    </header>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🎯 Aviator AI - Inteligente</title>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #121218;
+      color: #e0e0e0;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background: #1e1e2e;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 200, 255, 0.2);
+    }
+    h1 { color: #00ccff; }
+    input, button {
+      padding: 10px;
+      margin: 5px;
+      border-radius: 6px;
+      border: 1px solid #444;
+    }
+    input {
+      width: 120px;
+      background: #2d2d3d;
+      color: white;
+    }
+    button {
+      background: #00ccff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover { background: #00aadd; }
+    #crashList {
+      font-family: monospace;
+      text-align: left;
+      background: #2d2d3d;
+      padding: 15px;
+      height: 100px;
+      overflow-y: auto;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 15px 0;
+    }
+    .stat-box {
+      background: #2a2a3a;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .signal {
+      padding: 20px;
+      border-radius: 10px;
+      font-weight: bold;
+      margin: 15px 0;
+      text-align: center;
+      font-size: 18px;
+    }
+    .signal-good { background: #2a4a2a; color: #80ff80; }
+    .signal-wait { background: #4a332a; color: #ffcc80; }
+    .signal-danger { background: #331a1a; color: #ff6666; }
+    .chart-container {
+      width: 100%;
+      height: 300px;
+      margin: 20px 0;
+    }
+    .status { font-size: 12px; color: #888; }
+  </style>
+</head>
+<body>
 
-    <div id="app"></div>
+  <div class="container">
+    <h1>🎯 Aviator AI - Inteligente</h1>
+    <p>IA selectiva: solo predice cuando hay alta probabilidad</p>
+    <div class="status" id="status">Conectando...</div>
 
-    <!-- React / ReactDOM -->
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    <!-- Babel (para JSX inline) -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <div>
+      <input type="number" id="crashInput" step="0.01" placeholder="1.50x" autofocus>
+      <button onclick="addCrash()">➕ Registrar</button>
+      <button onclick="clearAll()">🗑️ Limpiar</button>
+    </div>
 
-    <!-- Firebase compat SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+    <div id="crashList"></div>
 
-    <!-- Tesseract.js -->
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+    <div class="stats">
+      <div class="stat-box">Predicción: <span id="nextPred">⏳</span></div>
+      <div class="stat-box">Aciertos: <span id="accuracy">-</span></div>
+      <div class="stat-box">Última: <span id="lastPred">-</span></div>
+      <div class="stat-box">Confianza: <span id="trend">-</span></div>
+    </div>
 
-    <script type="text/babel">
-      const { useState, useEffect, useMemo } = React;
+    <div id="signal" class="signal signal-wait">Analizando datos...</div>
 
-      // --- Config Firebase (tuya, incrustada)
-      const firebaseConfig = {
-        apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
-        authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
-        databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com",
-        projectId: "aviator-analyzer-b29a7",
-        storageBucket: "aviator-analyzer-b29a7.firebasestorage.app",
-        messagingSenderId: "575063626276",
-        appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
-        measurementId: "G-325QCBSQMH",
-      };
+    <div class="chart-container">
+      <canvas id="chart"></canvas>
+    </div>
+  </div>
 
-      // --- Helpers
-      const parseMultipliers = (text) => {
-        const now = Date.now();
-        return text
-          .split(/[ ,\\n\\t]+/)
-          .map((x) => x.trim())
-          .filter(Boolean)
-          .map((x) => parseFloat(x.replace(/x/i, "")))
-          .filter((n) => !isNaN(n) && n > 0)
-          .map((m, i) => ({ id: `${now}-manual-${i}`, multiplier: m, at: now + i }));
-      };
+  <script>
+    // ✅ TU CONFIGURACIÓN DE FIREBASE
+    const firebaseConfig = {
+      apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
+      authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
+      databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com",
+      projectId: "aviator-analyzer-b29a7",
+      storageBucket: "aviator-analyzer-b29a7.firebasestorage.app",
+      messagingSenderId: "575063626276",
+      appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
+      measurementId: "G-325QCBSQMH"
+    };
 
-      const extractFromImage = async (file) => {
-        const { data } = await Tesseract.recognize(file, "eng");
-        const raw = (data.text || "").replace(/[,;\\n]+/g, " ");
-        const matches = raw.match(/\\d+(?:\\.\\d+)?x?|x\\d+(?:\\.\\d+)?/gi) || [];
-        const now = Date.now();
-        const nums = matches
-          .map((m) => parseFloat(m.toLowerCase().replace(/^x|x$/g, "")))
-          .filter((n) => !isNaN(n) && n > 0);
-        const take = nums.slice(-60);
-        return take.map((m, i) => ({ id: `${now}-img-${i}`, multiplier: m, at: now + i }));
-      };
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+    const dbCrashes = firebase.database().ref('crashes');
+    const dbPredictions = firebase.database().ref('predictions');
 
-      function App() {
-        const [status, setStatus] = useState({ kind: "warn", text: "Sin conexión" });
-        const [uid, setUid] = useState(null);
-        const [text, setText] = useState("");
-        const [seedRounds, setSeedRounds] = useState([]);
-        const [batches, setBatches] = useState([]);
-        const [selectedBatch, setSelectedBatch] = useState("");
+    let crashes = [];
+    let predictions = [];
+    let lastPrediction = null;
 
-        // init Firebase + auth anónimo + listener batches
-        useEffect(() => {
-          try {
-            if (firebase.apps.length === 0) firebase.initializeApp(firebaseConfig);
-            const auth = firebase.auth();
-            const unsub = auth.onAuthStateChanged(async (user) => {
-              if (user) {
-                setUid(user.uid);
-                setStatus({ kind: "ok", text: `Conectado (UID: ${user.uid.slice(0,6)}…)` });
-                const db = firebase.firestore();
-                db.collection("seeds").doc(user.uid).collection("batches")
-                  .orderBy("createdAt", "desc").onSnapshot((snap) => {
-                    const arr = snap.docs.map((d) => {
-                      const data = d.data();
-                      return {
-                        id: d.id,
-                        count: data.count || (data.items ? data.items.length : 0),
-                        createdAt: data.createdAt && data.createdAt.toDate ? data.createdAt.toDate().toISOString() : null,
-                      };
-                    });
-                    setBatches(arr);
-                  });
-              } else {
-                await auth.signInAnonymously();
-              }
-            });
-            return () => unsub && unsub();
-          } catch (e) {
-            console.error(e);
-            setStatus({ kind: "error", text: "Error iniciando Firebase" });
-          }
-        }, []);
+    // Escuchar crashes
+    dbCrashes.on('value', (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        crashes = Object.values(data).map(item => parseFloat(item.value));
+      } else {
+        crashes = [];
+      }
+      updateUI();
+      document.getElementById('status').textContent = `✅ ${crashes.length} rondas`;
+    });
 
-        const saveManual = async () => {
-          if (!uid) return;
-          const items = parseMultipliers(text).map((r) => ({ m: r.multiplier, at: r.at }));
-          if (items.length === 0) return;
-          const db = firebase.firestore();
-          await db.collection("signals").doc(uid).collection("manual").add({
-            items,
-            count: items.length,
-            savedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            source: "manual-text",
-          });
-          alert("Guardado manual en Firebase");
-        };
+    // Escuchar predicciones
+    dbPredictions.on('value', (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        predictions = Object.values(data);
+      } else {
+        predictions = [];
+      }
+      updateStats();
+    });
 
-        const handleSeedImage = async (file) => {
-          if (!file || !uid) return;
-          const parsed = await extractFromImage(file);
-          setSeedRounds(parsed);
-          const db = firebase.firestore();
-          const ref = await db.collection("seeds").doc(uid).collection("batches").add({
-            items: parsed.map((r) => ({ m: r.multiplier, at: r.at })),
-            count: parsed.length,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            source: "image-ocr",
-          });
-          setSelectedBatch(ref.id);
-          alert("Semilla OCR guardada en Firebase");
-        };
+    // Gráfico
+    const ctx = document.getElementById('chart').getContext('2d');
+    const chart = new Chart(ctx, {
+      type: 'line',
+       {
+        labels: [],
+        datasets: [{
+          label: 'Crash Real',
+           [],
+          borderColor: '#00ccff',
+          backgroundColor: 'rgba(0, 200, 255, 0.1)',
+          fill: true,
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { ticks: { color: '#ccc' }, grid: { color: '#444' } },
+          y: { ticks: { color: '#ccc' }, grid: { color: '#444' } }
+        }
+      }
+    });
 
-        const loadBatch = async (batchId) => {
-          if (!batchId || !uid) return;
-          const db = firebase.firestore();
-          const snap = await db.collection("seeds").doc(uid).collection("batches").doc(batchId).get();
-          if (!snap.exists) return;
-          const data = snap.data();
-          const now = Date.now();
-          const parsed = (data.items || []).map((it, i) => ({
-            id: `${now}-batch-${batchId}-${i}`,
-            multiplier: Number(it.m),
-            at: Number(it.at || now + i),
-          }));
-          setSeedRounds(parsed);
-        };
+    function updateUI() {
+      // Lista de crashes
+      const list = document.getElementById('crashList');
+      list.innerHTML = crashes.slice(-10).reverse().map(c => `🔹 ${c}x`).join('<br>');
 
-        return (
-          <div>
-            <div className="card">
-              <div>Estado: <span className={"status " + (status.kind === "ok" ? "ok" : status.kind === "warn" ? "warn" : "error")}>{status.text}</span></div>
-              <div className="muted">Colecciones: <code>seeds/{uid || "…"}/batches</code> · <code>signals/{uid || "…"}/manual</code></div>
-            </div>
+      // Analizar si debe predecir
+      const analysis = analyzeForPrediction(crashes);
+      document.getElementById('nextPred').textContent = analysis.prediction ? `${analysis.prediction.toFixed(2)}x` : "🚫";
+      document.getElementById('trend').textContent = analysis.confidence;
 
-            <div className="card">
-              <h3>Imagen 60 (OCR)</h3>
-              <div className="row">
-                <div>
-                  <input type="file" accept="image/*" onChange={(e) => handleSeedImage(e.target.files?.[0])} />
-                  <div className="muted">Carga una captura con las últimas 60 rondas.</div>
-                  <div className="muted">Extraídas: {seedRounds.length}</div>
-                  <div className="list">
-                    {seedRounds.slice(0, 60).map((r, i) => (<div key={r.id}>{i+1}. {r.multiplier}x</div>))}
-                  </div>
-                </div>
-                <div>
-                  <label>Versiones guardadas</label>
-                  <select value={selectedBatch} onChange={(e) => { setSelectedBatch(e.target.value); loadBatch(e.target.value); }}>
-                    <option value="">-- Elegir batch --</option>
-                    {batches.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.id.slice(0,6)}… — {b.count} ítems {b.createdAt ? `(${new Date(b.createdAt).toLocaleString()})` : ""}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="muted">Cargar un batch reemplaza la semilla actual.</div>
-                </div>
-              </div>
-            </div>
+      const signal = document.getElementById('signal');
 
-            <div className="card">
-              <h3>Datos manuales</h3>
-              <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Ej: 1.23 5.67 0.98 12.4 2 1.5 100.3 1000.0" />
-              <div style={{marginTop: 8}}>
-                <button onClick={saveManual} disabled={!uid}>Guardar manual en Firebase</button>
-              </div>
-            </div>
-
-            <footer>
-              • No genera predicciones: sólo almacena/analiza datos. Respeta los Términos del servicio.<br/>
-              • Puedes subir este archivo como GitHub Pages (root) y funcionará.
-            </footer>
-          </div>
-        );
+      if (analysis.shouldPredict && analysis.prediction >= 2.0) {
+        lastPrediction = analysis.prediction;
+        signal.className = 'signal signal-good';
+        signal.innerHTML = `🎯 ¡ENTRADA! ${analysis.prediction.toFixed(2)}x`;
+      } else if (analysis.zone === 'low') {
+        lastPrediction = null;
+        signal.className = 'signal signal-danger';
+        signal.innerHTML = `🔴 Zona de riesgo: muchos <1.70x`;
+      } else {
+        lastPrediction = null;
+        signal.className = 'signal signal-wait';
+        signal.innerHTML = `🟡 Espera mejor momento`;
       }
 
-      const root = ReactDOM.createRoot(document.getElementById("app"));
-      root.render(<App />);
-    </script>
-  </body>
+      // Actualizar gráfico
+      chart.data.labels = crashes.map((_, i) => `#${i+1}`);
+      chart.data.datasets[0].data = crashes;
+      chart.update();
+    }
+
+    function analyzeForPrediction(data) {
+      if (data.length < 5) return { shouldPredict: false, zone: 'neutral', confidence: 'Baja' };
+
+      const last5 = data.slice(-5);
+      const lowCrashes = last5.filter(c => c < 1.7).length;
+      const highCrashes = last5.filter(c => c > 2.0).length;
+
+      // Zona de riesgo: muchos crashes bajos
+      if (lowCrashes >= 4) {
+        return { shouldPredict: false, zone: 'low', confidence: 'Muy Baja' };
+      }
+
+      // Calcular predicción con promedio móvil ponderado
+      const avg = (last5[4]*3 + last5[3]*2 + last5[2]) / 6;
+      const prediction = avg > 1.8 ? avg : 0;
+
+      // Solo predecir si hay tendencia clara
+      if (prediction >= 2.0 && highCrashes >= 2) {
+        const confidence = getAccuracy() > 0.5 ? 'Alta' : 'Media';
+        return { shouldPredict: true, prediction, zone: 'bonus', confidence };
+      }
+
+      return { shouldPredict: false, zone: 'neutral', confidence: 'Media' };
+    }
+
+    function addCrash() {
+      const input = document.getElementById('crashInput');
+      const value = parseFloat(input.value);
+      if (isNaN(value) || value <= 0) return alert("Ingresa un valor válido");
+
+      // Guardar crash
+      dbCrashes.push({ value: value, t: Date.now() });
+
+      // Si hay predicción activa, registrar resultado
+      if (lastPrediction !== null) {
+        const win = value >= lastPrediction;
+        dbPredictions.push({ prediction: lastPrediction, actual: value, win: win });
+        lastPrediction = null;
+      }
+
+      input.value = '';
+    }
+
+    function getAccuracy() {
+      if (predictions.length === 0) return 0;
+      const wins = predictions.filter(p => p.win).length;
+      return wins / predictions.length;
+    }
+
+    function updateStats() {
+      const accuracy = getAccuracy();
+      document.getElementById('accuracy').textContent = predictions.length > 0 ? `${(accuracy * 100).toFixed(1)}%` : "-";
+      document.getElementById('lastPred').textContent = predictions.length > 0 ? 
+        predictions[predictions.length-1].prediction.toFixed(2) + "x" : "-";
+    }
+
+    function clearAll() {
+      if (confirm("¿Limpiar todo?")) {
+        dbCrashes.remove();
+        dbPredictions.remove();
+      }
+    }
+
+    // Presionar Enter para registrar
+    document.getElementById('crashInput').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') addCrash();
+    });
+  </script>
+</body>
 </html>
