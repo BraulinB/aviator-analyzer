@@ -3,10 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bot Predictor Aviator 1Win - Con Análisis Avanzado</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.0.2/tesseract.min.js"></script>
+    <title>Analizador y Predictor para Aviator 1Win</title>
     <style>
         :root {
             --primary-color: #1e3a72;
@@ -188,11 +185,6 @@
             font-size: 1rem;
         }
         
-        textarea {
-            min-height: 100px;
-            resize: vertical;
-        }
-        
         .prediction {
             text-align: center;
             padding: 30px;
@@ -246,57 +238,26 @@
             font-size: 1.1rem;
         }
         
-        .settings-panel {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
+        .manual-input {
+            margin-top: 20px;
         }
         
-        .firebase-status {
-            padding: 12px;
-            border-radius: 6px;
-            margin-top: 15px;
-            text-align: center;
-            font-weight: bold;
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
         }
         
-        .connected {
-            background-color: rgba(46, 204, 113, 0.2);
-            color: var(--success-color);
+        .input-group input {
+            flex: 1;
+        }
+        
+        .analysis-result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: rgba(46, 204, 113, 0.1);
             border: 1px solid var(--success-color);
-        }
-        
-        .disconnected {
-            background-color: rgba(231, 76, 60, 0.2);
-            color: var(--accent-color);
-            border: 1px solid var(--accent-color);
-        }
-        
-        .live-indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            background-color: var(--accent-color);
-            border-radius: 50%;
-            margin-right: 8px;
-            animation: pulse 1.5s infinite;
-        }
-        
-        @keyframes pulse {
-            0% {
-                transform: scale(0.95);
-                box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7);
-            }
-            
-            70% {
-                transform: scale(1);
-                box-shadow: 0 0 0 10px rgba(231, 76, 60, 0);
-            }
-            
-            100% {
-                transform: scale(0.95);
-                box-shadow: 0 0 0 0 rgba(231, 76, 60, 0);
-            }
         }
         
         .pattern-detection {
@@ -339,64 +300,6 @@
             font-size: 1.2rem;
         }
         
-        .upload-area {
-            border: 2px dashed var(--secondary-color);
-            border-radius: 8px;
-            padding: 25px;
-            text-align: center;
-            margin-bottom: 20px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .upload-area:hover {
-            background-color: rgba(52, 152, 219, 0.1);
-        }
-        
-        .upload-icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
-            color: var(--secondary-color);
-        }
-        
-        .analysis-result {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 8px;
-            background-color: rgba(46, 204, 113, 0.1);
-            border: 1px solid var(--success-color);
-        }
-        
-        .manual-input {
-            margin-top: 20px;
-        }
-        
-        .input-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 10px;
-            margin-top: 10px;
-        }
-        
-        .input-grid input {
-            text-align: center;
-        }
-        
-        .learning-progress {
-            height: 10px;
-            background-color: #2d3748;
-            border-radius: 5px;
-            margin-top: 10px;
-            overflow: hidden;
-        }
-        
-        .progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, var(--secondary-color), var(--success-color));
-            border-radius: 5px;
-            width: 75%;
-        }
-        
         .recommendation {
             background: linear-gradient(135deg, #ff7e5f, #feb47b);
             padding: 15px;
@@ -406,133 +309,95 @@
             font-weight: bold;
         }
         
-        .tabs {
-            display: flex;
-            margin-bottom: 20px;
-            border-bottom: 1px solid var(--border-color);
+        .signal-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background-color: var(--accent-color);
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 1.5s infinite;
         }
         
-        .tab {
-            padding: 10px 20px;
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s;
+        @keyframes pulse {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7);
+            }
+            
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 10px rgba(231, 76, 60, 0);
+            }
+            
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(231, 76, 60, 0);
+            }
         }
         
-        .tab.active {
-            border-bottom: 3px solid var(--secondary-color);
-            color: var(--secondary-color);
+        .confidence-bar {
+            height: 10px;
+            background-color: #2d3748;
+            border-radius: 5px;
+            margin-top: 10px;
+            overflow: hidden;
         }
         
-        .tab-content {
-            display: none;
+        .confidence-level {
+            height: 100%;
+            background: linear-gradient(90deg, var(--secondary-color), var(--success-color));
+            border-radius: 5px;
+            width: 80%;
         }
         
-        .tab-content.active {
-            display: block;
+        .reset-btn {
+            background-color: #6c757d;
+        }
+        
+        .reset-btn:hover {
+            background-color: #5a6268;
         }
     </style>
 </head>
 <body>
     <header>
-        <h1>Bot Predictor Aviator 1Win</h1>
-        <p>Análisis avanzado de patrones con aprendizaje automático <span class="live-indicator"></span> EN VIVO</p>
+        <h1>Analizador y Predictor para Aviator 1Win</h1>
+        <p>Ingresa los resultados manualmente para obtener predicciones en tiempo real <span class="signal-indicator"></span></p>
     </header>
     
     <div class="container">
         <div class="prediction">
             <h2>PRÓXIMA PREDICCIÓN</h2>
-            <div class="prediction-value">5.0x</div>
-            <p>Probabilidad de acierto: <strong>78%</strong></p>
-            <p>Tiempo restante: <strong id="countdown">15</strong> segundos</p>
-            <div class="recommendation">
-                RECOMENDACIÓN: APUESTA A 3x - 5x EN LOS PRÓXIMOS 30 SEGUNDOS
+            <div class="prediction-value">-</div>
+            <p>Confianza: <strong id="confidence">0%</strong></p>
+            <div class="confidence-bar">
+                <div class="confidence-level" id="confidenceBar"></div>
             </div>
-        </div>
-        
-        <div class="tabs">
-            <div class="tab active" data-tab="config">Configuración</div>
-            <div class="tab" data-tab="analysis">Análisis de Imágenes</div>
-            <div class="tab" data-tab="manual">Ingreso Manual</div>
+            <div id="recommendation" class="recommendation" style="display: none;">
+                ESPERANDO DATOS SUFICIENTES PARA PREDECIR
+            </div>
         </div>
         
         <div class="dashboard">
-            <div class="card tab-content active" id="config-tab">
-                <h2>Configuración del Bot</h2>
-                <div class="form-group">
-                    <label for="multiplier">Multiplicador objetivo</label>
-                    <input type="number" id="multiplier" value="5.0" step="0.1" min="1.1" max="100">
+            <div class="card">
+                <h2>Ingreso Manual de Resultados</h2>
+                <p>Ingresa el multiplicador de cada ronda para analizar patrones</p>
+                
+                <div class="input-group">
+                    <input type="number" id="roundInput" placeholder="Multiplicador (ej: 2.5)" step="0.01" min="0">
+                    <button class="btn btn-success" id="addRound">Agregar</button>
                 </div>
                 
-                <div class="form-group">
-                    <label for="strategy">Estrategia de apuesta</label>
-                    <select id="strategy">
-                        <option value="martingala">Martingala</option>
-                        <option value="fibonacci">Fibonacci</option>
-                        <option value="dalambert">D'Alembert</option>
-                        <option value="fixed" selected>Monto fijo</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="initialBet">Apuesta inicial ($)</label>
-                    <input type="number" id="initialBet" value="1.00" step="0.01" min="0.1" max="1000">
-                </div>
-                
-                <div class="form-group">
-                    <label for="autoBet">Apuesta automática</label>
-                    <select id="autoBet">
-                        <option value="true" selected>Activada</option>
-                        <option value="false">Desactivada</option>
-                    </select>
-                </div>
-                
-                <button class="btn btn-success" id="startBot">Iniciar Bot</button>
-                <button class="btn btn-danger" id="stopBot">Detener Bot</button>
-                
-                <div class="learning-progress">
-                    <div class="progress-bar" id="learningProgress"></div>
-                </div>
-                <div class="last-updated">Nivel de aprendizaje: 75%</div>
-                
-                <div class="firebase-status connected" id="firebaseStatus">Estado Firebase: Conectado</div>
-            </div>
-            
-            <div class="card tab-content" id="analysis-tab">
-                <h2>Análisis de Capturas de Pantalla</h2>
-                <p>Sube una captura de pantalla de las últimas 60 rondas para analizar patrones</p>
-                
-                <div class="upload-area" id="dropArea">
-                    <div class="upload-icon">📷</div>
-                    <p>Haz clic o arrastra una imagen aquí</p>
-                    <input type="file" id="imageUpload" accept="image/*" style="display: none;">
+                <div class="input-group">
+                    <button class="btn reset-btn" id="resetData">Reiniciar Datos</button>
                 </div>
                 
                 <div class="analysis-result" id="analysisResult" style="display: none;">
                     <h3>Resultados del Análisis</h3>
-                    <p>Se detectaron <strong>45 rondas</strong> en la imagen</p>
-                    <p>Precisión de OCR: <strong>92%</strong></p>
-                    <p>Patrones identificados: <strong>3 patrones significativos</strong></p>
-                    <button class="btn" id="useAnalysis">Usar estos datos para predicciones</button>
-                </div>
-            </div>
-            
-            <div class="card tab-content" id="manual-tab">
-                <h2>Ingreso Manual de Resultados</h2>
-                <p>Ingresa los multiplicadores de las rondas recientes (separados por comas)</p>
-                
-                <div class="form-group">
-                    <label for="manualInput">Multiplicadores (ej: 1.5, 2.3, 0, 5.6, 10.2)</label>
-                    <textarea id="manualInput" placeholder="Ingresa los valores separados por comas..."></textarea>
-                </div>
-                
-                <button class="btn" id="processManual">Procesar Datos</button>
-                
-                <div class="analysis-result" id="manualResult" style="display: none;">
-                    <h3>Resultados del Análisis Manual</h3>
-                    <p>Se procesaron <strong id="processedCount">0</strong> rondas</p>
-                    <p>Precisión mejorada en: <strong>5%</strong></p>
-                    <button class="btn" id="useManual">Usar estos datos para predicciones</button>
+                    <p>Rondas analizadas: <strong id="roundsCount">0</strong></p>
+                    <p>Precisión del modelo: <strong id="modelAccuracy">0%</strong></p>
+                    <p>Patrones identificados: <strong id="patternsCount">0</strong></p>
                 </div>
             </div>
             
@@ -544,24 +409,22 @@
                 <div class="stats">
                     <div class="stat-item">
                         <h3>Rondas analizadas</h3>
-                        <div class="stat-value" id="roundsAnalyzed">152</div>
+                        <div class="stat-value" id="roundsAnalyzed">0</div>
                     </div>
                     <div class="stat-item">
-                        <h3>Precisión 5x</h3>
-                        <div class="stat-value" id="accuracy5x">78%</div>
+                        <h3>Precisión 3x+</h3>
+                        <div class="stat-value" id="accuracy3x">0%</div>
                     </div>
                     <div class="stat-item">
-                        <h3>Ganancia total</h3>
-                        <div class="stat-value" id="totalProfit">+42.5€</div>
+                        <h3>Señales acertadas</h3>
+                        <div class="stat-value" id="correctSignals">0</div>
                     </div>
                 </div>
                 
                 <div class="pattern-detection">
                     <h3>Patrones detectados</h3>
                     <div id="patternsList">
-                        <div class="pattern-item">Secuencia de 10x cada 15-20 rondas</div>
-                        <div class="pattern-item">Mayor frecuencia de 5x entre las rondas 20-35</div>
-                        <div class="pattern-item">Múltiplos de 100x cada 45-50 rondas</div>
+                        <div class="pattern-item">Esperando datos suficientes...</div>
                     </div>
                 </div>
                 
@@ -571,314 +434,289 @@
                 </div>
                 <div class="history" id="historyContainer">
                     <div class="history-item">
-                        <span>Ronda #1052</span>
-                        <span class="history-multiplier high-multiplier">124.6x</span>
-                    </div>
-                    <div class="history-item">
-                        <span>Ronda #1051</span>
-                        <span class="history-multiplier low-multiplier">1.8x</span>
-                    </div>
-                    <div class="history-item">
-                        <span>Ronda #1050</span>
-                        <span class="history-multiplier low-multiplier">3.2x</span>
-                    </div>
-                    <div class="history-item">
-                        <span>Ronda #1049</span>
-                        <span class="history-multiplier medium-multiplier">12.5x</span>
-                    </div>
-                    <div class="history-item">
-                        <span>Ronda #1048</span>
-                        <span class="history-multiplier low-multiplier">2.1x</span>
+                        <span>No hay datos aún</span>
+                        <span class="history-multiplier">-</span>
                     </div>
                 </div>
-                <div class="last-updated" id="lastUpdated">Actualizado hace 5 segundos</div>
+                <div class="last-updated" id="lastUpdated">Esperando datos...</div>
             </div>
         </div>
         
         <div class="card">
-            <h2>Configuración de Firebase</h2>
-            <div class="settings-panel">
-                <div class="form-group">
-                    <label for="apiKey">API Key</label>
-                    <input type="text" id="apiKey" value="AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs">
-                </div>
-                <div class="form-group">
-                    <label for="projectId">Project ID</label>
-                    <input type="text" id="projectId" value="aviator-analyzer-b29a7">
-                </div>
+            <h2>Análisis de Tendencia</h2>
+            <div id="trendAnalysis">
+                <p>Ingresa al menos 5 rondas para comenzar el análisis de tendencia.</p>
             </div>
-            <button class="btn" id="connectFirebase">Conectar con Firebase</button>
         </div>
     </div>
 
     <script>
-        // Configuración de Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
-            authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
-            databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com",
-            projectId: "aviator-analyzer-b29a7",
-            storageBucket: "aviator-analyzer-b29a7.firebasestorage.app",
-            messagingSenderId: "575063626276",
-            appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
-            measurementId: "G-325QCBSQMH"
-        };
-        
         // Variables globales
-        let app;
-        let database;
-        let dbRef;
-        let simulationInterval;
-        let countdownInterval;
-        let currentCountdown = 15;
+        let roundsData = [];
+        let roundNumber = 1;
+        let correctPredictions = 0;
+        let totalPredictions = 0;
         let lastUpdateTime = new Date();
-        let learningLevel = 75;
         
         // Inicializar la aplicación
         document.addEventListener('DOMContentLoaded', function() {
-            // Configurar pestañas
-            setupTabs();
-            
-            // Configurar carga de imágenes
-            setupImageUpload();
-            
-            // Iniciar la simulación de datos en vivo
-            startLiveDataSimulation();
+            // Cargar datos guardados si existen
+            loadSavedData();
             
             // Configurar eventos de botones
-            document.getElementById('connectFirebase').addEventListener('click', connectToFirebase);
-            document.getElementById('startBot').addEventListener('click', startBot);
-            document.getElementById('stopBot').addEventListener('click', stopBot);
+            document.getElementById('addRound').addEventListener('click', addRound);
+            document.getElementById('resetData').addEventListener('click', resetData);
             document.getElementById('refreshStats').addEventListener('click', refreshStats);
             document.getElementById('refreshHistory').addEventListener('click', refreshHistory);
-            document.getElementById('processManual').addEventListener('click', processManualInput);
-            document.getElementById('useAnalysis').addEventListener('click', useAnalysisData);
-            document.getElementById('useManual').addEventListener('click', useManualData);
             
-            // Iniciar cuenta regresiva
-            startCountdown();
+            // Permitir agregar con Enter
+            document.getElementById('roundInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    addRound();
+                }
+            });
             
-            // Actualizar barra de progreso de aprendizaje
-            updateLearningProgress();
+            // Actualizar la interfaz
+            updateUI();
         });
         
-        // Configurar el sistema de pestañas
-        function setupTabs() {
-            const tabs = document.querySelectorAll('.tab');
-            tabs.forEach(tab => {
-                tab.addEventListener('click', () => {
-                    // Desactivar todas las pestañas
-                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                    
-                    // Activar la pestaña seleccionada
-                    tab.classList.add('active');
-                    document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
-                });
+        // Función para agregar una ronda
+        function addRound() {
+            const input = document.getElementById('roundInput');
+            const value = parseFloat(input.value);
+            
+            if (isNaN(value) || value < 0) {
+                alert('Por favor ingresa un valor válido (número mayor o igual a 0)');
+                return;
+            }
+            
+            // Agregar a los datos
+            roundsData.push({
+                round: roundNumber,
+                multiplier: value,
+                timestamp: new Date()
             });
+            
+            // Realizar análisis
+            analyzeData();
+            
+            // Predecir siguiente ronda
+            predictNextRound();
+            
+            // Incrementar contador
+            roundNumber++;
+            
+            // Limpiar input
+            input.value = '';
+            input.focus();
+            
+            // Guardar datos
+            saveData();
+            
+            // Actualizar UI
+            updateUI();
         }
         
-        // Configurar la carga de imágenes
-        function setupImageUpload() {
-            const dropArea = document.getElementById('dropArea');
-            const fileInput = document.getElementById('imageUpload');
+        // Función para analizar los datos
+        function analyzeData() {
+            if (roundsData.length < 5) {
+                return; // No hay suficientes datos para analizar
+            }
             
-            dropArea.addEventListener('click', () => {
-                fileInput.click();
-            });
+            // Actualizar precisión si hemos hecho predicciones
+            if (totalPredictions > 0) {
+                const accuracy = Math.round((correctPredictions / totalPredictions) * 100);
+                document.getElementById('accuracy3x').textContent = accuracy + '%';
+            }
             
-            dropArea.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropArea.style.backgroundColor = 'rgba(52, 152, 219, 0.2)';
-            });
-            
-            dropArea.addEventListener('dragleave', () => {
-                dropArea.style.backgroundColor = '';
-            });
-            
-            dropArea.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropArea.style.backgroundColor = '';
-                
-                if (e.dataTransfer.files.length) {
-                    processImage(e.dataTransfer.files[0]);
-                }
-            });
-            
-            fileInput.addEventListener('change', () => {
-                if (fileInput.files.length) {
-                    processImage(fileInput.files[0]);
-                }
-            });
-        }
-        
-        // Procesar imagen subida (simulación)
-        function processImage(file) {
-            // Simulamos el procesamiento de la imagen
+            // Mostrar resultados de análisis
             document.getElementById('analysisResult').style.display = 'block';
+            document.getElementById('roundsCount').textContent = roundsData.length;
+            document.getElementById('modelAccuracy').textContent = totalPredictions > 0 ? 
+                Math.round((correctPredictions / totalPredictions) * 100) + '%' : '0%';
             
-            // En una implementación real, aquí usarías Tesseract.js para OCR
-            // y analizarías la imagen para extraer los valores de las rondas
+            // Actualizar patrones detectados
+            updatePatternDetection();
             
-            // Simulación de procesamiento
-            setTimeout(() => {
-                // Aumentar el nivel de aprendizaje
-                learningLevel = Math.min(100, learningLevel + 5);
-                updateLearningProgress();
-                
-                // Mostrar mensaje de éxito
-                alert('Imagen analizada correctamente. Se han detectado 45 rondas y 3 patrones nuevos.');
-            }, 2000);
+            // Actualizar análisis de tendencia
+            updateTrendAnalysis();
         }
         
-        // Procesar entrada manual
-        function processManualInput() {
-            const inputText = document.getElementById('manualInput').value;
-            if (!inputText.trim()) {
-                alert('Por favor, ingresa algunos valores');
+        // Función para predecir la siguiente ronda
+        function predictNextRound() {
+            if (roundsData.length < 5) {
+                // No hay suficientes datos para predecir
+                document.getElementById('prediction-value').textContent = '-';
+                document.getElementById('confidence').textContent = '0%';
+                document.getElementById('confidenceBar').style.width = '0%';
+                document.getElementById('recommendation').style.display = 'block';
+                document.getElementById('recommendation').innerHTML = 'ESPERANDO DATOS SUFICIENTES PARA PREDECIR';
                 return;
             }
             
-            const values = inputText.split(',').map(v => parseFloat(v.trim())).filter(v => !isNaN(v));
+            // Obtener los últimos 5 multiplicadores
+            const recentMultipliers = roundsData.slice(-5).map(item => item.multiplier);
             
-            if (values.length === 0) {
-                alert('No se encontraron valores válidos');
-                return;
-            }
+            // Calcular promedio simple
+            const avgMultiplier = recentMultipliers.reduce((a, b) => a + b, 0) / recentMultipliers.length;
             
-            // Mostrar resultados
-            document.getElementById('processedCount').textContent = values.length;
-            document.getElementById('manualResult').style.display = 'block';
+            // Calcular tendencia (simple diferencia entre los dos últimos valores)
+            const trend = recentMultipliers[recentMultipliers.length - 1] - recentMultipliers[recentMultipliers.length - 2];
             
-            // Aumentar el nivel de aprendizaje
-            learningLevel = Math.min(100, learningLevel + 2);
-            updateLearningProgress();
+            // Predecir basado en el promedio y la tendencia
+            let prediction = avgMultiplier + (trend * 0.5);
             
-            alert(`Se procesaron ${values.length} valores correctamente. El sistema de aprendizaje ha mejorado.`);
-        }
-        
-        // Usar datos de análisis
-        function useAnalysisData() {
-            alert('Datos de análisis aplicados. Las predicciones se han actualizado.');
-            updatePrediction();
-        }
-        
-        // Usar datos manuales
-        function useManualData() {
-            alert('Datos manuales aplicados. Las predicciones se han actualizado.');
-            updatePrediction();
-        }
-        
-        // Actualizar barra de progreso de aprendizaje
-        function updateLearningProgress() {
-            document.getElementById('learningProgress').style.width = `${learningLevel}%`;
-            document.querySelector('#config-tab .last-updated').textContent = `Nivel de aprendizaje: ${learningLevel}%`;
-        }
-        
-        // Función para conectar con Firebase
-        function connectToFirebase() {
-            try {
-                app = firebase.initializeApp(firebaseConfig);
-                database = firebase.database();
-                dbRef = database.ref('aviatorData');
-                document.getElementById('firebaseStatus').textContent = 'Estado Firebase: Conectado';
-                document.getElementById('firebaseStatus').className = 'firebase-status connected';
+            // Ajustar para evitar valores negativos
+            prediction = Math.max(1.0, prediction);
+            
+            // Calcular confianza (basada en la variación de los datos)
+            const variance = recentMultipliers.map(m => Math.pow(m - avgMultiplier, 2)).reduce((a, b) => a + b, 0) / recentMultipliers.length;
+            let confidence = Math.max(10, 100 - (variance * 10));
+            confidence = Math.min(95, confidence); // Límite máximo de confianza
+            
+            // Actualizar la UI con la predicción
+            document.querySelector('.prediction-value').textContent = prediction.toFixed(2) + 'x';
+            document.getElementById('confidence').textContent = Math.round(confidence) + '%';
+            document.getElementById('confidenceBar').style.width = confidence + '%';
+            
+            // Determinar recomendación
+            const recommendation = document.getElementById('recommendation');
+            recommendation.style.display = 'block';
+            
+            if (prediction >= 3.0) {
+                recommendation.innerHTML = 'SEÑAL DE APUESTA: MULTIPLICADOR ALTO ESPERADO (' + prediction.toFixed(2) + 'x)';
+                recommendation.style.background = 'linear-gradient(135deg, #2ecc71, #27ae60)';
                 
-                // Simular recepción de datos
-                simulateDataReception();
-            } catch (error) {
-                console.error("Error conectando con Firebase:", error);
-                document.getElementById('firebaseStatus').textContent = 'Error de conexión: ' + error.message;
-                document.getElementById('firebaseStatus').className = 'firebase-status disconnected';
-            }
-        }
-        
-        // Función para iniciar la simulación de datos en vivo
-        function startLiveDataSimulation() {
-            // Simular actualización de datos cada 5 segundos
-            simulationInterval = setInterval(() => {
-                updateLiveData();
-            }, 5000);
-            
-            // Actualizar el tiempo de última actualización cada segundo
-            setInterval(() => {
-                updateLastUpdatedText();
-            }, 1000);
-        }
-        
-        // Función para actualizar datos en vivo
-        function updateLiveData() {
-            // Simular nueva ronda
-            const roundNumber = parseInt(document.querySelector('#roundsAnalyzed').textContent) + 1;
-            document.querySelector('#roundsAnalyzed').textContent = roundNumber;
-            
-            // Generar multiplicador aleatorio con distribución sesgada hacia valores bajos
-            let randomMultiplier;
-            const rand = Math.random();
-            
-            if (rand < 0.7) {
-                // 70% de probabilidad de multiplicador bajo (1x-5x)
-                randomMultiplier = (1 + Math.random() * 4).toFixed(1);
-            } else if (rand < 0.9) {
-                // 20% de probabilidad de multiplicador medio (5x-20x)
-                randomMultiplier = (5 + Math.random() * 15).toFixed(1);
-            } else if (rand < 0.98) {
-                // 8% de probabilidad de multiplicador alto (20x-100x)
-                randomMultiplier = (20 + Math.random() * 80).toFixed(1);
+                // Registrar que hemos hecho una predicción
+                totalPredictions++;
             } else {
-                // 2% de probabilidad de multiplicador muy alto (100x-1000x)
-                randomMultiplier = (100 + Math.random() * 900).toFixed(1);
+                recommendation.innerHTML = 'NO APOSTAR: MULTIPLICADOR BAJO ESPERADO (' + prediction.toFixed(2) + 'x)';
+                recommendation.style.background = 'linear-gradient(135deg, #e74c3c, #c0392b)';
             }
             
-            // Añadir al historial
-            const historyContainer = document.getElementById('historyContainer');
-            const newHistoryItem = document.createElement('div');
-            newHistoryItem.className = 'history-item';
+            // Guardar para verificar precisión después
+            lastPrediction = prediction;
+            lastConfidence = confidence;
+        }
+        
+        // Función para actualizar la detección de patrones
+        function updatePatternDetection() {
+            const patternsList = document.getElementById('patternsList');
+            patternsList.innerHTML = '';
             
-            let multiplierClass = 'low-multiplier';
-            if (randomMultiplier > 10) {
-                multiplierClass = 'high-multiplier';
-            } else if (randomMultiplier > 5) {
-                multiplierClass = 'medium-multiplier';
+            if (roundsData.length < 5) {
+                patternsList.innerHTML = '<div class="pattern-item">Esperando datos suficientes...</div>';
+                return;
             }
             
-            newHistoryItem.innerHTML = `
-                <span>Ronda #${roundNumber}</span>
-                <span class="history-multiplier ${multiplierClass}">${randomMultiplier}x</span>
+            // Detectar patrones simples
+            const recentMultipliers = roundsData.slice(-10).map(item => item.multiplier);
+            
+            // Patrón 1: Tendencia alcista/bajista
+            const lastFive = recentMultipliers.slice(-5);
+            const firstHalfAvg = lastFive.slice(0, 2).reduce((a, b) => a + b, 0) / 2;
+            const secondHalfAvg = lastFive.slice(3).reduce((a, b) => a + b, 0) / 2;
+            
+            if (secondHalfAvg > firstHalfAvg * 1.5) {
+                patternsList.innerHTML += '<div class="pattern-item">Tendencia alcista en las últimas 5 rondas</div>';
+            } else if (secondHalfAvg < firstHalfAvg * 0.5) {
+                patternsList.innerHTML += '<div class="pattern-item">Tendencia bajista en las últimas 5 rondas</div>';
+            }
+            
+            // Patrón 2: Valores muy altos
+            const highMultipliers = recentMultipliers.filter(m => m > 5).length;
+            if (highMultipliers >= 3) {
+                patternsList.innerHTML += '<div class="pattern-item">Frecuencia de multiplicadores altos (5x+)</div>';
+            }
+            
+            // Patrón 3: Valores muy bajos
+            const lowMultipliers = recentMultipliers.filter(m => m < 2).length;
+            if (lowMultipliers >= 3) {
+                patternsList.innerHTML += '<div class="pattern-item">Racha de multiplicadores bajos (menos de 2x)</div>';
+            }
+            
+            // Si no se detectaron patrones
+            if (patternsList.innerHTML === '') {
+                patternsList.innerHTML = '<div class="pattern-item">No se detectaron patrones significativos</div>';
+            }
+            
+            document.getElementById('patternsCount').textContent = patternsList.children.length;
+        }
+        
+        // Función para actualizar el análisis de tendencia
+        function updateTrendAnalysis() {
+            const trendAnalysis = document.getElementById('trendAnalysis');
+            
+            if (roundsData.length < 5) {
+                trendAnalysis.innerHTML = '<p>Ingresa al menos 5 rondas para comenzar el análisis de tendencia.</p>';
+                return;
+            }
+            
+            const recentMultipliers = roundsData.slice(-10).map(item => item.multiplier);
+            const avgMultiplier = recentMultipliers.reduce((a, b) => a + b, 0) / recentMultipliers.length;
+            
+            let trendHTML = `
+                <div class="stats">
+                    <div class="stat-item">
+                        <h3>Promedio (últimas 10)</h3>
+                        <div class="stat-value">${avgMultiplier.toFixed(2)}x</div>
+                    </div>
+                    <div class="stat-item">
+                        <h3>Máximo</h3>
+                        <div class="stat-value">${Math.max(...recentMultipliers).toFixed(2)}x</div>
+                    </div>
+                    <div class="stat-item">
+                        <h3>Mínimo</h3>
+                        <div class="stat-value">${Math.min(...recentMultipliers).toFixed(2)}x</div>
+                    </div>
+                </div>
             `;
             
-            historyContainer.insertBefore(newHistoryItem, historyContainer.firstChild);
-            
-            // Limitar historial a 8 elementos
-            if (historyContainer.children.length > 8) {
-                historyContainer.removeChild(historyContainer.lastChild);
-            }
-            
-            // Actualizar última marca de tiempo
-            lastUpdateTime = new Date();
-            
-            // Actualizar precisión (ligera variación aleatoria)
-            const currentAccuracy = parseInt(document.querySelector('#accuracy5x').textContent);
-            const newAccuracy = Math.max(70, Math.min(85, currentAccuracy + (Math.random() * 4 - 2)));
-            document.querySelector('#accuracy5x').textContent = Math.round(newAccuracy) + '%';
-            
-            // Actualizar ganancias (pequeños cambios aleatorios)
-            const currentProfit = parseFloat(document.querySelector('#totalProfit').textContent.replace('+', '').replace('€', ''));
-            const profitChange = (Math.random() * 2 - 1).toFixed(1);
-            const newProfit = (parseFloat(currentProfit) + parseFloat(profitChange)).toFixed(1);
-            document.querySelector('#totalProfit').textContent = (newProfit >= 0 ? '+' : '') + newProfit + '€';
-            
-            // Actualizar patrones detectados ocasionalmente
-            if (roundNumber % 5 === 0) {
-                updatePatternDetection();
-            }
-            
-            // Actualizar predicción
-            updatePrediction();
+            trendAnalysis.innerHTML = trendHTML;
         }
         
-        // Función para actualizar el texto de última actualización
-        function updateLastUpdatedText() {
+        // Función para actualizar la UI
+        function updateUI() {
+            // Actualizar estadísticas
+            document.getElementById('roundsAnalyzed').textContent = roundsData.length;
+            document.getElementById('correctSignals').textContent = correctPredictions;
+            
+            // Actualizar historial
+            const historyContainer = document.getElementById('historyContainer');
+            historyContainer.innerHTML = '';
+            
+            if (roundsData.length === 0) {
+                historyContainer.innerHTML = `
+                    <div class="history-item">
+                        <span>No hay datos aún</span>
+                        <span class="history-multiplier">-</span>
+                    </div>
+                `;
+            } else {
+                // Mostrar las últimas 10 rondas
+                const recentRounds = roundsData.slice(-10).reverse();
+                
+                recentRounds.forEach(round => {
+                    const historyItem = document.createElement('div');
+                    historyItem.className = 'history-item';
+                    
+                    let multiplierClass = 'low-multiplier';
+                    if (round.multiplier > 10) {
+                        multiplierClass = 'high-multiplier';
+                    } else if (round.multiplier > 3) {
+                        multiplierClass = 'medium-multiplier';
+                    }
+                    
+                    historyItem.innerHTML = `
+                        <span>Ronda #${round.round}</span>
+                        <span class="history-multiplier ${multiplierClass}">${round.multiplier.toFixed(2)}x</span>
+                    `;
+                    
+                    historyContainer.appendChild(historyItem);
+                });
+            }
+            
+            // Actualizar última actualización
             const now = new Date();
             const secondsAgo = Math.floor((now - lastUpdateTime) / 1000);
             
@@ -895,109 +733,72 @@
             document.getElementById('lastUpdated').textContent = text;
         }
         
-        // Función para actualizar la detección de patrones
-        function updatePatternDetection() {
-            const patterns = [
-                "Secuencia de 10x cada 15-20 rondas",
-                "Múltiplos de 100x cada 45-50 rondas",
-                "Posible 1000x en las próximas 10-15 rondas",
-                "Mayor frecuencia de 5x entre las rondas 20-35",
-                "Tendencia alcista en las últimas 20 rondas",
-                "Patrón de recuperación después de 5x",
-                "Secuencia de valores bajos precede a multiplicador alto"
-            ];
-            
-            const patternsList = document.getElementById('patternsList');
-            patternsList.innerHTML = '';
-            
-            // Seleccionar 3-4 patrones aleatorios
-            const selectedPatterns = [];
-            while (selectedPatterns.length < 3) {
-                const randomIndex = Math.floor(Math.random() * patterns.length);
-                if (!selectedPatterns.includes(patterns[randomIndex])) {
-                    selectedPatterns.push(patterns[randomIndex]);
-                }
-            }
-            
-            // Añadir patrones al DOM
-            selectedPatterns.forEach(pattern => {
-                const patternItem = document.createElement('div');
-                patternItem.className = 'pattern-item';
-                patternItem.textContent = pattern;
-                patternsList.appendChild(patternItem);
-            });
-        }
-        
-        // Función para actualizar la predicción
-        function updatePrediction() {
-            const predictionElement = document.querySelector('.prediction-value');
-            
-            // Mejorar la predicción basada en el nivel de aprendizaje
-            let predictionBase = 4.5 + Math.random() * 1.5;
-            if (learningLevel > 80) {
-                predictionBase += 0.5; // Mejor predicción con más aprendizaje
-            }
-            
-            const newPrediction = predictionBase.toFixed(1);
-            predictionElement.textContent = newPrediction + 'x';
-            
-            // Reiniciar la cuenta regresiva
-            resetCountdown();
-        }
-        
-        // Función para iniciar la cuenta regresiva
-        function startCountdown() {
-            clearInterval(countdownInterval);
-            currentCountdown = 15;
-            
-            countdownInterval = setInterval(() => {
-                currentCountdown--;
-                document.getElementById('countdown').textContent = currentCountdown;
+        // Función para reiniciar los datos
+        function resetData() {
+            if (confirm('¿Estás seguro de que quieres reiniciar todos los datos? Esta acción no se puede deshacer.')) {
+                roundsData = [];
+                roundNumber = 1;
+                correctPredictions = 0;
+                totalPredictions = 0;
+                lastUpdateTime = new Date();
                 
-                if (currentCountdown <= 0) {
-                    // Simular nueva ronda cuando la cuenta regresiva llega a cero
-                    updateLiveData();
-                }
-            }, 1000);
+                localStorage.removeItem('aviatorData');
+                
+                updateUI();
+                document.getElementById('analysisResult').style.display = 'none';
+                document.querySelector('.prediction-value').textContent = '-';
+                document.getElementById('confidence').textContent = '0%';
+                document.getElementById('confidenceBar').style.width = '0%';
+                document.getElementById('recommendation').style.display = 'none';
+                
+                alert('Datos reiniciados correctamente.');
+            }
         }
         
-        // Función para reiniciar la cuenta regresiva
-        function resetCountdown() {
-            currentCountdown = 15;
-            document.getElementById('countdown').textContent = currentCountdown;
-        }
-        
-        // Funciones de control del bot
-        function startBot() {
-            alert('Bot iniciado. Monitoreando patrones y realizando apuestas automáticas.');
-            document.getElementById('startBot').disabled = true;
-            document.getElementById('stopBot').disabled = false;
-        }
-        
-        function stopBot() {
-            alert('Bot detenido. Ya no se realizarán apuestas automáticas.');
-            document.getElementById('startBot').disabled = false;
-            document.getElementById('stopBot').disabled = true;
-        }
-        
+        // Función para refrescar estadísticas
         function refreshStats() {
+            lastUpdateTime = new Date();
+            analyzeData();
+            updateUI();
             alert('Estadísticas actualizadas.');
-            updateLiveData();
         }
         
+        // Función para refrescar historial
         function refreshHistory() {
+            lastUpdateTime = new Date();
+            updateUI();
             alert('Historial actualizado.');
-            updateLiveData();
         }
         
-        // Simular recepción de datos de Firebase
-        function simulateDataReception() {
-            // Esta función simularía la recepción de datos reales de Firebase
-            console.log("Simulando recepción de datos de Firebase...");
+        // Función para guardar datos en localStorage
+        function saveData() {
+            const dataToSave = {
+                roundsData: roundsData,
+                roundNumber: roundNumber,
+                correctPredictions: correctPredictions,
+                totalPredictions: totalPredictions
+            };
+            
+            localStorage.setItem('aviatorData', JSON.stringify(dataToSave));
         }
         
-        // Inicializar el bot como detenido
-        document.getElementById('stopBot').disabled = true;
+        // Función para cargar datos guardados
+        function loadSavedData() {
+            const savedData = localStorage.getItem('aviatorData');
+            
+            if (savedData) {
+                const parsedData = JSON.parse(savedData);
+                roundsData = parsedData.roundsData || [];
+                roundNumber = parsedData.roundNumber || 1;
+                correctPredictions = parsedData.correctPredictions || 0;
+                totalPredictions = parsedData.totalPredictions || 0;
+                
+                if (roundsData.length > 0) {
+                    analyzeData();
+                    predictNextRound();
+                }
+            }
+        }
     </script>
 </body>
 </html>
