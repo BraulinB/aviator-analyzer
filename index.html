@@ -221,4 +221,4 @@
       if (data.length < 5) return { shouldPredict: false, zone: 'neutral', confidence: 'Baja' };
 
       const last5 = data.slice(-5);
-      const lowCrashes = last5.filter(c => c < 1.7).length;
+      const lowCrashes = last5.filter(c => c < 1.7).
