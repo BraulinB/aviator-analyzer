@@ -2,9 +2,13 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>📡 Prueba de Conexión Firebase</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🎯 Aviator AI - Inteligente</title>
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -12,23 +16,27 @@
       color: #e0e0e0;
       margin: 0;
       padding: 20px;
-      text-align: center;
     }
     .container {
-      max-width: 500px;
+      max-width: 900px;
       margin: auto;
       background: #1e1e2e;
-      padding: 30px;
+      padding: 20px;
       border-radius: 12px;
       box-shadow: 0 4px 20px rgba(0, 200, 255, 0.2);
     }
+    h1 { color: #00ccff; }
     input, button {
       padding: 10px;
-      margin: 10px;
+      margin: 5px;
       border-radius: 6px;
       border: 1px solid #444;
     }
-    input { width: 120px; background: #2d2d3d; color: white; }
+    input {
+      width: 120px;
+      background: #2d2d3d;
+      color: white;
+    }
     button {
       background: #00ccff;
       color: white;
@@ -36,23 +44,75 @@
       cursor: pointer;
       font-weight: bold;
     }
-    #status { font-size: 16px; margin: 20px 0; }
-    #list { text-align: left; background: #2d2d3d; padding: 15px; border-radius: 6px; margin: 20px 0; height: 150px; overflow-y: auto; }
+    button:hover { background: #00aadd; }
+    #crashList {
+      font-family: monospace;
+      text-align: left;
+      background: #2d2d3d;
+      padding: 15px;
+      height: 100px;
+      overflow-y: auto;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 15px 0;
+    }
+    .stat-box {
+      background: #2a2a3a;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .signal {
+      padding: 20px;
+      border-radius: 10px;
+      font-weight: bold;
+      margin: 15px 0;
+      text-align: center;
+      font-size: 18px;
+    }
+    .signal-good { background: #2a4a2a; color: #80ff80; }
+    .signal-wait { background: #4a332a; color: #ffcc80; }
+    .signal-danger { background: #331a1a; color: #ff6666; }
+    .chart-container {
+      width: 100%;
+      height: 300px;
+      margin: 20px 0;
+    }
+    .status { font-size: 12px; color: #888; }
   </style>
 </head>
 <body>
 
   <div class="container">
-    <h1>📡 Prueba de Conexión</h1>
-    <div id="status">🔌 Conectando a Firebase...</div>
+    <h1>🎯 Aviator AI - Inteligente</h1>
+    <p>IA selectiva: solo predice cuando hay alta probabilidad</p>
+    <div class="status" id="status">Conectando...</div>
 
     <div>
-      <input type="number" id="crashInput" step="0.01" placeholder="1.50x">
-      <button onclick="addCrash()">➕ Añadir</button>
+      <input type="number" id="crashInput" step="0.01" placeholder="1.50x" autofocus>
+      <button onclick="addCrash()">➕ Registrar</button>
       <button onclick="clearAll()">🗑️ Limpiar</button>
     </div>
 
-    <div id="list"></div>
+    <div id="crashList"></div>
+
+    <div class="stats">
+      <div class="stat-box">Predicción: <span id="nextPred">⏳</span></div>
+      <div class="stat-box">Aciertos: <span id="accuracy">-</span></div>
+      <div class="stat-box">Última: <span id="lastPred">-</span></div>
+      <div class="stat-box">Confianza: <span id="trend">-</span></div>
+    </div>
+
+    <div id="signal" class="signal signal-wait">Analizando datos...</div>
+
+    <div class="chart-container">
+      <canvas id="chart"></canvas>
+    </div>
   </div>
 
   <script>
@@ -69,45 +129,127 @@
     };
 
     // Inicializar Firebase
-    try {
-      firebase.initializeApp(firebaseConfig);
-      const db = firebase.database().ref('test-crashes');
-      document.getElementById('status').textContent = "✅ Conectado a Firebase";
+    firebase.initializeApp(firebaseConfig);
+    const dbCrashes = firebase.database().ref('crashes');
+    const dbPredictions = firebase.database().ref('predictions');
 
-      // Escuchar cambios
-      db.on('value', (snapshot) => {
-        const data = snapshot.val();
-        const list = document.getElementById('list');
-        list.innerHTML = '';
-        if (data) {
-          Object.values(data).reverse().forEach(c => {
-            const item = document.createElement('div');
-            item.style.margin = '5px 0';
-            item.style.fontFamily = 'monospace';
-            item.textContent = `🔹 ${c.value}x`;
-            list.appendChild(item);
-          });
+    let crashes = [];
+    let predictions = [];
+    let lastPrediction = null;
+
+    // Escuchar crashes
+    dbCrashes.on('value', (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        crashes = Object.values(data).map(item => parseFloat(item.value));
+      } else {
+        crashes = [];
+      }
+      updateUI();
+      document.getElementById('status').textContent = `✅ ${crashes.length} rondas`;
+    });
+
+    // Escuchar predicciones
+    dbPredictions.on('value', (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        predictions = Object.values(data);
+      } else {
+        predictions = [];
+      }
+      updateStats();
+    });
+
+    // Gráfico
+    const ctx = document.getElementById('chart').getContext('2d');
+    const chart = new Chart(ctx, {
+      type: 'line',
+       {
+        labels: [],
+        datasets: [{
+          label: 'Crash Real',
+           [],
+          borderColor: '#00ccff',
+          backgroundColor: 'rgba(0, 200, 255, 0.1)',
+          fill: true,
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { ticks: { color: '#ccc' }, grid: { color: '#444' } },
+          y: { ticks: { color: '#ccc' }, grid: { color: '#444' } }
         }
-      });
+      }
+    });
 
-      // Añadir crash
-      window.addCrash = () => {
-        const input = document.getElementById('crashInput');
-        const value = parseFloat(input.value);
-        if (isNaN(value) || value <= 0) return alert("Valor válido");
-        db.push({ value: value, t: Date.now() });
-        input.value = '';
-      };
+    function updateUI() {
+      // Lista de crashes
+      const list = document.getElementById('crashList');
+      list.innerHTML = crashes.slice(-10).reverse().map(c => `🔹 ${c}x`).join('<br>');
 
-      // Limpiar
-      window.clearAll = () => {
-        if (confirm("¿Limpiar todo?")) db.remove();
-      };
+      // Analizar si debe predecir
+      const analysis = analyzeForPrediction(crashes);
+      document.getElementById('nextPred').textContent = analysis.prediction ? `${analysis.prediction.toFixed(2)}x` : "🚫";
+      document.getElementById('trend').textContent = analysis.confidence;
 
-    } catch (error) {
-      document.getElementById('status').textContent = "❌ Error: " + error.message;
-      console.error("Firebase error:", error);
+      const signal = document.getElementById('signal');
+
+      if (analysis.shouldPredict && analysis.prediction >= 2.0) {
+        lastPrediction = analysis.prediction;
+        signal.className = 'signal signal-good';
+        signal.innerHTML = `🎯 ¡ENTRADA! ${analysis.prediction.toFixed(2)}x`;
+      } else if (analysis.zone === 'low') {
+        lastPrediction = null;
+        signal.className = 'signal signal-danger';
+        signal.innerHTML = `🔴 Zona de riesgo: muchos <1.70x`;
+      } else {
+        lastPrediction = null;
+        signal.className = 'signal signal-wait';
+        signal.innerHTML = `🟡 Espera mejor momento`;
+      }
+
+      // Actualizar gráfico
+      chart.data.labels = crashes.map((_, i) => `#${i+1}`);
+      chart.data.datasets[0].data = crashes;
+      chart.update();
     }
-  </script>
-</body>
-</html>
+
+    function analyzeForPrediction(data) {
+      if (data.length < 5) return { shouldPredict: false, zone: 'neutral', confidence: 'Baja' };
+
+      const last5 = data.slice(-5);
+      const lowCrashes = last5.filter(c => c < 1.7).length;
+      const highCrashes = last5.filter(c => c > 2.0).length;
+
+      // Zona de riesgo: muchos crashes bajos
+      if (lowCrashes >= 4) {
+        return { shouldPredict: false, zone: 'low', confidence: 'Muy Baja' };
+      }
+
+      // Calcular predicción con promedio móvil ponderado
+      const avg = (last5[4]*3 + last5[3]*2 + last5[2]) / 6;
+      const prediction = avg > 1.8 ? avg : 0;
+
+      // Solo predecir si hay tendencia clara
+      if (prediction >= 2.0 && highCrashes >= 2) {
+        const confidence = getAccuracy() > 0.5 ? 'Alta' : 'Media';
+        return { shouldPredict: true, prediction, zone: 'bonus', confidence };
+      }
+
+      return { shouldPredict: false, zone: 'neutral', confidence: 'Media' };
+    }
+
+    function addCrash() {
+      const input = document.getElementById('crashInput');
+      const value = parseFloat(input.value);
+      if (isNaN(value) || value <= 0) return alert("Ingresa un valor válido");
+
+      // Guardar crash
+      dbCrashes.push({ value: value, t: Date.now() });
+
+      // Si hay predicción activa, registrar resultado
+      if (lastPrediction !== null) {
+        const win = value >=
