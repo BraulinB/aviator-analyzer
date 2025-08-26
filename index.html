@@ -1,1073 +1,225 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analizador Aviator 1Win - Con Análisis de Imágenes</title>
-    <style>
-        :root {
-            --primary-color: #1e3a72;
-            --secondary-color: #3498db;
-            --accent-color: #e74c3c;
-            --success-color: #2ecc71;
-            --warning-color: #f39c12;
-            --background-color: #0f172a;
-            --card-color: #1e293b;
-            --text-color: #e2e8f0;
-            --border-color: #334155;
-        }
-        
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: var(--background-color);
-            color: var(--text-color);
-            line-height: 1.6;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        header {
-            background: linear-gradient(135deg, var(--primary-color), #2c3e50);
-            color: white;
-            padding: 20px 0;
-            text-align: center;
-            border-radius: 12px;
-            margin-bottom: 25px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-        }
-        
-        header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-        }
-        
-        header p {
-            font-size: 1.2rem;
-            opacity: 0.9;
-        }
-        
-        .dashboard {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 25px;
-            margin-bottom: 30px;
-        }
-        
-        @media (max-width: 900px) {
-            .dashboard {
-                grid-template-columns: 1fr;
-            }
-        }
-        
-        .card {
-            background-color: var(--card-color);
-            border-radius: 12px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-            padding: 25px;
-            margin-bottom: 25px;
-            border: 1px solid var(--border-color);
-        }
-        
-        .card h2 {
-            font-size: 1.5rem;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid var(--secondary-color);
-            color: var(--secondary-color);
-        }
-        
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        
-        .stat-item {
-            padding: 15px;
-            border-radius: 10px;
-            background: linear-gradient(145deg, #25314d, #1e293b);
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
-        }
-        
-        .stat-item h3 {
-            margin: 0;
-            font-size: 0.9rem;
-            font-weight: 500;
-            opacity: 0.8;
-        }
-        
-        .stat-value {
-            font-size: 1.8rem;
-            font-weight: bold;
-            margin: 8px 0;
-        }
-        
-        .high-multiplier {
-            color: var(--accent-color);
-        }
-        
-        .medium-multiplier {
-            color: var(--warning-color);
-        }
-        
-        .low-multiplier {
-            color: var(--success-color);
-        }
-        
-        .btn {
-            background-color: var(--secondary-color);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.3s;
-            font-size: 1rem;
-            margin-right: 10px;
-            margin-bottom: 10px;
-        }
-        
-        .btn:hover {
-            background-color: #2980b9;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
-        }
-        
-        .btn-danger {
-            background-color: var(--accent-color);
-        }
-        
-        .btn-danger:hover {
-            background-color: #c0392b;
-        }
-        
-        .btn-success {
-            background-color: var(--success-color);
-        }
-        
-        .btn-success:hover {
-            background-color: #27ae60;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-        
-        input, select, textarea {
-            width: 100%;
-            padding: 12px 15px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            box-sizing: border-box;
-            background-color: #2d3748;
-            color: var(--text-color);
-            font-size: 1rem;
-        }
-        
-        .prediction {
-            text-align: center;
-            padding: 30px;
-            margin: 30px 0;
-            border-radius: 12px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-        }
-        
-        .prediction h2 {
-            margin: 0;
-            font-size: 2rem;
-            margin-bottom: 15px;
-        }
-        
-        .prediction-value {
-            font-size: 3.5rem;
-            font-weight: bold;
-            margin: 15px 0;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-        }
-        
-        .history {
-            max-height: 350px;
-            overflow-y: auto;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 10px;
-            background-color: #2d3748;
-        }
-        
-        .history-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 15px;
-            border-bottom: 1px solid var(--border-color);
-            transition: background-color 0.2s;
-        }
-        
-        .history-item:last-child {
-            border-bottom: none;
-        }
-        
-        .history-item:hover {
-            background-color: rgba(255, 255, 255, 0.05);
-        }
-        
-        .history-multiplier {
-            font-weight: bold;
-            font-size: 1.1rem;
-        }
-        
-        .manual-input {
-            margin-top: 20px;
-        }
-        
-        .input-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        
-        .input-group input {
-            flex: 1;
-        }
-        
-        .analysis-result {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 8px;
-            background-color: rgba(46, 204, 113, 0.1);
-            border: 1px solid var(--success-color);
-        }
-        
-        .pattern-detection {
-            margin-top: 20px;
-        }
-        
-        .pattern-item {
-            margin-bottom: 12px;
-            padding-left: 20px;
-            position: relative;
-        }
-        
-        .pattern-item:before {
-            content: "•";
-            position: absolute;
-            left: 0;
-            color: var(--secondary-color);
-            font-size: 1.5rem;
-        }
-        
-        .last-updated {
-            text-align: right;
-            font-size: 0.85rem;
-            opacity: 0.7;
-            margin-top: 10px;
-        }
-        
-        .section-title {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        
-        .refresh-btn {
-            background: none;
-            border: none;
-            color: var(--secondary-color);
-            cursor: pointer;
-            font-size: 1.2rem;
-        }
-        
-        .recommendation {
-            background: linear-gradient(135deg, #ff7e5f, #feb47b);
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 20px;
-            text-align: center;
-            font-weight: bold;
-        }
-        
-        .signal-indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            background-color: var(--accent-color);
-            border-radius: 50%;
-            margin-right: 8px;
-            animation: pulse 1.5s infinite;
-        }
-        
-        @keyframes pulse {
-            0% {
-                transform: scale(0.95);
-                box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7);
-            }
-            
-            70% {
-                transform: scale(1);
-                box-shadow: 0 0 0 10px rgba(231, 76, 60, 0);
-            }
-            
-            100% {
-                transform: scale(0.95);
-                box-shadow: 0 0 0 0 rgba(231, 76, 60, 0);
-            }
-        }
-        
-        .confidence-bar {
-            height: 10px;
-            background-color: #2d3748;
-            border-radius: 5px;
-            margin-top: 10px;
-            overflow: hidden;
-        }
-        
-        .confidence-level {
-            height: 100%;
-            background: linear-gradient(90deg, var(--secondary-color), var(--success-color));
-            border-radius: 5px;
-        }
-        
-        .reset-btn {
-            background-color: #6c757d;
-        }
-        
-        .reset-btn:hover {
-            background-color: #5a6268;
-        }
-        
-        .tabs {
-            display: flex;
-            margin-bottom: 20px;
-            border-bottom: 1px solid var(--border-color);
-        }
-        
-        .tab {
-            padding: 10px 20px;
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s;
-        }
-        
-        .tab.active {
-            border-bottom: 3px solid var(--secondary-color);
-            color: var(--secondary-color);
-        }
-        
-        .tab-content {
-            display: none;
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-        
-        .upload-area {
-            border: 2px dashed var(--secondary-color);
-            border-radius: 8px;
-            padding: 25px;
-            text-align: center;
-            margin-bottom: 20px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .upload-area:hover {
-            background-color: rgba(52, 152, 219, 0.1);
-        }
-        
-        .upload-icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
-            color: var(--secondary-color);
-        }
-        
-        .learning-progress {
-            height: 10px;
-            background-color: #2d3748;
-            border-radius: 5px;
-            margin-top: 10px;
-            overflow: hidden;
-        }
-        
-        .progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, var(--secondary-color), var(--success-color));
-            border-radius: 5px;
-        }
-    </style>
-</head>
-<body>
-    <header>
-        <h1>Analizador Aviator 1Win - Con Análisis de Imágenes</h1>
-        <p>Carga una imagen inicial y luego ingresa resultados manualmente para predicciones en tiempo real <span class="signal-indicator"></span></p>
-    </header>
-    
-    <div class="container">
-        <div class="prediction">
-            <h2>PRÓXIMA PREDICCIÓN</h2>
-            <div class="prediction-value">-</div>
-            <p>Confianza: <strong id="confidence">0%</strong></p>
-            <div class="confidence-bar">
-                <div class="confidence-level" id="confidenceBar" style="width: 0%"></div>
-            </div>
-            <div id="recommendation" class="recommendation" style="display: none;">
-                ESPERANDO DATOS SUFICIENTES PARA PREDECIR
-            </div>
-        </div>
-        
-        <div class="tabs">
-            <div class="tab active" data-tab="image">Análisis de Imagen</div>
-            <div class="tab" data-tab="manual">Ingreso Manual</div>
-            <div class="tab" data-tab="stats">Estadísticas</div>
-        </div>
-        
-        <div class="dashboard">
-            <div class="card tab-content active" id="image-tab">
-                <h2>Análisis de Imagen Inicial</h2>
-                <p>Sube una captura de pantalla con las últimas 60 rondas para un análisis inicial</p>
-                
-                <div class="upload-area" id="dropArea">
-                    <div class="upload-icon">📷</div>
-                    <p>Haz clic o arrastra una imagen aquí</p>
-                    <input type="file" id="imageUpload" accept="image/*" style="display: none;">
-                </div>
-                
-                <div class="analysis-result" id="imageAnalysisResult" style="display: none;">
-                    <h3>Resultados del Análisis de Imagen</h3>
-                    <p>Rondas detectadas: <strong id="detectedRounds">0</strong></p>
-                    <p>Precisión de detección: <strong id="detectionAccuracy">0%</strong></p>
-                    <p>Patrones identificados: <strong id="imagePatternsCount">0</strong></p>
-                    <button class="btn btn-success" id="useImageData">Usar estos datos para predicciones</button>
-                </div>
-                
-                <div class="learning-progress">
-                    <div class="progress-bar" id="learningProgress" style="width: 0%"></div>
-                </div>
-                <div class="last-updated">Nivel de aprendizaje: <span id="learningLevel">0</span>%</div>
-            </div>
-            
-            <div class="card tab-content" id="manual-tab">
-                <h2>Ingreso Manual de Resultados</h2>
-                <p>Ingresa el multiplicador de cada ronda para análisis en tiempo real</p>
-                
-                <div class="input-group">
-                    <input type="number" id="roundInput" placeholder="Multiplicador (ej: 2.5)" step="0.01" min="0">
-                    <button class="btn btn-success" id="addRound">Agregar</button>
-                </div>
-                
-                <div class="input-group">
-                    <button class="btn reset-btn" id="resetData">Reiniciar Datos</button>
-                </div>
-                
-                <div class="analysis-result" id="analysisResult" style="display: none;">
-                    <h3>Resultados del Análisis</h3>
-                    <p>Rondas analizadas: <strong id="roundsCount">0</strong></p>
-                    <p>Precisión del modelo: <strong id="modelAccuracy">0%</strong></p>
-                    <p>Patrones identificados: <strong id="patternsCount">0</strong></p>
-                </div>
-            </div>
-            
-            <div class="card tab-content" id="stats-tab">
-                <div class="section-title">
-                    <h2>Estadísticas en Tiempo Real</h2>
-                    <button class="refresh-btn" id="refreshStats">↻</button>
-                </div>
-                <div class="stats">
-                    <div class="stat-item">
-                        <h3>Rondas analizadas</h3>
-                        <div class="stat-value" id="roundsAnalyzed">0</div>
-                    </div>
-                    <div class="stat-item">
-                        <h3>Precisión 3x+</h3>
-                        <div class="stat-value" id="accuracy3x">0%</div>
-                    </div>
-                    <div class="stat-item">
-                        <h3>Señales acertadas</h3>
-                        <div class="stat-value" id="correctSignals">0</div>
-                    </div>
-                </div>
-                
-                <div class="pattern-detection">
-                    <h3>Patrones detectados</h3>
-                    <div id="patternsList">
-                        <div class="pattern-item">Esperando datos suficientes...</div>
-                    </div>
-                </div>
-                
-                <div class="section-title">
-                    <h3>Historial reciente</h3>
-                    <button class="refresh-btn" id="refreshHistory">↻</button>
-                </div>
-                <div class="history" id="historyContainer">
-                    <div class="history-item">
-                        <span>No hay datos aún</span>
-                        <span class="history-multiplier">-</span>
-                    </div>
-                </div>
-                <div class="last-updated" id="lastUpdated">Esperando datos...</div>
-            </div>
-            
-            <div class="card">
-                <h2>Análisis de Tendencia</h2>
-                <div id="trendAnalysis">
-                    <p>Ingresa al menos 5 rondas para comenzar el análisis de tendencia.</p>
-                </div>
-            </div>
-        </div>
-    </div>
+// ==UserScript==
+// @name         Aviator Bot for 1Win with Prediction and Firebase Sync
+// @namespace    http://tampermonkey.net/
+// @version      1.0
+// @description  Legitimate Aviator bot that automates betting, cashes out at fixed multipliers, learns patterns from historical data, predicts signals for >5x, and identifies high multiplier sequences. Uses Firebase for cross-device sync. Adjust DOM selectors as needed for your site.
+// @author       Grok
+// @match        https://*.1win.com/*aviator*  // Adjust to match your 1Win Aviator page URL
+// @match        https://*.1win.partners/*aviator*
+// @match        https://*.1wzhzv.top/*aviator*  // Common 1Win variants; add more if needed
+// @require      https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js
+// @require      https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js
+// @require      https://cdn.jsdelivr.net/npm/brain.js@2.0.0-beta/dist/browser.js
+// @grant        none
+// ==/UserScript==
 
-    <script>
-        // Variables globales
-        let roundsData = [];
-        let roundNumber = 1;
-        let correctPredictions = 0;
-        let totalPredictions = 0;
-        let lastUpdateTime = new Date();
-        let learningLevel = 0;
-        let lastPrediction = 0;
-        let lastConfidence = 0;
-        
-        // Inicializar la aplicación
-        document.addEventListener('DOMContentLoaded', function() {
-            // Configurar pestañas
-            setupTabs();
-            
-            // Configurar carga de imágenes
-            setupImageUpload();
-            
-            // Cargar datos guardados si existen
-            loadSavedData();
-            
-            // Configurar eventos de botones
-            document.getElementById('addRound').addEventListener('click', addRound);
-            document.getElementById('resetData').addEventListener('click', resetData);
-            document.getElementById('refreshStats').addEventListener('click', refreshStats);
-            document.getElementById('refreshHistory').addEventListener('click', refreshHistory);
-            document.getElementById('useImageData').addEventListener('click', useImageData);
-            
-            // Permitir agregar con Enter
-            document.getElementById('roundInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    addRound();
-                }
-            });
-            
-            // Actualizar la interfaz
-            updateUI();
-        });
-        
-        // Configurar el sistema de pestañas
-        function setupTabs() {
-            const tabs = document.querySelectorAll('.tab');
-            tabs.forEach(tab => {
-                tab.addEventListener('click', () => {
-                    // Desactivar todas las pestañas
-                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                    
-                    // Activar la pestaña seleccionada
-                    tab.classList.add('active');
-                    document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
-                });
-            });
+(function() {
+    'use strict';
+
+    // Firebase configuration provided by user
+    const firebaseConfig = {
+        apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
+        authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
+        databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com",
+        projectId: "aviator-analyzer-b29a7",
+        storageBucket: "aviator-analyzer-b29a7.firebasestorage.app",
+        messagingSenderId: "575063626276",
+        appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
+        measurementId: "G-325QCBSQMH"
+    };
+
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const database = firebase.database(app);
+    const crashesRef = database.ref('crashes');  // Stores historical crash multipliers
+
+    // DOM Selectors - Adjust these based on inspecting the 1Win Aviator page (use browser dev tools)
+    const multiplierSelector = '.coefficient, .multiplier-value, div[class*="multiplier"]';  // Where current multiplier is displayed (e.g., '1.23x')
+    const betAmountInputSelector = 'input.bet-amount, input[class*="bet-input"]';  // Bet amount input field
+    const betButtonSelector = '.bet-button, button[class*="place-bet"]';  // Button to place bet
+    const cashoutButtonSelector = '.cashout-button, button[class*="cash-out"]';  // Button to cash out
+    const gameStatusSelector = '.game-status, div[class*="flew-away"]';  // Element that shows 'Flew away!' or crash message
+
+    // Bot Configuration
+    const targetCashout = 5.0;  // Fixed cashout at 5x (can be adjusted)
+    const betAmount = 1.0;  // Fixed bet amount (use Martingale or other strategy below)
+    const minHistoryForPrediction = 10;  // Minimum crashes needed to train model
+    const sequenceThresholds = { high: 10, veryHigh: 100, extreme: 1000 };  // For identifying sequences
+    const lookbackForPrediction = 5;  // Use last 5 crashes for input to NN
+
+    // Local state
+    let localCrashes = [];
+    let isFlying = false;
+    let currentMultiplier = 1.0;
+    let lastMultiplier = 1.0;
+    let net = new brain.NeuralNetwork({ hiddenLayers: [3] });  // Simple NN for prediction
+    let isBetPlaced = false;  // Track if bet is placed for current round
+    let sequenceCount = { high: 0, veryHigh: 0, extreme: 0 };  // Track consecutive high multipliers
+
+    // Normalize multiplier for NN input (cap at 100x for sanity)
+    function normalize(value) {
+        return Math.log(value + 1) / Math.log(100 + 1);  // Log scale normalization
+    }
+
+    // Load historical crashes from Firebase
+    crashesRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        localCrashes = data ? Object.values(data) : [];
+        console.log(`Loaded ${localCrashes.length} historical crashes from Firebase.`);
+        if (localCrashes.length >= minHistoryForPrediction) {
+            trainModel();
         }
-        
-        // Configurar la carga de imágenes
-        function setupImageUpload() {
-            const dropArea = document.getElementById('dropArea');
-            const fileInput = document.getElementById('imageUpload');
-            
-            dropArea.addEventListener('click', () => {
-                fileInput.click();
-            });
-            
-            dropArea.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropArea.style.backgroundColor = 'rgba(52, 152, 219, 0.2)';
-            });
-            
-            dropArea.addEventListener('dragleave', () => {
-                dropArea.style.backgroundColor = '';
-            });
-            
-            dropArea.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropArea.style.backgroundColor = '';
-                
-                if (e.dataTransfer.files.length) {
-                    processImage(e.dataTransfer.files[0]);
-                }
-            });
-            
-            fileInput.addEventListener('change', () => {
-                if (fileInput.files.length) {
-                    processImage(fileInput.files[0]);
-                }
-            });
+    });
+
+    // Train the neural network on historical data
+    function trainModel() {
+        if (localCrashes.length < minHistoryForPrediction + lookbackForPrediction) return;
+
+        const data = [];
+        for (let i = lookbackForPrediction; i < localCrashes.length; i++) {
+            const input = localCrashes.slice(i - lookbackForPrediction, i).map(normalize);
+            const output = [localCrashes[i] > 5 ? 1 : 0];  // Binary: 1 if >5x, 0 otherwise
+            data.push({ input, output });
         }
-        
-        // Procesar imagen subida (simulación)
-        function processImage(file) {
-            // Mostrar mensaje de procesamiento
-            alert('Procesando imagen... Esto puede tomar unos segundos.');
-            
-            // Simulamos el procesamiento de la imagen
-            setTimeout(() => {
-                // Generar 60 valores de ejemplo (simulando la extracción de la imagen)
-                const detectedRounds = generateSampleRounds(60);
-                
-                // Agregar estos datos a nuestros datos existentes
-                roundsData = [...detectedRounds, ...roundsData];
-                roundNumber = roundsData.length + 1;
-                
-                // Aumentar el nivel de aprendizaje
-                learningLevel = Math.min(100, learningLevel + 50);
-                updateLearningProgress();
-                
-                // Mostrar resultados
-                document.getElementById('imageAnalysisResult').style.display = 'block';
-                document.getElementById('detectedRounds').textContent = detectedRounds.length;
-                document.getElementById('detectionAccuracy').textContent = '92%';
-                document.getElementById('imagePatternsCount').textContent = '3';
-                
-                // Realizar análisis inicial
-                analyzeData();
-                predictNextRound();
-                
-                // Guardar datos
-                saveData();
-                
-                // Actualizar UI
-                updateUI();
-                
-                // Mostrar mensaje de éxito
-                alert('Imagen analizada correctamente. Se han detectado 60 rondas y 3 patrones nuevos.');
-            }, 3000);
+
+        net.train(data, { iterations: 200, log: true, logPeriod: 50 });
+        console.log('Model trained on historical data.');
+    }
+
+    // Predict if next round will be >5x
+    function predictNext() {
+        if (localCrashes.length < lookbackForPrediction) {
+            console.log('Not enough data for prediction.');
+            return false;
         }
-        
-        // Generar rondas de ejemplo (simulación de análisis de imagen)
-        function generateSampleRounds(count) {
-            const rounds = [];
-            let currentRound = 1;
-            
-            for (let i = 0; i < count; i++) {
-                // Generar multiplicador aleatorio con distribución sesgada hacia valores bajos
-                let randomMultiplier;
-                const rand = Math.random();
-                
-                if (rand < 0.7) {
-                    // 70% de probabilidad de multiplicador bajo (1x-5x)
-                    randomMultiplier = (1 + Math.random() * 4).toFixed(2);
-                } else if (rand < 0.9) {
-                    // 20% de probabilidad de multiplicador medio (5x-20x)
-                    randomMultiplier = (5 + Math.random() * 15).toFixed(2);
-                } else if (rand < 0.98) {
-                    // 8% de probabilidad de multiplicador alto (20x-100x)
-                    randomMultiplier = (20 + Math.random() * 80).toFixed(2);
-                } else {
-                    // 2% de probabilidad de multiplicador muy alto (100x-1000x)
-                    randomMultiplier = (100 + Math.random() * 900).toFixed(2);
-                }
-                
-                rounds.push({
-                    round: currentRound,
-                    multiplier: parseFloat(randomMultiplier),
-                    timestamp: new Date(Date.now() - (count - i) * 60000) // Hace i minutos
-                });
-                
-                currentRound++;
+
+        const input = localCrashes.slice(-lookbackForPrediction).map(normalize);
+        const prediction = net.run(input)[0];
+        const willBeHigh = prediction > 0.5;
+        console.log(`Prediction for next round: ${willBeHigh ? '>5x likely' : '<5x likely'} (confidence: ${prediction})`);
+        if (willBeHigh) {
+            alert('Signal: Next round predicted to go above 5x! Placing bet.');
+        }
+        return willBeHigh;
+    }
+
+    // Get current multiplier from DOM
+    function getCurrentMultiplier() {
+        const elem = document.querySelector(multiplierSelector);
+        if (elem) {
+            const text = elem.textContent.trim().replace('x', '');
+            return parseFloat(text);
+        }
+        return NaN;
+    }
+
+    // Check for crash or game status
+    function isCrashed() {
+        const statusElem = document.querySelector(gameStatusSelector);
+        return statusElem && statusElem.textContent.includes('Flew away') || statusElem.textContent.includes('Crash');
+    }
+
+    // Place bet automatically
+    function placeBet(amount) {
+        const input = document.querySelector(betAmountInputSelector);
+        if (input) {
+            input.value = amount;
+            input.dispatchEvent(new Event('input'));
+        }
+        const button = document.querySelector(betButtonSelector);
+        if (button && !button.disabled) {
+            button.click();
+            isBetPlaced = true;
+            console.log(`Bet placed: ${amount}`);
+        }
+    }
+
+    // Cash out automatically
+    function cashOut() {
+        const button = document.querySelector(cashoutButtonSelector);
+        if (button && !button.disabled) {
+            button.click();
+            console.log('Cashed out at ' + currentMultiplier + 'x');
+            isBetPlaced = false;
+        }
+    }
+
+    // Identify and alert on high multiplier sequences
+    function checkForSequences(multiplier) {
+        if (multiplier > sequenceThresholds.extreme) {
+            sequenceCount.extreme++;
+            alert(`Extreme sequence detected: ${sequenceCount.extreme} consecutive >1000x!`);
+        } else if (multiplier > sequenceThresholds.veryHigh) {
+            sequenceCount.veryHigh++;
+            sequenceCount.extreme = 0;
+            alert(`Very high sequence detected: ${sequenceCount.veryHigh} consecutive >100x!`);
+        } else if (multiplier > sequenceThresholds.high) {
+            sequenceCount.high++;
+            sequenceCount.veryHigh = 0;
+            sequenceCount.extreme = 0;
+            alert(`High sequence detected: ${sequenceCount.high} consecutive >10x!`);
+        } else {
+            sequenceCount = { high: 0, veryHigh: 0, extreme: 0 };
+        }
+    }
+
+    // Bankroll management strategy (e.g., simple Martingale)
+    let currentBet = betAmount;
+    let martingaleMultiplier = 2;  // Double bet after loss
+    function adjustBetAfterLoss() {
+        currentBet *= martingaleMultiplier;
+        console.log(`Martingale: Increasing bet to ${currentBet} after loss.`);
+    }
+    function resetBetAfterWin() {
+        currentBet = betAmount;
+        console.log(`Martingale: Resetting bet to ${betAmount} after win.`);
+    }
+
+    // Main monitoring loop
+    setInterval(() => {
+        currentMultiplier = getCurrentMultiplier();
+
+        if (isNaN(currentMultiplier) && isFlying) {
+            // Crash detected
+            console.log(`Crash at ${lastMultiplier}x`);
+            localCrashes.push(lastMultiplier);
+            crashesRef.push(lastMultiplier);  // Sync to Firebase
+            checkForSequences(lastMultiplier);
+            isFlying = false;
+            if (isBetPlaced) {
+                // If didn't cash out, it's a loss
+                adjustBetAfterLoss();
             }
-            
-            return rounds;
-        }
-        
-        // Usar datos de imagen para predicciones
-        function useImageData() {
-            alert('Datos de imagen aplicados. Las predicciones se han actualizado.');
-            predictNextRound();
-            // Cambiar a la pestaña de estadísticas
-            document.querySelector('[data-tab="stats"]').click();
-        }
-        
-        // Función para agregar una ronda
-        function addRound() {
-            const input = document.getElementById('roundInput');
-            const value = parseFloat(input.value);
-            
-            if (isNaN(value) || value < 0) {
-                alert('Por favor ingresa un valor válido (número mayor o igual a 0)');
-                return;
+            isBetPlaced = false;
+            // Predict for next round
+            const shouldBet = predictNext();
+            if (shouldBet) {
+                placeBet(currentBet);
             }
-            
-            // Agregar a los datos
-            roundsData.push({
-                round: roundNumber,
-                multiplier: value,
-                timestamp: new Date()
-            });
-            
-            // Realizar análisis
-            analyzeData();
-            
-            // Predecir siguiente ronda
-            predictNextRound();
-            
-            // Incrementar contador
-            roundNumber++;
-            
-            // Aumentar nivel de aprendizaje
-            learningLevel = Math.min(100, learningLevel + 2);
-            updateLearningProgress();
-            
-            // Limpiar input
-            input.value = '';
-            input.focus();
-            
-            // Guardar datos
-            saveData();
-            
-            // Actualizar UI
-            updateUI();
-        }
-        
-        // Función para analizar los datos
-        function analyzeData() {
-            if (roundsData.length < 5) {
-                return; // No hay suficientes datos para analizar
+        } else if (!isNaN(currentMultiplier)) {
+            isFlying = true;
+            lastMultiplier = currentMultiplier;
+
+            // During flight: check for cashout if bet placed
+            if (isBetPlaced && currentMultiplier >= targetCashout) {
+                cashOut();
+                resetBetAfterWin();
             }
-            
-            // Actualizar precisión si hemos hecho predicciones
-            if (totalPredictions > 0) {
-                const accuracy = Math.round((correctPredictions / totalPredictions) * 100);
-                document.getElementById('accuracy3x').textContent = accuracy + '%';
-                document.getElementById('modelAccuracy').textContent = accuracy + '%';
-            }
-            
-            // Mostrar resultados de análisis
-            document.getElementById('analysisResult').style.display = 'block';
-            document.getElementById('roundsCount').textContent = roundsData.length;
-            document.getElementById('roundsAnalyzed').textContent = roundsData.length;
-            
-            // Actualizar patrones detectados
-            updatePatternDetection();
-            
-            // Actualizar análisis de tendencia
-            updateTrendAnalysis();
-        }
-        
-        // Función para predecir la siguiente ronda
-        function predictNextRound() {
-            if (roundsData.length < 5) {
-                // No hay suficientes datos para predecir
-                document.querySelector('.prediction-value').textContent = '-';
-                document.getElementById('confidence').textContent = '0%';
-                document.getElementById('confidenceBar').style.width = '0%';
-                document.getElementById('recommendation').style.display = 'block';
-                document.getElementById('recommendation').innerHTML = 'ESPERANDO DATOS SUFICIENTES PARA PREDECIR';
-                return;
-            }
-            
-            // Obtener los últimos 10 multiplicadores
-            const recentMultipliers = roundsData.slice(-10).map(item => item.multiplier);
-            
-            // Calcular promedio simple
-            const avgMultiplier = recentMultipliers.reduce((a, b) => a + b, 0) / recentMultipliers.length;
-            
-            // Calcular tendencia (simple diferencia entre los dos últimos valores)
-            const trend = recentMultipliers[recentMultipliers.length - 1] - recentMultipliers[recentMultipliers.length - 2];
-            
-            // Predecir basado en el promedio y la tendencia
-            let prediction = avgMultiplier + (trend * 0.5);
-            
-            // Ajustar para evitar valores negativos
-            prediction = Math.max(1.0, prediction);
-            
-            // Calcular confianza (basada en la variación de los datos y nivel de aprendizaje)
-            const variance = recentMultipliers.map(m => Math.pow(m - avgMultiplier, 2)).reduce((a, b) => a + b, 0) / recentMultipliers.length;
-            let confidence = Math.max(10, 100 - (variance * 10));
-            confidence = confidence * (learningLevel / 100); // Ajustar por nivel de aprendizaje
-            confidence = Math.min(95, confidence); // Límite máximo de confianza
-            
-            // Actualizar la UI con la predicción
-            document.querySelector('.prediction-value').textContent = prediction.toFixed(2) + 'x';
-            document.getElementById('confidence').textContent = Math.round(confidence) + '%';
-            document.getElementById('confidenceBar').style.width = confidence + '%';
-            
-            // Determinar recomendación
-            const recommendation = document.getElementById('recommendation');
-            recommendation.style.display = 'block';
-            
-            if (prediction >= 3.0) {
-                recommendation.innerHTML = 'SEÑAL DE APUESTA: MULTIPLICADOR ALTO ESPERADO (' + prediction.toFixed(2) + 'x)';
-                recommendation.style.background = 'linear-gradient(135deg, #2ecc71, #27ae60)';
-                
-                // Registrar que hemos hecho una predicción
-                totalPredictions++;
-                
-                // Guardar para verificar precisión después
-                lastPrediction = prediction;
-                lastConfidence = confidence;
-            } else {
-                recommendation.innerHTML = 'NO APOSTAR: MULTIPLICADOR BAJO ESPERADO (' + prediction.toFixed(2) + 'x)';
-                recommendation.style.background = 'linear-gradient(135deg, #e74c3c, #c0392b)';
+
+            // Live high multiplier check (for ongoing round)
+            if (currentMultiplier > sequenceThresholds.high) {
+                console.log(`Live: Multiplier >${sequenceThresholds.high}x - Potential high sequence!`);
             }
         }
-        
-        // Función para actualizar la detección de patrones
-        function updatePatternDetection() {
-            const patternsList = document.getElementById('patternsList');
-            patternsList.innerHTML = '';
-            
-            if (roundsData.length < 5) {
-                patternsList.innerHTML = '<div class="pattern-item">Esperando datos suficientes...</div>';
-                document.getElementById('patternsCount').textContent = '0';
-                return;
-            }
-            
-            // Detectar patrones simples
-            const recentMultipliers = roundsData.slice(-20).map(item => item.multiplier);
-            
-            // Patrón 1: Tendencia alcista/bajista
-            const lastTen = recentMultipliers.slice(-10);
-            const firstHalfAvg = lastTen.slice(0, 5).reduce((a, b) => a + b, 0) / 5;
-            const secondHalfAvg = lastTen.slice(5).reduce((a, b) => a + b, 0) / 5;
-            
-            if (secondHalfAvg > firstHalfAvg * 1.5) {
-                patternsList.innerHTML += '<div class="pattern-item">Tendencia alcista en las últimas 10 rondas</div>';
-            } else if (secondHalfAvg < firstHalfAvg * 0.5) {
-                patternsList.innerHTML += '<div class="pattern-item">Tendencia bajista en las últimas 10 rondas</div>';
-            }
-            
-            // Patrón 2: Valores muy altos
-            const highMultipliers = recentMultipliers.filter(m => m > 5).length;
-            if (highMultipliers >= 3) {
-                patternsList.innerHTML += '<div class="pattern-item">Frecuencia de multiplicadores altos (5x+)</div>';
-            }
-            
-            // Patrón 3: Valores muy bajos
-            const lowMultipliers = recentMultipliers.filter(m => m < 2).length;
-            if (lowMultipliers >= 3) {
-                patternsList.innerHTML += '<div class="pattern-item">Racha de multiplicadores bajos (menos de 2x)</div>';
-            }
-            
-            // Patrón 4: Secuencias específicas (ejemplo: bajo-alto-bajo)
-            if (recentMultipliers.length >= 3) {
-                const lastThree = recentMultipliers.slice(-3);
-                if (lastThree[0] < 2 && lastThree[1] > 5 && lastThree[2] < 2) {
-                    patternsList.innerHTML += '<div class="pattern-item">Patrón de pinza detectado (bajo-alto-bajo)</div>';
-                }
-            }
-            
-            // Si no se detectaron patrones
-            if (patternsList.innerHTML === '') {
-                patternsList.innerHTML = '<div class="pattern-item">No se detectaron patrones significativos</div>';
-            }
-            
-            document.getElementById('patternsCount').textContent = patternsList.children.length;
+
+        // Additional crash check via status
+        if (isCrashed() && isFlying) {
+            // Fallback crash detection
+            localCrashes.push(lastMultiplier);
+            crashesRef.push(lastMultiplier);
+            isFlying = false;
         }
-        
-        // Función para actualizar el análisis de tendencia
-        function updateTrendAnalysis() {
-            const trendAnalysis = document.getElementById('trendAnalysis');
-            
-            if (roundsData.length < 5) {
-                trendAnalysis.innerHTML = '<p>Ingresa al menos 5 rondas para comenzar el análisis de tendencia.</p>';
-                return;
-            }
-            
-            const recentMultipliers = roundsData.slice(-20).map(item => item.multiplier);
-            const avgMultiplier = recentMultipliers.reduce((a, b) => a + b, 0) / recentMultipliers.length;
-            
-            let trendHTML = `
-                <div class="stats">
-                    <div class="stat-item">
-                        <h3>Promedio (últimas 20)</h3>
-                        <div class="stat-value">${avgMultiplier.toFixed(2)}x</div>
-                    </div>
-                    <div class="stat-item">
-                        <h3>Máximo</h3>
-                        <div class="stat-value">${Math.max(...recentMultipliers).toFixed(2)}x</div>
-                    </div>
-                    <div class="stat-item">
-                        <h3>Mínimo</h3>
-                        <div class="stat-value">${Math.min(...recentMultipliers).toFixed(2)}x</div>
-                    </div>
-                </div>
-                <div class="pattern-detection">
-                    <h3>Recomendaciones basadas en tendencia</h3>
-            `;
-            
-            if (avgMultiplier > 5) {
-                trendHTML += '<div class="pattern-item">Tendencia general alta - Considera esperar antes de apostar</div>';
-            } else if (avgMultiplier < 2) {
-                trendHTML += '<div class="pattern-item">Tendencia general baja - Podría ser buen momento para apostar</div>';
-            } else {
-                trendHTML += '<div class="pattern-item">Tendencia neutral - Sigue las señales individuales</div>';
-            }
-            
-            trendHTML += '</div>';
-            trendAnalysis.innerHTML = trendHTML;
-        }
-        
-        // Función para actualizar la UI
-        function updateUI() {
-            // Actualizar estadísticas
-            document.getElementById('roundsAnalyzed').textContent = roundsData.length;
-            document.getElementById('correctSignals').textContent = correctPredictions;
-            
-            // Actualizar historial
-            const historyContainer = document.getElementById('historyContainer');
-            historyContainer.innerHTML = '';
-            
-            if (roundsData.length === 0) {
-                historyContainer.innerHTML = `
-                    <div class="history-item">
-                        <span>No hay datos aún</span>
-                        <span class="history-multiplier">-</span>
-                    </div>
-                `;
-            } else {
-                // Mostrar las últimas 10 rondas
-                const recentRounds = roundsData.slice(-10).reverse();
-                
-                recentRounds.forEach(round => {
-                    const historyItem = document.createElement('div');
-                    historyItem.className = 'history-item';
-                    
-                    let multiplierClass = 'low-multiplier';
-                    if (round.multiplier > 10) {
-                        multiplierClass = 'high-multiplier';
-                    } else if (round.multiplier > 3) {
-                        multiplierClass = 'medium-multiplier';
-                    }
-                    
-                    historyItem.innerHTML = `
-                        <span>Ronda #${round.round}</span>
-                        <span class="history-multiplier ${multiplierClass}">${round.multiplier.toFixed(2)}x</span>
-                    `;
-                    
-                    historyContainer.appendChild(historyItem);
-                });
-            }
-            
-            // Actualizar última actualización
-            const now = new Date();
-            const secondsAgo = Math.floor((now - lastUpdateTime) / 1000);
-            
-            let text;
-            if (secondsAgo < 5) {
-                text = "Actualizado hace unos segundos";
-            } else if (secondsAgo < 60) {
-                text = `Actualizado hace ${secondsAgo} segundos`;
-            } else {
-                const minutesAgo = Math.floor(secondsAgo / 60);
-                text = `Actualizado hace ${minutesAgo} minuto${minutesAgo !== 1 ? 's' : ''}`;
-            }
-            
-            document.getElementById('lastUpdated').textContent = text;
-        }
-        
-        // Actualizar barra de progreso de aprendizaje
-        function updateLearningProgress() {
-            document.getElementById('learningProgress').style.width = `${learningLevel}%`;
-            document.getElementById('learningLevel').textContent = learningLevel;
-        }
-        
-        // Función para reiniciar los datos
-        function resetData() {
-            if (confirm('¿Estás seguro de que quieres reiniciar todos los datos? Esta acción no se puede deshacer.')) {
-                roundsData = [];
-                roundNumber = 1;
-                correctPredictions = 0;
-                totalPredictions = 0;
-                learningLevel = 0;
-                lastUpdateTime = new Date();
-                
-                localStorage.removeItem('aviatorData');
-                
-                updateUI();
-                updateLearningProgress();
-                document.getElementById('analysisResult').style.display = 'none';
-                document.getElementById('imageAnalysisResult').style.display = 'none';
-                document.querySelector('.prediction-value').textContent = '-';
-                document.getElementById('confidence').textContent = '0%';
-                document.getElementById('confidenceBar').style.width = '0%';
-                document.getElementById('recommendation').style.display = 'none';
-                
-                alert('Datos reiniciados correctamente.');
-            }
-        }
-        
-        // Función para refrescar estadísticas
-        function refreshStats() {
-            lastUpdateTime = new Date();
-            analyzeData();
-            updateUI();
-            alert('Estadísticas actualizadas.');
-        }
-        
-        // Función para refrescar historial
-        function refreshHistory() {
-            lastUpdateTime = new Date();
-            updateUI();
-            alert('Historial actualizado.');
-        }
-        
-        // Función para guardar datos en localStorage
-        function saveData() {
-            const dataToSave = {
-                roundsData: roundsData,
-                roundNumber: roundNumber,
-                correctPredictions: correctPredictions,
-                totalPredictions: totalPredictions,
-                learningLevel: learningLevel
-            };
-            
-            localStorage.setItem('aviatorData', JSON.stringify(dataToSave));
-        }
-        
-        // Función para cargar datos guardados
-        function loadSavedData() {
-            const savedData = localStorage.getItem('aviatorData');
-            
-            if (savedData) {
-                const parsedData = JSON.parse(savedData);
-                roundsData = parsedData.roundsData || [];
-                roundNumber = parsedData.roundNumber || 1;
-                correctPredictions = parsedData.correctPredictions || 0;
-                totalPredictions = parsedData.totalPredictions || 0;
-                learningLevel = parsedData.learningLevel || 0;
-                
-                if (roundsData.length > 0) {
-                    analyzeData();
-                    predictNextRound();
-                    updateLearningProgress();
-                }
-            }
-        }
-    </script>
-</body>
-</html>
+    }, 100);  // Poll every 100ms
+
+    console.log('Aviator Bot started. Monitoring game...');
+})();
