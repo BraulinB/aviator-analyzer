@@ -1,499 +1,133 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Aviator Analyzer (sin predicción)</title>
-  <style>
-    :root { --bg:#0b1220; --card:#111827; --muted:#94a3b8; --text:#e5e7eb; --accent:#60a5fa; --ok:#22c55e; --bad:#ef4444; }
-    *{box-sizing:border-box} body{margin:0;background:#0f172a;color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,Arial}
-    .wrap{max-width:1150px;margin:0 auto;padding:24px}
-    h1{font-size:24px;margin:0 0 12px} h2{font-size:18px;margin:0 0 8px}
-    .row{display:grid;grid-template-columns:1fr;gap:16px}
-    @media (min-width:980px){ .row-2{grid-template-columns:2fr 1fr} .row-3{grid-template-columns:2fr 1fr} }
-    .card{background:#0b1220;border:1px solid #1f2937;border-radius:14px;padding:16px}
-    .muted{color:var(--muted);font-size:13px}
-    textarea,input,select,button{border-radius:10px;border:1px solid #374151;background:#0b1220;color:var(--text)}
-    textarea{width:100%;min-height:120px;padding:10px}
-    input,select{padding:10px;width:100%}
-    .btn{padding:10px 14px;cursor:pointer;background:#111827;border:1px solid #334155}
-    .btn:hover{border-color:#475569}
-    .btn-accent{background:#1e293b;border-color:#3b82f6}
-    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-    .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-    .stat{border:1px solid #1f2937;border-radius:12px;padding:10px}
-    .stat .k{font-size:11px;color:var(--muted)} .stat .v{font-size:16px;font-weight:600}
-    .list{margin:0;padding-left:18px;font-size:14px} .list li{margin:4px 0}
-    .pill{font-size:12px;color:var(--muted)}
-    .footer{font-size:12px;color:#9ca3af;margin-top:10px}
-    .row-flex{display:flex;gap:8px;flex-wrap:wrap;align-items: center}
-    canvas{width:100%;height:280px;background:#0a0f1f;border:1px solid #1f2937;border-radius:12px}
-    .kbd{border:1px solid #334155;border-radius:6px;padding:0 6px;font-size:12px;color:#cbd5e1}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analizador de Aviator - Dashboard de Análisis</title>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/brain.js@2.0.0-beta/dist/browser.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #chart { max-width: 800px; margin: 20px auto; }
+        #predictions { margin: 20px; padding: 10px; border: 1px solid #ccc; }
+        #signals { list-style-type: none; padding: 0; }
+        #signals li { padding: 5px; background: #f0f0f0; margin: 5px 0; }
+    </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>🧠 Aviator Analyzer <span class="pill">(sin predicción, sin autobet)</span></h1>
-
-  <div class="card">
-    <h2>Nota importante</h2>
-    <p class="muted">
-      Esta herramienta <b>no</b> predice resultados, no da “señales” ni automatiza apuestas en 1Win u otros sitios.
-      Sirve para <b>analizar datos históricos</b> y <b>simular gestión de banca</b>. Los juegos tipo crash son aleatorios.
-    </p>
-  </div>
-
-  <!-- Sesión -->
-  <div class="card">
-    <h2>Sesión</h2>
-    <div class="row-flex">
-      <input id="sess_name" placeholder="Nombre de sesión">
-      <button class="btn" id="btnNewSess">Nueva sesión</button>
-    </div>
-    <textarea id="sess_notes" placeholder="Notas de la sesión (opcional)"></textarea>
-    <div class="footer muted">Al guardar en Firebase se incluirán nombre y notas.</div>
-  </div>
-
-  <div class="row row-2" style="margin-top:16px">
-    <!-- Izquierda: carga, clip y opciones -->
-    <div class="card">
-      <h2>1) Carga de datos</h2>
-      <textarea id="ta" placeholder="Pega multiplicadores separados por espacios/comas/saltos de línea (ej: 1.2 2.1 8.4 120 3.3)"></textarea>
-      <div class="row-flex">
-        <button class="btn btn-accent" id="btnAdd">Añadir</button>
-        <button class="btn" id="btnClear">Limpiar</button>
-        <label class="btn"><input type="file" id="file" accept=".csv,.txt" hidden>Importar CSV/TXT</label>
-        <button class="btn" id="btnExport">Exportar JSON</button>
-      </div>
-
-      <div class="row-flex" style="margin-top:10px">
-        <input id="quick_inp" placeholder="Ingreso rápido (ej: 123 = 1.23)" style="width:200px">
-        <button class="btn" id="quick_add">Añadir rápido</button>
-        <span class="muted">Pulsa <span class="kbd">Enter</span> para añadir.</span>
-      </div>
-
-      <div class="card" style="margin-top:16px">
-        <h2>📋 Captura rápida (portapapeles)</h2>
-        <div class="row-flex">
-          <label><input type="checkbox" id="cb_autoClip"> Activar lectura automática</label>
-          <label>Intervalo (ms): <input id="clip_ms" type="number" value="800" style="width:120px"></label>
-          <button class="btn" id="btnClipOnce">Leer una vez (<span class="kbd">V</span>)</button>
-        </div>
-        <p class="muted">Uso: en la otra pestaña selecciona el multiplicador final y presiona <b>Ctrl+C</b>.
-          Aquí se añadirá automáticamente si el formato es válido (ej. <code>1.23x</code> o <code>1.23</code>).</p>
-        <div class="muted" id="clip_status"></div>
-      </div>
-
-      <h2 style="margin-top:16px">2) Parámetros de simulación</h2>
-      <div class="grid3">
-        <div><div class="muted">Objetivo (cashout)</div><input id="inpTarget" type="number" step="0.1" value="1.5"></div>
-        <div><div class="muted">Estrategia</div>
-          <select id="selStrat">
-            <option value="flat">Flat (fija)</option>
-            <option value="martingale">Martingala</option>
-            <option value="fibonacci">Fibonacci</option>
-            <option value="kelly">Kelly (empírico)</option>
-          </select>
-        </div>
-        <div><div class="muted">Rondas a simular (0=todo)</div><input id="inpRounds" type="number" value="0"></div>
-        <div><div class="muted">Bankroll inicial</div><input id="inpBank" type="number" value="1000"></div>
-        <div><div class="muted">Apuesta base</div><input id="inpBase" type="number" value="10"></div>
-      </div>
+    <h1>Dashboard de Análisis para Aviator</h1>
+    <p>Esta herramienta analiza datos históricos de multiplicadores para identificar patrones y sugerir momentos potenciales donde el multiplicador podría superar 3x, 5x o 10x, basado en análisis estadístico. Recuerda: esto es solo para estudio y maximizar tu tiempo; el juego es aleatorio y no garantiza resultados.</p>
+    
+    <canvas id="multiplierChart"></canvas>
+    <div id="predictions">
+        <h2>Predicciones y Señales</h2>
+        <ul id="signals"></ul>
     </div>
 
-    <!-- Derecha: stats -->
-    <div class="card">
-      <h2>Estadísticas</h2>
-      <div class="grid">
-        <div class="stat"><div class="k">Muestras</div><div class="v" id="stCount">0</div></div>
-        <div class="stat"><div class="k">Media</div><div class="v" id="stMean">0.00×</div></div>
-        <div class="stat"><div class="k">Mediana</div><div class="v" id="stMed">0.00×</div></div>
-        <div class="stat"><div class="k">Máximo</div><div class="v" id="stMax">0.00×</div></div>
-        <div class="stat"><div class="k">P(≥5×)</div><div class="v" id="stP5">0.0%</div></div>
-        <div class="stat"><div class="k">P(≥10×)</div><div class="v" id="stP10">0.0%</div></div>
-        <div class="stat"><div class="k">P(≥100×)</div><div class="v" id="stP100">0.0%</div></div>
-        <div class="stat"><div class="k">P(≥1000×)</div><div class="v" id="stP1000">0.0%</div></div>
-      </div>
-      <button class="btn" id="btnSave" style="margin-top:10px">Guardar dataset en Firebase</button>
-      <div class="muted" id="authInfo" style="margin-top:6px"></div>
-    </div>
-  </div>
+    <script>
+        // Firebase configuration (usa la tuya)
+        const firebaseConfig = {
+            apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
+            authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
+            databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com",
+            projectId: "aviator-analyzer-b29a7",
+            storageBucket: "aviator-analyzer-b29a7.firebasestorage.app",
+            messagingSenderId: "575063626276",
+            appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
+            measurementId: "G-325QCBSQMH"
+        };
 
-  <div class="card" style="margin-top:16px">
-    <div class="row-flex" style="justify-content:space-between;gap:12px">
-      <h2>Serie temporal (cap a 200×)</h2>
-      <div class="row-flex">
-        <label>Ventana baja (N): <input id="mw_win" type="number" value="20" style="width:90px"></label>
-        <label>Umbral media: <input id="mw_thr" type="number" step="0.01" value="1.30" style="width:90px"></label>
-        <button class="btn" id="mw_apply">Aplicar</button>
-      </div>
-    </div>
-    <canvas id="chart" width="1100" height="280"></canvas>
-    <div class="muted" id="mw_list" style="margin-top:6px"></div>
-  </div>
+        // Inicializar Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const database = firebase.database(app);
+        const crashesRef = database.ref('crashes');
 
-  <div class="row row-2" style="margin-top:16px">
-    <div class="card">
-      <h2>Rachas históricas detectadas</h2>
-      <ul class="list" id="seq5"></ul>
-      <ul class="list" id="seq10"></ul>
-      <ul class="list" id="seq100"></ul>
-      <ul class="list" id="seq1000"></ul>
-    </div>
+        // Configuración del análisis
+        const minHistoryForPrediction = 10;
+        const lookbackForPrediction = 5;
+        const predictionThresholds = [3, 5, 10];  // Señales para >3x, >5x, >10x
+        let localCrashes = [];
+        let net = new brain.NeuralNetwork({ hiddenLayers: [3] });
+        let chart;
 
-    <div class="card">
-      <h2>Resultado simulación</h2>
-      <div class="grid">
-        <div class="stat"><div class="k">Rounds</div><div class="v" id="smRounds">0</div></div>
-        <div class="stat"><div class="k">Win rate</div><div class="v" id="smWinr">0.0%</div></div>
-        <div class="stat"><div class="k">Profit</div><div class="v" id="smProfit">0.00</div></div>
-        <div class="stat"><div class="k">Final bankroll</div><div class="v" id="smFinal">0.00</div></div>
-        <div class="stat"><div class="k">Max drawdown</div><div class="v" id="smDD">0.00</div></div>
-        <div class="stat"><div class="k">Ruin</div><div class="v" id="smRuin">No</div></div>
-        <div class="stat"><div class="k">p̂(hit ≥ target)</div><div class="v" id="smPHat">0.00%</div></div>
-      </div>
-      <button class="btn" id="btnCSV" style="margin-top:10px">Exportar CSV (simulación)</button>
-    </div>
-  </div>
+        // Normalizar valores
+        function normalize(value) {
+            return Math.log(value + 1) / Math.log(100 + 1);
+        }
 
-  <div class="card" style="margin-top:16px">
-    <h2>Firebase (opcional)</h2>
-    <div class="grid3">
-      <div><div class="muted">apiKey</div><input id="fb_apiKey"></div>
-      <div><div class="muted">authDomain</div><input id="fb_authDomain"></div>
-      <div><div class="muted">databaseURL</div><input id="fb_databaseURL"></div>
-      <div><div class="muted">projectId</div><input id="fb_projectId"></div>
-      <div><div class="muted">storageBucket</div><input id="fb_storageBucket"></div>
-      <div><div class="muted">messagingSenderId</div><input id="fb_messagingSenderId"></div>
-      <div><div class="muted">appId</div><input id="fb_appId"></div>
-      <div><div class="muted">measurementId</div><input id="fb_measurementId"></div>
-    </div>
-    <div class="row-flex" style="margin-top:8px">
-      <label><input type="checkbox" id="fb_enable"> Activar SYNC</label>
-      <button class="btn" id="fb_login">Iniciar sesión Google</button>
-      <button class="btn" id="fb_logout">Salir</button>
-    </div>
-    <div class="footer">Usa tus propias claves y rota si alguna quedó pública.</div>
-  </div>
+        // Entrenar modelo
+        function trainModel() {
+            if (localCrashes.length < minHistoryForPrediction + lookbackForPrediction) return;
+            const data = [];
+            for (let i = lookbackForPrediction; i < localCrashes.length; i++) {
+                const input = localCrashes.slice(i - lookbackForPrediction, i).map(normalize);
+                const output = predictionThresholds.map(threshold => localCrashes[i] > threshold ? 1 : 0);
+                data.push({ input, output });
+            }
+            net.train(data, { iterations: 200, log: true, logPeriod: 50 });
+            console.log('Modelo entrenado.');
+        }
 
-  <div class="footer">Hecho con fines educativos. No es asesoría financiera ni de apuestas.</div>
-</div>
+        // Predecir para próximo round
+        function predictNext() {
+            if (localCrashes.length < lookbackForPrediction) return [];
+            const input = localCrashes.slice(-lookbackForPrediction).map(normalize);
+            const predictions = net.run(input);
+            const signals = predictionThresholds.map((threshold, index) => {
+                const confidence = predictions[index];
+                return confidence > 0.5 ? `Señal potencial para >${threshold}x (confianza: ${Math.round(confidence * 100)}%)` : null;
+            }).filter(signal => signal);
+            return signals;
+        }
 
-<script>
-/* ======= Utilidades ======= */
-const $ = (id)=>document.getElementById(id);
-function nowStamp(){ const d=new Date(); const p=(n)=>String(n).padStart(2,'0'); return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+" "+p(d.getHours())+":"+p(d.getMinutes()); }
-function parseMultipliers(txt){
-  if(!txt) return [];
-  return txt.split(/[\s,;]+/).map(s=>s.trim()).filter(Boolean)
-    .map(Number).filter(n=>Number.isFinite(n)&&n>0);
-}
-function median(a){ if(!a.length) return 0; const s=[...a].sort((x,y)=>x-y); const m=Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2; }
-function stats(data){
-  const n=data.length; if(!n) return {count:0,mean:0,median:0,max:0,p5:0,p10:0,p100:0,p1000:0};
-  const sum=data.reduce((a,b)=>a+b,0), mean=sum/n, med=median(data);
-  const p=(t)=>data.filter(x=>x>=t).length/n;
-  return {count:n,mean,median:med,max:Math.max(...data),p5:p(5),p10:p(10),p100:p(100),p1000:p(1000)};
-}
-function sequences(data,thr){
-  const out=[]; let i=0; while(i<data.length){ if(data[i]>=thr){ let j=i; while(j<data.length&&data[j]>=thr) j++; out.push({start:i,end:j-1,length:j-i,peak:Math.max(...data.slice(i,j))}); i=j; } else i++; }
-  return out;
-}
-function clampSeries(data,cap=200){ return data.map((v,i)=>({i:i+1,m:Math.min(v,cap),real:v})); }
-function movingMean(data,win){ const out=[]; if(win<=0) return out; for(let i=win-1;i<data.length;i++){ let s=0; for(let k=i-win+1;k<=i;k++) s+=data[k]; out.push({end:i,mean:s/win}); } return out; }
-function segmentsBelowMM(data, win, thr){
-  const mm = movingMean(data, win);
-  const segs=[]; let i=0;
-  while(i<mm.length){
-    if(mm[i].mean < thr){
-      let j=i; let low=mm[i].mean; let maxLow=low;
-      while(j<mm.length && mm[j].mean < thr){ maxLow=Math.min(maxLow, mm[j].mean); j++; }
-      // en indices originales: start = (i_end - win + 1)
-      const start = (i + win - 1) - (win-1);  // simplifica a i
-      const end = (j-1) + (win - 1);          // último índice cubierto
-      segs.push({start: start, end: end, win, thr, minMean: maxLow});
-      i=j;
-    } else i++;
-  }
-  return segs;
-}
+        // Actualizar gráfico
+        function updateChart() {
+            const ctx = document.getElementById('multiplierChart').getContext('2d');
+            if (chart) chart.destroy();
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: localCrashes.map((_, i) => `Ronda ${i + 1}`),
+                    datasets: [{
+                        label: 'Multiplicadores Históricos',
+                        data: localCrashes,
+                        borderColor: 'blue',
+                        fill: false
+                    }]
+                },
+                options: {
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
 
-/* ======= Simulación ======= */
-function nextBetMartingale(prev, lastWin){ if(lastWin===null) return prev; return lastWin?prev:prev*2; }
-function nextBetFib(idx,lastWin,base){ const seq=[1,1,2,3,5,8,13,21,34,55]; if(lastWin===null) return {bet:base*seq[idx],idx}; if(lastWin){const ni=Math.max(0,idx-2);return {bet:base*seq[ni],idx:ni};} const ni=Math.min(seq.length-1,idx+1); return {bet:base*seq[ni],idx:ni}; }
-function kellyFraction(p,b){ const q=1-p; const f=(b*p-q)/b; return Math.max(0,Math.min(0.25,f||0)); }
-let LAST_SIM_HISTORY=[];
+        // Mostrar señales
+        function showSignals(signals) {
+            const signalsList = document.getElementById('signals');
+            signalsList.innerHTML = '';
+            signals.forEach(signal => {
+                const li = document.createElement('li');
+                li.textContent = signal;
+                signalsList.appendChild(li);
+            });
+        }
 
-function simulate({data,target=1.5,bankroll=1000,baseBet=10,strategy="flat",maxRounds=0}){
-  const rounds=Math.min(maxRounds||data.length,data.length);
-  let bal=bankroll, peak=bankroll, maxDD=0, wins=0, losses=0;
-  let lastWin=null, bet=baseBet, fibIdx=0;
-  const pHat=(data.filter(x=>x>=target).length / (data.length||1))||0;
-  const b=Math.max(0,target-1);
-  const hist=[];
-  for(let i=0;i<rounds;i++){
-    if(strategy==="flat") bet=baseBet;
-    else if(strategy==="martingale") bet=nextBetMartingale(bet||baseBet,lastWin);
-    else if(strategy==="fibonacci"){const r=nextBetFib(fibIdx,lastWin,baseBet); bet=r.bet; fibIdx=r.idx;}
-    else if(strategy==="kelly"){ const f=kellyFraction(pHat,b); bet=Math.max(1e-6, Math.floor(bal*f)); }
-    bet=Math.min(bet,bal);
-    if(bet<=0){ hist.push({round:i+1, bet:0, multiplier:data[i], win:false, pnl:0, bal}); continue; }
-    const hit=data[i]>=target;
-    const pnl= hit ? bet*(target-1) : -bet;
-    bal+=pnl; if(hit) wins++; else losses++;
-    peak=Math.max(peak,bal); maxDD=Math.max(maxDD,peak-bal);
-    hist.push({round:i+1, bet:+bet.toFixed(6), multiplier:data[i], win:hit, pnl:+pnl.toFixed(6), bal:+bal.toFixed(6)});
-    lastWin=hit;
-    if(bal<=0) break;
-  }
-  LAST_SIM_HISTORY=hist;
-  return {rounds:wins+losses, wins, losses, winRate:(wins/Math.max(1,(wins+losses)))||0,
-          startBankroll:bankroll, finalBankroll:bal, profit:bal-bankroll, maxDrawdown:maxDD, ruined:bal<=0, pHat, history:hist};
-}
+        // Escuchar datos en tiempo real
+        crashesRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            localCrashes = data ? Object.values(data) : [];
+            console.log(`Datos cargados: ${localCrashes.length} rondas.`);
+            if (localCrashes.length >= minHistoryForPrediction) {
+                trainModel();
+                updateChart();
+                const signals = predictNext();
+                showSignals(signals);
+            }
+        });
 
-/* ======= Estado ======= */
-let DATA=[];
-function defaultSession(){ $("sess_name").value = "Sesión " + nowStamp(); $("sess_notes").value=""; }
-defaultSession();
-
-function refresh(){
-  // stats
-  const s=stats(DATA);
-  $("stCount").textContent=s.count;
-  $("stMean").textContent=s.mean.toFixed(2)+"×";
-  $("stMed").textContent=s.median.toFixed(2)+"×";
-  $("stMax").textContent=s.max.toFixed(2)+"×";
-  $("stP5").textContent=(s.p5*100).toFixed(1)+"%";
-  $("stP10").textContent=(s.p10*100).toFixed(2)+"%";
-  $("stP100").textContent=(s.p100*100).toFixed(3)+"%";
-  $("stP1000").textContent=(s.p1000*100).toFixed(4)+"%";
-
-  // rachas
-  const mk=(id,label,seq)=>{
-    const ul=$(id); ul.innerHTML=`<li class="muted">${label}: ${seq.length} rachas</li>`+seq.slice(0,10).map((s,i)=>(
-      `<li>#${i+1}: posiciones ${s.start+1}–${s.end+1} (len ${s.length}) · pico ${s.peak.toFixed(2)}×</li>`
-    )).join("") + (seq.length>10?`<li class="muted">… y ${seq.length-10} más</li>`:"");
-  };
-  mk("seq5","≥5×",sequences(DATA,5));
-  mk("seq10","≥10×",sequences(DATA,10));
-  mk("seq100","≥100×",sequences(DATA,100));
-  mk("seq1000","≥1000×",sequences(DATA,1000));
-
-  // chart + periodos bajos
-  drawChartAndLows();
-
-  // simulación
-  runSim();
-}
-
-function runSim(){
-  if(!DATA.length){ ["smRounds","smWinr","smProfit","smFinal","smDD","smRuin","smPHat"].forEach(id=>$(id).textContent="0"); LAST_SIM_HISTORY=[]; return; }
-  const target=parseFloat($("inpTarget").value)||1.5;
-  const strat=$("selStrat").value;
-  const rounds=parseInt($("inpRounds").value||"0",10);
-  const bank=parseFloat($("inpBank").value)||0;
-  const base=parseFloat($("inpBase").value)||0;
-  const r=simulate({data:DATA,target:target,bankroll:bank,baseBet:base,strategy:strat,maxRounds:rounds});
-  $("smRounds").textContent=r.rounds;
-  $("smWinr").textContent=(r.winRate*100).toFixed(1)+"%";
-  $("smProfit").textContent=r.profit.toFixed(2);
-  $("smFinal").textContent=r.finalBankroll.toFixed(2);
-  $("smDD").textContent=r.maxDrawdown.toFixed(2);
-  $("smRuin").textContent=r.ruined?"Sí":"No";
-  $("smPHat").textContent=(r.pHat*100).toFixed(2)+"%";
-}
-
-/* ======= Chart + Low periods ======= */
-function drawChartAndLows(){
-  const c=$("chart"), ctx=c.getContext("2d");
-  ctx.clearRect(0,0,c.width,c.height);
-  if(!DATA.length){ ctx.fillStyle="#64748b"; ctx.fillText("Carga datos para ver la serie",10,20); $("mw_list").textContent=""; return; }
-  const cap=200, s=clampSeries(DATA,cap);
-  const pad=30, w=c.width-pad*2, h=c.height-pad*2;
-  const max=cap, min=0;
-
-  // fondos de periodos bajos
-  const win = Math.max(2, parseInt($("mw_win").value||"20",10));
-  const thr = parseFloat($("mw_thr").value||"1.3");
-  const lows = segmentsBelowMM(DATA, win, thr);
-
-  // background grid + lows
-  // grid
-  ctx.strokeStyle="#13203a"; ctx.beginPath();
-  ctx.moveTo(pad,c.height-pad); ctx.lineTo(pad,pad); ctx.lineTo(c.width-pad,pad); ctx.stroke();
-
-  // low segments (antes de la línea)
-  ctx.fillStyle="rgba(239,68,68,0.12)";
-  lows.forEach(seg=>{
-    const x1 = pad + (seg.start/(s.length-1))*w;
-    const x2 = pad + (seg.end/(s.length-1))*w;
-    ctx.fillRect(x1, pad, Math.max(1,x2-x1), h);
-  });
-
-  // target line
-  const target=parseFloat($("inpTarget").value)||1.5;
-  const yT = c.height - pad - ( (target-min)/(max-min) )*h;
-  ctx.setLineDash([5,5]); ctx.strokeStyle="#3b82f6"; ctx.beginPath(); ctx.moveTo(pad,yT); ctx.lineTo(c.width-pad,yT); ctx.stroke(); ctx.setLineDash([]);
-
-  // line
-  ctx.strokeStyle="#cbd5e1"; ctx.beginPath();
-  for(let i=0;i<s.length;i++){
-    const x=pad + (i/(s.length-1))*w;
-    const y=c.height - pad - ((s[i].m-min)/(max-min))*h;
-    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-  }
-  ctx.stroke();
-
-  // resumen de lows
-  if(lows.length){
-    const txt = lows.slice(0,8).map((L,i)=>`#${i+1} [${L.start+1}–${L.end+1}] media min≈${L.minMean.toFixed(2)}×`).join(" · ");
-    $("mw_list").textContent = `Periodos bajos (media ${win} < ${thr}): ${lows.length}. ${txt}${lows.length>8?` · …y ${lows.length-8} más`:''}`;
-  }else{
-    $("mw_list").textContent = `Sin periodos bajos para N=${win} y umbral=${thr}.`;
-  }
-}
-
-/* ======= Entrada rápida ======= */
-function normalizeQuick(s){
-  s=(s||"").trim();
-  if(!s) return null;
-  if(!s.includes(".") && /^\d{2,4}$/.test(s)){
-    if(s.length===2) s = s[0]+"."+s[1];
-    else if(s.length===3) s = s[0]+"."+s.slice(1);
-    else if(s.length===4) s = s.slice(0,2)+"."+s.slice(2);
-  }
-  const v = parseFloat(s.replace(',','.'));
-  return (isFinite(v)&&v>0)? v : null;
-}
-function quickAdd(){
-  const v = normalizeQuick($("quick_inp").value);
-  if(v==null) return;
-  DATA.push(v); $("quick_inp").value=""; refresh();
-}
-$("quick_add").onclick = quickAdd;
-$("quick_inp").addEventListener("keydown",(e)=>{ if(e.key==="Enter") quickAdd(); });
-
-/* ======= Clipboard helper ======= */
-let CLIP_TIMER=null, LAST_CLIP_VALUE="";
-function parseMaybeMultiplier(t){
-  if(!t) return null;
-  const s = t.trim().replace(',', '.').toLowerCase();
-  const m = s.match(/(\d+(\.\d+)?)(\s*x)?$/i);
-  if(!m) return null;
-  const v = parseFloat(m[1]);
-  if(!isFinite(v) || v<=0) return null;
-  return v;
-}
-async function readClipboardOnce(){
-  try{
-    const txt = await navigator.clipboard.readText();
-    $("clip_status").textContent = 'Portapapeles: "'+txt.slice(0,50)+'"';
-    const v = parseMaybeMultiplier(txt);
-    if(v==null) return false;
-    const key = v.toFixed(6);
-    if(key === LAST_CLIP_VALUE) return false;
-    LAST_CLIP_VALUE = key;
-    DATA.push(v);
-    refresh();
-    return true;
-  }catch(e){
-    $("clip_status").textContent = "No se pudo leer el portapapeles. Da permiso al navegador (HTTPS).";
-    return false;
-  }
-}
-function startClip(){
-  const ms = Math.max(200, parseInt($("clip_ms").value||"800",10));
-  if(CLIP_TIMER) clearInterval(CLIP_TIMER);
-  CLIP_TIMER = setInterval(readClipboardOnce, ms);
-  $("clip_status").textContent = "Lectura automática activada cada "+ms+" ms. Copia (Ctrl+C) el multiplicador en la otra pestaña.";
-}
-function stopClip(){
-  if(CLIP_TIMER){ clearInterval(CLIP_TIMER); CLIP_TIMER = null; }
-  $("clip_status").textContent = "Lectura automática desactivada.";
-}
-$("cb_autoClip").addEventListener("change", (e)=> e.target.checked ? startClip() : stopClip());
-$("clip_ms").addEventListener("input", ()=> { if($("cb_autoClip").checked){ startClip(); } });
-$("btnClipOnce").onclick = readClipboardOnce;
-window.addEventListener("keydown",(ev)=>{ if(ev.key.toLowerCase()==="v"){ readClipboardOnce(); }});
-
-/* ======= Eventos básicos ======= */
-$("btnAdd").onclick=()=>{ const p=parseMultipliers($("ta").value); if(!p.length) return; DATA=DATA.concat(p); $("ta").value=""; refresh(); };
-$("btnClear").onclick=()=>{ DATA=[]; refresh(); };
-$("file").onchange=(e)=>{ const f=e.target.files?.[0]; if(!f) return; f.text().then(t=>{ const p=parseMultipliers(t); DATA=DATA.concat(p); refresh(); }); };
-$("btnExport").onclick=()=>{ const payload={ session: $("sess_name").value||"", notes: $("sess_notes").value||"", data:DATA, createdAt:Date.now() }; const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download="aviator_dataset.json"; a.click(); URL.revokeObjectURL(url); };
-["inpTarget","selStrat","inpRounds","inpBank","inpBase"].forEach(id=>$(id).addEventListener("input",runSim));
-$("mw_apply").onclick = drawChartAndLows;
-$("btnNewSess").onclick = ()=>{ DATA=[]; defaultSession(); refresh(); };
-
-/* ======= CSV de simulación ======= */
-$("btnCSV").onclick=()=>{
-  if(!LAST_SIM_HISTORY.length){ alert("Primero ejecuta una simulación (carga datos)."); return; }
-  const cols=["round","bet","multiplier","win","pnl","bal"];
-  const lines=[cols.join(",")].concat(LAST_SIM_HISTORY.map(r=>(
-    [r.round,r.bet,r.multiplier,r.win?1:0,r.pnl,r.bal].join(",")
-  )));
-  const blob=new Blob([lines.join("\n")],{type:"text/csv"});
-  const url=URL.createObjectURL(blob); const a=document.createElement("a");
-  a.href=url; a.download="sim_history.csv"; a.click(); URL.revokeObjectURL(url);
-};
-
-/* ======= Firebase opcional (CDN + import dinámico) ======= */
-let fb = {app:null, auth:null, db:null, user:null};
-async function ensureFirebase(){
-  if(!$("fb_enable").checked) return null;
-  const cfg={
-    apiKey:$("fb_apiKey").value.trim(),
-    authDomain:$("fb_authDomain").value.trim(),
-    databaseURL:$("fb_databaseURL").value.trim(),
-    projectId:$("fb_projectId").value.trim(),
-    storageBucket:$("fb_storageBucket").value.trim(),
-    messagingSenderId:$("fb_messagingSenderId").value.trim(),
-    appId:$("fb_appId").value.trim(),
-    measurementId:$("fb_measurementId").value.trim(),
-  };
-  if(!cfg.apiKey) { alert("Completa tu firebaseConfig y marca SYNC."); return null; }
-  const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js");
-  const { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } = await import("https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js");
-  const { getDatabase, ref, push, set } = await import("https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js");
-  fb.app = initializeApp(cfg);
-  fb.auth = { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut };
-  fb.db = { getDatabase, ref, push, set };
-  const a = getAuth();
-  onAuthStateChanged(a, u=>{ fb.user=u; $("authInfo").textContent = u?("Conectado: "+(u.displayName||u.email)):"No autenticado"; });
-  return fb;
-}
-$("fb_login").onclick=async()=>{
-  if(!$("fb_enable").checked){ alert("Marca SYNC."); return; }
-  const mod=await ensureFirebase(); if(!mod) return;
-  try{ const a=mod.auth.getAuth(); const prov=new mod.auth.GoogleAuthProvider(); await mod.auth.signInWithPopup(a,prov); }catch(e){ alert("No se pudo iniciar sesión: "+(e?.message||e)); }
-};
-$("fb_logout").onclick=async()=>{
-  if(!fb.auth){ $("authInfo").textContent=""; return; }
-  try{ const a=fb.auth.getAuth(); await fb.auth.signOut(a); }catch(e){ console.log(e); }
-};
-$("btnSave").onclick=async()=>{
-  if(!$("fb_enable").checked) return alert("Activa SYNC primero.");
-  if(!fb.app) await ensureFirebase();
-  if(!fb.user) return alert("Inicia sesión con Google.");
-  try{
-    const db = fb.db.getDatabase();
-    const keyRef = fb.db.push(fb.db.ref(db, "users/"+fb.user.uid+"/datasets"));
-    await fb.db.set(keyRef, {
-      createdAt:Date.now(),
-      session: $("sess_name").value||"",
-      notes: $("sess_notes").value||"",
-      data:DATA,
-      target: parseFloat($("inpTarget").value)||1.5,
-      strategy: $("selStrat").value,
-      bankroll: parseFloat($("inpBank").value)||0,
-      baseBet: parseFloat($("inpBase").value)||0,
-      maxRounds: parseInt($("inpRounds").value||"0",10)
-    });
-    alert("Dataset guardado en Firebase.");
-  }catch(e){ alert("Error guardando: "+(e?.message||e)); }
-};
-
-refresh();
-</script>
+        console.log('Dashboard iniciado. Esperando datos...');
+    </script>
 </body>
 </html>
