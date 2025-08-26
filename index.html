@@ -7,10 +7,10 @@
   <style>
     :root { --bg:#0b1220; --card:#111827; --muted:#94a3b8; --text:#e5e7eb; --accent:#60a5fa; --ok:#22c55e; --bad:#ef4444; }
     *{box-sizing:border-box} body{margin:0;background:#0f172a;color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,Arial}
-    .wrap{max-width:1100px;margin:0 auto;padding:24px}
+    .wrap{max-width:1150px;margin:0 auto;padding:24px}
     h1{font-size:24px;margin:0 0 12px} h2{font-size:18px;margin:0 0 8px}
     .row{display:grid;grid-template-columns:1fr;gap:16px}
-    @media (min-width:960px){ .row-2{grid-template-columns:2fr 1fr} .row-3{grid-template-columns:2fr 1fr} }
+    @media (min-width:980px){ .row-2{grid-template-columns:2fr 1fr} .row-3{grid-template-columns:2fr 1fr} }
     .card{background:#0b1220;border:1px solid #1f2937;border-radius:14px;padding:16px}
     .muted{color:var(--muted);font-size:13px}
     textarea,input,select,button{border-radius:10px;border:1px solid #374151;background:#0b1220;color:var(--text)}
@@ -20,15 +20,15 @@
     .btn:hover{border-color:#475569}
     .btn-accent{background:#1e293b;border-color:#3b82f6}
     .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
     .stat{border:1px solid #1f2937;border-radius:12px;padding:10px}
     .stat .k{font-size:11px;color:var(--muted)} .stat .v{font-size:16px;font-weight:600}
     .list{margin:0;padding-left:18px;font-size:14px} .list li{margin:4px 0}
-    .danger{color:#f87171} .ok{color:#34d399}
-    canvas{width:100%;height:260px;background:#0a0f1f;border:1px solid #1f2937;border-radius:12px}
-    .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-    .row-flex{display:flex;gap:8px;flex-wrap:wrap}
     .pill{font-size:12px;color:var(--muted)}
     .footer{font-size:12px;color:#9ca3af;margin-top:10px}
+    .row-flex{display:flex;gap:8px;flex-wrap:wrap;align-items: center}
+    canvas{width:100%;height:280px;background:#0a0f1f;border:1px solid #1f2937;border-radius:12px}
+    .kbd{border:1px solid #334155;border-radius:6px;padding:0 6px;font-size:12px;color:#cbd5e1}
   </style>
 </head>
 <body>
@@ -39,12 +39,23 @@
     <h2>Nota importante</h2>
     <p class="muted">
       Esta herramienta <b>no</b> predice resultados, no da “señales” ni automatiza apuestas en 1Win u otros sitios.
-      Sirve para <b>analizar datos históricos</b> de multiplicadores y <b>simular gestión de banca</b>. Los juegos tipo crash son aleatorios.
+      Sirve para <b>analizar datos históricos</b> y <b>simular gestión de banca</b>. Los juegos tipo crash son aleatorios.
     </p>
   </div>
 
+  <!-- Sesión -->
+  <div class="card">
+    <h2>Sesión</h2>
+    <div class="row-flex">
+      <input id="sess_name" placeholder="Nombre de sesión">
+      <button class="btn" id="btnNewSess">Nueva sesión</button>
+    </div>
+    <textarea id="sess_notes" placeholder="Notas de la sesión (opcional)"></textarea>
+    <div class="footer muted">Al guardar en Firebase se incluirán nombre y notas.</div>
+  </div>
+
   <div class="row row-2" style="margin-top:16px">
-    <!-- Izquierda: carga y opciones -->
+    <!-- Izquierda: carga, clip y opciones -->
     <div class="card">
       <h2>1) Carga de datos</h2>
       <textarea id="ta" placeholder="Pega multiplicadores separados por espacios/comas/saltos de línea (ej: 1.2 2.1 8.4 120 3.3)"></textarea>
@@ -53,6 +64,24 @@
         <button class="btn" id="btnClear">Limpiar</button>
         <label class="btn"><input type="file" id="file" accept=".csv,.txt" hidden>Importar CSV/TXT</label>
         <button class="btn" id="btnExport">Exportar JSON</button>
+      </div>
+
+      <div class="row-flex" style="margin-top:10px">
+        <input id="quick_inp" placeholder="Ingreso rápido (ej: 123 = 1.23)" style="width:200px">
+        <button class="btn" id="quick_add">Añadir rápido</button>
+        <span class="muted">Pulsa <span class="kbd">Enter</span> para añadir.</span>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h2>📋 Captura rápida (portapapeles)</h2>
+        <div class="row-flex">
+          <label><input type="checkbox" id="cb_autoClip"> Activar lectura automática</label>
+          <label>Intervalo (ms): <input id="clip_ms" type="number" value="800" style="width:120px"></label>
+          <button class="btn" id="btnClipOnce">Leer una vez (<span class="kbd">V</span>)</button>
+        </div>
+        <p class="muted">Uso: en la otra pestaña selecciona el multiplicador final y presiona <b>Ctrl+C</b>.
+          Aquí se añadirá automáticamente si el formato es válido (ej. <code>1.23x</code> o <code>1.23</code>).</p>
+        <div class="muted" id="clip_status"></div>
       </div>
 
       <h2 style="margin-top:16px">2) Parámetros de simulación</h2>
@@ -91,8 +120,16 @@
   </div>
 
   <div class="card" style="margin-top:16px">
-    <h2>Serie temporal (cap a 200× para ver mejor)</h2>
-    <canvas id="chart" width="1000" height="260"></canvas>
+    <div class="row-flex" style="justify-content:space-between;gap:12px">
+      <h2>Serie temporal (cap a 200×)</h2>
+      <div class="row-flex">
+        <label>Ventana baja (N): <input id="mw_win" type="number" value="20" style="width:90px"></label>
+        <label>Umbral media: <input id="mw_thr" type="number" step="0.01" value="1.30" style="width:90px"></label>
+        <button class="btn" id="mw_apply">Aplicar</button>
+      </div>
+    </div>
+    <canvas id="chart" width="1100" height="280"></canvas>
+    <div class="muted" id="mw_list" style="margin-top:6px"></div>
   </div>
 
   <div class="row row-2" style="margin-top:16px">
@@ -115,6 +152,7 @@
         <div class="stat"><div class="k">Ruin</div><div class="v" id="smRuin">No</div></div>
         <div class="stat"><div class="k">p̂(hit ≥ target)</div><div class="v" id="smPHat">0.00%</div></div>
       </div>
+      <button class="btn" id="btnCSV" style="margin-top:10px">Exportar CSV (simulación)</button>
     </div>
   </div>
 
@@ -135,7 +173,7 @@
       <button class="btn" id="fb_login">Iniciar sesión Google</button>
       <button class="btn" id="fb_logout">Salir</button>
     </div>
-    <div class="footer">Consejo: usa tus propias claves y rota si alguna quedó pública.</div>
+    <div class="footer">Usa tus propias claves y rota si alguna quedó pública.</div>
   </div>
 
   <div class="footer">Hecho con fines educativos. No es asesoría financiera ni de apuestas.</div>
@@ -144,6 +182,7 @@
 <script>
 /* ======= Utilidades ======= */
 const $ = (id)=>document.getElementById(id);
+function nowStamp(){ const d=new Date(); const p=(n)=>String(n).padStart(2,'0'); return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+" "+p(d.getHours())+":"+p(d.getMinutes()); }
 function parseMultipliers(txt){
   if(!txt) return [];
   return txt.split(/[\s,;]+/).map(s=>s.trim()).filter(Boolean)
@@ -161,169 +200,25 @@ function sequences(data,thr){
   return out;
 }
 function clampSeries(data,cap=200){ return data.map((v,i)=>({i:i+1,m:Math.min(v,cap),real:v})); }
+function movingMean(data,win){ const out=[]; if(win<=0) return out; for(let i=win-1;i<data.length;i++){ let s=0; for(let k=i-win+1;k<=i;k++) s+=data[k]; out.push({end:i,mean:s/win}); } return out; }
+function segmentsBelowMM(data, win, thr){
+  const mm = movingMean(data, win);
+  const segs=[]; let i=0;
+  while(i<mm.length){
+    if(mm[i].mean < thr){
+      let j=i; let low=mm[i].mean; let maxLow=low;
+      while(j<mm.length && mm[j].mean < thr){ maxLow=Math.min(maxLow, mm[j].mean); j++; }
+      // en indices originales: start = (i_end - win + 1)
+      const start = (i + win - 1) - (win-1);  // simplifica a i
+      const end = (j-1) + (win - 1);          // último índice cubierto
+      segs.push({start: start, end: end, win, thr, minMean: maxLow});
+      i=j;
+    } else i++;
+  }
+  return segs;
+}
 
 /* ======= Simulación ======= */
 function nextBetMartingale(prev, lastWin){ if(lastWin===null) return prev; return lastWin?prev:prev*2; }
 function nextBetFib(idx,lastWin,base){ const seq=[1,1,2,3,5,8,13,21,34,55]; if(lastWin===null) return {bet:base*seq[idx],idx}; if(lastWin){const ni=Math.max(0,idx-2);return {bet:base*seq[ni],idx:ni};} const ni=Math.min(seq.length-1,idx+1); return {bet:base*seq[ni],idx:ni}; }
-function kellyFraction(p,b){ const q=1-p; const f=(b*p-q)/b; return Math.max(0,Math.min(0.25,f||0)); }
-
-function simulate({data,target=1.5,bankroll=1000,baseBet=10,strategy="flat",maxRounds=0}){
-  const rounds=Math.min(maxRounds||data.length,data.length);
-  let bal=bankroll, peak=bankroll, maxDD=0, wins=0, losses=0;
-  let lastWin=null, bet=baseBet, fibIdx=0;
-  const pHat=(data.filter(x=>x>=target).length / (data.length||1))||0;
-  const b=Math.max(0,target-1);
-  for(let i=0;i<rounds;i++){
-    if(strategy==="flat") bet=baseBet;
-    else if(strategy==="martingale") bet=nextBetMartingale(bet||baseBet,lastWin);
-    else if(strategy==="fibonacci"){const r=nextBetFib(fibIdx,lastWin,baseBet); bet=r.bet; fibIdx=r.idx;}
-    else if(strategy==="kelly"){ const f=kellyFraction(pHat,b); bet=Math.max(1e-6, Math.floor(bal*f)); }
-    bet=Math.min(bet,bal);
-    if(bet<=0) continue;
-    const hit=data[i]>=target;
-    const pnl= hit ? bet*(target-1) : -bet;
-    bal+=pnl; if(hit) wins++; else losses++;
-    peak=Math.max(peak,bal); maxDD=Math.max(maxDD,peak-bal);
-    lastWin=hit;
-    if(bal<=0) break;
-  }
-  return {rounds:wins+losses, wins, losses, winRate:(wins/Math.max(1,(wins+losses)))||0,
-          startBankroll:bankroll, finalBankroll:bal, profit:bal-bankroll, maxDrawdown:maxDD, ruined:bal<=0, pHat};
-}
-
-/* ======= Estado ======= */
-let DATA=[];
-function refresh(){
-  // stats
-  const s=stats(DATA);
-  $("stCount").textContent=s.count;
-  $("stMean").textContent=s.mean.toFixed(2)+"×";
-  $("stMed").textContent=s.median.toFixed(2)+"×";
-  $("stMax").textContent=s.max.toFixed(2)+"×";
-  $("stP5").textContent=(s.p5*100).toFixed(1)+"%";
-  $("stP10").textContent=(s.p10*100).toFixed(2)+"%";
-  $("stP100").textContent=(s.p100*100).toFixed(3)+"%";
-  $("stP1000").textContent=(s.p1000*100).toFixed(4)+"%";
-
-  // rachas
-  const mk=(id,label,seq)=>{
-    const ul=$(id); ul.innerHTML=`<li class="muted">${label}: ${seq.length} rachas</li>`+seq.slice(0,10).map((s,i)=>(
-      `<li>#${i+1}: posiciones ${s.start+1}–${s.end+1} (len ${s.length}) · pico ${s.peak.toFixed(2)}×</li>`
-    )).join("") + (seq.length>10?`<li class="muted">… y ${seq.length-10} más</li>`:"");
-  };
-  mk("seq5","≥5×",sequences(DATA,5));
-  mk("seq10","≥10×",sequences(DATA,10));
-  mk("seq100","≥100×",sequences(DATA,100));
-  mk("seq1000","≥1000×",sequences(DATA,1000));
-
-  // chart
-  drawChart(DATA);
-  // simulación
-  runSim();
-}
-
-function runSim(){
-  if(!DATA.length){ ["smRounds","smWinr","smProfit","smFinal","smDD","smRuin","smPHat"].forEach(id=>$(id).textContent="0"); return; }
-  const target=parseFloat($("inpTarget").value)||1.5;
-  const strat=$("selStrat").value;
-  const rounds=parseInt($("inpRounds").value||"0",10);
-  const bank=parseFloat($("inpBank").value)||0;
-  const base=parseFloat($("inpBase").value)||0;
-  const r=simulate({data:DATA,target:target,bankroll:bank,baseBet:base,strategy:strat,maxRounds:rounds});
-  $("smRounds").textContent=r.rounds;
-  $("smWinr").textContent=(r.winRate*100).toFixed(1)+"%";
-  $("smProfit").textContent=r.profit.toFixed(2);
-  $("smFinal").textContent=r.finalBankroll.toFixed(2);
-  $("smDD").textContent=r.maxDrawdown.toFixed(2);
-  $("smRuin").textContent=r.ruined?"Sí":"No";
-  $("smPHat").textContent=(r.pHat*100).toFixed(2)+"%";
-}
-
-/* ======= Chart (canvas simple) ======= */
-function drawChart(arr){
-  const c=$("chart"), ctx=c.getContext("2d");
-  ctx.clearRect(0,0,c.width,c.height);
-  if(!arr.length){ ctx.fillStyle="#64748b"; ctx.fillText("Carga datos para ver la serie",10,20); return; }
-  const cap=200, s=clampSeries(arr,cap);
-  const pad=30, w=c.width-pad*2, h=c.height-pad*2;
-  const max=cap, min=0;
-  // axes
-  ctx.strokeStyle="#1f2937"; ctx.beginPath();
-  ctx.moveTo(pad,c.height-pad); ctx.lineTo(pad,pad); ctx.lineTo(c.width-pad,pad); ctx.stroke();
-  // target line
-  const target=parseFloat($("inpTarget").value)||1.5;
-  const yT = c.height - pad - ( (target-min)/(max-min) )*h;
-  ctx.setLineDash([5,5]); ctx.strokeStyle="#3b82f6"; ctx.beginPath(); ctx.moveTo(pad,yT); ctx.lineTo(c.width-pad,yT); ctx.stroke(); ctx.setLineDash([]);
-  // line
-  ctx.strokeStyle="#cbd5e1"; ctx.beginPath();
-  for(let i=0;i<s.length;i++){
-    const x=pad + (i/(s.length-1))*w;
-    const y=c.height - pad - ((s[i].m-min)/(max-min))*h;
-    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-  }
-  ctx.stroke();
-}
-
-/* ======= Eventos UI ======= */
-$("btnAdd").onclick=()=>{ const p=parseMultipliers($("ta").value); if(!p.length) return; DATA=DATA.concat(p); $("ta").value=""; refresh(); };
-$("btnClear").onclick=()=>{ DATA=[]; refresh(); };
-$("file").onchange=(e)=>{ const f=e.target.files?.[0]; if(!f) return; f.text().then(t=>{ const p=parseMultipliers(t); DATA=DATA.concat(p); refresh(); }); };
-$("btnExport").onclick=()=>{ const blob=new Blob([JSON.stringify({data:DATA,createdAt:Date.now()},null,2)],{type:"application/json"}); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download="aviator_dataset.json"; a.click(); URL.revokeObjectURL(url); };
-["inpTarget","selStrat","inpRounds","inpBank","inpBase"].forEach(id=>$(id).addEventListener("input",runSim));
-
-/* ======= Firebase opcional (CDN + import dinámico) ======= */
-let fb = {app:null, auth:null, db:null, user:null};
-async function ensureFirebase(){
-  if(!$("fb_enable").checked) return null;
-  const cfg={
-    apiKey:$("fb_apiKey").value.trim(),
-    authDomain:$("fb_authDomain").value.trim(),
-    databaseURL:$("fb_databaseURL").value.trim(),
-    projectId:$("fb_projectId").value.trim(),
-    storageBucket:$("fb_storageBucket").value.trim(),
-    messagingSenderId:$("fb_messagingSenderId").value.trim(),
-    appId:$("fb_appId").value.trim(),
-    measurementId:$("fb_measurementId").value.trim(),
-  };
-  if(!cfg.apiKey) { alert("Completa tu firebaseConfig y marca SYNC."); return null; }
-  const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js");
-  const { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } = await import("https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js");
-  const { getDatabase, ref, push, set } = await import("https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js");
-  fb.app = initializeApp(cfg);
-  fb.auth = { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut };
-  fb.db = { getDatabase, ref, push, set };
-  const a = getAuth();
-  onAuthStateChanged(a, u=>{ fb.user=u; $("authInfo").textContent = u?("Conectado: "+(u.displayName||u.email)):"No autenticado"; });
-  return fb;
-}
-$("fb_login").onclick=async()=>{
-  if(!$("fb_enable").checked){ alert("Marca SYNC."); return; }
-  const mod=await ensureFirebase(); if(!mod) return;
-  try{ const a=mod.auth.getAuth(); const prov=new mod.auth.GoogleAuthProvider(); await mod.auth.signInWithPopup(a,prov); }catch(e){ alert("No se pudo iniciar sesión: "+(e?.message||e)); }
-};
-$("fb_logout").onclick=async()=>{
-  if(!fb.auth){ $("authInfo").textContent=""; return; }
-  try{ const a=fb.auth.getAuth(); await fb.auth.signOut(a); }catch(e){ console.log(e); }
-};
-$("btnSave").onclick=async()=>{
-  if(!$("fb_enable").checked) return alert("Activa SYNC primero.");
-  if(!fb.app) await ensureFirebase();
-  if(!fb.user) return alert("Inicia sesión con Google.");
-  try{
-    const db = fb.db.getDatabase();
-    const keyRef = fb.db.push(fb.db.ref(db, "users/"+fb.user.uid+"/datasets"));
-    await fb.db.set(keyRef, { createdAt:Date.now(), data:DATA,
-      target: parseFloat($("inpTarget").value)||1.5,
-      strategy: $("selStrat").value,
-      bankroll: parseFloat($("inpBank").value)||0,
-      baseBet: parseFloat($("inpBase").value)||0,
-      maxRounds: parseInt($("inpRounds").value||"0",10)
-    });
-    alert("Dataset guardado en Firebase.");
-  }catch(e){ alert("Error guardando: "+(e?.message||e)); }
-};
-
-refresh();
-</script>
-</body>
-</html>
+function kellyFraction(p,b){ const q=1-p; co
