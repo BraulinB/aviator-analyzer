@@ -1,133 +1,326 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analizador de Aviator - Dashboard de Análisis</title>
-    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/brain.js@2.0.0-beta/dist/browser.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        #chart { max-width: 800px; margin: 20px auto; }
-        #predictions { margin: 20px; padding: 10px; border: 1px solid #ccc; }
-        #signals { list-style-type: none; padding: 0; }
-        #signals li { padding: 5px; background: #f0f0f0; margin: 5px 0; }
-    </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Aviator Learner (educativo, sin predicción garantizada)</title>
+<style>
+  :root { --bg:#0f172a; --card:#0b1220; --muted:#94a3b8; --text:#e5e7eb; --accent:#60a5fa; --ok:#22c55e; --bad:#ef4444; }
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,Segoe UI,Inter,Roboto,Arial}
+  .wrap{max-width:980px;margin:0 auto;padding:20px}
+  h1{margin:0 0 8px;font-size:22px} h2{margin:0 0 8px;font-size:18px}
+  .card{background:var(--card);border:1px solid #1f2937;border-radius:14px;padding:14px;margin-top:12px}
+  .row{display:grid;grid-template-columns:1fr;gap:10px}
+  @media(min-width:900px){ .row2{grid-template-columns:2fr 1fr} }
+  textarea,input,select,button{border-radius:10px;border:1px solid #334155;background:#0b1220;color:var(--text)}
+  textarea{width:100%;min-height:90px;padding:8px}
+  input,select{padding:8px;width:100%}
+  .btn{padding:8px 12px;background:#111827;border:1px solid #334155;cursor:pointer;border-radius:10px}
+  .btn:hover{border-color:#475569}
+  .muted{color:var(--muted);font-size:13px}
+  .rowflex{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .pill{padding:2px 8px;border:1px solid #334155;border-radius:999px;font-size:12px}
+  .signal{font-weight:700}
+  .signal.ok{color:var(--ok)} .signal.no{color:var(--bad)}
+  .table{width:100%;border-collapse:collapse;font-size:13px}
+  .table td,.table th{border-bottom:1px solid #1f2937;padding:6px 4px;text-align:left}
+  .small{font-size:12px}
+  .kbd{border:1px solid #334155;border-radius:6px;padding:0 6px;font-size:12px;color:#cbd5e1}
+</style>
 </head>
 <body>
-    <h1>Dashboard de Análisis para Aviator</h1>
-    <p>Esta herramienta analiza datos históricos de multiplicadores para identificar patrones y sugerir momentos potenciales donde el multiplicador podría superar 3x, 5x o 10x, basado en análisis estadístico. Recuerda: esto es solo para estudio y maximizar tu tiempo; el juego es aleatorio y no garantiza resultados.</p>
-    
-    <canvas id="multiplierChart"></canvas>
-    <div id="predictions">
-        <h2>Predicciones y Señales</h2>
-        <ul id="signals"></ul>
+<div class="wrap">
+  <h1>🧪 Aviator Learner <span class="pill">online · educativo · sin autobet</span></h1>
+  <div class="card">
+    <p class="muted">
+      Aprende en vivo con tus rondas y estima la probabilidad de que la <b>próxima</b> sea ≥ <b>target</b>.
+      <br>⚠️ No predice ni garantiza resultados. No interactúa con el sitio ni automatiza apuestas.
+    </p>
+  </div>
+
+  <div class="row row2">
+    <div>
+      <div class="card">
+        <h2>Entrada de rondas</h2>
+        <textarea id="ta" placeholder="Pega multiplicadores: 1.2 2.4 8.3 145 1.1 ..."></textarea>
+        <div class="rowflex">
+          <button class="btn" id="btnAdd">Añadir</button>
+          <button class="btn" id="btnClear">Limpiar</button>
+          <label class="btn"><input type="file" id="file" accept=".csv,.txt" hidden>Importar CSV/TXT</label>
+        </div>
+        <div class="rowflex" style="margin-top:6px">
+          <input id="quick" placeholder="Rápido: 123 => 1.23" style="width:160px">
+          <button class="btn" id="btnQuick">Añadir rápido</button>
+          <span class="muted">Enter también añade.</span>
+        </div>
+        <div class="card" style="margin-top:10px">
+          <h2>📋 Captura por portapapeles</h2>
+          <div class="rowflex">
+            <label><input type="checkbox" id="cbClip"> Activar auto-lectura</label>
+            <label>Intervalo (ms): <input type="number" id="clipMS" value="800" style="width:90px"></label>
+            <button class="btn" id="btnClipOnce">Leer una vez (<span class="kbd">V</span>)</button>
+          </div>
+          <p class="muted">En la otra pestaña selecciona el número y pulsa <b>Ctrl+C</b>. Aquí se añadirá si es válido.</p>
+          <div class="muted" id="clipStatus"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Modelo online (SGD)</h2>
+        <div class="rowflex">
+          <label>Target ≥ <input id="inpTarget" type="number" step="0.1" value="3" style="width:80px"></label>
+          <label>Umbral señal p≥ <input id="inpThresh" type="number" step="0.01" value="0.60" style="width:80px"></label>
+          <label>Hist. mínimo N<input id="inpMinN" type="number" value="10" style="width:80px"></label>
+          <label>Ventana W<input id="inpW" type="number" value="30" style="width:80px"></label>
+          <label>LR α<input id="inpLR" type="number" step="0.001" value="0.05" style="width:80px"></label>
+          <label>L2 λ<input id="inpL2" type="number" step="0.0001" value="0.0005" style="width:90px"></label>
+        </div>
+        <div class="rowflex" style="margin-top:6px">
+          <button class="btn" id="btnReset">Reiniciar modelo</button>
+          <button class="btn" id="btnExportModel">Exportar modelo</button>
+          <label class="btn"><input type="file" id="fileModel" accept=".json" hidden>Importar modelo</label>
+        </div>
+        <div style="margin-top:8px">
+          <div>Prob. estimada próxima ≥ target: <span id="prob" class="signal">—</span></div>
+          <div>Señal: <span id="signal" class="signal no">—</span></div>
+          <div class="muted small">Señal = <code>p ≥ umbral</code> y hay ≥ N datos. El modelo se actualiza tras cada nueva ronda.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Últimas rondas</h2>
+        <table class="table" id="tbl"></table>
+      </div>
     </div>
 
-    <script>
-        // Firebase configuration (usa la tuya)
-        const firebaseConfig = {
-            apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
-            authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
-            databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com",
-            projectId: "aviator-analyzer-b29a7",
-            storageBucket: "aviator-analyzer-b29a7.firebasestorage.app",
-            messagingSenderId: "575063626276",
-            appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
-            measurementId: "G-325QCBSQMH"
-        };
+    <div>
+      <div class="card">
+        <h2>Estadísticas</h2>
+        <table class="table small">
+          <tr><th>Muestras</th><td id="stN">0</td></tr>
+          <tr><th>Media</th><td id="stMean">0.00×</td></tr>
+          <tr><th>Mediana</th><td id="stMed">0.00×</td></tr>
+          <tr><th>P(≥3×)</th><td id="stP3">0.0%</td></tr>
+          <tr><th>P(≥5×)</th><td id="stP5">0.0%</td></tr>
+          <tr><th>Máx</th><td id="stMax">0.00×</td></tr>
+        </table>
+      </div>
 
-        // Inicializar Firebase
-        const app = firebase.initializeApp(firebaseConfig);
-        const database = firebase.database(app);
-        const crashesRef = database.ref('crashes');
+      <div class="card">
+        <h2>Ayuda</h2>
+        <ul class="small">
+          <li>Cuando tengas ≥ N rondas, ya verás <b>p</b> y posible <b>Señal</b>.</li>
+          <li>El modelo usa <b>logística online</b> con <b>SGD</b> y rasgos de la ventana (medias, rachas, últimos valores…)</li>
+          <li>“Señal” ≠ garantía. Úsalo solo como análisis formativo (demo).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
 
-        // Configuración del análisis
-        const minHistoryForPrediction = 10;
-        const lookbackForPrediction = 5;
-        const predictionThresholds = [3, 5, 10];  // Señales para >3x, >5x, >10x
-        let localCrashes = [];
-        let net = new brain.NeuralNetwork({ hiddenLayers: [3] });
-        let chart;
+  <div class="card">
+    <p class="muted small">Descargo: herramienta educativa. No es asesoría financiera ni de apuestas.</p>
+  </div>
+</div>
 
-        // Normalizar valores
-        function normalize(value) {
-            return Math.log(value + 1) / Math.log(100 + 1);
-        }
+<script>
+/* =============== Utilidades base =============== */
+const $ = (id)=>document.getElementById(id);
+function parseList(s){ if(!s) return []; return s.split(/[\s,;]+/).map(t=>t.trim()).filter(Boolean).map(Number).filter(x=>isFinite(x)&&x>0); }
+function median(a){ if(!a.length) return 0; const s=[...a].sort((x,y)=>x-y); const m=Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2; }
+function stats(arr){
+  const n=arr.length; if(!n) return {n:0,mean:0,med:0,max:0,p3:0,p5:0};
+  const sum=arr.reduce((a,b)=>a+b,0), mean=sum/n, med=median(arr), max=Math.max(...arr);
+  const p=(t)=>arr.filter(x=>x>=t).length/n;
+  return {n,mean,med,max,p3:p(3),p5:p(5)};
+}
+function last(arr,k){ return arr.slice(Math.max(0,arr.length-k)); }
+function quickNorm(s){
+  s=(s||"").trim();
+  if(!s) return null;
+  if(!s.includes(".") && /^\d{2,4}$/.test(s)){
+    if(s.length===2) s = s[0]+"."+s[1];
+    else if(s.length===3) s = s[0]+"."+s.slice(1);
+    else if(s.length===4) s = s.slice(0,2)+"."+s.slice(2);
+  }
+  const v=parseFloat(s.replace(',','.')); return (isFinite(v)&&v>0)?v:null;
+}
 
-        // Entrenar modelo
-        function trainModel() {
-            if (localCrashes.length < minHistoryForPrediction + lookbackForPrediction) return;
-            const data = [];
-            for (let i = lookbackForPrediction; i < localCrashes.length; i++) {
-                const input = localCrashes.slice(i - lookbackForPrediction, i).map(normalize);
-                const output = predictionThresholds.map(threshold => localCrashes[i] > threshold ? 1 : 0);
-                data.push({ input, output });
-            }
-            net.train(data, { iterations: 200, log: true, logPeriod: 50 });
-            console.log('Modelo entrenado.');
-        }
+/* =============== Rasgos (features) =============== */
+/* Dado history H y ventana W, generamos vector x para predecir la SIGUIENTE ronda. */
+function featuresFrom(history, W, target){
+  const H = last(history, W);
+  const n = H.length;
+  const caps = H.map(v=>Math.min(v, 50)); // cap para robustez
+  const logs = caps.map(v=>Math.log(1+v)); // log1p
+  const mean = caps.reduce((a,b)=>a+b,0)/(n||1);
+  const meanLog = logs.reduce((a,b)=>a+b,0)/(n||1);
+  const med = median(caps);
+  // std
+  const std = Math.sqrt((caps.reduce((a,b)=>a+(b-mean)**2,0)/(n||1))||0);
+  // proporción >= umbrales
+  const p3 = caps.filter(v=>v>=3).length/(n||1);
+  const p5 = caps.filter(v=>v>=5).length/(n||1);
+  // rachas recientes arriba/abajo del target
+  let up=0, down=0;
+  for(let i=caps.length-1;i>=0;i--){
+    if(caps[i]>=target){ up++; if(down===0){} else break; }
+    else { down++; if(up===0){} else break; }
+  }
+  // últimos valores (hasta 5)
+  const L = last(caps,5);
+  while(L.length<5) L.unshift(0);
+  // distancia desde último ≥ target
+  let sinceHi=0; for(let i=caps.length-1;i>=0;i--){ if(caps[i]>=target) break; sinceHi++; }
+  // empaquetamos:
+  return [
+    1,                // bias (lo incluimos también en w)
+    mean, med, std,
+    meanLog,
+    p3, p5,
+    up, down,
+    sinceHi,
+    ...L             // v[-4], v[-3], v[-2], v[-1], v[0]
+  ];
+}
 
-        // Predecir para próximo round
-        function predictNext() {
-            if (localCrashes.length < lookbackForPrediction) return [];
-            const input = localCrashes.slice(-lookbackForPrediction).map(normalize);
-            const predictions = net.run(input);
-            const signals = predictionThresholds.map((threshold, index) => {
-                const confidence = predictions[index];
-                return confidence > 0.5 ? `Señal potencial para >${threshold}x (confianza: ${Math.round(confidence * 100)}%)` : null;
-            }).filter(signal => signal);
-            return signals;
-        }
+/* =============== Modelo logístico online (SGD) =============== */
+class OnlineLogReg {
+  constructor(d, lr=0.05, l2=0.0005){
+    this.w = new Array(d).fill(0);   // incluye bias
+    this.lr = lr; this.l2=l2;
+    this.prevX = null; // x usado para predecir ronda anterior
+  }
+  static sigmoid(z){ return 1/(1+Math.exp(-Math.max(-50,Math.min(50,z)))); }
+  predict(x){
+    // w·x
+    let z=0; for(let i=0;i<this.w.length;i++) z += this.w[i]*x[i];
+    return OnlineLogReg.sigmoid(z);
+  }
+  update(yTrue){ // usa prevX y el último p
+    if(!this.prevX || this.prevP==null) return;
+    const x = this.prevX, p = this.prevP;
+    const g = p - yTrue; // grad de logloss
+    for(let i=0;i<this.w.length;i++){
+      const grad = g*x[i] + this.l2*this.w[i];
+      this.w[i] -= this.lr * grad;
+    }
+    this.prevX = null; this.prevP = null;
+  }
+  // 1) llamas .stepPrepare(x) -> te da p (para Siguiente)
+  // 2) cuando llega la ronda real, llamas .update(y)
+  stepPrepare(x){
+    const p = this.predict(x);
+    this.prevX = x.slice();
+    this.prevP = p;
+    return p;
+  }
+  export(){ return {w:this.w, lr:this.lr, l2:this.l2}; }
+  import(obj){ if(!obj) return; this.w = obj.w.slice(); this.lr=obj.lr; this.l2=obj.l2; }
+}
 
-        // Actualizar gráfico
-        function updateChart() {
-            const ctx = document.getElementById('multiplierChart').getContext('2d');
-            if (chart) chart.destroy();
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: localCrashes.map((_, i) => `Ronda ${i + 1}`),
-                    datasets: [{
-                        label: 'Multiplicadores Históricos',
-                        data: localCrashes,
-                        borderColor: 'blue',
-                        fill: false
-                    }]
-                },
-                options: {
-                    scales: { y: { beginAtZero: true } }
-                }
-            });
-        }
+/* =============== Estado y UI =============== */
+let DATA=[];                 // historial de multiplicadores
+let MODEL=null;              // instancia OnlineLogReg
+const cols = 1 + 4 + 5 + 1;  // bias + (mean,med,std,meanLog) + (p3,p5,up,down,sinceHi) + 5 últimos = 1+4+5+1? (revisar)
+                             // Corrección: bias + 4 + 2 + 3 + 5 = 15
+function modelDim(){ return 1 + 4 + 2 + 3 + 5; } // =15
 
-        // Mostrar señales
-        function showSignals(signals) {
-            const signalsList = document.getElementById('signals');
-            signalsList.innerHTML = '';
-            signals.forEach(signal => {
-                const li = document.createElement('li');
-                li.textContent = signal;
-                signalsList.appendChild(li);
-            });
-        }
+function ensureModel(){
+  const lr = parseFloat($("inpLR").value)||0.05;
+  const l2 = parseFloat($("inpL2").value)||0.0005;
+  if(!MODEL) MODEL = new OnlineLogReg(modelDim(), lr, l2);
+  MODEL.lr = lr; MODEL.l2 = l2;
+}
 
-        // Escuchar datos en tiempo real
-        crashesRef.on('value', (snapshot) => {
-            const data = snapshot.val();
-            localCrashes = data ? Object.values(data) : [];
-            console.log(`Datos cargados: ${localCrashes.length} rondas.`);
-            if (localCrashes.length >= minHistoryForPrediction) {
-                trainModel();
-                updateChart();
-                const signals = predictNext();
-                showSignals(signals);
-            }
-        });
+/* Mostrar tabla de últimas rondas */
+function renderTable(){
+  const N = 30;
+  const rows = last(DATA, N).map((v,i,arr)=>`<tr><td>${DATA.length-N+i+1}</td><td>${v.toFixed(2)}×</td></tr>`);
+  $("tbl").innerHTML = `<tr><th>#</th><th>Multiplicador</th></tr>${rows.join("")}`;
+}
 
-        console.log('Dashboard iniciado. Esperando datos...');
-    </script>
+/* Stats */
+function renderStats(){
+  const s = stats(DATA);
+  $("stN").textContent = s.n;
+  $("stMean").textContent = s.mean.toFixed(2)+"×";
+  $("stMed").textContent = s.med.toFixed(2)+"×";
+  $("stP3").textContent = (s.p3*100).toFixed(1)+"%";
+  $("stP5").textContent = (s.p5*100).toFixed(1)+"%";
+  $("stMax").textContent = s.max.toFixed(2)+"×";
+}
+
+/* Lógica principal: preparar predicción y luego actualizar */
+function maybePredictNext(){
+  const target = parseFloat($("inpTarget").value)||3;
+  const W = parseInt($("inpW").value||"30",10);
+  const minN = parseInt($("inpMinN").value||"10",10);
+  ensureModel();
+  // Prepara x y p para la "siguiente" ronda si tenemos historial suficiente
+  let p = null;
+  if(DATA.length>=Math.max(5,minN)){ // mínimo para features decentes
+    const x = featuresFrom(DATA, W, target);
+    p = MODEL.stepPrepare(x);
+  }
+  // Mostrar
+  const thresh = parseFloat($("inpThresh").value)||0.6;
+  if(p==null){ $("prob").textContent="—"; $("signal").textContent="—"; $("signal").className="signal no"; return; }
+  $("prob").textContent = p.toFixed(3);
+  if(p>=thresh){ $("signal").textContent="SEÑAL (p≥umbral)"; $("signal").className="signal ok"; }
+  else { $("signal").textContent="No señal"; $("signal").className="signal no"; }
+}
+
+/* Cuando llega una NUEVA ronda, entrenamos con la etiqueta del PASO anterior */
+function onNewRound(value){
+  const target = parseFloat($("inpTarget").value)||3;
+  // 1) Primero, la nueva ronda sirve como etiqueta para el paso anterior:
+  if(MODEL && MODEL.prevX){ const y = (value >= target) ? 1 : 0; MODEL.update(y); }
+  // 2) Agregamos el dato al historial
+  DATA.push(value);
+  // 3) Actualizamos UI y preparamos la predicción para la siguiente
+  renderTable(); renderStats(); maybePredictNext();
+}
+
+/* ===== Entrada de datos ===== */
+$("btnAdd").onclick = ()=>{ const v=parseList($("ta").value); if(!v.length) return; v.forEach(onNewRound); $("ta").value=""; };
+$("btnClear").onclick = ()=>{ DATA=[]; if(MODEL){ MODEL.prevX=null; MODEL.prevP=null; } renderTable(); renderStats(); maybePredictNext(); };
+$("file").onchange = (e)=>{ const f=e.target.files?.[0]; if(!f) return; f.text().then(t=>{ const v=parseList(t); v.forEach(onNewRound); }); };
+$("btnQuick").onclick = ()=>{ const v=quickNorm($("quick").value); if(v!=null){ onNewRound(v); $("quick").value=""; } };
+$("quick").addEventListener("keydown",(ev)=>{ if(ev.key==="Enter"){ $("btnQuick").click(); }});
+
+/* ===== Modelo: reset/export/import ===== */
+$("btnReset").onclick = ()=>{ MODEL=null; ensureModel(); MODEL.prevX=null; MODEL.prevP=null; maybePredictNext(); };
+$("btnExportModel").onclick = ()=>{
+  ensureModel();
+  const blob = new Blob([JSON.stringify(MODEL.export(),null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download="learner_model.json"; a.click(); URL.revokeObjectURL(url);
+};
+$("fileModel").onchange = (e)=>{ const f=e.target.files?.[0]; if(!f) return; f.text().then(t=>{ try{ const obj=JSON.parse(t); ensureModel(); MODEL.import(obj); alert("Modelo importado."); maybePredictNext(); }catch(_){ alert("JSON inválido"); } }); };
+
+/* ===== Clipboard ===== */
+let CLIP_TIMER=null, LAST="";
+function parseClip(t){
+  if(!t) return null;
+  const s=t.trim().replace(',','.').toLowerCase();
+  const m=s.match(/(\d+(\.\d+)?)(\s*x)?$/i); if(!m) return null;
+  const v=parseFloat(m[1]); return (isFinite(v)&&v>0)?v:null;
+}
+async function readClipboardOnce(){
+  try{
+    const text = await navigator.clipboard.readText();
+    $("clipStatus").textContent = 'Clip: "'+text.slice(0,50)+'"';
+    const v = parseClip(text); if(v==null) return;
+    const key=v.toFixed(6); if(key===LAST) return; LAST=key;
+    onNewRound(v);
+  }catch(e){ $("clipStatus").textContent="Permite acceso al portapapeles (HTTPS)."; }
+}
+$("cbClip").addEventListener("change",(e)=>{ if(e.target.checked){ const ms=Math.max(250,parseInt($("clipMS").value||"800",10)); if(CLIP_TIMER) clearInterval(CLIP_TIMER); CLIP_TIMER=setInterval(readClipboardOnce,ms); $("clipStatus").textContent="Auto-lectura cada "+ms+" ms."; } else { if(CLIP_TIMER) clearInterval(CLIP_TIMER); CLIP_TIMER=null; $("clipStatus").textContent="Auto-lectura desactivada."; }});
+$("clipMS").addEventListener("input",()=>{ if($("cbClip").checked){ $("cbClip").dispatchEvent(new Event("change")); }});
+$("btnClipOnce").onclick = readClipboardOnce;
+window.addEventListener("keydown",(ev)=>{ if(ev.key.toLowerCase()==="v") readClipboardOnce(); });
+
+/* ===== Arranque ===== */
+ensureModel(); renderTable(); renderStats(); maybePredictNext();
+</script>
 </body>
 </html>
