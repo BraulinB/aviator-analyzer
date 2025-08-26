@@ -1,225 +1,603 @@
-// ==UserScript==
-// @name         Aviator Bot for 1Win with Prediction and Firebase Sync
-// @namespace    http://tampermonkey.net/
-// @version      1.0
-// @description  Legitimate Aviator bot that automates betting, cashes out at fixed multipliers, learns patterns from historical data, predicts signals for >5x, and identifies high multiplier sequences. Uses Firebase for cross-device sync. Adjust DOM selectors as needed for your site.
-// @author       Grok
-// @match        https://*.1win.com/*aviator*  // Adjust to match your 1Win Aviator page URL
-// @match        https://*.1win.partners/*aviator*
-// @match        https://*.1wzhzv.top/*aviator*  // Common 1Win variants; add more if needed
-// @require      https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js
-// @require      https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js
-// @require      https://cdn.jsdelivr.net/npm/brain.js@2.0.0-beta/dist/browser.js
-// @grant        none
-// ==/UserScript==
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { AlertCircle, Brain, Coins, Database, Flame, LineChart, LogOut, Save, Upload } from "lucide-react";
+import { ResponsiveContainer, LineChart as RLineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from "recharts";
 
-(function() {
-    'use strict';
+// ========================= DISCLAIMER =========================
+// Esta herramienta NO predice resultados, no da "señales" para apostar
+// y no automatiza apuestas en 1Win ni en ningún otro sitio. Sirve para:
+//  - Analizar secuencias HISTÓRICAS de multiplicadores que el usuario ingrese
+//  - Detectar (después del hecho) rachas/segmentos >5x, >10x, >100x, >1000x
+//  - Simular gestión de bankroll con diferentes estrategias usando esos datos
+//  - Sincronizar tus datasets entre dispositivos (opcional) vía Firebase
+// Los juegos tipo "crash" son de aleatoriedad (usualmente "provably fair") y
+// no existe forma fiable de predecir 5x, 10x, 100x, 1000x a futuro.
+// ==============================================================
 
-    // Firebase configuration provided by user
-    const firebaseConfig = {
-        apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
-        authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
-        databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com",
-        projectId: "aviator-analyzer-b29a7",
-        storageBucket: "aviator-analyzer-b29a7.firebasestorage.app",
-        messagingSenderId: "575063626276",
-        appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
-        measurementId: "G-325QCBSQMH"
+// ============== Firebase (OPCIONAL) ============================
+// 1) Crea tu proyecto en Firebase y habilita Authentication (Google) y Realtime Database.
+// 2) Sustituye firebaseConfig por el de TU proyecto. No reutilices llaves expuestas.
+// 3) Si no quieres sincronización, deja SYNC desactivado y esto no se inicializa.
+
+// Nota: Las claves web de Firebase NO son secretas, pero rotarlas es buena práctica
+// si alguna se hizo pública. No pongas credenciales sensibles en el cliente.
+
+// Para evitar fallos si el usuario no quiere Firebase, importamos dinámicamente.
+let firebaseApp = null;
+let firebaseAuth = null;
+let firebaseDb = null;
+let firebaseReady = false;
+
+const ensureFirebase = async (config) => {
+  if (firebaseReady) return { app: firebaseApp, auth: firebaseAuth, db: firebaseDb };
+  const { initializeApp } = await import("firebase/app");
+  const { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } = await import("firebase/auth");
+  const { getDatabase, ref, onValue, set, push } = await import("firebase/database");
+  const app = initializeApp(config);
+  firebaseApp = app;
+  firebaseAuth = { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut };
+  firebaseDb = { getDatabase, ref, onValue, set, push };
+  firebaseReady = true;
+  return { app, auth: firebaseAuth, db: firebaseDb };
+};
+
+// ============== Utilidades ============================
+function parseMultipliers(input) {
+  if (!input) return [];
+  // Acepta números separados por comas, espacios o saltos de línea
+  return input
+    .split(/[\s,;]+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => Number(s))
+    .filter((n) => Number.isFinite(n) && n > 0);
+}
+
+function median(arr) {
+  if (!arr.length) return 0;
+  const a = [...arr].sort((x, y) => x - y);
+  const mid = Math.floor(a.length / 2);
+  return a.length % 2 ? a[mid] : (a[mid - 1] + a[mid]) / 2;
+}
+
+function computeStats(data) {
+  const n = data.length;
+  if (!n) {
+    return {
+      count: 0,
+      mean: 0,
+      median: 0,
+      p5: 0,
+      p10: 0,
+      p100: 0,
+      p1000: 0,
+      max: 0,
     };
+  }
+  const sum = data.reduce((a, b) => a + b, 0);
+  const mean = sum / n;
+  const med = median(data);
+  const p = (t) => data.filter((x) => x >= t).length / n;
+  return {
+    count: n,
+    mean,
+    median: med,
+    p5: p(5),
+    p10: p(10),
+    p100: p(100),
+    p1000: p(1000),
+    max: Math.max(...data),
+  };
+}
 
-    // Initialize Firebase
-    const app = firebase.initializeApp(firebaseConfig);
-    const database = firebase.database(app);
-    const crashesRef = database.ref('crashes');  // Stores historical crash multipliers
+function findSequences(data, threshold) {
+  // Devuelve secuencias contiguas con valores >= threshold
+  const seqs = [];
+  let i = 0;
+  while (i < data.length) {
+    if (data[i] >= threshold) {
+      let j = i;
+      while (j < data.length && data[j] >= threshold) j++;
+      seqs.push({ start: i, end: j - 1, length: j - i, values: data.slice(i, j) });
+      i = j;
+    } else {
+      i++;
+    }
+  }
+  return seqs;
+}
 
-    // DOM Selectors - Adjust these based on inspecting the 1Win Aviator page (use browser dev tools)
-    const multiplierSelector = '.coefficient, .multiplier-value, div[class*="multiplier"]';  // Where current multiplier is displayed (e.g., '1.23x')
-    const betAmountInputSelector = 'input.bet-amount, input[class*="bet-input"]';  // Bet amount input field
-    const betButtonSelector = '.bet-button, button[class*="place-bet"]';  // Button to place bet
-    const cashoutButtonSelector = '.cashout-button, button[class*="cash-out"]';  // Button to cash out
-    const gameStatusSelector = '.game-status, div[class*="flew-away"]';  // Element that shows 'Flew away!' or crash message
+function toChartSeries(data, clamp = 200) {
+  // Limitamos a 200x para visualizar; valores mayores se muestran en techo
+  return data.map((v, idx) => ({ i: idx + 1, m: Math.min(v, clamp), real: v }));
+}
 
-    // Bot Configuration
-    const targetCashout = 5.0;  // Fixed cashout at 5x (can be adjusted)
-    const betAmount = 1.0;  // Fixed bet amount (use Martingale or other strategy below)
-    const minHistoryForPrediction = 10;  // Minimum crashes needed to train model
-    const sequenceThresholds = { high: 10, veryHigh: 100, extreme: 1000 };  // For identifying sequences
-    const lookbackForPrediction = 5;  // Use last 5 crashes for input to NN
+// ============== Simulador de Bankroll ============================
+function nextBetMartingale(prevBet, lastOutcomeWin) {
+  if (lastOutcomeWin === null) return prevBet; // inicial
+  return lastOutcomeWin ? prevBet : prevBet * 2;
+}
 
-    // Local state
-    let localCrashes = [];
-    let isFlying = false;
-    let currentMultiplier = 1.0;
-    let lastMultiplier = 1.0;
-    let net = new brain.NeuralNetwork({ hiddenLayers: [3] });  // Simple NN for prediction
-    let isBetPlaced = false;  // Track if bet is placed for current round
-    let sequenceCount = { high: 0, veryHigh: 0, extreme: 0 };  // Track consecutive high multipliers
+function nextBetFibonacci(fibIndex, lastOutcomeWin, base) {
+  // Secuencia 1,1,2,3,5,... multiplicada por base
+  const seq = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55];
+  if (lastOutcomeWin === null) return { bet: base * seq[fibIndex], idx: fibIndex };
+  if (lastOutcomeWin) {
+    const newIdx = Math.max(0, fibIndex - 2);
+    return { bet: base * seq[newIdx], idx: newIdx };
+  } else {
+    const newIdx = Math.min(seq.length - 1, fibIndex + 1);
+    return { bet: base * seq[newIdx], idx: newIdx };
+  }
+}
 
-    // Normalize multiplier for NN input (cap at 100x for sanity)
-    function normalize(value) {
-        return Math.log(value + 1) / Math.log(100 + 1);  // Log scale normalization
+function kellyFraction(p, b) {
+  // Kelly = (bp - q) / b, con q=1-p
+  const q = 1 - p;
+  const f = (b * p - q) / b;
+  return Math.max(0, Math.min(0.25, f)); // acotar a 25% del bankroll para prudencia
+}
+
+function simulateStrategy({
+  data,
+  target = 1.5,
+  bankroll = 1000,
+  baseBet = 10,
+  strategy = "flat",
+  maxRounds,
+}) {
+  const rounds = Math.min(maxRounds || data.length, data.length);
+  let bal = bankroll;
+  let peak = bankroll;
+  let trough = bankroll;
+  let maxDD = 0;
+  let wins = 0;
+  let losses = 0;
+
+  let lastWin = null;
+  let currentBet = baseBet;
+  let fibIdx = 0;
+
+  // Probabilidad empírica de alcanzar el target en los datos cargados
+  const pHat = data.filter((x) => x >= target).length / data.length || 0;
+  const b = Math.max(0, target - 1);
+
+  const history = [];
+
+  for (let i = 0; i < rounds; i++) {
+    // Decide apuesta según estrategia
+    switch (strategy) {
+      case "flat":
+        currentBet = baseBet;
+        break;
+      case "martingale":
+        currentBet = nextBetMartingale(currentBet || baseBet, lastWin);
+        break;
+      case "fibonacci": {
+        const r = nextBetFibonacci(fibIdx, lastWin, baseBet);
+        currentBet = r.bet;
+        fibIdx = r.idx;
+        break;
+      }
+      case "kelly": {
+        const f = kellyFraction(pHat, b);
+        currentBet = Math.max(1e-6, Math.floor(bal * f));
+        break;
+      }
+      default:
+        currentBet = baseBet;
     }
 
-    // Load historical crashes from Firebase
-    crashesRef.on('value', (snapshot) => {
-        const data = snapshot.val();
-        localCrashes = data ? Object.values(data) : [];
-        console.log(`Loaded ${localCrashes.length} historical crashes from Firebase.`);
-        if (localCrashes.length >= minHistoryForPrediction) {
-            trainModel();
-        }
-    });
-
-    // Train the neural network on historical data
-    function trainModel() {
-        if (localCrashes.length < minHistoryForPrediction + lookbackForPrediction) return;
-
-        const data = [];
-        for (let i = lookbackForPrediction; i < localCrashes.length; i++) {
-            const input = localCrashes.slice(i - lookbackForPrediction, i).map(normalize);
-            const output = [localCrashes[i] > 5 ? 1 : 0];  // Binary: 1 if >5x, 0 otherwise
-            data.push({ input, output });
-        }
-
-        net.train(data, { iterations: 200, log: true, logPeriod: 50 });
-        console.log('Model trained on historical data.');
+    // No exceder bankroll
+    currentBet = Math.min(currentBet, bal);
+    if (currentBet <= 0) {
+      history.push({ round: i + 1, bet: 0, multiplier: data[i], win: false, pnl: 0, bal });
+      continue;
     }
 
-    // Predict if next round will be >5x
-    function predictNext() {
-        if (localCrashes.length < lookbackForPrediction) {
-            console.log('Not enough data for prediction.');
-            return false;
-        }
-
-        const input = localCrashes.slice(-lookbackForPrediction).map(normalize);
-        const prediction = net.run(input)[0];
-        const willBeHigh = prediction > 0.5;
-        console.log(`Prediction for next round: ${willBeHigh ? '>5x likely' : '<5x likely'} (confidence: ${prediction})`);
-        if (willBeHigh) {
-            alert('Signal: Next round predicted to go above 5x! Placing bet.');
-        }
-        return willBeHigh;
+    const hit = data[i] >= target;
+    let pnl = 0;
+    if (hit) {
+      pnl = currentBet * (target - 1); // ganancia neta
+      bal += pnl;
+      wins++;
+      lastWin = true;
+    } else {
+      pnl = -currentBet;
+      bal += pnl;
+      losses++;
+      lastWin = false;
     }
 
-    // Get current multiplier from DOM
-    function getCurrentMultiplier() {
-        const elem = document.querySelector(multiplierSelector);
-        if (elem) {
-            const text = elem.textContent.trim().replace('x', '');
-            return parseFloat(text);
-        }
-        return NaN;
+    peak = Math.max(peak, bal);
+    trough = Math.min(trough, bal);
+    maxDD = Math.max(maxDD, peak - bal);
+
+    history.push({ round: i + 1, bet: currentBet, multiplier: data[i], win: hit, pnl, bal });
+
+    if (bal <= 0) break; // ruina
+  }
+
+  return {
+    finalBankroll: bal,
+    startBankroll: bankroll,
+    profit: bal - bankroll,
+    roi: bankroll ? (bal - bankroll) / bankroll : 0,
+    rounds: history.length,
+    wins,
+    losses,
+    winRate: (wins / Math.max(1, history.length)) || 0,
+    maxDrawdown: maxDD,
+    ruined: bal <= 0,
+    history,
+    pHat,
+  };
+}
+
+// ============== Componente principal ============================
+export default function AviatorAnalyzer() {
+  const [input, setInput] = useState("");
+  const [data, setData] = useState([]); // números positivos (multiplicadores)
+  const [target, setTarget] = useState(1.5);
+  const [strategy, setStrategy] = useState("flat");
+  const [bankroll, setBankroll] = useState(1000);
+  const [baseBet, setBaseBet] = useState(10);
+  const [maxRounds, setMaxRounds] = useState(0);
+
+  const [syncEnabled, setSyncEnabled] = useState(false);
+  const [firebaseConfig, setFirebaseConfig] = useState({
+    apiKey: "",
+    authDomain: "",
+    databaseURL: "",
+    projectId: "",
+    storageBucket: "",
+    messagingSenderId: "",
+    appId: "",
+    measurementId: "",
+  });
+  const [user, setUser] = useState(null);
+  const [loadingAuth, setLoadingAuth] = useState(false);
+
+  // Estadísticas y secuencias
+  const stats = useMemo(() => computeStats(data), [data]);
+  const seq5 = useMemo(() => findSequences(data, 5), [data]);
+  const seq10 = useMemo(() => findSequences(data, 10), [data]);
+  const seq100 = useMemo(() => findSequences(data, 100), [data]);
+  const seq1000 = useMemo(() => findSequences(data, 1000), [data]);
+
+  // Simulación
+  const sim = useMemo(
+    () => (data.length ? simulateStrategy({ data, target, bankroll, baseBet, strategy, maxRounds }) : null),
+    [data, target, bankroll, baseBet, strategy, maxRounds]
+  );
+
+  const chartData = useMemo(() => toChartSeries(data), [data]);
+
+  // ================= Firebase opcional =================
+  const authRef = useRef(null);
+  const dbRef = useRef(null);
+  const unsubAuthRef = useRef(null);
+
+  const initFirebaseIfNeeded = async () => {
+    if (!syncEnabled) return;
+    if (!firebaseConfig || !firebaseConfig.apiKey) return;
+    const { app, auth, db } = await ensureFirebase(firebaseConfig);
+    authRef.current = auth;
+    dbRef.current = db;
+    if (!unsubAuthRef.current) {
+      const authInstance = auth.getAuth();
+      unsubAuthRef.current = auth.onAuthStateChanged(authInstance, (u) => setUser(u));
     }
+  };
 
-    // Check for crash or game status
-    function isCrashed() {
-        const statusElem = document.querySelector(gameStatusSelector);
-        return statusElem && statusElem.textContent.includes('Flew away') || statusElem.textContent.includes('Crash');
+  useEffect(() => {
+    initFirebaseIfNeeded();
+    return () => {
+      // noop: en un proyecto real, limpiaríamos listeners
+    };
+  }, [syncEnabled, firebaseConfig]);
+
+  const handleGoogleSignIn = async () => {
+    if (!authRef.current) return;
+    setLoadingAuth(true);
+    try {
+      const authInstance = authRef.current.getAuth();
+      const provider = new authRef.current.GoogleAuthProvider();
+      await authRef.current.signInWithPopup(authInstance, provider);
+    } catch (e) {
+      console.error(e);
+      alert("No se pudo iniciar sesión: " + (e?.message || e));
+    } finally {
+      setLoadingAuth(false);
     }
+  };
 
-    // Place bet automatically
-    function placeBet(amount) {
-        const input = document.querySelector(betAmountInputSelector);
-        if (input) {
-            input.value = amount;
-            input.dispatchEvent(new Event('input'));
-        }
-        const button = document.querySelector(betButtonSelector);
-        if (button && !button.disabled) {
-            button.click();
-            isBetPlaced = true;
-            console.log(`Bet placed: ${amount}`);
-        }
+  const handleSignOut = async () => {
+    if (!authRef.current) return;
+    try {
+      const authInstance = authRef.current.getAuth();
+      await authRef.current.signOut(authInstance);
+    } catch (e) {
+      console.error(e);
     }
+  };
 
-    // Cash out automatically
-    function cashOut() {
-        const button = document.querySelector(cashoutButtonSelector);
-        if (button && !button.disabled) {
-            button.click();
-            console.log('Cashed out at ' + currentMultiplier + 'x');
-            isBetPlaced = false;
-        }
+  const saveDataset = async () => {
+    if (!syncEnabled || !user || !dbRef.current) return alert("Activa SYNC e inicia sesión");
+    try {
+      const db = dbRef.current.getDatabase();
+      const { ref, set, push } = dbRef.current;
+      const path = `users/${user.uid}/datasets`;
+      const keyRef = push(ref(db, path));
+      await set(keyRef, {
+        createdAt: Date.now(),
+        data,
+        target,
+        strategy,
+        bankroll,
+        baseBet,
+        maxRounds,
+      });
+      alert("Dataset guardado en Firebase.");
+    } catch (e) {
+      console.error(e);
+      alert("Error guardando en Firebase: " + (e?.message || e));
     }
+  };
 
-    // Identify and alert on high multiplier sequences
-    function checkForSequences(multiplier) {
-        if (multiplier > sequenceThresholds.extreme) {
-            sequenceCount.extreme++;
-            alert(`Extreme sequence detected: ${sequenceCount.extreme} consecutive >1000x!`);
-        } else if (multiplier > sequenceThresholds.veryHigh) {
-            sequenceCount.veryHigh++;
-            sequenceCount.extreme = 0;
-            alert(`Very high sequence detected: ${sequenceCount.veryHigh} consecutive >100x!`);
-        } else if (multiplier > sequenceThresholds.high) {
-            sequenceCount.high++;
-            sequenceCount.veryHigh = 0;
-            sequenceCount.extreme = 0;
-            alert(`High sequence detected: ${sequenceCount.high} consecutive >10x!`);
-        } else {
-            sequenceCount = { high: 0, veryHigh: 0, extreme: 0 };
-        }
-    }
+  // =============== Manejadores UI =================
+  const addFromInput = () => {
+    const parsed = parseMultipliers(input);
+    if (!parsed.length) return;
+    setData((prev) => [...prev, ...parsed]);
+    setInput("");
+  };
 
-    // Bankroll management strategy (e.g., simple Martingale)
-    let currentBet = betAmount;
-    let martingaleMultiplier = 2;  // Double bet after loss
-    function adjustBetAfterLoss() {
-        currentBet *= martingaleMultiplier;
-        console.log(`Martingale: Increasing bet to ${currentBet} after loss.`);
-    }
-    function resetBetAfterWin() {
-        currentBet = betAmount;
-        console.log(`Martingale: Resetting bet to ${betAmount} after win.`);
-    }
+  const clearData = () => setData([]);
 
-    // Main monitoring loop
-    setInterval(() => {
-        currentMultiplier = getCurrentMultiplier();
+  const importCSV = async (file) => {
+    const text = await file.text();
+    // Busca números en el texto
+    const parsed = parseMultipliers(text);
+    setData((prev) => [...prev, ...parsed]);
+  };
 
-        if (isNaN(currentMultiplier) && isFlying) {
-            // Crash detected
-            console.log(`Crash at ${lastMultiplier}x`);
-            localCrashes.push(lastMultiplier);
-            crashesRef.push(lastMultiplier);  // Sync to Firebase
-            checkForSequences(lastMultiplier);
-            isFlying = false;
-            if (isBetPlaced) {
-                // If didn't cash out, it's a loss
-                adjustBetAfterLoss();
-            }
-            isBetPlaced = false;
-            // Predict for next round
-            const shouldBet = predictNext();
-            if (shouldBet) {
-                placeBet(currentBet);
-            }
-        } else if (!isNaN(currentMultiplier)) {
-            isFlying = true;
-            lastMultiplier = currentMultiplier;
+  const downloadJSON = () => {
+    const blob = new Blob([JSON.stringify({ data, createdAt: Date.now() }, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "aviator_dataset.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
-            // During flight: check for cashout if bet placed
-            if (isBetPlaced && currentMultiplier >= targetCashout) {
-                cashOut();
-                resetBetAfterWin();
-            }
+  return (
+    <div className="min-h-screen w-full bg-gradient-to-b from-white to-slate-50 text-slate-900 p-4 lg:p-8">
+      <div className="mx-auto max-w-6xl space-y-6">
+        <header className="flex items-center justify-between">
+          <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
+            <Brain className="w-7 h-7" /> Aviator Analyzer <span className="text-sm font-normal text-slate-500">(sin predicción)</span>
+          </h1>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Switch id="sync" checked={syncEnabled} onCheckedChange={setSyncEnabled} />
+              <Label htmlFor="sync" className="text-sm">SYNC Firebase</Label>
+            </div>
+            {syncEnabled && (
+              user ? (
+                <Button variant="outline" onClick={handleSignOut}>
+                  <LogOut className="w-4 h-4 mr-2" /> {user.displayName || "Salir"}
+                </Button>
+              ) : (
+                <Button onClick={handleGoogleSignIn} disabled={loadingAuth}>
+                  <Database className="w-4 h-4 mr-2" /> {loadingAuth ? "Conectando..." : "Iniciar sesión"}
+                </Button>
+              )
+            )}
+          </div>
+        </header>
 
-            // Live high multiplier check (for ongoing round)
-            if (currentMultiplier > sequenceThresholds.high) {
-                console.log(`Live: Multiplier >${sequenceThresholds.high}x - Potential high sequence!`);
-            }
-        }
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><AlertCircle className="w-5 h-5"/> Nota importante</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-slate-600">
+            <p>
+              Esta herramienta <strong>no</strong> predice resultados futuros, ni recomienda apuestas, ni automatiza casinos/1Win. 
+              Se ofrece únicamente para análisis educativo de datos históricos y simulación de gestión de banca.
+            </p>
+          </CardContent>
+        </Card>
 
-        // Additional crash check via status
-        if (isCrashed() && isFlying) {
-            // Fallback crash detection
-            localCrashes.push(lastMultiplier);
-            crashesRef.push(lastMultiplier);
-            isFlying = false;
-        }
-    }, 100);  // Poll every 100ms
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Upload className="w-5 h-5"/> Carga de datos</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Pega aquí multiplicadores separados por comas, espacios o líneas (ej: 1.2 2.1 8.4 120 3.3)"
+                className="min-h-[120px]"
+              />
+              <div className="flex flex-wrap items-center gap-3">
+                <Button onClick={addFromInput}>Añadir</Button>
+                <Button variant="outline" onClick={clearData}>Limpiar</Button>
+                <label className="cursor-pointer inline-flex items-center gap-2">
+                  <Input type="file" accept=".csv,.txt" className="hidden" onChange={(e) => e.target.files?.[0] && importCSV(e.target.files[0])} />
+                  <span className="px-4 py-2 border rounded-lg">Importar CSV/TXT</span>
+                </label>
+                <Button variant="outline" onClick={downloadJSON}>Exportar JSON</Button>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div>
+                  <Label>Objetivo (cashout)</Label>
+                  <Input type="number" step="0.1" value={target} onChange={(e) => setTarget(parseFloat(e.target.value) || 0)} />
+                </div>
+                <div>
+                  <Label>Estrategia</Label>
+                  <Select value={strategy} onValueChange={setStrategy}>
+                    <SelectTrigger><SelectValue placeholder="Estrategia" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="flat">Flat (apuesta fija)</SelectItem>
+                      <SelectItem value="martingale">Martingala</SelectItem>
+                      <SelectItem value="fibonacci">Fibonacci</SelectItem>
+                      <SelectItem value="kelly">Kelly (empírico)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Bankroll inicial</Label>
+                  <Input type="number" value={bankroll} onChange={(e) => setBankroll(parseFloat(e.target.value) || 0)} />
+                </div>
+                <div>
+                  <Label>Apuesta base</Label>
+                  <Input type="number" value={baseBet} onChange={(e) => setBaseBet(parseFloat(e.target.value) || 0)} />
+                </div>
+                <div>
+                  <Label>Rondas a simular (0 = usar todas)</Label>
+                  <Input type="number" value={maxRounds} onChange={(e) => setMaxRounds(parseInt(e.target.value || "0", 10))} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-    console.log('Aviator Bot started. Monitoring game...');
-})();
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Coins className="w-5 h-5"/> Estadísticas</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-3 text-sm">
+              <div><span className="text-slate-500">Muestras</span><div className="text-lg font-semibold">{stats.count}</div></div>
+              <div><span className="text-slate-500">Media</span><div className="text-lg font-semibold">{stats.mean.toFixed(2)}x</div></div>
+              <div><span className="text-slate-500">Mediana</span><div className="text-lg font-semibold">{stats.median.toFixed(2)}x</div></div>
+              <div><span className="text-slate-500">Máximo</span><div className="text-lg font-semibold">{stats.max.toFixed(2)}x</div></div>
+              <div><span className="text-slate-500">P(≥5x)</span><div className="text-lg font-semibold">{(stats.p5*100).toFixed(1)}%</div></div>
+              <div><span className="text-slate-500">P(≥10x)</span><div className="text-lg font-semibold">{(stats.p10*100).toFixed(2)}%</div></div>
+              <div><span className="text-slate-500">P(≥100x)</span><div className="text-lg font-semibold">{(stats.p100*100).toFixed(3)}%</div></div>
+              <div><span className="text-slate-500">P(≥1000x)</span><div className="text-lg font-semibold">{(stats.p1000*100).toFixed(4)}%</div></div>
+              {syncEnabled && (
+                <div className="col-span-2">
+                  <Button onClick={saveDataset} className="w-full"><Save className="w-4 h-4 mr-2"/>Guardar en Firebase</Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><LineChart className="w-5 h-5"/> Serie temporal (cap a 200x para ver mejor)</CardTitle>
+          </CardHeader>
+          <CardContent className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <RLineChart data={chartData} margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="i" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip formatter={(value, name, props) => [`${props.payload.real.toFixed(2)}x`, "Multiplicador"]} />
+                <Line type="monotone" dataKey="m" dot={false} />
+                <ReferenceLine y={target} strokeDasharray="4 4" label={`target ${target}x`} />
+              </RLineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Flame className="w-5 h-5"/> Rachas detectadas (históricas)</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm space-y-3">
+              <RachaList label=">= 5x" seq={seq5} />
+              <RachaList label=">= 10x" seq={seq10} />
+              <RachaList label=">= 100x" seq={seq100} />
+              <RachaList label=">= 1000x" seq={seq1000} />
+              {!data.length && <p className="text-slate-500">Carga datos para ver rachas.</p>}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Coins className="w-5 h-5"/> Simulación de banca</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm space-y-3">
+              {sim ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <Stat label="Rounds" value={sim.rounds} />
+                  <Stat label="Win rate" value={`${(sim.winRate*100).toFixed(1)}%`} />
+                  <Stat label="Profit" value={`${sim.profit.toFixed(2)}`} />
+                  <Stat label="Final bankroll" value={`${sim.finalBankroll.toFixed(2)}`} />
+                  <Stat label="Max drawdown" value={`${sim.maxDrawdown.toFixed(2)}`} />
+                  <Stat label="Ruin" value={sim.ruined ? "Sí" : "No"} />
+                  <Stat label="p̂(hit ≥ target)" value={`${(sim.pHat*100).toFixed(2)}%`} />
+                </div>
+              ) : (
+                <p className="text-slate-500">Carga datos para simular.</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Configuración Firebase (opcional)</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {Object.keys(firebaseConfig).map((k) => (
+              <div key={k}>
+                <Label className="capitalize">{k}</Label>
+                <Input value={firebaseConfig[k]} onChange={(e) => setFirebaseConfig({ ...firebaseConfig, [k]: e.target.value })} placeholder={k} />
+              </div>
+            ))}
+            <p className="md:col-span-2 text-xs text-slate-500">
+              Consejo: pon estas variables en tu entorno (por ejemplo, .env.local) y pásalas aquí desde tu app. Si publicaste claves por error, rota el API key desde Firebase Console.
+            </p>
+          </CardContent>
+        </Card>
+
+        <footer className="text-xs text-slate-500 mt-6">
+          Hecho con fines educativos. No es asesoría financiera ni de apuestas.
+        </footer>
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value }) {
+  return (
+    <div className="p-3 border rounded-xl">
+      <div className="text-slate-500 text-xs">{label}</div>
+      <div className="text-base font-semibold">{value}</div>
+    </div>
+  );
+}
+
+function RachaList({ label, seq }) {
+  if (!seq?.length) return (
+    <div className="p-3 border rounded-xl">
+      <div className="text-slate-500 text-xs">{label}</div>
+      <div className="text-sm">0 rachas</div>
+    </div>
+  );
+  return (
+    <div className="p-3 border rounded-xl">
+      <div className="text-slate-500 text-xs">{label}</div>
+      <ul className="list-disc pl-5 space-y-1">
+        {seq.slice(0, 10).map((s, idx) => (
+          <li key={idx}>
+            #{idx + 1}: posiciones {s.start + 1}–{s.end + 1} (len {s.length}) · pico {(Math.max(...s.values)).toFixed(2)}x
+          </li>
+        ))}
+        {seq.length > 10 && <li className="text-slate-400">… y {seq.length - 10} más</li>}
+      </ul>
+    </div>
+  );
+}
