@@ -221,4 +221,279 @@ function segmentsBelowMM(data, win, thr){
 /* ======= Simulación ======= */
 function nextBetMartingale(prev, lastWin){ if(lastWin===null) return prev; return lastWin?prev:prev*2; }
 function nextBetFib(idx,lastWin,base){ const seq=[1,1,2,3,5,8,13,21,34,55]; if(lastWin===null) return {bet:base*seq[idx],idx}; if(lastWin){const ni=Math.max(0,idx-2);return {bet:base*seq[ni],idx:ni};} const ni=Math.min(seq.length-1,idx+1); return {bet:base*seq[ni],idx:ni}; }
-function kellyFraction(p,b){ const q=1-p; co
+function kellyFraction(p,b){ const q=1-p; const f=(b*p-q)/b; return Math.max(0,Math.min(0.25,f||0)); }
+let LAST_SIM_HISTORY=[];
+
+function simulate({data,target=1.5,bankroll=1000,baseBet=10,strategy="flat",maxRounds=0}){
+  const rounds=Math.min(maxRounds||data.length,data.length);
+  let bal=bankroll, peak=bankroll, maxDD=0, wins=0, losses=0;
+  let lastWin=null, bet=baseBet, fibIdx=0;
+  const pHat=(data.filter(x=>x>=target).length / (data.length||1))||0;
+  const b=Math.max(0,target-1);
+  const hist=[];
+  for(let i=0;i<rounds;i++){
+    if(strategy==="flat") bet=baseBet;
+    else if(strategy==="martingale") bet=nextBetMartingale(bet||baseBet,lastWin);
+    else if(strategy==="fibonacci"){const r=nextBetFib(fibIdx,lastWin,baseBet); bet=r.bet; fibIdx=r.idx;}
+    else if(strategy==="kelly"){ const f=kellyFraction(pHat,b); bet=Math.max(1e-6, Math.floor(bal*f)); }
+    bet=Math.min(bet,bal);
+    if(bet<=0){ hist.push({round:i+1, bet:0, multiplier:data[i], win:false, pnl:0, bal}); continue; }
+    const hit=data[i]>=target;
+    const pnl= hit ? bet*(target-1) : -bet;
+    bal+=pnl; if(hit) wins++; else losses++;
+    peak=Math.max(peak,bal); maxDD=Math.max(maxDD,peak-bal);
+    hist.push({round:i+1, bet:+bet.toFixed(6), multiplier:data[i], win:hit, pnl:+pnl.toFixed(6), bal:+bal.toFixed(6)});
+    lastWin=hit;
+    if(bal<=0) break;
+  }
+  LAST_SIM_HISTORY=hist;
+  return {rounds:wins+losses, wins, losses, winRate:(wins/Math.max(1,(wins+losses)))||0,
+          startBankroll:bankroll, finalBankroll:bal, profit:bal-bankroll, maxDrawdown:maxDD, ruined:bal<=0, pHat, history:hist};
+}
+
+/* ======= Estado ======= */
+let DATA=[];
+function defaultSession(){ $("sess_name").value = "Sesión " + nowStamp(); $("sess_notes").value=""; }
+defaultSession();
+
+function refresh(){
+  // stats
+  const s=stats(DATA);
+  $("stCount").textContent=s.count;
+  $("stMean").textContent=s.mean.toFixed(2)+"×";
+  $("stMed").textContent=s.median.toFixed(2)+"×";
+  $("stMax").textContent=s.max.toFixed(2)+"×";
+  $("stP5").textContent=(s.p5*100).toFixed(1)+"%";
+  $("stP10").textContent=(s.p10*100).toFixed(2)+"%";
+  $("stP100").textContent=(s.p100*100).toFixed(3)+"%";
+  $("stP1000").textContent=(s.p1000*100).toFixed(4)+"%";
+
+  // rachas
+  const mk=(id,label,seq)=>{
+    const ul=$(id); ul.innerHTML=`<li class="muted">${label}: ${seq.length} rachas</li>`+seq.slice(0,10).map((s,i)=>(
+      `<li>#${i+1}: posiciones ${s.start+1}–${s.end+1} (len ${s.length}) · pico ${s.peak.toFixed(2)}×</li>`
+    )).join("") + (seq.length>10?`<li class="muted">… y ${seq.length-10} más</li>`:"");
+  };
+  mk("seq5","≥5×",sequences(DATA,5));
+  mk("seq10","≥10×",sequences(DATA,10));
+  mk("seq100","≥100×",sequences(DATA,100));
+  mk("seq1000","≥1000×",sequences(DATA,1000));
+
+  // chart + periodos bajos
+  drawChartAndLows();
+
+  // simulación
+  runSim();
+}
+
+function runSim(){
+  if(!DATA.length){ ["smRounds","smWinr","smProfit","smFinal","smDD","smRuin","smPHat"].forEach(id=>$(id).textContent="0"); LAST_SIM_HISTORY=[]; return; }
+  const target=parseFloat($("inpTarget").value)||1.5;
+  const strat=$("selStrat").value;
+  const rounds=parseInt($("inpRounds").value||"0",10);
+  const bank=parseFloat($("inpBank").value)||0;
+  const base=parseFloat($("inpBase").value)||0;
+  const r=simulate({data:DATA,target:target,bankroll:bank,baseBet:base,strategy:strat,maxRounds:rounds});
+  $("smRounds").textContent=r.rounds;
+  $("smWinr").textContent=(r.winRate*100).toFixed(1)+"%";
+  $("smProfit").textContent=r.profit.toFixed(2);
+  $("smFinal").textContent=r.finalBankroll.toFixed(2);
+  $("smDD").textContent=r.maxDrawdown.toFixed(2);
+  $("smRuin").textContent=r.ruined?"Sí":"No";
+  $("smPHat").textContent=(r.pHat*100).toFixed(2)+"%";
+}
+
+/* ======= Chart + Low periods ======= */
+function drawChartAndLows(){
+  const c=$("chart"), ctx=c.getContext("2d");
+  ctx.clearRect(0,0,c.width,c.height);
+  if(!DATA.length){ ctx.fillStyle="#64748b"; ctx.fillText("Carga datos para ver la serie",10,20); $("mw_list").textContent=""; return; }
+  const cap=200, s=clampSeries(DATA,cap);
+  const pad=30, w=c.width-pad*2, h=c.height-pad*2;
+  const max=cap, min=0;
+
+  // fondos de periodos bajos
+  const win = Math.max(2, parseInt($("mw_win").value||"20",10));
+  const thr = parseFloat($("mw_thr").value||"1.3");
+  const lows = segmentsBelowMM(DATA, win, thr);
+
+  // background grid + lows
+  // grid
+  ctx.strokeStyle="#13203a"; ctx.beginPath();
+  ctx.moveTo(pad,c.height-pad); ctx.lineTo(pad,pad); ctx.lineTo(c.width-pad,pad); ctx.stroke();
+
+  // low segments (antes de la línea)
+  ctx.fillStyle="rgba(239,68,68,0.12)";
+  lows.forEach(seg=>{
+    const x1 = pad + (seg.start/(s.length-1))*w;
+    const x2 = pad + (seg.end/(s.length-1))*w;
+    ctx.fillRect(x1, pad, Math.max(1,x2-x1), h);
+  });
+
+  // target line
+  const target=parseFloat($("inpTarget").value)||1.5;
+  const yT = c.height - pad - ( (target-min)/(max-min) )*h;
+  ctx.setLineDash([5,5]); ctx.strokeStyle="#3b82f6"; ctx.beginPath(); ctx.moveTo(pad,yT); ctx.lineTo(c.width-pad,yT); ctx.stroke(); ctx.setLineDash([]);
+
+  // line
+  ctx.strokeStyle="#cbd5e1"; ctx.beginPath();
+  for(let i=0;i<s.length;i++){
+    const x=pad + (i/(s.length-1))*w;
+    const y=c.height - pad - ((s[i].m-min)/(max-min))*h;
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+
+  // resumen de lows
+  if(lows.length){
+    const txt = lows.slice(0,8).map((L,i)=>`#${i+1} [${L.start+1}–${L.end+1}] media min≈${L.minMean.toFixed(2)}×`).join(" · ");
+    $("mw_list").textContent = `Periodos bajos (media ${win} < ${thr}): ${lows.length}. ${txt}${lows.length>8?` · …y ${lows.length-8} más`:''}`;
+  }else{
+    $("mw_list").textContent = `Sin periodos bajos para N=${win} y umbral=${thr}.`;
+  }
+}
+
+/* ======= Entrada rápida ======= */
+function normalizeQuick(s){
+  s=(s||"").trim();
+  if(!s) return null;
+  if(!s.includes(".") && /^\d{2,4}$/.test(s)){
+    if(s.length===2) s = s[0]+"."+s[1];
+    else if(s.length===3) s = s[0]+"."+s.slice(1);
+    else if(s.length===4) s = s.slice(0,2)+"."+s.slice(2);
+  }
+  const v = parseFloat(s.replace(',','.'));
+  return (isFinite(v)&&v>0)? v : null;
+}
+function quickAdd(){
+  const v = normalizeQuick($("quick_inp").value);
+  if(v==null) return;
+  DATA.push(v); $("quick_inp").value=""; refresh();
+}
+$("quick_add").onclick = quickAdd;
+$("quick_inp").addEventListener("keydown",(e)=>{ if(e.key==="Enter") quickAdd(); });
+
+/* ======= Clipboard helper ======= */
+let CLIP_TIMER=null, LAST_CLIP_VALUE="";
+function parseMaybeMultiplier(t){
+  if(!t) return null;
+  const s = t.trim().replace(',', '.').toLowerCase();
+  const m = s.match(/(\d+(\.\d+)?)(\s*x)?$/i);
+  if(!m) return null;
+  const v = parseFloat(m[1]);
+  if(!isFinite(v) || v<=0) return null;
+  return v;
+}
+async function readClipboardOnce(){
+  try{
+    const txt = await navigator.clipboard.readText();
+    $("clip_status").textContent = 'Portapapeles: "'+txt.slice(0,50)+'"';
+    const v = parseMaybeMultiplier(txt);
+    if(v==null) return false;
+    const key = v.toFixed(6);
+    if(key === LAST_CLIP_VALUE) return false;
+    LAST_CLIP_VALUE = key;
+    DATA.push(v);
+    refresh();
+    return true;
+  }catch(e){
+    $("clip_status").textContent = "No se pudo leer el portapapeles. Da permiso al navegador (HTTPS).";
+    return false;
+  }
+}
+function startClip(){
+  const ms = Math.max(200, parseInt($("clip_ms").value||"800",10));
+  if(CLIP_TIMER) clearInterval(CLIP_TIMER);
+  CLIP_TIMER = setInterval(readClipboardOnce, ms);
+  $("clip_status").textContent = "Lectura automática activada cada "+ms+" ms. Copia (Ctrl+C) el multiplicador en la otra pestaña.";
+}
+function stopClip(){
+  if(CLIP_TIMER){ clearInterval(CLIP_TIMER); CLIP_TIMER = null; }
+  $("clip_status").textContent = "Lectura automática desactivada.";
+}
+$("cb_autoClip").addEventListener("change", (e)=> e.target.checked ? startClip() : stopClip());
+$("clip_ms").addEventListener("input", ()=> { if($("cb_autoClip").checked){ startClip(); } });
+$("btnClipOnce").onclick = readClipboardOnce;
+window.addEventListener("keydown",(ev)=>{ if(ev.key.toLowerCase()==="v"){ readClipboardOnce(); }});
+
+/* ======= Eventos básicos ======= */
+$("btnAdd").onclick=()=>{ const p=parseMultipliers($("ta").value); if(!p.length) return; DATA=DATA.concat(p); $("ta").value=""; refresh(); };
+$("btnClear").onclick=()=>{ DATA=[]; refresh(); };
+$("file").onchange=(e)=>{ const f=e.target.files?.[0]; if(!f) return; f.text().then(t=>{ const p=parseMultipliers(t); DATA=DATA.concat(p); refresh(); }); };
+$("btnExport").onclick=()=>{ const payload={ session: $("sess_name").value||"", notes: $("sess_notes").value||"", data:DATA, createdAt:Date.now() }; const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download="aviator_dataset.json"; a.click(); URL.revokeObjectURL(url); };
+["inpTarget","selStrat","inpRounds","inpBank","inpBase"].forEach(id=>$(id).addEventListener("input",runSim));
+$("mw_apply").onclick = drawChartAndLows;
+$("btnNewSess").onclick = ()=>{ DATA=[]; defaultSession(); refresh(); };
+
+/* ======= CSV de simulación ======= */
+$("btnCSV").onclick=()=>{
+  if(!LAST_SIM_HISTORY.length){ alert("Primero ejecuta una simulación (carga datos)."); return; }
+  const cols=["round","bet","multiplier","win","pnl","bal"];
+  const lines=[cols.join(",")].concat(LAST_SIM_HISTORY.map(r=>(
+    [r.round,r.bet,r.multiplier,r.win?1:0,r.pnl,r.bal].join(",")
+  )));
+  const blob=new Blob([lines.join("\n")],{type:"text/csv"});
+  const url=URL.createObjectURL(blob); const a=document.createElement("a");
+  a.href=url; a.download="sim_history.csv"; a.click(); URL.revokeObjectURL(url);
+};
+
+/* ======= Firebase opcional (CDN + import dinámico) ======= */
+let fb = {app:null, auth:null, db:null, user:null};
+async function ensureFirebase(){
+  if(!$("fb_enable").checked) return null;
+  const cfg={
+    apiKey:$("fb_apiKey").value.trim(),
+    authDomain:$("fb_authDomain").value.trim(),
+    databaseURL:$("fb_databaseURL").value.trim(),
+    projectId:$("fb_projectId").value.trim(),
+    storageBucket:$("fb_storageBucket").value.trim(),
+    messagingSenderId:$("fb_messagingSenderId").value.trim(),
+    appId:$("fb_appId").value.trim(),
+    measurementId:$("fb_measurementId").value.trim(),
+  };
+  if(!cfg.apiKey) { alert("Completa tu firebaseConfig y marca SYNC."); return null; }
+  const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js");
+  const { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } = await import("https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js");
+  const { getDatabase, ref, push, set } = await import("https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js");
+  fb.app = initializeApp(cfg);
+  fb.auth = { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut };
+  fb.db = { getDatabase, ref, push, set };
+  const a = getAuth();
+  onAuthStateChanged(a, u=>{ fb.user=u; $("authInfo").textContent = u?("Conectado: "+(u.displayName||u.email)):"No autenticado"; });
+  return fb;
+}
+$("fb_login").onclick=async()=>{
+  if(!$("fb_enable").checked){ alert("Marca SYNC."); return; }
+  const mod=await ensureFirebase(); if(!mod) return;
+  try{ const a=mod.auth.getAuth(); const prov=new mod.auth.GoogleAuthProvider(); await mod.auth.signInWithPopup(a,prov); }catch(e){ alert("No se pudo iniciar sesión: "+(e?.message||e)); }
+};
+$("fb_logout").onclick=async()=>{
+  if(!fb.auth){ $("authInfo").textContent=""; return; }
+  try{ const a=fb.auth.getAuth(); await fb.auth.signOut(a); }catch(e){ console.log(e); }
+};
+$("btnSave").onclick=async()=>{
+  if(!$("fb_enable").checked) return alert("Activa SYNC primero.");
+  if(!fb.app) await ensureFirebase();
+  if(!fb.user) return alert("Inicia sesión con Google.");
+  try{
+    const db = fb.db.getDatabase();
+    const keyRef = fb.db.push(fb.db.ref(db, "users/"+fb.user.uid+"/datasets"));
+    await fb.db.set(keyRef, {
+      createdAt:Date.now(),
+      session: $("sess_name").value||"",
+      notes: $("sess_notes").value||"",
+      data:DATA,
+      target: parseFloat($("inpTarget").value)||1.5,
+      strategy: $("selStrat").value,
+      bankroll: parseFloat($("inpBank").value)||0,
+      baseBet: parseFloat($("inpBase").value)||0,
+      maxRounds: parseInt($("inpRounds").value||"0",10)
+    });
+    alert("Dataset guardado en Firebase.");
+  }catch(e){ alert("Error guardando: "+(e?.message||e)); }
+};
+
+refresh();
+</script>
+</body>
+</html>
