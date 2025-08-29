@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Aviator Learner – Señales (con filtros) + OCR</title>
+<title>Aviator Learner – Señales (con filtros) + OCR + Live Capture</title>
 <style>
   :root { --bg:#0f172a; --card:#0b1220; --muted:#94a3b8; --text:#e5e7eb; --accent:#60a5fa; --ok:#22c55e; --bad:#ef4444; }
   *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,Segoe UI,Inter,Roboto,Arial}
@@ -74,6 +74,38 @@
         <div id="ocrStatus" class="muted small"></div>
       </div>
 
+      <!-- NUEVO: Captura en tiempo real -->
+      <div class="card">
+        <h2>Captura en tiempo real (compartir pantalla)</h2>
+        <div class="rowflex">
+          <button class="btn" id="liveStart">Iniciar captura</button>
+          <button class="btn" id="liveStop">Detener</button>
+          <label><input type="checkbox" id="liveAutoAdd" checked> Auto-agregar tras OCR</label>
+          <label>FPS <input id="liveFps" type="number" value="3" style="width:80px"></label>
+        </div>
+        <div class="rowflex" style="margin-top:6px">
+          <button class="btn" id="roiMode">Definir ROI</button>
+          <label>Umbral rojo (%) <input id="redPct" type="number" step="1" value="25" style="width:80px"></label>
+          <label>Estabilidad (frames) <input id="stableN" type="number" value="2" style="width:80px"></label>
+          <label>Cooldown (s) <input id="liveCooldown" type="number" value="2" style="width:80px"></label>
+        </div>
+        <div class="muted small">
+          1) Pulsa <b>Iniciar captura</b> y elige la pestaña del juego.<br>
+          2) Pulsa <b>Definir ROI</b> y arrastra un rectángulo alrededor del número rojo final.<br>
+          3) Cuando el número se ponga rojo y estable, el bot hará OCR y (si está marcado) lo agregará.
+        </div>
+        <div class="rowflex" style="gap:12px;align-items:flex-start;margin-top:8px">
+          <div>
+            <canvas id="liveCanvas" width="560" height="315" style="max-width:100%;border:1px solid #1f2937;border-radius:12px"></canvas>
+            <div class="muted small" id="liveInfo">Sin captura</div>
+          </div>
+          <div style="flex:1">
+            <div class="muted small" id="roiInfo">ROI: sin definir</div>
+            <div class="muted small" id="liveLog" style="max-height:180px;overflow:auto;border:1px solid #1f2937;border-radius:8px;padding:6px"></div>
+          </div>
+        </div>
+      </div>
+
       <div class="card">
         <h2>Modelo online (SGD) + filtros de señal</h2>
         <div class="rowflex">
@@ -85,7 +117,6 @@
           <label>L2 λ<input id="inpL2" type="number" step="0.0001" value="0.001" style="width:90px"></label>
         </div>
 
-        <!-- Controles nuevos -->
         <div class="rowflex" style="margin-top:6px">
           <label>Cooldown (rondas) <input id="gateCooldown" type="number" value="8" style="width:80px"></label>
           <label>W_low <input id="gateWlow" type="number" value="20" style="width:80px"></label>
@@ -194,6 +225,15 @@ function countBelow(arr, k, L){
 }
 function logit(p){ return Math.log(Math.max(1e-9, p) / Math.max(1e-9, 1-p)); }
 function sigmoid(z){ return 1/(1+Math.exp(-z)); }
+
+/* ===== OCR worker compartido (upload + live) ===== */
+let TESSERACT_WORKER = null;
+async function ensureTesseract(){
+  if(TESSERACT_WORKER) return TESSERACT_WORKER;
+  const { createWorker } = await import("https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.esm.min.js");
+  TESSERACT_WORKER = await createWorker("eng");
+  return TESSERACT_WORKER;
+}
 
 /* ===== Rasgos y modelo ===== */
 function featuresFrom(history, W, target){
@@ -446,14 +486,14 @@ $("btnExportModel").onclick = ()=>{
 $("fileModel").onchange = (e)=>{ const f=e.target.files?.[0]; if(!f) return; f.text().then(t=>{ try{ const obj=JSON.parse(t); ensureModel(); MODEL.import(obj); alert("Modelo importado."); maybePredictNext(); }catch(_){ alert("JSON inválido"); } }); };
 
 /* Portapapeles */
-let CLIP_TIMER=null, LAST="";
+let CLIP_TIMER=null, LAST_CLIP="";
 function parseClip(t){ if(!t) return null; const s=t.trim().replace(',','.').toLowerCase(); const m=s.match(/(\d+(\.\d+)?)(\s*x)?$/i); if(!m) return null; const v=parseFloat(m[1]); return (isFinite(v)&&v>0)?v:null; }
 async function readClipboardOnce(){
   try{
     const text = await navigator.clipboard.readText();
     $("clipStatus").textContent = 'Clip: "'+text.slice(0,50)+'"';
     const v = parseClip(text); if(v==null) return;
-    const key=v.toFixed(6); if(key===LAST) return; LAST=key;
+    const key=v.toFixed(6); if(key===LAST_CLIP) return; LAST_CLIP=key;
     onNewRound(v);
   }catch(e){ $("clipStatus").textContent="Permite acceso al portapapeles (HTTPS)."; }
 }
@@ -462,18 +502,17 @@ $("clipMS").addEventListener("input",()=>{ if($("cbClip").checked){ $("cbClip").
 $("btnClipOnce").onclick = readClipboardOnce;
 window.addEventListener("keydown",(ev)=>{ if(ev.key.toLowerCase()==="v") readClipboardOnce(); });
 
-/* OCR Tesseract */
+/* OCR por imagen (usa worker compartido) */
 let OCR_IMG_FILE=null;
 $("imgFile").onchange = (e)=>{ OCR_IMG_FILE = e.target.files?.[0]||null; $("ocrStatus").textContent = OCR_IMG_FILE? ("Imagen: "+OCR_IMG_FILE.name) : "Sin imagen"; };
 $("btnOCR").onclick = async ()=>{
   if(!OCR_IMG_FILE){ alert("Sube una captura primero."); return; }
   $("ocrStatus").textContent = "Cargando OCR...";
   try{
-    const { createWorker } = await import("https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.esm.min.js");
-    const worker = await createWorker("eng");
+    const worker = await ensureTesseract();
     $("ocrStatus").textContent = "Leyendo texto…";
-    const { data:{ text } } = await worker.recognize(await OCR_IMG_FILE.arrayBuffer());
-    await worker.terminate();
+    const arrBuf = await OCR_IMG_FILE.arrayBuffer();
+    const { data:{ text } } = await worker.recognize(arrBuf);
     $("ocrStatus").textContent = "Procesando resultados…";
     const raw = (text||"").replace(/,/g,".").toLowerCase();
     const matches = raw.match(/(\d+(\.\d+)?)(\s*x)?/g) || [];
@@ -487,6 +526,70 @@ $("btnOCR").onclick = async ()=>{
     console.error(err); $("ocrStatus").textContent = "Error OCR. Prueba otra captura (nítida, contraste alto).";
   }
 };
+
+/* === Live Capture (pantalla) + rojo + OCR === */
+let LIVE = { stream:null, video:null, ctx:null, canvas:null, running:false, roi:null, roiMode:false, redStable:0, lastGrabTs:0 };
+function liveLog(msg){ const el=$("liveLog"); const li=document.createElement("div"); li.textContent = "["+(new Date()).toLocaleTimeString()+"] "+msg; el.prepend(li); }
+function pxRedRatio(imgData){
+  const d = imgData.data; let red=0, total=0;
+  for(let i=0;i<d.length;i+=4){ const r=d[i], g=d[i+1], b=d[i+2], a=d[i+3]; if(a<10) continue; if(r>120 && r>g*1.25 && r>b*1.25) red++; total++; }
+  return total? (red/total*100) : 0;
+}
+function drawROI(){ if(!LIVE.roi) return; const ctx = LIVE.ctx; ctx.save(); ctx.strokeStyle="#60a5fa"; ctx.setLineDash([6,4]); ctx.lineWidth=2; ctx.strokeRect(LIVE.roi.x, LIVE.roi.y, LIVE.roi.w, LIVE.roi.h); ctx.restore(); }
+function setROIFromDrag(start, end){ const x=Math.min(start.x,end.x), y=Math.min(start.y,end.y); const w=Math.abs(end.x-start.x), h=Math.abs(end.y-start.y); if(w<10||h<10){ $("roiInfo").textContent="ROI: muy pequeño"; return; } LIVE.roi={x,y,w,h}; $("roiInfo").textContent=`ROI: x=${x}, y=${y}, w=${w}, h=${h}`; }
+async function ocrFromROI(){ if(!LIVE.roi) return null; const {x,y,w,h}=LIVE.roi; const tmp=document.createElement("canvas"); tmp.width=w; tmp.height=h; const tctx=tmp.getContext("2d"); tctx.drawImage($("liveCanvas"), x,y,w,h, 0,0,w,h); const buf=tmp.toDataURL("image/png"); const worker=await ensureTesseract(); const { data:{ text } } = await worker.recognize(buf); const raw=(text||"").replace(/,/g,".").toLowerCase(); const m=raw.match(/(\d+(\.\d+)?)/); if(!m) return null; const v=parseFloat(m[1]); if(!isFinite(v)||v<=0||v>10000) return null; return v; }
+async function liveLoop(){
+  if(!LIVE.running) return;
+  const fps = Math.max(1, parseInt($("liveFps").value||"3",10));
+  const delay = Math.round(1000/fps);
+  const c=$("liveCanvas"), ctx=c.getContext("2d");
+  const vw = LIVE.video.videoWidth || c.width; const vh = LIVE.video.videoHeight || c.height;
+  if(c.width!==vw || c.height!==vh){ c.width=vw; c.height=vh; }
+  ctx.drawImage(LIVE.video,0,0,c.width,c.height);
+  drawROI();
+  if(LIVE.roi){
+    const {x,y,w,h}=LIVE.roi; const img = ctx.getImageData(x,y,w,h); const redPct = pxRedRatio(img);
+    const thr = Math.max(1, parseFloat($("redPct").value)||25);
+    const stableN = Math.max(1, parseInt($("stableN").value||"2",10));
+    const cooldownMs = Math.max(0, parseInt($("liveCooldown").value||"2",10))*1000;
+    const now = performance.now();
+    if(redPct >= thr){
+      LIVE.redStable++;
+      if(LIVE.redStable >= stableN && (now - LIVE.lastGrabTs) > cooldownMs){
+        LIVE.lastGrabTs = now;
+        try{
+          const val = await ocrFromROI();
+          if(val!=null){
+            liveLog(`OCR: ${val.toFixed(2)}× (red ${redPct.toFixed(0)}%)`);
+            if($("liveAutoAdd").checked){ onNewRound(val); }
+          } else { liveLog("OCR: sin número claro (ajusta ROI / FPS)"); }
+        }catch(e){ liveLog("OCR error: "+(e?.message||e)); }
+        LIVE.redStable = 0;
+      }
+    } else { LIVE.redStable = 0; }
+    $("liveInfo").textContent = `Rojo ${redPct.toFixed(1)}% · stable ${LIVE.redStable}/${stableN}`;
+  } else { $("liveInfo").textContent = `Streaming… define ROI para activar OCR`; }
+  setTimeout(liveLoop, delay);
+}
+$("roiMode").onclick = ()=>{ LIVE.roiMode = !LIVE.roiMode; $("roiMode").textContent = LIVE.roiMode? "Salir modo ROI" : "Definir ROI"; if(LIVE.roiMode) liveLog("Modo ROI: arrastra en el canvas para seleccionar la zona del número."); };
+(function attachRoiMouse(){
+  const c=$("liveCanvas"); let dragging=false, start=null;
+  c.addEventListener("mousedown",(e)=>{ if(!LIVE.roiMode) return; dragging=true; const rect=c.getBoundingClientRect(); start={x:Math.round(e.clientX-rect.left), y:Math.round(e.clientY-rect.top)}; });
+  c.addEventListener("mousemove",(e)=>{ if(!LIVE.roiMode || !dragging || !start) return; const rect=c.getBoundingClientRect(); const end={x:Math.round(e.clientX-rect.left), y:Math.round(e.clientY-rect.top)}; const ctx=c.getContext("2d"); ctx.drawImage(LIVE.video,0,0,c.width,c.height); const x=Math.min(start.x,end.x), y=Math.min(start.y,end.y); const w=Math.abs(end.x-start.x), h=Math.abs(end.y-start.y); ctx.save(); ctx.strokeStyle="#60a5fa"; ctx.setLineDash([6,4]); ctx.lineWidth=2; ctx.strokeRect(x,y,w,h); ctx.restore(); });
+  c.addEventListener("mouseup",(e)=>{ if(!LIVE.roiMode || !dragging) return; dragging=false; const rect=c.getBoundingClientRect(); const end={x:Math.round(e.clientX-rect.left), y:Math.round(e.clientY-rect.top)}; setROIFromDrag(start,end); LIVE.roiMode=false; $("roiMode").textContent = "Definir ROI"; });
+})();
+$("liveStart").onclick = async()=>{
+  try{
+    const fps = Math.max(1, parseInt($("liveFps").value||"3",10));
+    LIVE.stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: fps, max: fps } }, audio: false });
+    LIVE.video = document.createElement("video"); LIVE.video.srcObject = LIVE.stream; await LIVE.video.play();
+    LIVE.canvas = $("liveCanvas"); LIVE.ctx = LIVE.canvas.getContext("2d");
+    LIVE.running = true; LIVE.redStable = 0; LIVE.lastGrabTs = 0; $("liveInfo").textContent = "Captura iniciada. Define ROI."; liveLog("Captura iniciada.");
+    liveLoop();
+    LIVE.stream.getVideoTracks()[0].addEventListener("ended", ()=>{ $("liveStop").click(); });
+  }catch(e){ liveLog("No se pudo iniciar captura: "+(e?.message||e)); }
+};
+$("liveStop").onclick = ()=>{ LIVE.running = false; try{ LIVE.stream?.getTracks().forEach(t=>t.stop()); }catch(_){} LIVE.stream=null; LIVE.video=null; $("liveInfo").textContent="Sin captura"; liveLog("Captura detenida."); };
 
 /* Replot */
 $("btnReplot").onclick = ()=>{ renderStats(); drawChart(); };
