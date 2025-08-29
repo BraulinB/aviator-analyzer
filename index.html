@@ -3,142 +3,124 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Aviator Learner – Señales (con filtros) + OCR + Live Capture</title>
+<title>Aviator Learner – Live OCR con ROI automático</title>
 <style>
   :root { --bg:#0f172a; --card:#0b1220; --muted:#94a3b8; --text:#e5e7eb; --accent:#60a5fa; --ok:#22c55e; --bad:#ef4444; }
-  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,Segoe UI,Inter,Roboto,Arial}
-  .wrap{max-width:1100px;margin:0 auto;padding:20px}
-  h1{margin:0 0 8px;font-size:22px} h2{margin:0 0 8px;font-size:18px}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,Segoe UI,Inter,Roboto,Arial}
+  .wrap{max-width:1000px;margin:0 auto;padding:20px}
   .card{background:var(--card);border:1px solid #1f2937;border-radius:14px;padding:14px;margin-top:12px}
-  textarea,input,select,button{border-radius:10px;border:1px solid #334155;background:#0b1220;color:var(--text)}
-  .btn{padding:8px 12px;background:#111827;border:1px solid #334155;cursor:pointer;border-radius:10px}
-  .btn:hover{border-color:#475569}
+  h1{font-size:22px;margin:0 0 10px}
+  h2{font-size:18px;margin:0 0 8px}
+  input,button{border-radius:8px;border:1px solid #334155;background:#0b1220;color:var(--text);padding:6px 8px}
+  button{cursor:pointer} button:hover{border-color:#475569}
+  .rowflex{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:6px}
+  canvas{width:100%;height:260px;background:#0a0f1f;border:1px solid #1f2937;border-radius:12px;margin-top:8px}
   .muted{color:var(--muted);font-size:13px}
-  .rowflex{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  canvas{width:100%;height:280px;background:#0a0f1f;border:1px solid #1f2937;border-radius:12px}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>🧪 Aviator Learner <span class="pill">online · educativo · sin autobet</span></h1>
+  <h1>🧪 Aviator Learner – Captura automática</h1>
   <div class="card">
-    <h2>Captura en tiempo real (auto ROI + offsets)</h2>
+    <h2>Captura en tiempo real (ROI automático con offsets)</h2>
     <div class="rowflex">
-      <button class="btn" id="liveStart">Iniciar captura</button>
-      <button class="btn" id="liveStop">Detener</button>
+      <button id="liveStart">Iniciar captura</button>
+      <button id="liveStop">Detener</button>
       <label><input type="checkbox" id="liveAutoAdd" checked> Auto-agregar tras OCR</label>
-      <label>FPS <input id="liveFps" type="number" value="3" style="width:80px"></label>
+      <label>FPS <input id="liveFps" type="number" value="3" style="width:70px"></label>
     </div>
-    <div class="rowflex" style="margin-top:6px">
-      <label>Umbral rojo (%) <input id="redPct" type="number" step="1" value="25" style="width:80px"></label>
-      <label>Estabilidad (frames) <input id="stableN" type="number" value="2" style="width:80px"></label>
-      <label>Cooldown (s) <input id="liveCooldown" type="number" value="2" style="width:80px"></label>
+    <div class="rowflex">
+      <label>Umbral rojo (%) <input id="redPct" type="number" value="25" style="width:70px"></label>
+      <label>Estabilidad (frames) <input id="stableN" type="number" value="2" style="width:70px"></label>
+      <label>Cooldown (s) <input id="liveCooldown" type="number" value="2" style="width:70px"></label>
     </div>
-    <div class="rowflex" style="margin-top:6px">
-      <label>Offset X <input id="roiOffsetX" type="number" value="0" style="width:80px"></label>
-      <label>Offset Y <input id="roiOffsetY" type="number" value="0" style="width:80px"></label>
+    <div class="rowflex">
+      <label>Offset X <input id="roiOffsetX" type="number" value="0" style="width:70px"></label>
+      <label>Offset Y <input id="roiOffsetY" type="number" value="0" style="width:70px"></label>
     </div>
-    <div class="muted small">
-      El ROI (zona de recorte) se centra automáticamente, pero puedes moverlo con <b>Offset X/Y</b> si el número aparece un poco corrido en tu pantalla.
-    </div>
-    <canvas id="liveCanvas" width="560" height="315" style="max-width:100%;border:1px solid #1f2937;border-radius:12px;margin-top:8px"></canvas>
-    <div class="muted small" id="liveInfo">Sin captura</div>
-    <div class="muted small" id="liveLog" style="max-height:180px;overflow:auto;border:1px solid #1f2937;border-radius:8px;padding:6px;margin-top:6px"></div>
+    <p class="muted">El ROI (zona de recorte) se centra automáticamente, pero puedes moverlo con los offsets si el número no queda centrado.</p>
+    <canvas id="liveCanvas" width="560" height="315"></canvas>
+    <div class="muted" id="liveInfo">Sin captura</div>
+    <div class="muted" id="liveLog" style="max-height:160px;overflow:auto;border:1px solid #1f2937;border-radius:8px;padding:6px;margin-top:6px"></div>
   </div>
 </div>
 
 <script>
-const $ = (id)=>document.getElementById(id);
-let TESSERACT_WORKER = null;
+const $ = id=>document.getElementById(id);
+let worker=null;
 async function ensureTesseract(){
-  if(TESSERACT_WORKER) return TESSERACT_WORKER;
+  if(worker) return worker;
   const { createWorker } = await import("https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.esm.min.js");
-  TESSERACT_WORKER = await createWorker("eng");
-  return TESSERACT_WORKER;
+  worker = await createWorker("eng");
+  return worker;
 }
 
 let DATA=[];
 function onNewRound(v){ DATA.push(v); console.log("Nueva ronda:",v); }
 
-// ROI automático con offsets
 function getAutoROI(canvas){
   const w=canvas.width, h=canvas.height;
   const roiW=Math.floor(w*0.4), roiH=Math.floor(h*0.2);
   let x=Math.floor(w*0.3), y=Math.floor(h*0.4);
-  const offX=parseInt($("roiOffsetX").value||"0",10);
-  const offY=parseInt($("roiOffsetY").value||"0",10);
-  x+=offX; y+=offY;
-  return {x,y,w:roiW,h:roiH};
+  const offX=parseInt($("roiOffsetX").value||0), offY=parseInt($("roiOffsetY").value||0);
+  return {x:x+offX,y:y+offY,w:roiW,h:roiH};
 }
 
-function pxRedRatio(imgData){
-  const d=imgData.data; let red=0,total=0;
+function pxRedRatio(img){
+  const d=img.data; let red=0,total=0;
   for(let i=0;i<d.length;i+=4){ const r=d[i],g=d[i+1],b=d[i+2],a=d[i+3]; if(a<10) continue; if(r>120&&r>g*1.25&&r>b*1.25) red++; total++; }
-  return total? (red/total*100):0;
+  return total?red/total*100:0;
 }
 
 async function ocrFromROI(c,roi){
-  const {x,y,w,h}=roi;
-  const tmp=document.createElement("canvas"); tmp.width=w; tmp.height=h;
-  const ctx=tmp.getContext("2d"); ctx.drawImage(c,x,y,w,h,0,0,w,h);
-  const worker=await ensureTesseract();
-  const { data:{ text } } = await worker.recognize(tmp);
-  const raw=(text||"").replace(/,/g,".").toLowerCase();
-  const m=raw.match(/(\d+(\.\d+)?)/);
+  const tmp=document.createElement("canvas"); tmp.width=roi.w; tmp.height=roi.h;
+  tmp.getContext("2d").drawImage(c,roi.x,roi.y,roi.w,roi.h,0,0,roi.w,roi.h);
+  const w=await ensureTesseract();
+  const { data:{ text } }=await w.recognize(tmp);
+  const m=(text||"").replace(/,/g,".").match(/(\d+(\.\d+)?)/);
   if(!m) return null; const v=parseFloat(m[1]);
-  return (isFinite(v)&&v>0&&v<10000)?v:null;
+  return isFinite(v)&&v>0&&v<10000?v:null;
 }
 
-let LIVE={stream:null,video:null,running:false,redStable:0,lastGrabTs:0};
-function liveLog(msg){ const el=$("liveLog"); const li=document.createElement("div"); li.textContent="["+(new Date()).toLocaleTimeString()+"] "+msg; el.prepend(li);} 
+let LIVE={stream:null,video:null,running:false,redStable:0,lastGrab:0};
+function liveLog(msg){const el=$("liveLog"),d=document.createElement("div");d.textContent="["+(new Date()).toLocaleTimeString()+"] "+msg;el.prepend(d);}
 
-async function liveLoop(){
+async function loop(){
   if(!LIVE.running) return;
-  const fps=Math.max(1,parseInt($("liveFps").value||"3",10));
-  const delay=Math.round(1000/fps);
-  const c=$("liveCanvas"), ctx=c.getContext("2d");
-  const vw=LIVE.video.videoWidth||c.width, vh=LIVE.video.videoHeight||c.height;
-  if(c.width!==vw||c.height!==vh){ c.width=vw; c.height=vh; }
+  const fps=parseInt($("liveFps").value)||3; const c=$("liveCanvas"),ctx=c.getContext("2d");
+  if(LIVE.video.videoWidth){c.width=LIVE.video.videoWidth;c.height=LIVE.video.videoHeight;}
   ctx.drawImage(LIVE.video,0,0,c.width,c.height);
   const roi=getAutoROI(c);
-  ctx.strokeStyle="#60a5fa"; ctx.setLineDash([6,4]); ctx.strokeRect(roi.x,roi.y,roi.w,roi.h);
+  ctx.strokeStyle="#60a5fa";ctx.setLineDash([6,4]);ctx.strokeRect(roi.x,roi.y,roi.w,roi.h);
   const img=ctx.getImageData(roi.x,roi.y,roi.w,roi.h);
   const redPct=pxRedRatio(img);
-  const thr=parseFloat($("redPct").value)||25;
-  const stableN=parseInt($("stableN").value||2,10);
-  const cooldownMs=(parseInt($("liveCooldown").value||2,10))*1000;
+  const thr=parseFloat($("redPct").value)||25, stableN=parseInt($("stableN").value)||2;
+  const cooldown=(parseInt($("liveCooldown").value)||2)*1000;
   const now=performance.now();
   if(redPct>=thr){
     LIVE.redStable++;
-    if(LIVE.redStable>=stableN && (now-LIVE.lastGrabTs)>cooldownMs){
-      LIVE.lastGrabTs=now;
+    if(LIVE.redStable>=stableN && (now-LIVE.lastGrab)>cooldown){
+      LIVE.lastGrab=now;
       try{
-        const val=await ocrFromROI(c,roi);
-        if(val!=null){
-          liveLog(`OCR: ${val.toFixed(2)}× (red ${redPct.toFixed(0)}%)`);
-          if($("liveAutoAdd").checked) onNewRound(val);
-        }else liveLog("OCR: no se pudo leer número");
-      }catch(e){ liveLog("Error OCR: "+e.message); }
-      LIVE.redStable=0;
+        const v=await ocrFromROI(c,roi);
+        if(v!=null){ liveLog(`OCR: ${v.toFixed(2)}×`); if($("liveAutoAdd").checked) onNewRound(v); }
+        else liveLog("OCR falló");
+      }catch(e){liveLog("Error: "+e.message);} LIVE.redStable=0;
     }
   } else LIVE.redStable=0;
-  $("liveInfo").textContent=`Rojo ${redPct.toFixed(1)}% · stable ${LIVE.redStable}/${stableN}`;
-  setTimeout(liveLoop,delay);
+  $("liveInfo").textContent=`Rojo ${redPct.toFixed(1)}% stable ${LIVE.redStable}/${stableN}`;
+  setTimeout(loop,1000/fps);
 }
 
 $("liveStart").onclick=async()=>{
   try{
-    const fps=parseInt($("liveFps").value||"3",10);
-    LIVE.stream=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:{ideal:fps,max:fps}},audio:false});
+    LIVE.stream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:false});
     LIVE.video=document.createElement("video"); LIVE.video.srcObject=LIVE.stream; await LIVE.video.play();
-    LIVE.running=true; LIVE.redStable=0; LIVE.lastGrabTs=0;
-    $("liveInfo").textContent="Captura iniciada (ROI auto centro)"; liveLog("Captura iniciada.");
-    liveLoop();
-    LIVE.stream.getVideoTracks()[0].addEventListener("ended",()=>{$("liveStop").click();});
-  }catch(e){ liveLog("Error iniciar captura: "+e.message); }
+    LIVE.running=true; LIVE.redStable=0; LIVE.lastGrab=0; liveLog("Captura iniciada");
+    loop(); LIVE.stream.getVideoTracks()[0].addEventListener("ended",()=>$("liveStop").click());
+  }catch(e){liveLog("Error: "+e.message);}
 };
-
-$("liveStop").onclick=()=>{ LIVE.running=false; try{LIVE.stream?.getTracks().forEach(t=>t.stop());}catch(_){ } LIVE.stream=null; LIVE.video=null; $("liveInfo").textContent="Sin captura"; liveLog("Captura detenida."); };
+$("liveStop").onclick=()=>{LIVE.running=false;LIVE.stream?.getTracks().forEach(t=>t.stop());LIVE.stream=null;LIVE.video=null;$("liveInfo").textContent="Sin captura";liveLog("Captura detenida");};
 </script>
 </body>
 </html>
