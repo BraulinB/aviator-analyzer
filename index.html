@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Aviator Learner – Live OCR con ROI automático</title>
+<title>Aviator Learner – Bot con ROI automático</title>
 <style>
   :root { --bg:#0f172a; --card:#0b1220; --muted:#94a3b8; --text:#e5e7eb; --accent:#60a5fa; --ok:#22c55e; --bad:#ef4444; }
   body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,Segoe UI,Inter,Roboto,Arial}
@@ -38,7 +38,7 @@
       <label>Offset X <input id="roiOffsetX" type="number" value="0" style="width:70px"></label>
       <label>Offset Y <input id="roiOffsetY" type="number" value="0" style="width:70px"></label>
     </div>
-    <p class="muted">El ROI (zona de recorte) se centra automáticamente, pero puedes moverlo con los offsets si el número no queda centrado.</p>
+    <p class="muted">El ROI (zona azul) se centra automáticamente, pero puedes moverlo con los offsets si el número rojo no queda bien dentro.</p>
     <canvas id="liveCanvas" width="560" height="315"></canvas>
     <div class="muted" id="liveInfo">Sin captura</div>
     <div class="muted" id="liveLog" style="max-height:160px;overflow:auto;border:1px solid #1f2937;border-radius:8px;padding:6px;margin-top:6px"></div>
@@ -62,7 +62,7 @@ function getAutoROI(canvas){
   const w=canvas.width, h=canvas.height;
   const roiW=Math.floor(w*0.4), roiH=Math.floor(h*0.2);
   let x=Math.floor(w*0.3), y=Math.floor(h*0.4);
-  const offX=parseInt($("roiOffsetX").value||0), offY=parseInt($("roiOffsetY").value||0);
+  const offX=parseInt($("#roiOffsetX").value||0), offY=parseInt($("#roiOffsetY").value||0);
   return {x:x+offX,y:y+offY,w:roiW,h:roiH};
 }
 
@@ -77,25 +77,25 @@ async function ocrFromROI(c,roi){
   tmp.getContext("2d").drawImage(c,roi.x,roi.y,roi.w,roi.h,0,0,roi.w,roi.h);
   const w=await ensureTesseract();
   const { data:{ text } }=await w.recognize(tmp);
-  const m=(text||"").replace(/,/g,".").match(/(\d+(\.\d+)?)/);
+  const m=(text||"").replace(/,/g,".").match(/(\\d+(\\.\\d+)?)/);
   if(!m) return null; const v=parseFloat(m[1]);
   return isFinite(v)&&v>0&&v<10000?v:null;
 }
 
 let LIVE={stream:null,video:null,running:false,redStable:0,lastGrab:0};
-function liveLog(msg){const el=$("liveLog"),d=document.createElement("div");d.textContent="["+(new Date()).toLocaleTimeString()+"] "+msg;el.prepend(d);}
+function liveLog(msg){const el=$("#liveLog"),d=document.createElement("div");d.textContent="["+new Date().toLocaleTimeString()+"] "+msg;el.prepend(d);}
 
 async function loop(){
   if(!LIVE.running) return;
-  const fps=parseInt($("liveFps").value)||3; const c=$("liveCanvas"),ctx=c.getContext("2d");
+  const fps=parseInt($("#liveFps").value)||3; const c=$("#liveCanvas"),ctx=c.getContext("2d");
   if(LIVE.video.videoWidth){c.width=LIVE.video.videoWidth;c.height=LIVE.video.videoHeight;}
   ctx.drawImage(LIVE.video,0,0,c.width,c.height);
   const roi=getAutoROI(c);
   ctx.strokeStyle="#60a5fa";ctx.setLineDash([6,4]);ctx.strokeRect(roi.x,roi.y,roi.w,roi.h);
   const img=ctx.getImageData(roi.x,roi.y,roi.w,roi.h);
   const redPct=pxRedRatio(img);
-  const thr=parseFloat($("redPct").value)||25, stableN=parseInt($("stableN").value)||2;
-  const cooldown=(parseInt($("liveCooldown").value)||2)*1000;
+  const thr=parseFloat($("#redPct").value)||25, stableN=parseInt($("#stableN").value)||2;
+  const cooldown=(parseInt($("#liveCooldown").value)||2)*1000;
   const now=performance.now();
   if(redPct>=thr){
     LIVE.redStable++;
@@ -103,24 +103,24 @@ async function loop(){
       LIVE.lastGrab=now;
       try{
         const v=await ocrFromROI(c,roi);
-        if(v!=null){ liveLog(`OCR: ${v.toFixed(2)}×`); if($("liveAutoAdd").checked) onNewRound(v); }
+        if(v!=null){ liveLog(`OCR: ${v.toFixed(2)}×`); if($("#liveAutoAdd").checked) onNewRound(v); }
         else liveLog("OCR falló");
       }catch(e){liveLog("Error: "+e.message);} LIVE.redStable=0;
     }
   } else LIVE.redStable=0;
-  $("liveInfo").textContent=`Rojo ${redPct.toFixed(1)}% stable ${LIVE.redStable}/${stableN}`;
+  $("#liveInfo").textContent=`Rojo ${redPct.toFixed(1)}% stable ${LIVE.redStable}/${stableN}`;
   setTimeout(loop,1000/fps);
 }
 
-$("liveStart").onclick=async()=>{
+$("#liveStart").onclick=async()=>{
   try{
     LIVE.stream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:false});
     LIVE.video=document.createElement("video"); LIVE.video.srcObject=LIVE.stream; await LIVE.video.play();
     LIVE.running=true; LIVE.redStable=0; LIVE.lastGrab=0; liveLog("Captura iniciada");
-    loop(); LIVE.stream.getVideoTracks()[0].addEventListener("ended",()=>$("liveStop").click());
+    loop(); LIVE.stream.getVideoTracks()[0].addEventListener("ended",()=>$("#liveStop").click());
   }catch(e){liveLog("Error: "+e.message);}
 };
-$("liveStop").onclick=()=>{LIVE.running=false;LIVE.stream?.getTracks().forEach(t=>t.stop());LIVE.stream=null;LIVE.video=null;$("liveInfo").textContent="Sin captura";liveLog("Captura detenida");};
+$("#liveStop").onclick=()=>{LIVE.running=false;LIVE.stream?.getTracks().forEach(t=>t.stop());LIVE.stream=null;LIVE.video=null;$("#liveInfo").textContent="Sin captura";liveLog("Captura detenida");};
 </script>
 </body>
 </html>
