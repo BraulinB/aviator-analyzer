@@ -158,6 +158,7 @@
 </div>
 
 <script>
+document.addEventListener('DOMContentLoaded', () => {
 /* ===== Utilidades ===== */
 const $ = (id)=>document.getElementById(id);
 function parseList(s){ if(!s) return []; return s.split(/[\s,;]+/).map(t=>t.trim()).filter(Boolean).map(Number).filter(x=>isFinite(x)&&x>0); }
@@ -276,7 +277,7 @@ function countBelow(arr,k,L){ const lastK=arr.slice(Math.max(0,arr.length-k)); r
 
 /* ===== Predicción ===== */
 function maybePredictNext(){
-  const target=parseFloat($("#inpTarget").value)||3; const W=parseInt($("#inpW").value||"40",10); const minN=parseInt($("#inpMinN").value||"10",10);
+  const target=parseFloat($("#inpTarget").value)||3; const W=parseInt($("#inpW").value)||40; const minN=parseInt($("#inpMinN").value)||10;
   ensureModel(); let p=null; if(DATA.length>=Math.max(5,minN)){ const x=featuresFrom(DATA,W,target); p=MODEL.stepPrepare(x);} updatePredictionUI(p);
 }
 
@@ -290,15 +291,15 @@ function onNewRound(value){
 }
 
 /* ===== Eventos básicos ===== */
-$("#btnAdd").onclick=()=>{ const v=parseList($("#ta").value); if(!v.length) return; v.forEach(onNewRound); $("#ta").value=""; };
-$("#btnClear").onclick=()=>{ DATA=[]; SIGNAL_PENDING=false; SG_TOTAL=SG_WINS=SG_LOSS=0; if(MODEL){ MODEL.prevX=null; MODEL.prevP=null; } renderStats(); drawChart(); updatePredictionUI(null); $("#sgPending").textContent="No"; $("#sgTotal").textContent="0"; $("#sgWins").textContent="0"; $("#sgLoss").textContent="0"; $("#sgAcc").textContent="0.0%"; };
-$("#btnQuick").onclick=()=>{ const v=quickNorm($("#quick").value); if(v!=null){ onNewRound(v); $("#quick").value=""; } };
+$("#btnAdd") && ($("#btnAdd").onclick=()=>{ const v=parseList($("#ta").value); if(!v.length) return; v.forEach(onNewRound); $("#ta").value=""; });
+$("#btnClear") && ($("#btnClear").onclick=()=>{ DATA=[]; SIGNAL_PENDING=false; SG_TOTAL=SG_WINS=SG_LOSS=0; if(MODEL){ MODEL.prevX=null; MODEL.prevP=null; } renderStats(); drawChart(); updatePredictionUI(null); $("#sgPending").textContent="No"; $("#sgTotal").textContent="0"; $("#sgWins").textContent="0"; $("#sgLoss").textContent="0"; $("#sgAcc").textContent="0.0%"; });
+$("#btnQuick") && ($("#btnQuick").onclick=()=>{ const v=quickNorm($("#quick").value); if(v!=null){ onNewRound(v); $("#quick").value=""; } });
 ["inpThresh","gateCooldown","gateWlow","gateMuMin","gateK","gateL","gateM","gateBlockBear","gateT","gateAdaptive","gateTargetAcc","trW","trEps"].forEach(id=>{
   const el=$(id); el&&el.addEventListener("input", ()=> updatePredictionUI(MODEL?.prevP ?? null));
 });
-$("#btnReset").onclick=()=>{ MODEL=null; ensureModel(); MODEL.prevX=null; MODEL.prevP=null; maybePredictNext(); };
-$("#btnExportModel").onclick=()=>{ ensureModel(); const blob=new Blob([JSON.stringify(MODEL.export(),null,2)],{type:"application/json"}); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download="learner_model.json"; a.click(); URL.revokeObjectURL(url); };
-$("#fileModel").onchange=(e)=>{ const f=e.target.files?.[0]; if(!f) return; f.text().then(t=>{ try{ const obj=JSON.parse(t); ensureModel(); MODEL.import(obj); alert("Modelo importado."); maybePredictNext(); }catch(_){ alert("JSON inválido"); } }); };
+$("#btnReset") && ($("#btnReset").onclick=()=>{ MODEL=null; ensureModel(); MODEL.prevX=null; MODEL.prevP=null; maybePredictNext(); });
+$("#btnExportModel") && ($("#btnExportModel").onclick=()=>{ ensureModel(); const blob=new Blob([JSON.stringify(MODEL.export(),null,2)],{type:"application/json"}); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download="learner_model.json"; a.click(); URL.revokeObjectURL(url); });
+$("#fileModel") && ($("#fileModel").onchange=(e)=>{ const f=e.target.files?.[0]; if(!f) return; f.text().then(t=>{ try{ const obj=JSON.parse(t); ensureModel(); MODEL.import(obj); alert("Modelo importado."); maybePredictNext(); }catch(_){ alert("JSON inválido"); } }); });
 
 /* ===== Live OCR (ROI auto + offsets) ===== */
 let TESSERACT_WORKER=null;
@@ -401,9 +402,9 @@ async function liveLoop(){
   setTimeout(liveLoop, delay);
 }
 
-$("#liveStart").onclick = async()=>{
+$("#liveStart") && ($("#liveStart").onclick = async()=>{
   try {
-    const fps = Math.max(1, parseInt($("#liveFps").value||"3",10));
+    const fps = Math.max(1, parseInt($("#liveFps").value)||"3",10);
     LIVE.stream = await navigator.mediaDevices.getDisplayMedia({
       video: { frameRate: { ideal: fps, max: fps }, displaySurface: "browser" },
       audio: false
@@ -426,26 +427,27 @@ $("#liveStart").onclick = async()=>{
     $("#liveInfo").textContent = "Captura iniciada (ROI auto centro)";
     liveLog("Captura iniciada. Si no ves números, baja Umbral rojo (8–12) y ajusta offsets.");
 
-    tracks[0].addEventListener("ended", ()=>{ $("#liveStop").click(); });
+    tracks[0].addEventListener("ended", ()=>{ $("#liveStop") && $("#liveStop").click(); });
     liveLoop();
   } catch (e) {
     liveLog("No se pudo iniciar captura: "+(e?.message||e));
     liveLog("Tips: permite 'Compartir pantalla', elige 'Pestaña de Chrome'. Si falla, prueba 'Toda la pantalla'.");
   }
-};
+});
 
-$("#liveStop").onclick = ()=>{
+$("#liveStop") && ($("#liveStop").onclick = ()=>{
   LIVE.running = false;
   try{ LIVE.stream?.getTracks().forEach(t=>t.stop()); }catch(_){}
   LIVE.stream=null; LIVE.video=null;
   $("#liveInfo").textContent="Sin captura";
   liveLog("Captura detenida.");
-};
+});
 
 /* ===== Init ===== */
 function init(){ ensureModel(); renderStats(); drawChart(); updatePredictionUI(null); $("#sgPending").textContent="No"; $("#sgTotal").textContent="0"; $("#sgWins").textContent="0"; $("#sgLoss").textContent="0"; $("#sgAcc").textContent="0.0%"; }
-$("#btnReplot").onclick=()=>{ renderStats(); drawChart(); };
+$("#btnReplot") && ($("#btnReplot").onclick=()=>{ renderStats(); drawChart(); });
 init();
+}); // DOMContentLoaded
 </script>
 </body>
 </html>
