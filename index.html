@@ -30,7 +30,7 @@
   canvas.live{width:100%;height:260px;background:#0a0f1f;border:1px solid #1f2937;border-radius:12px}
 </style>
 
-<!-- Carga Tesseract.js (global) -->
+<!-- Tesseract global (compatible con GitHub Pages) -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
@@ -258,7 +258,7 @@ function updatePredictionUI(pRaw){
   // Gates
   const cooldown=parseInt($("#gateCooldown").value||"0",10); const idx=DATA.length; const cooldownOk=(idx - LAST_SIGNAL_INDEX) >= cooldown;
   const Wlow=parseInt($("#gateWlow").value||"20",10); const muMin=parseFloat($("#gateMuMin").value)||1.25; const mu=movingMean(DATA,Wlow); const meanOk=(mu===null)?false:(mu>=muMin);
-  const K=parseInt($("#gateK").value||"8",10); const L=parseFloat($("#gateL").value)||1.30; const M=parseInt($("#gateM").value||"3",10); const weakCount=countBelow(DATA,K,L); const weakOk=weakCount<=M;
+  const K=parseInt($("#gateK").value)||8; const L=parseFloat($("#gateL").value)||1.30; const M=parseInt($("#gateM").value)||3; const weakCount=countBelow(DATA,K,L); const weakOk=weakCount<=M;
   const trW=parseInt($("#trW").value||"40",10); const trEps=parseFloat($("#trEps").value||"0.01"); const tr=trendLabel(DATA.map(v=>Math.min(v,50)),trW,trEps); const blockBear=$("#gateBlockBear").checked; const bearOk=(!blockBear) || (tr.txt!=="Bajista");
   // Adaptativo
   let th=thBase;
@@ -304,7 +304,6 @@ $("#fileModel").onchange=(e)=>{ const f=e.target.files?.[0]; if(!f) return; f.te
 let TESSERACT_WORKER=null;
 async function ensureTesseract(){
   if(TESSERACT_WORKER) return TESSERACT_WORKER;
-  // Usamos la API global cargada por <script>
   TESSERACT_WORKER = Tesseract.createWorker();
   await TESSERACT_WORKER.load();
   await TESSERACT_WORKER.loadLanguage('eng');
@@ -334,51 +333,114 @@ async function ocrFromROI(){
   if(!m) return null; const v=parseFloat(m[1]);
   if(!isFinite(v)||v<=0||v>10000) return null; return v;
 }
+
 let LIVE={stream:null,video:null,running:false,redStable:0,lastGrabTs:0};
 function liveLog(msg){ const el=$("#liveLog"); const li=document.createElement("div"); li.textContent="["+ (new Date()).toLocaleTimeString() +"] "+msg; el.prepend(li); }
+
 async function liveLoop(){
   if(!LIVE.running) return;
-  const fps=Math.max(1, parseInt($("#liveFps").value||"3",10));
-  const delay=Math.round(1000/fps);
-  const c=$("#liveCanvas"), ctx=c.getContext("2d");
-  const vw=LIVE.video.videoWidth||c.width; const vh=LIVE.video.videoHeight||c.height;
-  if(c.width!==vw||c.height!==vh){ c.width=vw; c.height=vh; }
-  ctx.drawImage(LIVE.video,0,0,c.width,c.height);
-  const roi=getAutoROI(c);
+  const fps = Math.max(1, parseInt($("#liveFps").value||"3",10));
+  const delay = Math.round(1000/fps);
+  const c = $("#liveCanvas"), ctx = c.getContext("2d");
+
+  if(!LIVE.video || !LIVE.video.videoWidth){
+    $("#liveInfo").textContent = "Esperando frames de la pestaña compartida…";
+    setTimeout(liveLoop, delay);
+    return;
+  }
+  if(c.width !== LIVE.video.videoWidth || c.height !== LIVE.video.videoHeight){
+    c.width  = LIVE.video.videoWidth;
+    c.height = LIVE.video.videoHeight;
+  }
+
+  try { ctx.drawImage(LIVE.video, 0, 0, c.width, c.height); }
+  catch (e) {
+    liveLog("No se pudo dibujar el frame (¿pestaña protegida/DRM?). Prueba 'Pestaña de Chrome' o 'Toda la pantalla'.");
+    setTimeout(liveLoop, delay); return;
+  }
+
+  const roi = getAutoROI(c);
   ctx.strokeStyle="#60a5fa"; ctx.setLineDash([6,4]); ctx.lineWidth=2; ctx.strokeRect(roi.x,roi.y,roi.w,roi.h);
-  const img=ctx.getImageData(roi.x,roi.y,roi.w,roi.h);
-  const redPct=pxRedRatio(img);
-  const thr=Math.max(1, parseFloat($("#redPct").value)||8);
-  const stableN=Math.max(1, parseInt($("#stableN").value||"2",10));
-  const cooldownMs=Math.max(0, parseInt($("#liveCooldown").value||"2",10))*1000;
-  const now=performance.now();
-  if(redPct>=thr){
+
+  let redPct = 0;
+  try {
+    const img = ctx.getImageData(roi.x, roi.y, roi.w, roi.h);
+    redPct = pxRedRatio(img);
+  } catch (e) {
+    liveLog("getImageData bloqueado. Prueba capturar 'Toda la pantalla' como fallback.");
+    setTimeout(liveLoop, delay); return;
+  }
+
+  const thr       = Math.max(1,  parseFloat($("#redPct").value)||8);
+  const stableN   = Math.max(1,  parseInt($("#stableN").value||"2",10));
+  const cooldownMs= Math.max(0,  parseInt($("#liveCooldown").value||"2",10))*1000;
+  const now = performance.now();
+
+  if(redPct >= thr){
     LIVE.redStable++;
-    if(LIVE.redStable>=stableN && (now - LIVE.lastGrabTs) > cooldownMs){
+    if(LIVE.redStable >= stableN && (now - LIVE.lastGrabTs) > cooldownMs){
       LIVE.lastGrabTs = now;
-      try{
+      try {
         const val = await ocrFromROI();
-        if(val!=null){ liveLog(`OCR: ${val.toFixed(2)}× (red ${redPct.toFixed(0)}%)`); if($("#liveAutoAdd").checked){ onNewRound(val); } }
-        else { liveLog("OCR: sin número claro"); }
-      }catch(e){ liveLog("OCR error: "+(e?.message||e)); }
+        if(val != null){
+          liveLog(`OCR: ${val.toFixed(2)}× (red ${redPct.toFixed(0)}%)`);
+          if($("#liveAutoAdd").checked) onNewRound(val);
+        } else {
+          liveLog("OCR: sin número claro");
+        }
+      } catch (e) {
+        liveLog("OCR error: "+(e?.message||e));
+      }
       LIVE.redStable = 0;
     }
-  } else { LIVE.redStable = 0; }
+  } else {
+    LIVE.redStable = 0;
+  }
+
   $("#liveInfo").textContent = `Rojo ${redPct.toFixed(1)}% · estable ${LIVE.redStable}/${stableN}`;
   setTimeout(liveLoop, delay);
 }
+
 $("#liveStart").onclick = async()=>{
-  try{
-    const fps=Math.max(1, parseInt($("#liveFps").value||"3",10));
-    LIVE.stream = await navigator.mediaDevices.getDisplayMedia({ video:{ frameRate:{ ideal:fps, max:fps } }, audio:false });
-    LIVE.video = document.createElement("video"); LIVE.video.srcObject = LIVE.stream; await LIVE.video.play();
-    LIVE.running = true; LIVE.redStable = 0; LIVE.lastGrabTs = 0;
-    $("#liveInfo").textContent = "Captura iniciada (ROI auto centro)"; liveLog("Captura iniciada.");
+  try {
+    const fps = Math.max(1, parseInt($("#liveFps").value||"3",10));
+    LIVE.stream = await navigator.mediaDevices.getDisplayMedia({
+      video: { frameRate: { ideal: fps, max: fps }, displaySurface: "browser" },
+      audio: false
+    });
+
+    const tracks = LIVE.stream.getVideoTracks();
+    if(!tracks || !tracks.length){ liveLog("No hay tracks de video en el stream."); return; }
+    liveLog("Stream OK: "+tracks[0].label);
+
+    LIVE.video = document.createElement("video");
+    LIVE.video.srcObject = LIVE.stream;
+    LIVE.video.muted = true;
+    LIVE.video.playsInline = true;
+    await LIVE.video.play();
+
+    LIVE.running    = true;
+    LIVE.redStable  = 0;
+    LIVE.lastGrabTs = 0;
+
+    $("#liveInfo").textContent = "Captura iniciada (ROI auto centro)";
+    liveLog("Captura iniciada. Si no ves números, baja Umbral rojo (8–12) y ajusta offsets.");
+
+    tracks[0].addEventListener("ended", ()=>{ $("#liveStop").click(); });
     liveLoop();
-    LIVE.stream.getVideoTracks()[0].addEventListener("ended", ()=>{ $("#liveStop").click(); });
-  }catch(e){ liveLog("No se pudo iniciar captura: "+(e?.message||e)); }
+  } catch (e) {
+    liveLog("No se pudo iniciar captura: "+(e?.message||e));
+    liveLog("Tips: permite 'Compartir pantalla', elige 'Pestaña de Chrome'. Si falla, prueba 'Toda la pantalla'.");
+  }
 };
-$("#liveStop").onclick = ()=>{ LIVE.running = false; try{ LIVE.stream?.getTracks().forEach(t=>t.stop()); }catch(_){} LIVE.stream=null; LIVE.video=null; $("#liveInfo").textContent="Sin captura"; liveLog("Captura detenida."); };
+
+$("#liveStop").onclick = ()=>{
+  LIVE.running = false;
+  try{ LIVE.stream?.getTracks().forEach(t=>t.stop()); }catch(_){}
+  LIVE.stream=null; LIVE.video=null;
+  $("#liveInfo").textContent="Sin captura";
+  liveLog("Captura detenida.");
+};
 
 /* ===== Init ===== */
 function init(){ ensureModel(); renderStats(); drawChart(); updatePredictionUI(null); $("#sgPending").textContent="No"; $("#sgTotal").textContent="0"; $("#sgWins").textContent="0"; $("#sgLoss").textContent="0"; $("#sgAcc").textContent="0.0%"; }
