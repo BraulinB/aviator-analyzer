@@ -105,6 +105,19 @@
 
     <div>
       <div class="card">
+        <h2>Estadísticas</h2>
+        <table class="table small">
+          <tr><th>N (rondas)</th><td id="stN">0</td></tr>
+          <tr><th>Media</th><td id="stMean">0.00×</td></tr>
+          <tr><th>Mediana</th><td id="stMed">0.00×</td></tr>
+          <tr><th>P(≥3×)</th><td id="stP3">0.0%</td></tr>
+          <tr><th>P(≥5×)</th><td id="stP5">0.0%</td></tr>
+          <tr><th>Máx</th><td id="stMax">0.00×</td></tr>
+          <tr><th>Tendencia</th><td id="stTrend">—</td></tr>
+        </table>
+      </div>
+
+      <div class="card">
         <h2>Señales</h2>
         <table class="table small">
           <tr><th>Pendiente abierta</th><td id="sgPending">No</td></tr>
@@ -128,13 +141,11 @@
         <div class="liveRow">
           <label>FPS <input id="lcFps" type="number" value="3" style="width:80px"></label>
           <label>Rojo% <input id="lcThr" type="number" value="10" style="width:80px"></label>
-          <label>Azul% <input id="lcThrB" type="number" value="8" style="width:80px"></label>
           <label>Stable <input id="lcStb" type="number" value="2" style="width:80px"></label>
           <label>OffX <input id="lcOffX" type="number" value="0" style="width:80px"></label>
           <label>OffY <input id="lcOffY" type="number" value="0" style="width:80px"></label>
           <label>Cooldown (s) <input id="lcCd" type="number" value="2" style="width:90px"></label>
           <label><input type="checkbox" id="lcUseRed" checked> usar rojo</label>
-          <label><input type="checkbox" id="lcUseBlue" checked> usar azul</label>
         </div>
         <video id="lcPrev" class="livePreview" autoplay muted playsinline></video>
         <canvas id="lcCan" class="liveCanvas"></canvas>
@@ -260,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setText('sgPending','No'); setText('sgTotal','0'); setText('sgWins','0'); setText('sgLoss','0'); setText('sgAcc','0.0%');
 });
 
-/* ===================== CAPTURA: soporte azul + OCR escalado + dedupe ===================== */
+/* ===================== CAPTURA: rojo robusto (sin doble confirmación) ===================== */
 (function(){
   const log = (m)=>{ const d=$('lcLog'); const line=document.createElement('div'); line.textContent='['+new Date().toLocaleTimeString()+'] '+m; d.prepend(line); };
   const num=(id,def)=>{ const el=$(id); if(!el) return def; const v=parseFloat(String(el.value??'').replace(',','.')); return Number.isFinite(v)?v:def; };
@@ -269,9 +280,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function roi(canvas){
     const w=canvas.width,h=canvas.height;
-    const rw=Math.floor(w*0.45), rh=Math.floor(h*0.18);
+    const rw=Math.floor(w*0.48), rh=Math.floor(h*0.22); // ROI más grande para bajos
     let x=Math.floor((w-rw)/2)+num('lcOffX',0);
-    let y=Math.floor((h-rh)/2)+Math.floor(h*0.06)+num('lcOffY',0);
+    let y=Math.floor((h-rh)/2)+Math.floor(h*0.04)+num('lcOffY',0);
     return {x,y,w:rw,h:rh};
   }
 
@@ -281,8 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let h=0; if(d!==0){ if(max===r) h=60*(((g-b)/d + (g<b?6:0))); else if(max===g) h=60*(((b-r)/d + 2)); else h=60*(((r-g)/d + 4)); }
     const s=max===0?0:d/max, v=max; return [h,s,v];
   }
-  function redScoreHSV(img){ const d=img.data; let r=0,t=0; for(let i=0;i<d.length;i+=4){ const A=d[i+3]; if(A<10) continue; const [h,s,v]=rgb2hsv(d[i],d[i+1],d[i+2]); if(((h>=340||h<20)&&s>0.45&&v>0.35)) r++; t++; } return t?(r/t*100):0; }
-  function blueScoreHSV(img){ const d=img.data; let r=0,t=0; for(let i=0;i<d.length;i+=4){ const A=d[i+3]; if(A<10) continue; const [h,s,v]=rgb2hsv(d[i],d[i+1],d[i+2]); if((h>=190&&h<=260&&s>0.35&&v>0.35)) r++; t++; } return t?(r/t*100):0; }
+  function redScoreHSV(img){ const d=img.data; let r=0,t=0; for(let i=0;i<d.length;i+=4){ const A=d[i+3]; if(A<10) continue; const [h,s,v]=rgb2hsv(d[i],d[i+1],d[i+2]); if(((h>=340||h<20)&&s>0.35&&v>0.28)) r++; t++; } return t?(r/t*100):0; }
   function contrastScore(img){ const d=img.data; let sum=0,sum2=0,t=0; for(let i=0;i<d.length;i+=4){ const A=d[i+3]; if(A<10) continue; const Y=0.2126*d[i]+0.7152*d[i+1]+0.0722*d[i+2]; sum+=Y; sum2+=Y*Y; t++; } if(!t) return 0; const mean=sum/t; return Math.sqrt(Math.max(0,sum2/t-mean*mean)); }
 
   function normalizeText(t){
@@ -303,11 +313,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const m2 = s.match(/(\d{2,4})/);
     if(!m2) return null;
     let n = parseInt(m2[1],10);
-    if(n>=10 && n<=999) return n/100; // 118 -> 1.18 ; 950 -> 9.50
-    if(n>=1000 && n<=9999) return n/100; // 1123 -> 11.23
+    if(n>=10 && n<=999) return n/100;
+    if(n>=1000 && n<=9999) return n/100;
     return null;
   }
 
+  function preprocessForOCR(src){
+    const w=src.width,h=src.height; const ctx=src.getContext('2d');
+    const img=ctx.getImageData(0,0,w,h); const d=img.data;
+    for(let i=0;i<d.length;i+=4){
+      const R=d[i], G=d[i+1], B=d[i+2];
+      let y = 0.5*R + 0.3*G + 0.2*B; // prioriza rojo
+      y = Math.min(255, Math.max(0, (y-32)*1.4));
+      const y2 = y>96 ? 255 : (y>64 ? 200 : 0);
+      d[i]=d[i+1]=d[i+2]=y2; d[i+3]=255;
+    }
+    ctx.putImageData(img,0,0);
+    return src;
+  }
   async function doOCR(canvasRegion){
     if(S.ocrBusy) return null;
     S.ocrBusy = true;
@@ -317,6 +340,17 @@ document.addEventListener('DOMContentLoaded', () => {
       return text||'';
     }catch(e){ log('OCR error: '+(e.message||e)); return null; }
     finally{ S.ocrBusy = false; }
+  }
+  async function runOCRVariants(can){
+    const scale=2.0;
+    const up=document.createElement('canvas'); up.width=Math.floor(can.width*scale); up.height=Math.floor(can.height*scale);
+    const uctx=up.getContext('2d'); uctx.imageSmoothingEnabled=false; uctx.drawImage(can,0,0,up.width,up.height);
+    let text = await doOCR(up);
+    if(text){ const v=parseMultiplierFromOCR(text); if(v) return v; }
+    const prep=document.createElement('canvas'); prep.width=up.width; prep.height=up.height; prep.getContext('2d').drawImage(up,0,0);
+    preprocessForOCR(prep);
+    text = await doOCR(prep);
+    return parseMultiplierFromOCR(text||'');
   }
 
   async function loop(){
@@ -332,54 +366,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const r=roi(can);
     ctx.save(); ctx.strokeStyle="#60a5fa"; ctx.lineWidth=2; ctx.setLineDash([6,4]); ctx.strokeRect(r.x,r.y,r.w,r.h); ctx.restore();
 
-    let pctRed=0, pctBlue=0, contrast=0;
-    try{ const img=ctx.getImageData(r.x,r.y,r.w,r.h); pctRed = redScoreHSV(img); pctBlue = blueScoreHSV(img); contrast = contrastScore(img); }
+    let pctRed=0, contrast=0;
+    try{ const img=ctx.getImageData(r.x,r.y,r.w,r.h); pctRed = redScoreHSV(img); contrast = contrastScore(img); }
     catch(e){ log('getImageData bloqueado (usa "Toda la pantalla").'); return setTimeout(loop,delay); }
 
-    const useRed = !!($('lcUseRed') && $('lcUseRed').checked);
-    const useBlue= !!($('lcUseBlue') && $('lcUseBlue').checked);
-    const thrR   = Math.max(1,Math.floor(num('lcThr',10)));
-    const thrB   = Math.max(1,Math.floor(num('lcThrB',8)));
+    const thr    = Math.max(1,Math.floor(num('lcThr',10)));
     const stb    = Math.max(1,Math.floor(num('lcStb',2)));
     const cdMs   = Math.max(0,Math.floor(num('lcCd',2)))*1000;
     const now    = performance.now();
 
-    const isRed  = pctRed >= thrR;
-    const isBlue = pctBlue >= thrB;
-    const contrastHot = contrast>24; // sensible para bajos (azules)
-
-    const wantsColor = (useRed||useBlue);
-    const trigger = wantsColor ? ((useRed&&isRed) || (useBlue&&isBlue) || (!useRed&&!useBlue&&contrastHot))
-                               : (isRed || isBlue || contrastHot);
+    const isRed  = pctRed >= thr;
+    const contrastHot = contrast>22; // sensible para rojos tenues
+    const trigger = (isRed || contrastHot);
 
     if(trigger){
       S.stable++;
       if(S.stable>=stb && (now-S.lastGrab)>cdMs && !S.ocrBusy){
         S.lastGrab=now;
         try{
-          // Escalado para mejorar OCR
-          const scale=1.8;
-          const tmp=document.createElement('canvas'); tmp.width=Math.floor(r.w*scale); tmp.height=Math.floor(r.h*scale);
-          const tctx=tmp.getContext('2d'); tctx.imageSmoothingEnabled=false;
-          tctx.drawImage(can,r.x,r.y,r.w,r.h,0,0,tmp.width,tmp.height);
-          const text = await doOCR(tmp);
-          if(text){
-            const val = parseMultiplierFromOCR(text);
-            if(val && isFinite(val) && val>0){
-              if(S.lastVal !== null && Math.abs(val - S.lastVal) < 0.01 && (now - S.lastValTime) < 3000){
-                log(`Descartada duplicada ${val.toFixed(2)}×`);
-              }else{
-                log(`OCR OK ${val.toFixed(2)}× (R ${pctRed.toFixed(0)}% · B ${pctBlue.toFixed(0)}% · contr ${contrast.toFixed(1)})`);
-                $('lcInfo').textContent='Añadida: '+val.toFixed(2)+'×';
-                if($('lcAuto')?.checked){
-                  if(typeof window.onNewRound==='function'){ window.onNewRound(val); }
-                  else { const ta=$('ta'); if(ta){ ta.value=(ta.value.trim()?ta.value.trim()+' ':'')+val.toFixed(2); } }
-                }
-                S.lastVal=val; S.lastValTime=now;
-              }
+          const crop=document.createElement('canvas'); crop.width=r.w; crop.height=r.h;
+          crop.getContext('2d').drawImage(can,r.x,r.y,r.w,r.h,0,0,crop.width,crop.height);
+          const val = await runOCRVariants(crop);
+          if(val && isFinite(val) && val>0){
+            if(S.lastVal !== null && Math.abs(val - S.lastVal) < 0.01 && (now - S.lastValTime) < 3000){
+              log(`Descartada duplicada ${val.toFixed(2)}×`);
             }else{
-              log(`OCR sin número válido: "${text.trim()}"`);
+              log(`OCR OK ${val.toFixed(2)}× (rojo ${pctRed.toFixed(0)}% · contr ${contrast.toFixed(1)})`);
+              $('lcInfo').textContent='Añadida: '+val.toFixed(2)+'×';
+              if($('lcAuto')?.checked){
+                if(typeof window.onNewRound==='function'){ window.onNewRound(val); }
+                else { const ta=$('ta'); if(ta){ ta.value=(ta.value.trim()?ta.value.trim()+' ':'')+val.toFixed(2); } }
+              }
+              S.lastVal=val; S.lastValTime=now;
             }
+          }else{
+            log('OCR sin número válido (con reintentos)');
           }
         }catch(e){ log('OCR error: '+(e.message||e)); }
         S.stable=0;
@@ -388,7 +409,10 @@ document.addEventListener('DOMContentLoaded', () => {
       S.stable=0;
     }
 
-    $('lcInfo').textContent=`Rojo ${pctRed.toFixed(1)}% · Azul ${pctBlue.toFixed(1)}% · contr ${contrast.toFixed(1)} · estable ${S.stable}/${stb}`;
+    // Rearme suave
+    if(pctRed < (thr*0.5) && contrast < 18){ S.lastGrab = Math.min(S.lastGrab, now - cdMs); }
+
+    $('lcInfo').textContent=`Rojo ${pctRed.toFixed(1)}% · contr ${contrast.toFixed(1)} · estable ${S.stable}/${stb}`;
     setTimeout(loop,delay);
   }
 
@@ -399,7 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
       S.stream=stream; $('lcPrev').srcObject=stream; await $('lcPrev').play();
       Object.assign(S,{running:true, stable:0, lastGrab:0});
       $('lcStart').disabled=true; $('lcStop').disabled=false; $('lcStat').textContent='live';
-      log('Captura iniciada. Ajusta Rojo% (8–10) / Azul% (6–10), Stable 3, OffY para que el ROI abarque el número grande del centro.');
+      log('Captura iniciada. Ajusta Rojo% (8–10), Stable 2–3, OffY para abarcar el número grande del centro.');
       stream.getVideoTracks()[0].addEventListener('ended', ()=>$('lcStop').click());
       loop();
     }catch(e){ log('No se pudo iniciar: '+(e.name||'Error')+' - '+(e.message||e)); $('lcStat').textContent='error'; }
