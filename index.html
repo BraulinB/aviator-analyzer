@@ -42,7 +42,6 @@
   <h1>🧪 Aviator Learner <span class="pill">educativo · sin autobet</span></h1>
 
   <div class="row row2">
-    <!-- IZQUIERDA -->
     <div>
       <div class="card">
         <h2>Entrada de rondas</h2>
@@ -104,7 +103,6 @@
       </div>
     </div>
 
-    <!-- DERECHA -->
     <div>
       <div class="card">
         <h2>Estadísticas</h2>
@@ -139,15 +137,14 @@
           <button class="btn" id="lcStart">Iniciar</button>
           <button class="btn" id="lcStop" disabled>Detener</button>
           <label><input type="checkbox" id="lcAuto" checked> auto-add</label>
-          <label><input type="checkbox" id="lcConfirm"> pedir 2 lecturas</label>
         </div>
         <div class="liveRow">
           <label>FPS <input id="lcFps" type="number" value="3" style="width:80px"></label>
           <label>Rojo% <input id="lcThr" type="number" value="10" style="width:80px"></label>
-          <label>Stable <input id="lcStb" type="number" value="3" style="width:80px"></label>
+          <label>Stable <input id="lcStb" type="number" value="2" style="width:80px"></label>
           <label>OffX <input id="lcOffX" type="number" value="0" style="width:80px"></label>
-          <label>OffY <input id="lcOffY" type="number" value="60" style="width:80px"></label>
-          <label>Cooldown (s) <input id="lcCd" type="number" value="3" style="width:90px"></label>
+          <label>OffY <input id="lcOffY" type="number" value="0" style="width:80px"></label>
+          <label>Cooldown (s) <input id="lcCd" type="number" value="2" style="width:90px"></label>
           <label><input type="checkbox" id="lcUseRed" checked> usar rojo</label>
         </div>
         <video id="lcPrev" class="livePreview" autoplay muted playsinline></video>
@@ -194,4 +191,229 @@ document.addEventListener('DOMContentLoaded', () => {
     stepPrepare(x){const p=this.predict(x);this.prevX=x.slice();this.prevP=p;return p;}
     update(y){if(!this.prevX||this.prevP==null)return;const x=this.prevX,p=this.prevP;const g=p-y;for(let i=0;i<this.w.length;i++){const grad=g*x[i]+this.l2*this.w[i];this.w[i]-=this.lr*grad;}this.prevX=null;this.prevP=null;}
   }
-  function ensureModel(){const lr=G('inpLR',0.02),l2=G('inpL2',0.001); if(!MODEL) MODEL=new
+  function ensureModel(){const lr=G('inpLR',0.02),l2=G('inpL2',0.001); if(!MODEL) MODEL=new OnlineLogReg(15,lr,l2); MODEL.lr=lr; MODEL.l2=l2;}
+
+  function renderStats(){
+    const s=stats(DATA);
+    setText('stN',s.n); setText('stMean',s.mean.toFixed(2)+'×'); setText('stMed',s.med.toFixed(2)+'×');
+    setText('stP3',(s.p3*100).toFixed(1)+'%'); setText('stP5',(s.p5*100).toFixed(1)+'%'); setText('stMax',s.max.toFixed(2)+'×');
+    const trW=Math.max(2,Math.floor(G('trW',40))), trEps=G('trEps',0.01);
+    const arr=DATA.map(v=>Math.min(v,50)); const w=Math.min(trW,arr.length);
+    let trend='—'; if(w>=2){ const slice=arr.slice(arr.length-w); const xMean=(w-1)/2,yMean=slice.reduce((a,b)=>a+b,0)/w; let num=0,den=0; for(let i=0;i<w;i++){const dx=i-xMean; num+=dx*(slice[i]-yMean); den+=dx*dx;} const slope=den?num/den:0; trend=slope>trEps?'Alcista':(slope<-trEps?'Bajista':'Lateral'); }
+    setText('stTrend',trend);
+  }
+
+  function drawChart(){
+    const c=$('chart'), ctx=c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height);
+    if(!DATA.length){ ctx.fillStyle='#64748b'; ctx.fillText('Carga datos para ver la serie',10,20); return; }
+    const cap=200,s=DATA.map((v,i)=>({i:i+1,m:Math.min(v,cap),real:v})); const pad=30,w=c.width-pad*2,h=c.height-pad*2,max=cap,min=0;
+    ctx.strokeStyle='#13203a'; ctx.beginPath(); ctx.moveTo(pad,c.height-pad); ctx.lineTo(pad,pad); ctx.lineTo(c.width-pad,pad); ctx.stroke();
+    ctx.strokeStyle='#cbd5e1'; ctx.beginPath();
+    for(let i=0;i<s.length;i++){ const x=pad+(i/(s.length-1))*w; const y=c.height-pad-((s[i].m-min)/(max-min))*h; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);} ctx.stroke();
+    const wlen=Math.min(Math.max(2,Math.floor(G('trW',40))),s.length);
+    if(wlen>=2){ const arr=s.slice(s.length-wlen).map(o=>o.m); const xMean=(wlen-1)/2,yMean=arr.reduce((a,b)=>a+b,0)/wlen; let num=0,den=0; for(let i=0;i<wlen;i++){const dx=i-xMean; num+=dx*(arr[i]-yMean); den+=dx*dx;} const b=den?num/den:0,a=yMean-b*xMean; ctx.strokeStyle='#60a5fa'; ctx.beginPath(); for(let i=0;i<wlen;i++){ const xi=s.length-wlen+i; const x=pad+(xi/(s.length-1))*w; const yVal=a+b*i; const y=c.height-pad-((yVal-min)/(max-min))*h; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);} ctx.stroke(); }
+    const target=G('inpTarget',3); const yT=c.height-pad-((target-min)/(max-min))*h; ctx.setLineDash([5,5]); ctx.strokeStyle='#3b82f6'; ctx.beginPath(); ctx.moveTo(pad,yT); ctx.lineTo(c.width-pad,yT); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  function updateSignalCountersOnNewValue(v){
+    const target=G('inpTarget',3);
+    if(SIGNAL_PENDING){ if(v>=target) SG_WINS++; else SG_LOSS++; SIGNAL_PENDING=false; }
+    SG_TOTAL=SG_WINS+SG_LOSS; const acc=SG_TOTAL?(SG_WINS/SG_TOTAL*100).toFixed(1)+'%':'0.0%';
+    setText('sgPending', SIGNAL_PENDING?'Sí':'No'); setText('sgTotal', SG_TOTAL); setText('sgWins', SG_WINS); setText('sgLoss', SG_LOSS); setText('sgAcc', acc);
+  }
+
+  function updatePredictionUI(pRaw){
+    const thBase=G('inpThresh',0.9), T=Math.max(0.5,G('gateT',1.0));
+    const p=(pRaw==null)?null:(1/(1+Math.exp(-logit(pRaw)/T)));
+    if(p==null){ setText('prob','—'); const s=$('signal'); if(s){ s.textContent='—'; s.className='signal no'; } setText('sgPending', SIGNAL_PENDING?'Sí':'No'); return; }
+    setText('prob',p.toFixed(3));
+
+    const cooldown=Math.max(0,Math.floor(G('gateCooldown',0))), idx=DATA.length, cooldownOk=(idx-LAST_SIGNAL_INDEX)>=cooldown;
+    const Wlow=Math.max(1,Math.floor(G('gateWlow',20))), muMin=G('gateMuMin',1.30), mu=(DATA.length>=Wlow?DATA.slice(-Wlow).reduce((a,b)=>a+b,0)/Wlow:null), meanOk=(mu!==null && mu>=muMin);
+    const K=Math.max(1,Math.floor(G('gateK',8))), L=G('gateL',1.30), M=Math.max(0,Math.floor(G('gateM',3))), weakOk=(DATA.slice(-K).filter(v=>v<L).length)<=M;
+
+    const trW=Math.max(2,Math.floor(G('trW',40))), trEps=G('trEps',0.01);
+    let trendOk=true; const arr=DATA.map(v=>Math.min(v,50)); const w=Math.min(trW,arr.length); if(w>=2){ const slice=arr.slice(arr.length-w); const xMean=(w-1)/2,yMean=slice.reduce((a,b)=>a+b,0)/w; let num=0,den=0; for(let i=0;i<w;i++){const dx=i-xMean; num+=dx*(slice[i]-yMean); den+=dx*dx;} const slope=den?num/den:0; if(GB('gateBlockBear')) trendOk = !(slope<-trEps); }
+
+    let th=thBase;
+    if(GB('gateAdaptive')){ const targetAcc=G('gateTargetAcc',0.65); const acc=SG_TOTAL?(SG_WINS/SG_TOTAL):0; if(acc<targetAcc) th=Math.min(0.99,thBase+0.05); else if(acc>targetAcc+0.10) th=Math.max(0.50,thBase-0.02); }
+
+    const passProb=p>=th, allOk=passProb && cooldownOk && meanOk && weakOk && trendOk;
+    const sigEl=$('signal');
+    if(allOk){ if(sigEl){ sigEl.textContent=`SEÑAL (p≥${th.toFixed(2)})`; sigEl.className='signal ok'; } SIGNAL_PENDING=true; LAST_SIGNAL_INDEX=idx; }
+    else{ if(sigEl){ sigEl.textContent='No señal'; sigEl.className='signal no'; } }
+    setText('sgPending', SIGNAL_PENDING?'Sí':'No');
+  }
+
+  function maybePredictNext(){
+    ensureModel(); const target=G('inpTarget',3), W=Math.max(5,Math.floor(G('inpW',40))), minN=Math.max(5,Math.floor(G('inpMinN',10)));
+    let p=null; if(DATA.length>=Math.max(5,minN)){ const x=featuresFrom(DATA,W,target); p=MODEL.stepPrepare(x); } updatePredictionUI(p);
+  }
+
+  window.onNewRound = function(val){
+    const target=G('inpTarget',3);
+    if(MODEL&&MODEL.prevX){ const y=(val>=target)?1:0; MODEL.update(y); }
+    updateSignalCountersOnNewValue(val);
+    DATA.push(val);
+    renderStats(); drawChart(); maybePredictNext();
+    const ta=$('ta'); if(ta){ ta.value=(ta.value.trim()?ta.value.trim()+' ':'')+val.toFixed(2); }
+    setText('lcInfo','Añadida: '+val.toFixed(2)+'×');
+  };
+
+  $('btnAdd').onclick=()=>{ try{ const v=parseList($('ta').value); if(!v.length) return; v.forEach(window.onNewRound); $('ta').value=''; }catch(e){} };
+  $('btnClear').onclick=()=>{ try{ DATA=[]; SIGNAL_PENDING=false; SG_TOTAL=SG_WINS=SG_LOSS=0; if(MODEL){ MODEL.prevX=null; MODEL.prevP=null; } renderStats(); drawChart(); updatePredictionUI(null); setText('sgPending','No'); setText('sgTotal','0'); setText('sgWins','0'); setText('sgLoss','0'); setText('sgAcc','0.0%'); }catch(e){} };
+  $('btnQuick').onclick=()=>{ try{ const s=String($('quick').value||'').trim(); let v=null; if(s && !s.includes('.') && /^\d{2,4}$/.test(s)){ if(s.length===2)v=s[0]+'.'+s[1]; else if(s.length===3)v=s[0]+'.'+s.slice(1); else v=s.slice(0,2)+'.'+s.slice(2);} else v=s; const x=parseFloat(String(v).replace(',','.')); if(Number.isFinite(x)&&x>0){ window.onNewRound(x); $('quick').value=''; } }catch(e){} };
+  ['inpThresh','gateCooldown','gateWlow','gateMuMin','gateK','gateL','gateM','gateBlockBear','gateT','gateAdaptive','gateTargetAcc','trW','trEps']
+    .forEach(id=>{ const el=$(id); el && el.addEventListener('input', ()=>updatePredictionUI(MODEL?.prevP ?? null)); });
+  $('btnReset').onclick=()=>{ MODEL=null; ensureModel(); MODEL.prevX=null; MODEL.prevP=null; maybePredictNext(); };
+
+  ensureModel(); renderStats(); drawChart(); updatePredictionUI(null);
+  setText('sgPending','No'); setText('sgTotal','0'); setText('sgWins','0'); setText('sgLoss','0'); setText('sgAcc','0.0%');
+});
+
+/* ===================== CAPTURA: SIN doble confirmación; dedupe simple ===================== */
+(function(){
+  const log = (m)=>{ const d=$('lcLog'); const line=document.createElement('div'); line.textContent='['+new Date().toLocaleTimeString()+'] '+m; d.prepend(line); };
+  const num=(id,def)=>{ const el=$(id); if(!el) return def; const v=parseFloat(String(el.value??'').replace(',','.')); return Number.isFinite(v)?v:def; };
+
+  const S={stream:null,running:false,redStable:0,lastGrab:0,ocrBusy:false,lastVal:null,lastValTime:0};
+
+  function roi(canvas){
+    const w=canvas.width,h=canvas.height;
+    const rw=Math.floor(w*0.45), rh=Math.floor(h*0.18);
+    let x=Math.floor((w-rw)/2)+num('lcOffX',0);
+    let y=Math.floor((h-rh)/2)+Math.floor(h*0.06)+num('lcOffY',0);
+    return {x,y,w:rw,h:rh};
+  }
+
+  function rgb2hsv(r,g,b){
+    r/=255; g/=255; b/=255;
+    const max=Math.max(r,g,b), min=Math.min(r,g,b), d=max-min;
+    let h=0; if(d!==0){ if(max===r) h=60*(((g-b)/d + (g<b?6:0))); else if(max===g) h=60*(((b-r)/d + 2)); else h=60*(((r-g)/d + 4)); }
+    const s=max===0?0:d/max, v=max; return [h,s,v];
+  }
+  function redScoreHSV(img){ const d=img.data; let r=0,t=0; for(let i=0;i<d.length;i+=4){ const A=d[i+3]; if(A<10) continue; const [h,s,v]=rgb2hsv(d[i],d[i+1],d[i+2]); if(((h>=340||h<20)&&s>0.45&&v>0.35)) r++; t++; } return t?(r/t*100):0; }
+  function contrastScore(img){ const d=img.data; let sum=0,sum2=0,t=0; for(let i=0;i<d.length;i+=4){ const A=d[i+3]; if(A<10) continue; const Y=0.2126*d[i]+0.7152*d[i+1]+0.0722*d[i+2]; sum+=Y; sum2+=Y*Y; t++; } if(!t) return 0; const mean=sum/t; return Math.sqrt(Math.max(0,sum2/t-mean*mean)); }
+
+  function normalizeText(t){
+    return String(t||'')
+      .replace(/[x×]/gi,'')
+      .replace(/[oO]/g,'0')
+      .replace(/[lI|]/g,'1')
+      .replace(/B/g,'8')
+      .replace(/S/g,'5')
+      .replace(/[\s]/g,'')
+      .replace(/[•·]/g,'.')
+      .replace(/,/g,'.');
+  }
+  function parseMultiplierFromOCR(text){
+    const s = normalizeText(text);
+    let m = s.match(/(\d+\.\d+)/);
+    if(m){ return parseFloat(m[1]); }
+    const m2 = s.match(/(\d{2,4})/);
+    if(!m2) return null;
+    let n = parseInt(m2[1],10);
+    if(n>=10 && n<=999) return n/100; // 118 -> 1.18 ; 950 -> 9.50
+    if(n>=1000 && n<=9999) return n/100; // 1123 -> 11.23
+    return null;
+  }
+
+  async function doOCR(canvasRegion){
+    if(S.ocrBusy) return null;
+    S.ocrBusy = true;
+    try{
+      if(!window.Tesseract?.recognize){ log('OCR no disponible'); return null; }
+      const { data:{ text } } = await Tesseract.recognize(canvasRegion, 'eng');
+      return text||'';
+    }catch(e){ log('OCR error: '+(e.message||e)); return null; }
+    finally{ S.ocrBusy = false; }
+  }
+
+  async function loop(){
+    if(!S.running) return;
+    const fps=Math.max(1,Math.floor(num('lcFps',3))), delay=Math.round(1000/fps);
+    const can=$('lcCan'), ctx=can.getContext('2d'), v=$('lcPrev');
+
+    if(!v || !v.videoWidth){ $('lcInfo').textContent='Esperando frames…'; return setTimeout(loop,delay); }
+    if(can.width!==v.videoWidth||can.height!==v.videoHeight){ can.width=v.videoWidth; can.height=v.videoHeight; }
+
+    try{ ctx.drawImage(v,0,0,can.width,can.height); }catch(e){ log('No se pudo dibujar (elige "Toda la pantalla").'); return setTimeout(loop,delay); }
+
+    const r=roi(can);
+    ctx.save(); ctx.strokeStyle="#60a5fa"; ctx.lineWidth=2; ctx.setLineDash([6,4]); ctx.strokeRect(r.x,r.y,r.w,r.h); ctx.restore();
+
+    let pctRed=0, contrast=0;
+    try{ const img=ctx.getImageData(r.x,r.y,r.w,r.h); pctRed = redScoreHSV(img); contrast = contrastScore(img); }
+    catch(e){ log('getImageData bloqueado (usa "Toda la pantalla").'); return setTimeout(loop,delay); }
+
+    const useRed = !!($('lcUseRed') && $('lcUseRed').checked);
+    const thr    = Math.max(1,Math.floor(num('lcThr',10)));
+    const stb    = Math.max(1,Math.floor(num('lcStb',2)));
+    const cdMs   = Math.max(0,Math.floor(num('lcCd',2)))*1000;
+    const now    = performance.now();
+
+    const isRed  = pctRed >= thr;
+    const contrastHot = (!useRed && contrast>26) || (useRed && !isRed && contrast>30);
+    const trigger = (useRed ? isRed : (isRed || contrastHot));
+
+    if(trigger){
+      S.redStable++;
+      if(S.redStable>=stb && (now-S.lastGrab)>cdMs && !S.ocrBusy){
+        S.lastGrab=now;
+        try{
+          const tmp=document.createElement('canvas'); tmp.width=r.w; tmp.height=r.h;
+          tmp.getContext('2d').drawImage(can,r.x,r.y,r.w,r.h,0,0,r.w,r.h);
+          const text = await doOCR(tmp);
+          if(text){
+            const val = parseMultiplierFromOCR(text);
+            if(val && isFinite(val) && val>0){
+              // DEDUPE SIMPLE: evita registrar el mismo valor repetido en poco tiempo
+              if(S.lastVal !== null && Math.abs(val - S.lastVal) < 0.01 && (now - S.lastValTime) < 3000){
+                log(`Descartada duplicada ${val.toFixed(2)}×`);
+              }else{
+                log(`OCR OK ${val.toFixed(2)}× (rojo ${pctRed.toFixed(0)}% · contr ${contrast.toFixed(1)})`);
+                $('lcInfo').textContent='Añadida: '+val.toFixed(2)+'×';
+                if($('lcAuto')?.checked){
+                  if(typeof window.onNewRound==='function'){ window.onNewRound(val); }
+                  else { const ta=$('ta'); if(ta){ ta.value=(ta.value.trim()?ta.value.trim()+' ':'')+val.toFixed(2); } }
+                }
+                S.lastVal=val; S.lastValTime=now;
+              }
+            }else{
+              log(`OCR sin número válido: "${text.trim()}"`);
+            }
+          }
+        }catch(e){ log('OCR error: '+(e.message||e)); }
+        S.redStable=0;
+      }
+    }else{
+      S.redStable=0;
+    }
+
+    // Rearme cuando baja la señal (histeresis ligera)
+    if(pctRed < (thr*0.5) && contrast < 22){ S.lastGrab = Math.min(S.lastGrab, now - cdMs); }
+
+    $('lcInfo').textContent=`Rojo ${pctRed.toFixed(1)}% · contr ${contrast.toFixed(1)} · estable ${S.redStable}/${stb}`;
+    setTimeout(loop,delay);
+  }
+
+  $('lcStart').onclick = async ()=>{
+    try{
+      if(!navigator.mediaDevices?.getDisplayMedia){ alert('Tu navegador no permite compartir pantalla. Usa Chrome/Edge.'); return; }
+      const stream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:false});
+      S.stream=stream; $('lcPrev').srcObject=stream; await $('lcPrev').play();
+      Object.assign(S,{running:true, redStable:0, lastGrab:0});
+      $('lcStart').disabled=true; $('lcStop').disabled=false; $('lcStat').textContent='live';
+      log('Captura iniciada. Ajusta Rojo% (8–10), Stable 3, OffY para evitar la tira superior.');
+      stream.getVideoTracks()[0].addEventListener('ended', ()=>$('lcStop').click());
+      loop();
+    }catch(e){ log('No se pudo iniciar: '+(e.name||'Error')+' - '+(e.message||e)); $('lcStat').textContent='error'; }
+  };
+  $('lcStop').onclick = ()=>{
+    try{ S.stream?.getTracks().forEach(t=>t.stop()); }catch(_){ }
+    $('lcPrev').srcObject=null; S.stream=null; S.running=false; S.redStable=0; $('lcStart').disabled=false; $('lcStop').disabled=true; $('lcStat').textContent='idle'; log('Captura detenida.');
+  };
+})();
+</script>
+</body>
+</html>
