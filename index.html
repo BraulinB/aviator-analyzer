@@ -27,6 +27,7 @@
   .table{width:100%;border-collapse:collapse;font-size:13px}
   .table td,.table th{border-bottom:1px solid #1f2937;padding:6px 4px;text-align:left}
   canvas.chart{width:100%;height:280px;background:#0a0f1f;border:1px solid #1f2937;border-radius:12px}
+
   /* captura integrada */
   .liveBox{display:grid;grid-template-rows:auto auto 1fr auto;gap:8px}
   .liveRow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -35,6 +36,7 @@
   .log{max-height:160px;overflow:auto;border:1px solid #1f2937;border-radius:10px;padding:8px;background:#0a0f1f;font-size:12px}
   .badge{font-size:12px;padding:2px 8px;border:1px solid #334155;border-radius:999px}
 </style>
+<!-- Tesseract para OCR -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
@@ -136,6 +138,7 @@
           <label>OffX <input id="lcOffX" type="number" value="0" style="width:80px"></label>
           <label>OffY <input id="lcOffY" type="number" value="0" style="width:80px"></label>
           <label>Cooldown (s) <input id="lcCd" type="number" value="2" style="width:90px"></label>
+          <label><input type="checkbox" id="lcUseRed" checked> usar rojo</label>
         </div>
         <video id="lcPrev" class="livePreview" autoplay muted playsinline></video>
         <canvas id="lcCan" class="liveCanvas"></canvas>
@@ -205,7 +208,16 @@ document.addEventListener('DOMContentLoaded', () => {
     ctx.strokeStyle='#cbd5e1'; ctx.beginPath();
     for(let i=0;i<s.length;i++){ const x=pad+(i/(s.length-1))*w; const y=c.height-pad-((s[i].m-min)/(max-min))*h; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);} ctx.stroke();
     const trW=Math.max(2,Math.floor(getNum('trW',40))), wlen=Math.min(trW,s.length);
-    if(wlen>=2){ const arr=s.slice(s.length-wlen).map(o=>o.m); const xMean=(wlen-1)/2,yMean=arr.reduce((a,b)=>a+b,0)/wlen; let num=0,den=0; for(let i=0;i<wlen;i++){const dx=i-xMean; num+=dx*(arr[i]-yMean); den+=dx*dx;} const b=den?num/den:0,a=yMean-b*xMean; ctx.strokeStyle='#60a5fa'; ctx.beginPath(); for(let i=0;i<wlen;i++){ const xi=s.length-wlen+i; const x=pad+(xi/(s.length-1))*w; const yVal=a+b*i; const y=c.height-pad-((yVal-min)/(max-min))*h; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);} ctx.stroke(); }
+    if(wlen>=2){ const arr=s.slice(s.length-wlen).map(o=>o.m); const xMean=(wlen-1)/2,yMean=arr.reduce((a,b)=>a+b,0)/wlen; let num=0,den=0; for(let i=0;i>wlen;i++){} /* guard */ }
+    const arr2=s.slice(Math.max(0,s.length-Math.min(trW,s.length))).map(o=>o.m);
+    if(arr2.length>=2){
+      const wlen2=arr2.length, xMean2=(wlen2-1)/2, yMean2=arr2.reduce((a,b)=>a+b,0)/wlen2; let num2=0,den2=0;
+      for(let i=0;i<wlen2;i++){ const dx=i-xMean2; num2+=dx*(arr2[i]-yMean2); den2+=dx*dx; }
+      const b=den2?num2/den2:0, a=yMean2-b*xMean2;
+      ctx.strokeStyle='#60a5fa'; ctx.beginPath();
+      for(let i=0;i<wlen2;i++){ const xi=s.length-wlen2+i; const x=pad+(xi/(s.length-1))*w; const yVal=a+b*i; const y=c.height-pad-((yVal-min)/(max-min))*h; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); }
+      ctx.stroke();
+    }
     const target=getNum('inpTarget',3); const yT=c.height-pad-((target-min)/(max-min))*h; ctx.setLineDash([5,5]); ctx.strokeStyle='#3b82f6'; ctx.beginPath(); ctx.moveTo(pad,yT); ctx.lineTo(c.width-pad,yT); ctx.stroke(); ctx.setLineDash([]);
   }
 
@@ -223,8 +235,8 @@ document.addEventListener('DOMContentLoaded', () => {
     prob.textContent=p.toFixed(3);
 
     const cooldown=Math.max(0,Math.floor(getNum('gateCooldown',0))), idx=DATA.length, cooldownOk=(idx-LAST_SIGNAL_INDEX)>=cooldown;
-    const Wlow=Math.max(1,Math.floor(getNum('gateWlow',20))), muMin=getNum('gateMuMin',1.30), mu=movingMean(DATA,Wlow), meanOk=(mu!==null && mu>=muMin);
-    const K=Math.max(1,Math.floor(getNum('gateK',8))), L=getNum('gateL',1.30), M=Math.max(0,Math.floor(getNum('gateM',3))), weakOk=countBelow(DATA,K,L)<=M;
+    const Wlow=Math.max(1,Math.floor(getNum('gateWlow',20))), muMin=getNum('gateMuMin',1.30), mu=(DATA.length>=Wlow?DATA.slice(-Wlow).reduce((a,b)=>a+b,0)/Wlow:null), meanOk=(mu!==null && mu>=muMin);
+    const K=Math.max(1,Math.floor(getNum('gateK',8))), L=getNum('gateL',1.30), M=Math.max(0,Math.floor(getNum('gateM',3))), weakOk=(DATA.slice(-K).filter(v=>v<L).length)<=M;
 
     // tendencia y bloqueo bajista
     const trW=Math.max(2,Math.floor(getNum('trW',40))), trEps=getNum('trEps',0.01);
@@ -251,9 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateSignalCountersOnNewValue(val);
     DATA.push(val);
     renderStats(); drawChart(); maybePredictNext();
-    // También lo deja visible en el textarea
     const ta=document.getElementById('ta'); if(ta){ ta.value=(ta.value.trim()?ta.value.trim()+' ':'')+val.toFixed(2); }
-    // aviso rápido
     const info=document.getElementById('lcInfo'); if(info){ info.textContent='Añadida: '+val.toFixed(2)+'×'; }
   };
 
@@ -270,8 +280,10 @@ document.addEventListener('DOMContentLoaded', () => {
   ensureModel(); renderStats(); drawChart(); updatePredictionUI(null);
   sgPending.textContent='No'; sgTotal.textContent='0'; sgWins.textContent='0'; sgLoss.textContent='0'; sgAcc.textContent='0.0%';
 });
+</script>
 
-/* ===================== CAPTURA INTEGRADA ===================== */
+<!-- ===================== CAPTURA INTEGRADA (HSV + fallback) ===================== -->
+<script>
 (function(){
   const $ = (id)=>document.getElementById(id);
   const log = (m)=>{ const d=$('lcLog'); const line=document.createElement('div'); line.textContent='['+new Date().toLocaleTimeString()+'] '+m; d.prepend(line); };
@@ -288,7 +300,42 @@ document.addEventListener('DOMContentLoaded', () => {
     let x=Math.floor((w-rw)/2)+num('lcOffX',0), y=Math.floor((h-rh)/2)+num('lcOffY',0);
     return {x,y,w:rw,h:rh};
   }
-  function redPct(img){ const d=img.data; let r=0,t=0; for(let i=0;i<d.length;i+=4){ const R=d[i],G=d[i+1],B=d[i+2],A=d[i+3]; if(A<10) continue; if(R>110 && R>G*1.25 && R>B*1.25) r++; t++; } return t? (r/t*100) : 0; }
+
+  // RGB -> HSV
+  function rgb2hsv(r,g,b){
+    r/=255; g/=255; b/=255;
+    const max=Math.max(r,g,b), min=Math.min(r,g,b), d=max-min;
+    let h=0;
+    if(d!==0){
+      if(max===r){ h = 60*(((g-b)/d + (g<b?6:0))); }
+      else if(max===g){ h = 60*(((b-r)/d + 2)); }
+      else { h = 60*(((r-g)/d + 4)); }
+    }
+    const s = max===0 ? 0 : d/max;
+    const v = max;
+    return [h,s,v];
+  }
+  function redScoreHSV(img){
+    const d=img.data; let r=0,t=0;
+    for(let i=0;i<d.length;i+=4){
+      const R=d[i],G=d[i+1],B=d[i+2],A=d[i+3]; if(A<10) continue;
+      const [h,s,v]=rgb2hsv(R,G,B);
+      if(((h>=340 || h<20) && s>0.45 && v>0.35)) r++;
+      t++;
+    }
+    return t? (r/t*100) : 0;
+  }
+  function contrastScore(img){
+    const d=img.data; let sum=0,sum2=0,t=0;
+    for(let i=0;i<d.length;i+=4){
+      const R=d[i],G=d[i+1],B=d[i+2],A=d[i+3]; if(A<10) continue;
+      const Y=0.2126*R+0.7152*G+0.0722*B;
+      sum+=Y; sum2+=Y*Y; t++;
+    }
+    if(!t) return 0;
+    const mean=sum/t, varY=Math.max(0, sum2/t - mean*mean);
+    return Math.sqrt(varY);
+  }
 
   async function loop(){
     if(!S.running) return;
@@ -301,40 +348,53 @@ document.addEventListener('DOMContentLoaded', () => {
     try{ ctx.drawImage(v,0,0,can.width,can.height); }catch(e){ log('No se pudo dibujar (elige "Toda la pantalla").'); return setTimeout(loop,delay); }
 
     const r=roi(can);
-    // overlay azul visible
     ctx.save(); ctx.strokeStyle="#60a5fa"; ctx.lineWidth=2; ctx.setLineDash([6,4]); ctx.strokeRect(r.x,r.y,r.w,r.h); ctx.restore();
 
-    let pct=0; try{ pct=redPct(ctx.getImageData(r.x,r.y,r.w,r.h)); }catch(e){ log('getImageData bloqueado (usa "Toda la pantalla").'); return setTimeout(loop,delay); }
+    let pctRed=0, contrast=0;
+    try{
+      const img=ctx.getImageData(r.x,r.y,r.w,r.h);
+      pctRed = redScoreHSV(img);
+      contrast = contrastScore(img);
+    }catch(e){ log('getImageData bloqueado (usa "Toda la pantalla").'); return setTimeout(loop,delay); }
 
-    const thr=Math.max(1,Math.floor(num('lcThr',10)));
-    const stb=Math.max(1,Math.floor(num('lcStb',2)));
-    const cdMs=Math.max(0,Math.floor(num('lcCd',2)))*1000;
-    const now=performance.now();
+    const useRed = !!($('lcUseRed') && $('lcUseRed').checked);
+    const thr    = Math.max(1,Math.floor(num('lcThr',10)));
+    const stb    = Math.max(1,Math.floor(num('lcStb',2)));
+    const cdMs   = Math.max(0,Math.floor(num('lcCd',2)))*1000;
+    const now    = performance.now();
 
-    if(pct>=thr){
+    const isRed  = pctRed >= thr;
+    const contrastHot = (!useRed && contrast>26) || (useRed && !isRed && contrast>30);
+
+    if( (useRed && isRed) || (!useRed && (isRed || contrastHot)) ){
       S.redStable++;
       if(S.redStable>=stb && (now-S.lastGrab)>cdMs){
         S.lastGrab=now;
         try{
-          const o=roi(can), tmp=document.createElement('canvas'); tmp.width=o.w; tmp.height=o.h;
-          tmp.getContext('2d').drawImage(can,o.x,o.y,o.w,o.h,0,0,o.w,o.h);
+          const tmp=document.createElement('canvas'); tmp.width=r.w; tmp.height=r.h;
+          tmp.getContext('2d').drawImage(can,r.x,r.y,r.w,r.h,0,0,r.w,r.h);
           await ensureOCR();
           const {data:{text}}=await worker.recognize(tmp);
           const m=(text||'').toLowerCase().replace(/,/g,'.').match(/(\d+(\.\d+)?)/);
           const val=m?parseFloat(m[1]):null;
           if(val && isFinite(val) && val>0){
-            log(`OCR ${val.toFixed(2)}× (rojo ${pct.toFixed(0)}%)`);
-            if($('lcAuto').checked){
+            log(`OCR ${val.toFixed(2)}× (rojo ${pctRed.toFixed(0)}% · contr ${contrast.toFixed(1)})`);
+            $('lcInfo').textContent='Añadida: '+val.toFixed(2)+'×';
+            if($('lcAuto')?.checked){
               if(typeof window.onNewRound==='function'){ window.onNewRound(val); }
-              else { const ta=$('ta'); if(ta){ ta.value=(ta.value.trim()?ta.value.trim()+' ':'')+val.toFixed(2); } }
+              else { const ta=document.getElementById('ta'); if(ta){ ta.value=(ta.value.trim()?ta.value.trim()+' ':'')+val.toFixed(2); } }
             }
-          } else { log('OCR sin número claro'); }
+          }else{
+            log(`OCR sin número (rojo ${pctRed.toFixed(0)}% · contr ${contrast.toFixed(1)})`);
+          }
         }catch(e){ log('OCR error: '+(e.message||e)); }
         S.redStable=0;
       }
-    }else{ S.redStable=0; }
+    }else{
+      S.redStable=0;
+    }
 
-    $('lcInfo').textContent=`Rojo ${pct.toFixed(1)}% · estable ${S.redStable}/${stb}`;
+    $('lcInfo').textContent=`Rojo ${pctRed.toFixed(1)}% · contr ${contrast.toFixed(1)} · estable ${S.redStable}/${stb}`;
     setTimeout(loop,delay);
   }
 
@@ -344,7 +404,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const stream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:false});
       S.stream=stream; S.video=document.createElement('video'); S.video.srcObject=stream; S.video.muted=true; S.video.playsInline=true; await S.video.play();
       lcPrev.srcObject=stream; S.running=true; S.redStable=0; S.lastGrab=0; lcStart.disabled=true; lcStop.disabled=false; setStat('live');
-      log('Captura iniciada. Ajusta Rojo% (8–12) y OffX/OffY si hace falta.');
+      log('Captura iniciada. Ajusta Rojo% (6–12), Stable 2–3 y OffX/OffY si hace falta.');
       stream.getVideoTracks()[0].addEventListener('ended', ()=>lcStop.click());
       loop();
     }catch(e){ log('No se pudo iniciar: '+(e.name||'Error')+' - '+(e.message||e)); setStat('error'); }
