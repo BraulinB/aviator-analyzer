@@ -3,21 +3,21 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Aviator Learner — Bot + Captura integrada</title>
+<title>Aviator Learner — Móvil (sin captura)</title>
 <style>
   :root { --bg:#0f172a; --card:#0b1220; --muted:#94a3b8; --text:#e5e7eb; --accent:#60a5fa; --ok:#22c55e; --bad:#ef4444; }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,Segoe UI,Inter,Roboto,Arial}
-  .wrap{max-width:1120px;margin:0 auto;padding:20px}
+  .wrap{max-width:1120px;margin:0 auto;padding:16px}
   h1{margin:0 0 8px;font-size:22px}
   h2{margin:0 0 8px;font-size:18px}
   .card{background:var(--card);border:1px solid #1f2937;border-radius:14px;padding:14px;margin-top:12px}
   .row{display:grid;grid-template-columns:1fr;gap:12px}
   @media(min-width:1024px){ .row2{grid-template-columns:2fr 1fr} }
-  textarea,input,select,button{border-radius:10px;border:1px solid #334155;background:#0b1220;color:var(--text)}
-  textarea{width:100%;min-height:90px;padding:8px}
-  input,select{padding:8px;width:100%}
-  .btn{padding:8px 12px;background:#111827;border:1px solid #334155;cursor:pointer;border-radius:10px}
+  textarea,input,select,button{border-radius:12px;border:1px solid #334155;background:#0b1220;color:var(--text)}
+  textarea{width:100%;min-height:100px;padding:10px}
+  input,select{padding:12px;width:100%}
+  .btn{padding:12px 14px;background:#111827;border:1px solid #334155;cursor:pointer;border-radius:12px}
   .btn:hover{border-color:#475569}
   .muted{color:var(--muted);font-size:13px}
   .rowflex{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -27,19 +27,13 @@
   .table{width:100%;border-collapse:collapse;font-size:13px}
   .table td,.table th{border-bottom:1px solid #1f2937;padding:6px 4px;text-align:left}
   canvas.chart{width:100%;height:280px;background:#0a0f1f;border:1px solid #1f2937;border-radius:12px}
-
-  .liveBox{display:grid;grid-template-rows:auto auto 1fr auto;gap:8px}
-  .liveRow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  .livePreview{width:100%;max-height:160px;border:1px solid #1f2937;border-radius:10px;background:#0a0f1f}
-  .liveCanvas{width:100%;height:240px;border:1px solid #1f2937;border-radius:10px;background:#020617}
-  .log{max-height:160px;overflow:auto;border:1px solid #1f2937;border-radius:10px;padding:8px;background:#0a0f1f;font-size:12px}
-  .badge{font-size:12px;padding:2px 8px;border:1px solid #334155;border-radius:999px}
+  /* Controles táctiles más grandes */
+  label>input{min-width:84px}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
 <div class="wrap">
-  <h1>🧪 Aviator Learner <span class="pill">educativo · sin autobet</span></h1>
+  <h1>📱 Aviator Learner <span class="pill">versión móvil · sin captura</span></h1>
 
   <div class="row row2">
     <div>
@@ -49,34 +43,49 @@
         <div class="rowflex">
           <button class="btn" id="btnAdd">Añadir</button>
           <button class="btn" id="btnClear">Limpiar</button>
-          <input id="quick" placeholder="Rápido: 123 => 1.23" style="width:160px">
+        </div>
+        <div class="rowflex" style="margin-top:8px">
+          <input id="quick" placeholder="Rápido: 123 ⇒ 1.23 (Enter para añadir)" style="width:220px">
           <button class="btn" id="btnQuick">Añadir rápido</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Carga masiva (últimas 60 rondas)</h2>
+        <div class="rowflex">
+          <label class="btn"><input type="file" id="fileRounds" accept=".txt,.csv" hidden>Importar .txt/.csv</label>
+          <label><input type="checkbox" id="cbReplace"> Reemplazar dataset</label>
+        </div>
+        <textarea id="ta60" placeholder="Pega aquí hasta 60 rondas (separadas por espacios o saltos de línea)"></textarea>
+        <div class="rowflex">
+          <button class="btn" id="btnAdd60">Añadir 60</button>
+          <span class="muted small">Si marcas "Reemplazar", se borra lo anterior antes de añadir.</span>
         </div>
       </div>
 
       <div class="card">
         <h2>Modelo online (SGD) + filtros de señal</h2>
         <div class="rowflex">
-          <label>Target ≥ <input id="inpTarget" type="number" step="0.1" value="3" style="width:80px"></label>
-          <label>Umbral p≥ <input id="inpThresh" type="number" step="0.01" value="0.90" style="width:80px"></label>
-          <label>Hist. mínimo N<input id="inpMinN" type="number" value="10" style="width:80px"></label>
-          <label>Ventana W<input id="inpW" type="number" value="40" style="width:80px"></label>
-          <label>LR α<input id="inpLR" type="number" step="0.001" value="0.02" style="width:80px"></label>
-          <label>L2 λ<input id="inpL2" type="number" step="0.0001" value="0.001" style="width:90px"></label>
+          <label>Target ≥ <input id="inpTarget" type="number" step="0.1" value="3" style="width:90px"></label>
+          <label>Umbral p≥ <input id="inpThresh" type="number" step="0.01" value="0.90" style="width:90px"></label>
+          <label>Hist. mínimo N<input id="inpMinN" type="number" value="10" style="width:90px"></label>
+          <label>Ventana W<input id="inpW" type="number" value="40" style="width:90px"></label>
+          <label>LR α<input id="inpLR" type="number" step="0.001" value="0.02" style="width:90px"></label>
+          <label>L2 λ<input id="inpL2" type="number" step="0.0001" value="0.001" style="width:100px"></label>
         </div>
         <div class="rowflex" style="margin-top:6px">
-          <label>Cooldown (rondas) <input id="gateCooldown" type="number" value="8" style="width:80px"></label>
-          <label>W_low <input id="gateWlow" type="number" value="20" style="width:80px"></label>
-          <label>μ_min <input id="gateMuMin" type="number" step="0.01" value="1.30" style="width:80px"></label>
-          <label>K débiles <input id="gateK" type="number" value="8" style="width:80px"></label>
-          <label>Débil < L <input id="gateL" type="number" step="0.01" value="1.30" style="width:80px"></label>
-          <label>Máx débiles M <input id="gateM" type="number" value="3" style="width:80px"></label>
+          <label>Cooldown (rondas) <input id="gateCooldown" type="number" value="8" style="width:90px"></label>
+          <label>W_low <input id="gateWlow" type="number" value="20" style="width:90px"></label>
+          <label>μ_min <input id="gateMuMin" type="number" step="0.01" value="1.30" style="width:90px"></label>
+          <label>K débiles <input id="gateK" type="number" value="8" style="width:90px"></label>
+          <label>Débil < L <input id="gateL" type="number" step="0.01" value="1.30" style="width:90px"></label>
+          <label>Máx débiles M <input id="gateM" type="number" value="3" style="width:90px"></label>
         </div>
         <div class="rowflex" style="margin-top:6px">
           <label>Bloquear si Bajista <input id="gateBlockBear" type="checkbox" checked></label>
-          <label>T (temperatura) <input id="gateT" type="number" step="0.1" value="1.9" style="width:80px"></label>
+          <label>T (temperatura) <input id="gateT" type="number" step="0.1" value="1.9" style="width:90px"></label>
           <label>Umbral adaptativo <input id="gateAdaptive" type="checkbox"></label>
-          <label>Precisión objetivo <input id="gateTargetAcc" type="number" step="0.01" value="0.65" style="width:80px"></label>
+          <label>Precisión objetivo <input id="gateTargetAcc" type="number" step="0.01" value="0.65" style="width:100px"></label>
         </div>
         <div class="rowflex" style="margin-top:6px">
           <button class="btn" id="btnReset">Reiniciar modelo</button>
@@ -94,8 +103,8 @@
         <div class="rowflex" style="justify-content:space-between;gap:12px">
           <h2>Gráfica (cap 200×) + Tendencia</h2>
           <div class="rowflex">
-            <label>Ventana (W) <input id="trW" type="number" value="40" style="width:90px"></label>
-            <label>Umbral pendiente <input id="trEps" type="number" step="0.001" value="0.01" style="width:90px"></label>
+            <label>Ventana (W) <input id="trW" type="number" value="40" style="width:100px"></label>
+            <label>Umbral pendiente <input id="trEps" type="number" step="0.001" value="0.01" style="width:120px"></label>
             <button class="btn" id="btnReplot">Recalcular</button>
           </div>
         </div>
@@ -126,31 +135,6 @@
           <tr><th>Perdidas</th><td id="sgLoss">0</td></tr>
           <tr><th>Precisión</th><td id="sgAcc">0.0%</td></tr>
         </table>
-      </div>
-
-      <div class="card liveBox">
-        <div class="liveRow" style="justify-content:space-between">
-          <h2>Captura en tiempo real (integrada)</h2>
-          <span class="badge" id="lcStat">idle</span>
-        </div>
-        <div class="liveRow">
-          <button class="btn" id="lcStart">Iniciar</button>
-          <button class="btn" id="lcStop" disabled>Detener</button>
-          <label><input type="checkbox" id="lcAuto" checked> auto-add</label>
-        </div>
-        <div class="liveRow">
-          <label>FPS <input id="lcFps" type="number" value="3" style="width:80px"></label>
-          <label>Rojo% <input id="lcThr" type="number" value="10" style="width:80px"></label>
-          <label>Stable <input id="lcStb" type="number" value="2" style="width:80px"></label>
-          <label>OffX <input id="lcOffX" type="number" value="0" style="width:80px"></label>
-          <label>OffY <input id="lcOffY" type="number" value="0" style="width:80px"></label>
-          <label>Cooldown (s) <input id="lcCd" type="number" value="2" style="width:90px"></label>
-          <label><input type="checkbox" id="lcUseRed" checked> usar rojo</label>
-        </div>
-        <video id="lcPrev" class="livePreview" autoplay muted playsinline></video>
-        <canvas id="lcCan" class="liveCanvas"></canvas>
-        <div class="muted small" id="lcInfo">Listo.</div>
-        <div id="lcLog" class="log"></div>
       </div>
     </div>
   </div>
@@ -257,182 +241,46 @@ document.addEventListener('DOMContentLoaded', () => {
     DATA.push(val);
     renderStats(); drawChart(); maybePredictNext();
     const ta=$('ta'); if(ta){ ta.value=(ta.value.trim()?ta.value.trim()+' ':'')+val.toFixed(2); }
-    setText('lcInfo','Añadida: '+val.toFixed(2)+'×');
   };
 
+  // === Botones principales ===
   $('btnAdd').onclick=()=>{ try{ const v=parseList($('ta').value); if(!v.length) return; v.forEach(window.onNewRound); $('ta').value=''; }catch(e){} };
   $('btnClear').onclick=()=>{ try{ DATA=[]; SIGNAL_PENDING=false; SG_TOTAL=SG_WINS=SG_LOSS=0; if(MODEL){ MODEL.prevX=null; MODEL.prevP=null; } renderStats(); drawChart(); updatePredictionUI(null); setText('sgPending','No'); setText('sgTotal','0'); setText('sgWins','0'); setText('sgLoss','0'); setText('sgAcc','0.0%'); }catch(e){} };
-  $('btnQuick').onclick=()=>{ try{ const s=String($('quick').value||'').trim(); let v=null; if(s && !s.includes('.') && /^\d{2,4}$/.test(s)){ if(s.length===2)v=s[0]+'.'+s[1]; else if(s.length===3)v=s[0]+'.'+s.slice(1); else v=s.slice(0,2)+'.'+s.slice(2);} else v=s; const x=parseFloat(String(v).replace(',','.')); if(Number.isFinite(x)&&x>0){ window.onNewRound(x); $('quick').value=''; } }catch(e){} };
+
+  // === Entrada rápida: Enter añade ===
+  function addQuick(){ try{ const s=String($('quick').value||'').trim(); let v=null; if(s && !s.includes('.') && /^\d{2,4}$/.test(s)){ if(s.length===2)v=s[0]+'.'+s[1]; else if(s.length===3)v=s[0]+'.'+s.slice(1); else v=s.slice(0,2)+'.'+s.slice(2);} else v=s; const x=parseFloat(String(v).replace(',','.')); if(Number.isFinite(x)&&x>0){ window.onNewRound(x); $('quick').value=''; } }catch(e){} }
+  $('btnQuick').onclick=addQuick;
+  $('quick').addEventListener('keydown', (ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addQuick(); } });
+
+  // === Carga masiva (textarea + archivo) ===
+  $('btnAdd60').onclick=()=>{ try{ const replace=$('cbReplace')?.checked; const vals=parseList($('ta60').value).slice(-60); if(!vals.length) return; if(replace){ DATA=[]; SIGNAL_PENDING=false; SG_TOTAL=SG_WINS=SG_LOSS=0; if(MODEL){ MODEL.prevX=null; MODEL.prevP=null; } }
+    vals.forEach(v=>window.onNewRound(v)); $('ta60').value=''; }catch(e){} };
+
+  $('fileRounds').addEventListener('change', async (e)=>{
+    const f=e.target.files?.[0]; if(!f) return; const txt=await f.text(); const vals=parseList(txt).slice(-60); const replace=$('cbReplace')?.checked;
+    if(!vals.length) return; if(replace){ DATA=[]; SIGNAL_PENDING=false; SG_TOTAL=SG_WINS=SG_LOSS=0; if(MODEL){ MODEL.prevX=null; MODEL.prevP=null; } }
+    vals.forEach(v=>window.onNewRound(v)); e.target.value='';
+  });
+
+  // === Export/Import modelo ===
+  $('btnExportModel').onclick=()=>{
+    try{ if(!MODEL){ ensureModel(); }
+      const blob=new Blob([JSON.stringify({w:MODEL.w,lr:MODEL.lr,l2:MODEL.l2},null,2)],{type:'application/json'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='modelo_aviator.json'; a.click(); URL.revokeObjectURL(a.href);
+    }catch(e){}
+  };
+  $('fileModel').addEventListener('change', async (e)=>{
+    try{ const f=e.target.files?.[0]; if(!f) return; const txt=await f.text(); const obj=JSON.parse(txt); ensureModel(); if(Array.isArray(obj.w)&&obj.w.length===15){ MODEL.w=obj.w.slice(0,15); } if(typeof obj.lr==='number') MODEL.lr=obj.lr; if(typeof obj.l2==='number') MODEL.l2=obj.l2; e.target.value=''; maybePredictNext(); }catch(e){}
+  });
+
   ['inpThresh','gateCooldown','gateWlow','gateMuMin','gateK','gateL','gateM','gateBlockBear','gateT','gateAdaptive','gateTargetAcc','trW','trEps']
     .forEach(id=>{ const el=$(id); el && el.addEventListener('input', ()=>updatePredictionUI(MODEL?.prevP ?? null)); });
   $('btnReset').onclick=()=>{ MODEL=null; ensureModel(); MODEL.prevX=null; MODEL.prevP=null; maybePredictNext(); };
+  $('btnReplot').onclick=()=>drawChart();
 
   ensureModel(); renderStats(); drawChart(); updatePredictionUI(null);
   setText('sgPending','No'); setText('sgTotal','0'); setText('sgWins','0'); setText('sgLoss','0'); setText('sgAcc','0.0%');
 });
-
-/* ===================== CAPTURA: rojo robusto (sin doble confirmación) ===================== */
-(function(){
-  const log = (m)=>{ const d=$('lcLog'); const line=document.createElement('div'); line.textContent='['+new Date().toLocaleTimeString()+'] '+m; d.prepend(line); };
-  const num=(id,def)=>{ const el=$(id); if(!el) return def; const v=parseFloat(String(el.value??'').replace(',','.')); return Number.isFinite(v)?v:def; };
-
-  const S={stream:null,running:false,stable:0,lastGrab:0,ocrBusy:false,lastVal:null,lastValTime:0};
-
-  function roi(canvas){
-    const w=canvas.width,h=canvas.height;
-    const rw=Math.floor(w*0.48), rh=Math.floor(h*0.22); // ROI más grande para bajos
-    let x=Math.floor((w-rw)/2)+num('lcOffX',0);
-    let y=Math.floor((h-rh)/2)+Math.floor(h*0.04)+num('lcOffY',0);
-    return {x,y,w:rw,h:rh};
-  }
-
-  function rgb2hsv(r,g,b){
-    r/=255; g/=255; b/=255;
-    const max=Math.max(r,g,b), min=Math.min(r,g,b), d=max-min;
-    let h=0; if(d!==0){ if(max===r) h=60*(((g-b)/d + (g<b?6:0))); else if(max===g) h=60*(((b-r)/d + 2)); else h=60*(((r-g)/d + 4)); }
-    const s=max===0?0:d/max, v=max; return [h,s,v];
-  }
-  function redScoreHSV(img){ const d=img.data; let r=0,t=0; for(let i=0;i<d.length;i+=4){ const A=d[i+3]; if(A<10) continue; const [h,s,v]=rgb2hsv(d[i],d[i+1],d[i+2]); if(((h>=340||h<20)&&s>0.35&&v>0.28)) r++; t++; } return t?(r/t*100):0; }
-  function contrastScore(img){ const d=img.data; let sum=0,sum2=0,t=0; for(let i=0;i<d.length;i+=4){ const A=d[i+3]; if(A<10) continue; const Y=0.2126*d[i]+0.7152*d[i+1]+0.0722*d[i+2]; sum+=Y; sum2+=Y*Y; t++; } if(!t) return 0; const mean=sum/t; return Math.sqrt(Math.max(0,sum2/t-mean*mean)); }
-
-  function normalizeText(t){
-    return String(t||'')
-      .replace(/[x×]/gi,'')
-      .replace(/[oO]/g,'0')
-      .replace(/[lI|]/g,'1')
-      .replace(/B/g,'8')
-      .replace(/S/g,'5')
-      .replace(/[\s]/g,'')
-      .replace(/[•·]/g,'.')
-      .replace(/,/g,'.');
-  }
-  function parseMultiplierFromOCR(text){
-    const s = normalizeText(text);
-    let m = s.match(/(\d+\.\d+)/);
-    if(m){ return parseFloat(m[1]); }
-    const m2 = s.match(/(\d{2,4})/);
-    if(!m2) return null;
-    let n = parseInt(m2[1],10);
-    if(n>=10 && n<=999) return n/100;
-    if(n>=1000 && n<=9999) return n/100;
-    return null;
-  }
-
-  function preprocessForOCR(src){
-    const w=src.width,h=src.height; const ctx=src.getContext('2d');
-    const img=ctx.getImageData(0,0,w,h); const d=img.data;
-    for(let i=0;i<d.length;i+=4){
-      const R=d[i], G=d[i+1], B=d[i+2];
-      let y = 0.5*R + 0.3*G + 0.2*B; // prioriza rojo
-      y = Math.min(255, Math.max(0, (y-32)*1.4));
-      const y2 = y>96 ? 255 : (y>64 ? 200 : 0);
-      d[i]=d[i+1]=d[i+2]=y2; d[i+3]=255;
-    }
-    ctx.putImageData(img,0,0);
-    return src;
-  }
-  async function doOCR(canvasRegion){
-    if(S.ocrBusy) return null;
-    S.ocrBusy = true;
-    try{
-      if(!window.Tesseract?.recognize){ log('OCR no disponible'); return null; }
-      const { data:{ text } } = await Tesseract.recognize(canvasRegion, 'eng');
-      return text||'';
-    }catch(e){ log('OCR error: '+(e.message||e)); return null; }
-    finally{ S.ocrBusy = false; }
-  }
-  async function runOCRVariants(can){
-    const scale=2.0;
-    const up=document.createElement('canvas'); up.width=Math.floor(can.width*scale); up.height=Math.floor(can.height*scale);
-    const uctx=up.getContext('2d'); uctx.imageSmoothingEnabled=false; uctx.drawImage(can,0,0,up.width,up.height);
-    let text = await doOCR(up);
-    if(text){ const v=parseMultiplierFromOCR(text); if(v) return v; }
-    const prep=document.createElement('canvas'); prep.width=up.width; prep.height=up.height; prep.getContext('2d').drawImage(up,0,0);
-    preprocessForOCR(prep);
-    text = await doOCR(prep);
-    return parseMultiplierFromOCR(text||'');
-  }
-
-  async function loop(){
-    if(!S.running) return;
-    const fps=Math.max(1,Math.floor(num('lcFps',3))), delay=Math.round(1000/fps);
-    const can=$('lcCan'), ctx=can.getContext('2d'), v=$('lcPrev');
-
-    if(!v || !v.videoWidth){ $('lcInfo').textContent='Esperando frames…'; return setTimeout(loop,delay); }
-    if(can.width!==v.videoWidth||can.height!==v.videoHeight){ can.width=v.videoWidth; can.height=v.videoHeight; }
-
-    try{ ctx.drawImage(v,0,0,can.width,can.height); }catch(e){ log('No se pudo dibujar (elige "Toda la pantalla").'); return setTimeout(loop,delay); }
-
-    const r=roi(can);
-    ctx.save(); ctx.strokeStyle="#60a5fa"; ctx.lineWidth=2; ctx.setLineDash([6,4]); ctx.strokeRect(r.x,r.y,r.w,r.h); ctx.restore();
-
-    let pctRed=0, contrast=0;
-    try{ const img=ctx.getImageData(r.x,r.y,r.w,r.h); pctRed = redScoreHSV(img); contrast = contrastScore(img); }
-    catch(e){ log('getImageData bloqueado (usa "Toda la pantalla").'); return setTimeout(loop,delay); }
-
-    const thr    = Math.max(1,Math.floor(num('lcThr',10)));
-    const stb    = Math.max(1,Math.floor(num('lcStb',2)));
-    const cdMs   = Math.max(0,Math.floor(num('lcCd',2)))*1000;
-    const now    = performance.now();
-
-    const isRed  = pctRed >= thr;
-    const contrastHot = contrast>22; // sensible para rojos tenues
-    const trigger = (isRed || contrastHot);
-
-    if(trigger){
-      S.stable++;
-      if(S.stable>=stb && (now-S.lastGrab)>cdMs && !S.ocrBusy){
-        S.lastGrab=now;
-        try{
-          const crop=document.createElement('canvas'); crop.width=r.w; crop.height=r.h;
-          crop.getContext('2d').drawImage(can,r.x,r.y,r.w,r.h,0,0,crop.width,crop.height);
-          const val = await runOCRVariants(crop);
-          if(val && isFinite(val) && val>0){
-            if(S.lastVal !== null && Math.abs(val - S.lastVal) < 0.01 && (now - S.lastValTime) < 3000){
-              log(`Descartada duplicada ${val.toFixed(2)}×`);
-            }else{
-              log(`OCR OK ${val.toFixed(2)}× (rojo ${pctRed.toFixed(0)}% · contr ${contrast.toFixed(1)})`);
-              $('lcInfo').textContent='Añadida: '+val.toFixed(2)+'×';
-              if($('lcAuto')?.checked){
-                if(typeof window.onNewRound==='function'){ window.onNewRound(val); }
-                else { const ta=$('ta'); if(ta){ ta.value=(ta.value.trim()?ta.value.trim()+' ':'')+val.toFixed(2); } }
-              }
-              S.lastVal=val; S.lastValTime=now;
-            }
-          }else{
-            log('OCR sin número válido (con reintentos)');
-          }
-        }catch(e){ log('OCR error: '+(e.message||e)); }
-        S.stable=0;
-      }
-    }else{
-      S.stable=0;
-    }
-
-    // Rearme suave
-    if(pctRed < (thr*0.5) && contrast < 18){ S.lastGrab = Math.min(S.lastGrab, now - cdMs); }
-
-    $('lcInfo').textContent=`Rojo ${pctRed.toFixed(1)}% · contr ${contrast.toFixed(1)} · estable ${S.stable}/${stb}`;
-    setTimeout(loop,delay);
-  }
-
-  $('lcStart').onclick = async ()=>{
-    try{
-      if(!navigator.mediaDevices?.getDisplayMedia){ alert('Tu navegador no permite compartir pantalla. Usa Chrome/Edge.'); return; }
-      const stream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:false});
-      S.stream=stream; $('lcPrev').srcObject=stream; await $('lcPrev').play();
-      Object.assign(S,{running:true, stable:0, lastGrab:0});
-      $('lcStart').disabled=true; $('lcStop').disabled=false; $('lcStat').textContent='live';
-      log('Captura iniciada. Ajusta Rojo% (8–10), Stable 2–3, OffY para abarcar el número grande del centro.');
-      stream.getVideoTracks()[0].addEventListener('ended', ()=>$('lcStop').click());
-      loop();
-    }catch(e){ log('No se pudo iniciar: '+(e.name||'Error')+' - '+(e.message||e)); $('lcStat').textContent='error'; }
-  };
-  $('lcStop').onclick = ()=>{
-    try{ S.stream?.getTracks().forEach(t=>t.stop()); }catch(_){ }
-    $('lcPrev').srcObject=null; S.stream=null; S.running=false; S.stable=0; $('lcStart').disabled=false; $('lcStop').disabled=true; $('lcStat').textContent='idle'; log('Captura detenida.');
-  };
-})();
 </script>
 </body>
 </html>
