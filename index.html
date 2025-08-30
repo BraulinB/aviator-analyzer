@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Aviator Learner – Bot completo (SGD + Live OCR)</title>
+<title>Aviator Learner – Bot + Live OCR</title>
 <style>
   :root { --bg:#0f172a; --card:#0b1220; --muted:#94a3b8; --text:#e5e7eb; --accent:#60a5fa; --ok:#22c55e; --bad:#ef4444; }
   *{box-sizing:border-box}
@@ -27,13 +27,13 @@
   .table{width:100%;border-collapse:collapse;font-size:13px}
   .table td,.table th{border-bottom:1px solid #1f2937;padding:6px 4px;text-align:left}
   canvas.chart{width:100%;height:280px;background:#0a0f1f;border:1px solid #1f2937;border-radius:12px}
-  canvas.live{width:100%;height:260px;background:#0a0f1f;border:1px solid #1f2937;border-radius:12px}
 </style>
+<!-- Tesseract para OCR -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
 <div class="wrap">
-  <h1>🧪 Aviator Learner <span class="pill">online · educativo · sin autobet</span></h1>
+  <h1>🧪 Aviator Learner <span class="pill">educativo · sin autobet</span></h1>
 
   <div class="row row2">
     <div>
@@ -63,7 +63,7 @@
           <label>W_low <input id="gateWlow" type="number" value="20" style="width:80px"></label>
           <label>μ_min <input id="gateMuMin" type="number" step="0.01" value="1.30" style="width:80px"></label>
           <label>K débiles <input id="gateK" type="number" value="8" style="width:80px"></label>
-          <label>Debil < L <input id="gateL" type="number" step="0.01" value="1.30" style="width:80px"></label>
+          <label>Débil < L <input id="gateL" type="number" step="0.01" value="1.30" style="width:80px"></label>
           <label>Máx débiles M <input id="gateM" type="number" value="3" style="width:80px"></label>
         </div>
         <div class="rowflex" style="margin-top:6px">
@@ -121,317 +121,253 @@
           <tr><th>Precisión</th><td id="sgAcc">0.0%</td></tr>
         </table>
       </div>
-
-      <div class="card">
-        <h2>Captura en tiempo real (ROI automático + offsets)</h2>
-        <div class="rowflex">
-          <button class="btn" id="liveStart">Iniciar captura</button>
-          <button class="btn" id="liveStop">Detener</button>
-          <label><input type="checkbox" id="liveAutoAdd" checked> Auto-agregar tras OCR</label>
-        </div>
-        <div class="rowflex" style="margin-top:6px">
-          <label>FPS <input id="liveFps" type="number" value="3" style="width:80px"></label>
-          <label>Umbral rojo (%) <input id="redPct" type="number" step="1" value="8" style="width:80px"></label>
-          <label>Estabilidad (frames) <input id="stableN" type="number" value="2" style="width:80px"></label>
-          <label>Cooldown (s) <input id="liveCooldown" type="number" value="2" style="width:80px"></label>
-        </div>
-        <div class="rowflex" style="margin-top:6px">
-          <label>Offset X <input id="roiOffsetX" type="number" value="0" style="width:80px"></label>
-          <label>Offset Y <input id="roiOffsetY" type="number" value="0" style="width:80px"></label>
-        </div>
-        <div class="muted small">Comparte la pestaña del juego. El recorte se centra solo; ajusta <b>Offset X/Y</b> si el número queda corrido.</div>
-        <canvas id="liveCanvas" class="live" width="560" height="315"></canvas>
-        <video id="livePreview" autoplay muted playsinline
-          style="width:100%;max-height:180px;margin-top:6px;border:1px solid #1f2937;border-radius:8px;background:#0a0f1f"></video>
-        <div class="muted small" id="liveInfo">Sin captura</div>
-        <div class="muted small" id="liveLog" style="max-height:180px;overflow:auto;border:1px solid #1f2937;border-radius:8px;padding:6px;margin-top:6px"></div>
-      </div>
     </div>
   </div>
 
-  <div class="card"><p class="muted small">Descargo: herramienta educativa. No garantiza resultados ni interactúa con el sitio.</p></div>
+  <div class="card"><p class="muted small">Herramienta educativa. No interactúa con el sitio ni garantiza resultados.</p></div>
 </div>
 
 <script>
+/* ===================== BOT (SGD + UI) ===================== */
 document.addEventListener('DOMContentLoaded', () => {
-/* ========= Helpers seguros ========= */
-const $ = (id)=>document.getElementById(id);
-const log = (m)=>{ const el=$('liveLog'); if(!el) return; const li=document.createElement('div'); li.textContent='['+(new Date()).toLocaleTimeString()+'] '+m; el.prepend(li); };
-const getEl = (id)=>document.getElementById(id);
-const getNum = (id, def)=>{ const el=getEl(id); if(!el) return def; const raw=(el.value??'').toString().replace(',','.').trim(); const x=parseFloat(raw); return Number.isFinite(x)?x:def; };
-const getBool= (id)=> !!(getEl(id) && getEl(id).checked);
+  const $ = (id)=>document.getElementById(id);
+  const getNum = (id, def)=>{ const el=$(id); if(!el) return def; const x=parseFloat(String(el.value??'').replace(',','.')); return Number.isFinite(x)?x:def; };
+  const getBool= (id)=> !!($(id) && $(id).checked);
+  const median=a=>{ if(!a.length) return 0; const s=[...a].sort((x,y)=>x-y), m=Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2; };
+  const parseList=s=> (s||'').split(/[\s,;]+/).map(t=>t.trim()).filter(Boolean).map(Number).filter(x=>isFinite(x)&&x>0);
+  const last=(arr,k)=>arr.slice(Math.max(0,arr.length-k));
+  const clampSeries=(data,cap=200)=>data.map((v,i)=>({i:i+1,m:Math.min(v,cap),real:v}));
+  const stats=(arr)=>{ const n=arr.length; if(!n) return {n:0,mean:0,med:0,max:0,p3:0,p5:0}; const sum=arr.reduce((a,b)=>a+b,0); const mean=sum/n; const med=median(arr); const max=Math.max(...arr); const p=t=>arr.filter(x=>x>=t).length/n; return {n,mean,med,max,p3:p(3),p5:p(5)}; };
+  const logit=p=>Math.log(Math.max(1e-9,p)/Math.max(1e-9,1-p));
+  const sigmoid=z=>1/(1+Math.exp(-z));
 
-/* ========= Utilidades ========= */
-function parseList(s){ if(!s) return []; return s.split(/[\s,;]+/).map(t=>t.trim()).filter(Boolean).map(Number).filter(x=>isFinite(x)&&x>0); }
-function median(a){ if(!a.length) return 0; const s=[...a].sort((x,y)=>x-y); const m=Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2; }
-function stats(arr){ const n=arr.length; if(!n) return {n:0,mean:0,med:0,max:0,p3:0,p5:0}; const sum=arr.reduce((a,b)=>a+b,0), mean=sum/n, med=median(arr), max=Math.max(...arr); const p=(t)=>arr.filter(x=>x>=t).length/n; return {n,mean,med,max,p3:p(3),p5:p(5)}; }
-function last(arr,k){ return arr.slice(Math.max(0,arr.length-k)); }
-function clampSeries(data,cap=200){ return data.map((v,i)=>({i:i+1,m:Math.min(v,cap),real:v})); }
-function quickNorm(s){ s=(s||"").trim(); if(!s) return null; if(!s.includes(".")&&/^\d{2,4}$/.test(s)){ if(s.length===2)s=s[0]+"."+s[1]; else if(s.length===3)s=s[0]+"."+s.slice(1); else s=s.slice(0,2)+"."+s.slice(2);} const v=parseFloat(s.replace(',','.')); return (isFinite(v)&&v>0)?v:null; }
-
-/* ========= Rasgos / Modelo ========= */
-function featuresFrom(history, W, target){
-  const H = last(history, Math.max(1,Math.floor(W))); const n = H.length; if(n===0) return new Array(15).fill(0);
-  const caps = H.map(v=>Math.min(v, 50));
-  const logs = caps.map(v=>Math.log(1+v));
-  const mean = caps.reduce((a,b)=>a+b,0)/n;
-  const meanLog = logs.reduce((a,b)=>a+b,0)/n;
-  const med = median(caps);
-  const std = Math.sqrt((caps.reduce((a,b)=>a+(b-mean)**2,0)/n)||0);
-  const p3 = caps.filter(v=>v>=3).length/n;
-  const p5 = caps.filter(v=>v>=5).length/n;
-  let up=0, down=0;
-  for(let i=caps.length-1;i>=0;i--){ if(caps[i]>=target){ up++; if(down===0){} else break; } else { down++; if(up===0){} else break; } }
-  const L = last(caps,5); while(L.length<5) L.unshift(0);
-  let sinceHi=0; for(let i=caps.length-1;i>=0;i--){ if(caps[i]>=target) break; sinceHi++; }
-  return [1, mean, med, std, meanLog, p3, p5, up, down, sinceHi, ...L];
-}
-class OnlineLogReg{
-  constructor(d, lr=0.02, l2=0.001){ this.w=new Array(d).fill(0); this.lr=lr; this.l2=l2; this.prevX=null; this.prevP=null; }
-  static sg(z){ return 1/(1+Math.exp(-Math.max(-50,Math.min(50,z)))) }
-  predict(x){ let z=0; for(let i=0;i<this.w.length;i++) z+=this.w[i]*x[i]; return OnlineLogReg.sg(z); }
-  stepPrepare(x){ const p=this.predict(x); this.prevX=x.slice(); this.prevP=p; return p; }
-  update(y){ if(!this.prevX||this.prevP==null) return; const x=this.prevX, p=this.prevP; const g=p-y; for(let i=0;i<this.w.length;i++){ const grad=g*x[i]+this.l2*this.w[i]; this.w[i]-=this.lr*grad; } this.prevX=null; this.prevP=null; }
-  export(){ return {w:this.w,lr:this.lr,l2:this.l2}; }
-  import(o){ this.w=o.w.slice(); this.lr=o.lr; this.l2=o.l2; this.prevX=null; this.prevP=null; }
-}
-const logit=(p)=>Math.log(Math.max(1e-9,p)/Math.max(1e-9,1-p));
-const sigmoid=(z)=>1/(1+Math.exp(-z));
-function linRegSlope(arr){ const n=arr.length; if(n<2) return 0; const xMean=(n-1)/2; const yMean=arr.reduce((a,b)=>a+b,0)/n; let num=0,den=0; for(let i=0;i<n;i++){ const dx=i-xMean; num+=dx*(arr[i]-yMean); den+=dx*dx; } return den?num/den:0; }
-function trendLabel(arr, W, eps){ const w=Math.min(Math.max(2,Math.floor(W)),arr.length); if(w<2) return {txt:"—",slope:0}; const slice=arr.slice(arr.length-w); const slope=linRegSlope(slice); const txt=slope>eps?"Alcista":(slope<-eps?"Bajista":"Lateral"); return {txt,slope}; }
-
-/* ========= Estado ========= */
-let DATA=[]; let MODEL=null; let SIGNAL_PENDING=false; let SG_TOTAL=0, SG_WINS=0, SG_LOSS=0; let LAST_SIGNAL_INDEX=-999999;
-function ensureModel(){ const lr=getNum('inpLR',0.02); const l2=getNum('inpL2',0.001); if(!MODEL) MODEL=new OnlineLogReg(15,lr,l2); MODEL.lr=lr; MODEL.l2=l2; }
-
-/* ========= Señales / Stats / Gráfica ========= */
-function updateSignalCountersOnNewValue(value){
-  const target=getNum('inpTarget',3);
-  if(SIGNAL_PENDING){ if(value>=target) SG_WINS++; else SG_LOSS++; SIGNAL_PENDING=false; }
-  SG_TOTAL=SG_WINS+SG_LOSS;
-  const acc=SG_TOTAL? (SG_WINS/SG_TOTAL*100).toFixed(1)+"%":"0.0%";
-  $("#sgPending").textContent=SIGNAL_PENDING?"Sí":"No";
-  $("#sgTotal").textContent=SG_TOTAL; $("#sgWins").textContent=SG_WINS; $("#sgLoss").textContent=SG_LOSS; $("#sgAcc").textContent=acc;
-}
-function renderStats(){
-  const s=stats(DATA);
-  $("#stN").textContent=s.n; $("#stMean").textContent=s.mean.toFixed(2)+"×"; $("#stMed").textContent=s.med.toFixed(2)+"×";
-  $("#stP3").textContent=(s.p3*100).toFixed(1)+"%"; $("#stP5").textContent=(s.p5*100).toFixed(1)+"%"; $("#stMax").textContent=s.max.toFixed(2)+"×";
-  const trW=Math.max(2,Math.floor(getNum('trW',40))); const trEps=getNum('trEps',0.01);
-  const tr=trendLabel(DATA.map(v=>Math.min(v,50)),trW,trEps); $("#stTrend").textContent=tr.txt;
-}
-function drawChart(){
-  const c=$("#chart"), ctx=c.getContext("2d"); ctx.clearRect(0,0,c.width,c.height);
-  if(!DATA.length){ ctx.fillStyle="#64748b"; ctx.fillText("Carga datos para ver la serie",10,20); return; }
-  const cap=200, s=clampSeries(DATA,cap); const pad=30,w=c.width-pad*2,h=c.height-pad*2; const max=cap,min=0;
-  ctx.strokeStyle="#13203a"; ctx.beginPath(); ctx.moveTo(pad,c.height-pad); ctx.lineTo(pad,pad); ctx.lineTo(c.width-pad,pad); ctx.stroke();
-  ctx.strokeStyle="#cbd5e1"; ctx.beginPath();
-  for(let i=0;i<s.length;i++){ const x=pad+(i/(s.length-1))*w; const y=c.height-pad-((s[i].m-min)/(max-min))*h; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);} ctx.stroke();
-  const trW=Math.max(2,Math.floor(getNum('trW',40))); const wlen=Math.min(trW,s.length);
-  if(wlen>=2){
-    const arr=s.slice(s.length-wlen).map(o=>o.m); const xMean=(wlen-1)/2; const yMean=arr.reduce((a,b)=>a+b,0)/wlen; let num=0,den=0;
-    for(let i=0;i<wlen;i++){ const dx=i-xMean; num+=dx*(arr[i]-yMean); den+=dx*dx; }
-    const b=den?num/den:0; const a=yMean-b*xMean; ctx.strokeStyle="#60a5fa"; ctx.beginPath();
-    for(let i=0;i<wlen;i++){ const xi=s.length-wlen+i; const x=pad+(xi/(s.length-1))*w; const yVal=a+b*i; const y=c.height-pad-((yVal-min)/(max-min))*h; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);} ctx.stroke();
+  function featuresFrom(history, W, target){
+    const H=last(history,Math.max(1,Math.floor(W))); const n=H.length; if(n===0) return new Array(15).fill(0);
+    const caps=H.map(v=>Math.min(v,50)), logs=caps.map(v=>Math.log(1+v));
+    const mean=caps.reduce((a,b)=>a+b,0)/n, meanLog=logs.reduce((a,b)=>a+b,0)/n, med=median(caps);
+    const std=Math.sqrt((caps.reduce((a,b)=>a+(b-mean)**2,0)/n)||0);
+    const p3=caps.filter(v=>v>=3).length/n, p5=caps.filter(v=>v>=5).length/n;
+    let up=0,down=0; for(let i=caps.length-1;i>=0;i--){ if(caps[i]>=target){ up++; if(down)break;} else {down++; if(up)break;} }
+    const L=last(caps,5); while(L.length<5) L.unshift(0);
+    let sinceHi=0; for(let i=caps.length-1;i>=0;i--){ if(caps[i]>=target) break; sinceHi++; }
+    return [1,mean,med,std,meanLog,p3,p5,up,down,sinceHi,...L];
   }
-  const target=getNum('inpTarget',3); const yT=c.height-pad-((target-min)/(max-min))*h;
-  ctx.setLineDash([5,5]); ctx.strokeStyle="#3b82f6"; ctx.beginPath(); ctx.moveTo(pad,yT); ctx.lineTo(c.width-pad,yT); ctx.stroke(); ctx.setLineDash([]);
-}
-
-/* ========= Decisión de señal ========= */
-function movingMean(arr,w){ if(w<=0||arr.length<w) return null; let s=0; for(let i=arr.length-w;i<arr.length;i++) s+=arr[i]; return s/w; }
-function countBelow(arr,k,L){ const lastK=arr.slice(Math.max(0,arr.length-k)); return lastK.filter(v=>v<L).length; }
-function updatePredictionUI(pRaw){
-  const thBase=getNum('inpThresh',0.8);
-  const T=Math.max(0.5,getNum('gateT',1.0));
-  const p=(pRaw==null)?null: sigmoid( logit(pRaw)/T );
-  if(p==null){ $("#prob").textContent="—"; $("#signal").textContent="—"; $("#signal").className="signal no"; $("#sgPending").textContent=SIGNAL_PENDING?"Sí":"No"; return; }
-  $("#prob").textContent=p.toFixed(3);
-
-  const cooldown=Math.max(0,Math.floor(getNum('gateCooldown',0)));
-  const idx=DATA.length; const cooldownOk=(idx - LAST_SIGNAL_INDEX) >= cooldown;
-
-  const Wlow=Math.max(1,Math.floor(getNum('gateWlow',20)));
-  const muMin=getNum('gateMuMin',1.25);
-  const mu=movingMean(DATA,Wlow); const meanOk=(mu===null)?false:(mu>=muMin);
-
-  const K=Math.max(1,Math.floor(getNum('gateK',8)));
-  const L=getNum('gateL',1.30);
-  const M=Math.max(0,Math.floor(getNum('gateM',3)));
-  const weakCount=countBelow(DATA,K,L); const weakOk=weakCount<=M;
-
-  const trW=Math.max(2,Math.floor(getNum('trW',40)));
-  const trEps=getNum('trEps',0.01);
-  const tr=trendLabel(DATA.map(v=>Math.min(v,50)),trW,trEps);
-  const blockBear=getBool('gateBlockBear'); const bearOk=(!blockBear)||(tr.txt!=="Bajista");
-
-  let th=thBase;
-  if(getBool('gateAdaptive')){
-    const targetAcc=getNum('gateTargetAcc',0.65);
-    const acc=SG_TOTAL? (SG_WINS/SG_TOTAL) : 0.0;
-    if(acc<targetAcc) th=Math.min(0.99, thBase+0.05);
-    else if(acc>targetAcc+0.10) th=Math.max(0.50, thBase-0.02);
+  class OnlineLogReg{
+    constructor(d,lr=0.02,l2=0.001){ this.w=new Array(d).fill(0); this.lr=lr; this.l2=l2; this.prevX=null; this.prevP=null; }
+    static sg(z){ return 1/(1+Math.exp(-Math.max(-50,Math.min(50,z)))) }
+    predict(x){ let z=0; for(let i=0;i<this.w.length;i++) z+=this.w[i]*x[i]; return OnlineLogReg.sg(z); }
+    stepPrepare(x){ const p=this.predict(x); this.prevX=x.slice(); this.prevP=p; return p; }
+    update(y){ if(!this.prevX||this.prevP==null) return; const x=this.prevX, p=this.prevP; const g=p-y; for(let i=0;i<this.w.length;i++){ const grad=g*x[i]+this.l2*this.w[i]; this.w[i]-=this.lr*grad; } this.prevX=null; this.prevP=null; }
+    export(){ return {w:this.w,lr:this.lr,l2:this.l2}; }
+    import(o){ this.w=o.w.slice(); this.lr=o.lr; this.l2=o.l2; this.prevX=null; this.prevP=null; }
   }
 
-  const passProb = p>=th; const allOk = passProb && cooldownOk && meanOk && weakOk && bearOk;
-  if(allOk){ $("#signal").textContent=`SEÑAL (p≥${th.toFixed(2)})`; $("#signal").className="signal ok"; SIGNAL_PENDING=true; LAST_SIGNAL_INDEX=idx; }
-  else { $("#signal").textContent="No señal"; $("#signal").className="signal no"; }
-  $("#sgPending").textContent = SIGNAL_PENDING?"Sí":"No";
-}
+  let DATA=[], MODEL=null, SIGNAL_PENDING=false, SG_TOTAL=0, SG_WINS=0, SG_LOSS=0, LAST_SIGNAL_INDEX=-999999;
+  function ensureModel(){ const lr=getNum('inpLR',0.02), l2=getNum('inpL2',0.001); if(!MODEL) MODEL=new OnlineLogReg(15,lr,l2); MODEL.lr=lr; MODEL.l2=l2; }
 
-/* ========= Predicción / Registro ========= */
-function maybePredictNext(){
-  const target=getNum('inpTarget',3);
-  const W=Math.max(5,Math.floor(getNum('inpW',40)));
-  const minN=Math.max(5,Math.floor(getNum('inpMinN',10)));
-  ensureModel(); let p=null;
-  if(DATA.length>=Math.max(5,minN)){ const x=featuresFrom(DATA,W,target); p=MODEL.stepPrepare(x); }
-  updatePredictionUI(p);
-}
-function onNewRound(value){
-  const target=getNum('inpTarget',3);
-  if(MODEL&&MODEL.prevX){ const y=(value>=target)?1:0; MODEL.update(y); }
-  updateSignalCountersOnNewValue(value);
-  DATA.push(value);
-  renderStats(); drawChart(); maybePredictNext();
-}
+  function movingMean(arr,w){ if(w<=0||arr.length<w) return null; let s=0; for(let i=arr.length-w;i<arr.length;i++) s+=arr[i]; return s/w; }
+  function countBelow(arr,k,L){ const lastK=arr.slice(Math.max(0,arr.length-k)); return lastK.filter(v=>v<L).length; }
 
-/* ========= UI básica ========= */
-$("#btnAdd") && ($("#btnAdd").onclick=()=>{ const v=parseList($("#ta").value); if(!v.length) return; v.forEach(onNewRound); $("#ta").value=""; });
-$("#btnClear") && ($("#btnClear").onclick=()=>{ DATA=[]; SIGNAL_PENDING=false; SG_TOTAL=SG_WINS=SG_LOSS=0; if(MODEL){ MODEL.prevX=null; MODEL.prevP=null; } renderStats(); drawChart(); updatePredictionUI(null); $("#sgPending").textContent="No"; $("#sgTotal").textContent="0"; $("#sgWins").textContent="0"; $("#sgLoss").textContent="0"; $("#sgAcc").textContent="0.0%"; });
-$("#btnQuick") && ($("#btnQuick").onclick=()=>{ const v=quickNorm($("#quick").value); if(v!=null){ onNewRound(v); $("#quick").value=""; } });
-["inpThresh","gateCooldown","gateWlow","gateMuMin","gateK","gateL","gateM","gateBlockBear","gateT","gateAdaptive","gateTargetAcc","trW","trEps"].forEach(id=>{
-  const el=$(id); el&&el.addEventListener("input", ()=> updatePredictionUI(MODEL?.prevP ?? null));
+  function renderStats(){
+    const s=stats(DATA);
+    $('stN').textContent=s.n; $('stMean').textContent=s.mean.toFixed(2)+'×'; $('stMed').textContent=s.med.toFixed(2)+'×';
+    $('stP3').textContent=(s.p3*100).toFixed(1)+'%'; $('stP5').textContent=(s.p5*100).toFixed(1)+'%'; $('stMax').textContent=s.max.toFixed(2)+'×';
+    const trW=Math.max(2,Math.floor(getNum('trW',40))), trEps=getNum('trEps',0.01);
+    const arr=DATA.map(v=>Math.min(v,50)); const w=Math.min(trW,arr.length);
+    let trend='—'; if(w>=2){ const slice=arr.slice(arr.length-w); const xMean=(w-1)/2, yMean=slice.reduce((a,b)=>a+b,0)/w; let num=0,den=0; for(let i=0;i<w;i++){ const dx=i-xMean; num+=dx*(slice[i]-yMean); den+=dx*dx; } const slope=den?num/den:0; trend=slope>trEps?'Alcista':(slope<-trEps?'Bajista':'Lateral'); }
+    $('stTrend').textContent=trend;
+  }
+  function drawChart(){
+    const c=$('chart'), ctx=c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height);
+    if(!DATA.length){ ctx.fillStyle='#64748b'; ctx.fillText('Carga datos para ver la serie',10,20); return; }
+    const cap=200, s=clampSeries(DATA,cap); const pad=30,w=c.width-pad*2,h=c.height-pad*2, max=cap, min=0;
+    ctx.strokeStyle='#13203a'; ctx.beginPath(); ctx.moveTo(pad,c.height-pad); ctx.lineTo(pad,pad); ctx.lineTo(c.width-pad,pad); ctx.stroke();
+    ctx.strokeStyle='#cbd5e1'; ctx.beginPath();
+    for(let i=0;i<s.length;i++){ const x=pad+(i/(s.length-1))*w; const y=c.height-pad-((s[i].m-min)/(max-min))*h; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);} ctx.stroke();
+    const trW=Math.max(2,Math.floor(getNum('trW',40))), wlen=Math.min(trW,s.length);
+    if(wlen>=2){ const arr=s.slice(s.length-wlen).map(o=>o.m); const xMean=(wlen-1)/2, yMean=arr.reduce((a,b)=>a+b,0)/wlen; let num=0,den=0; for(let i=0;i<wlen;i++){ const dx=i-xMean; num+=dx*(arr[i]-yMean); den+=dx*dx; } const b=den?num/den:0,a=yMean-b*xMean; ctx.strokeStyle='#60a5fa'; ctx.beginPath(); for(let i=0;i<wlen;i++){ const xi=s.length-wlen+i; const x=pad+(xi/(s.length-1))*w; const yVal=a+b*i; const y=c.height-pad-((yVal-min)/(max-min))*h; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);} ctx.stroke(); }
+    const target=getNum('inpTarget',3); const yT=c.height-pad-((target-min)/(max-min))*h; ctx.setLineDash([5,5]); ctx.strokeStyle='#3b82f6'; ctx.beginPath(); ctx.moveTo(pad,yT); ctx.lineTo(c.width-pad,yT); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  function updateSignalCountersOnNewValue(value){
+    const target=getNum('inpTarget',3);
+    if(SIGNAL_PENDING){ if(value>=target) SG_WINS++; else SG_LOSS++; SIGNAL_PENDING=false; }
+    SG_TOTAL=SG_WINS+SG_LOSS; const acc=SG_TOTAL?(SG_WINS/SG_TOTAL*100).toFixed(1)+'%':'0.0%';
+    $('sgPending').textContent=SIGNAL_PENDING?'Sí':'No'; $('sgTotal').textContent=SG_TOTAL; $('sgWins').textContent=SG_WINS; $('sgLoss').textContent=SG_LOSS; $('sgAcc').textContent=acc;
+  }
+
+  function updatePredictionUI(pRaw){
+    const thBase=getNum('inpThresh',0.8), T=Math.max(0.5,getNum('gateT',1.0));
+    const p=(pRaw==null)?null:sigmoid(logit(pRaw)/T);
+    if(p==null){ $('prob').textContent='—'; $('signal').textContent='—'; $('signal').className='signal no'; $('sgPending').textContent=SIGNAL_PENDING?'Sí':'No'; return; }
+    $('prob').textContent=p.toFixed(3);
+
+    const cooldown=Math.max(0,Math.floor(getNum('gateCooldown',0))), idx=DATA.length, cooldownOk=(idx-LAST_SIGNAL_INDEX)>=cooldown;
+    const Wlow=Math.max(1,Math.floor(getNum('gateWlow',20))), muMin=getNum('gateMuMin',1.25), mu=movingMean(DATA,Wlow), meanOk=(mu!==null && mu>=muMin);
+    const K=Math.max(1,Math.floor(getNum('gateK',8))), L=getNum('gateL',1.30), M=Math.max(0,Math.floor(getNum('gateM',3))), weakOk=countBelow(DATA,K,L)<=M;
+
+    // tendencia
+    const trW=Math.max(2,Math.floor(getNum('trW',40))), trEps=getNum('trEps',0.01);
+    let trendOk=true;
+    if(getBool('gateBlockBear')){ const arr=DATA.map(v=>Math.min(v,50)); const w=Math.min(trW,arr.length); if(w>=2){ const slice=arr.slice(arr.length-w); const xMean=(w-1)/2,yMean=slice.reduce((a,b)=>a+b,0)/w; let num=0,den=0; for(let i=0;i<w;i++){ const dx=i-xMean; num+=dx*(slice[i]-yMean); den+=dx*dx; } const slope=den?num/den:0; trendOk = !(slope<-trEps); } }
+
+    let th=thBase;
+    if(getBool('gateAdaptive')){ const targetAcc=getNum('gateTargetAcc',0.65); const acc=SG_TOTAL?(SG_WINS/SG_TOTAL):0.0; if(acc<targetAcc) th=Math.min(0.99,thBase+0.05); else if(acc>targetAcc+0.10) th=Math.max(0.50,thBase-0.02); }
+
+    const passProb=p>=th, allOk=passProb && cooldownOk && meanOk && weakOk && trendOk;
+    if(allOk){ $('signal').textContent=`SEÑAL (p≥${th.toFixed(2)})`; $('signal').className='signal ok'; SIGNAL_PENDING=true; LAST_SIGNAL_INDEX=idx; }
+    else{ $('signal').textContent='No señal'; $('signal').className='signal no'; }
+    $('sgPending').textContent=SIGNAL_PENDING?'Sí':'No';
+  }
+
+  function maybePredictNext(){
+    ensureModel(); const target=getNum('inpTarget',3), W=Math.max(5,Math.floor(getNum('inpW',40))), minN=Math.max(5,Math.floor(getNum('inpMinN',10)));
+    let p=null; if(DATA.length>=Math.max(5,minN)){ const x=featuresFrom(DATA,W,target); p=MODEL.stepPrepare(x); } updatePredictionUI(p);
+  }
+
+  /* === API pública para el capturador === */
+  window.onNewRound = function(val){
+    const target=getNum('inpTarget',3);
+    if(MODEL&&MODEL.prevX){ const y=(val>=target)?1:0; MODEL.update(y); }
+    updateSignalCountersOnNewValue(val);
+    DATA.push(val);
+    renderStats(); drawChart(); maybePredictNext();
+  }
+
+  /* === UI básica === */
+  $('btnAdd').onclick=()=>{ const v=parseList($('ta').value); if(!v.length) return; v.forEach(window.onNewRound); $('ta').value=''; };
+  $('btnClear').onclick=()=>{ DATA=[]; SIGNAL_PENDING=false; SG_TOTAL=SG_WINS=SG_LOSS=0; if(MODEL){ MODEL.prevX=null; MODEL.prevP=null; } renderStats(); drawChart(); updatePredictionUI(null); $('sgPending').textContent='No'; $('sgTotal').textContent='0'; $('sgWins').textContent='0'; $('sgLoss').textContent='0'; $('sgAcc').textContent='0.0%'; };
+  $('btnQuick').onclick=()=>{ const s=String($('quick').value||'').trim(); let v=null; if(s && !s.includes('.') && /^\d{2,4}$/.test(s)){ if(s.length===2)v=s[0]+'.'+s[1]; else if(s.length===3)v=s[0]+'.'+s.slice(1); else v=s.slice(0,2)+'.'+s.slice(2);} else v=s; const x=parseFloat(String(v).replace(',','.')); if(Number.isFinite(x)&&x>0){ window.onNewRound(x); $('quick').value=''; } };
+  ['inpThresh','gateCooldown','gateWlow','gateMuMin','gateK','gateL','gateM','gateBlockBear','gateT','gateAdaptive','gateTargetAcc','trW','trEps']
+    .forEach(id=>{ const el=$(id); el && el.addEventListener('input', ()=>updatePredictionUI(MODEL?.prevP ?? null)); });
+  $('btnReset').onclick=()=>{ MODEL=null; ensureModel(); MODEL.prevX=null; MODEL.prevP=null; maybePredictNext(); };
+  $('btnExportModel').onclick=()=>{ ensureModel(); const blob=new Blob([JSON.stringify(MODEL.export(),null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='learner_model.json'; a.click(); URL.revokeObjectURL(url); };
+  $('fileModel').onchange=(e)=>{ const f=e.target.files?.[0]; if(!f) return; f.text().then(t=>{ try{ const obj=JSON.parse(t); ensureModel(); MODEL.import(obj); alert('Modelo importado.'); maybePredictNext(); }catch(_){ alert('JSON inválido'); } }); };
+
+  // init
+  ensureModel(); renderStats(); drawChart(); updatePredictionUI(null);
+  $('sgPending').textContent='No'; $('sgTotal').textContent='0'; $('sgWins').textContent='0'; $('sgLoss').textContent='0'; $('sgAcc').textContent='0.0%';
 });
-$("#btnReset") && ($("#btnReset").onclick=()=>{ MODEL=null; ensureModel(); MODEL.prevX=null; MODEL.prevP=null; maybePredictNext(); });
-$("#btnExportModel") && ($("#btnExportModel").onclick=()=>{ ensureModel(); const blob=new Blob([JSON.stringify(MODEL.export(),null,2)],{type:"application/json"}); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download="learner_model.json"; a.click(); URL.revokeObjectURL(url); });
-$("#fileModel") && ($("#fileModel").onchange=(e)=>{ const f=e.target.files?.[0]; if(!f) return; f.text().then(t=>{ try{ const obj=JSON.parse(t); ensureModel(); MODEL.import(obj); alert("Modelo importado."); maybePredictNext(); }catch(_){ alert("JSON inválido"); } }); });
-
-/* ========= Live OCR ========= */
-let TESSERACT_WORKER=null;
-async function ensureTesseract(){
-  if(TESSERACT_WORKER) return TESSERACT_WORKER;
-  TESSERACT_WORKER = Tesseract.createWorker();
-  await TESSERACT_WORKER.load(); await TESSERACT_WORKER.loadLanguage('eng'); await TESSERACT_WORKER.initialize('eng');
-  return TESSERACT_WORKER;
-}
-function getAutoROI(canvas){
-  const w=canvas.width, h=canvas.height;
-  const roiW=Math.floor(w*0.45), roiH=Math.floor(h*0.22);
-  let x=Math.floor((w-roiW)/2), y=Math.floor((h-roiH)/2);
-  const offX=Math.floor(getNum('roiOffsetX',0)), offY=Math.floor(getNum('roiOffsetY',0));
-  x+=offX; y+=offY; return {x,y,w:roiW,h:roiH};
-}
-function pxRedRatio(imgData){
-  const d=imgData.data; let red=0,total=0;
-  for(let i=0;i<d.length;i+=4){ const r=d[i],g=d[i+1],b=d[i+2],a=d[i+3]; if(a<10) continue; if(r>110&&r>g*1.25&&r>b*1.25) red++; total++; }
-  return total? (red/total*100) : 0;
-}
-async function ocrFromROI(){
-  const c=$("#liveCanvas"), {x,y,w,h}=getAutoROI(c);
-  const tmp=document.createElement("canvas"); tmp.width=w; tmp.height=h;
-  const tctx=tmp.getContext("2d"); tctx.drawImage(c,x,y,w,h,0,0,w,h);
-  const worker=await ensureTesseract();
-  const { data:{ text } } = await worker.recognize(tmp);
-  const raw=(text||"").replace(/,/g,".").toLowerCase();
-  const m=raw.match(/(\d+(\.\d+)?)/);
-  if(!m) return null; const v=parseFloat(m[1]); if(!isFinite(v)||v<=0||v>10000) return null; return v;
-}
-
-/* ========= Estado live + bucle ========= */
-window.LIVE={stream:null,video:null,running:false,redStable:0,lastGrabTs:0};
-async function liveLoop(){
-  if(!LIVE.running) return;
-  const fps=Math.max(1,Math.floor(getNum('liveFps',3)));
-  const delay=Math.round(1000/fps);
-  const c=$("#liveCanvas"), ctx=c.getContext("2d");
-
-  if(!LIVE.video || !LIVE.video.videoWidth){
-    $("#liveInfo").textContent="Esperando frames de la pestaña compartida…";
-    setTimeout(liveLoop, delay); return;
-  }
-  if(c.width!==LIVE.video.videoWidth || c.height!==LIVE.video.videoHeight){
-    c.width=LIVE.video.videoWidth; c.height=LIVE.video.videoHeight;
-  }
-  try{ ctx.drawImage(LIVE.video,0,0,c.width,c.height); }
-  catch(e){ log("No se pudo dibujar el frame. Usa 'Toda la pantalla' si persiste."); setTimeout(liveLoop, delay); return; }
-
-  const roi=getAutoROI(c);
-  ctx.strokeStyle="#60a5fa"; ctx.setLineDash([6,4]); ctx.lineWidth=2; ctx.strokeRect(roi.x,roi.y,roi.w,roi.h);
-
-  let redPct=0;
-  try{ const img=ctx.getImageData(roi.x,roi.y,roi.w,roi.h); redPct=pxRedRatio(img); }
-  catch(e){ log("getImageData bloqueado. Usa 'Toda la pantalla' como fuente."); setTimeout(liveLoop, delay); return; }
-
-  const thr=Math.max(1,Math.floor(getNum('redPct',8)));
-  const stableN=Math.max(1,Math.floor(getNum('stableN',2)));
-  const cooldownMs=Math.max(0,Math.floor(getNum('liveCooldown',2)))*1000;
-  const now=performance.now();
-
-  if(redPct>=thr){
-    LIVE.redStable++;
-    if(LIVE.redStable>=stableN && (now-LIVE.lastGrabTs)>cooldownMs){
-      LIVE.lastGrabTs=now;
-      try{
-        const val=await ocrFromROI();
-        if(val!=null){ log(`OCR: ${val.toFixed(2)}× (red ${redPct.toFixed(0)}%)`); if(getBool('liveAutoAdd')) onNewRound(val); }
-        else{ log("OCR: sin número claro"); }
-      }catch(e){ log("OCR error: "+(e?.message||e)); }
-      LIVE.redStable=0;
-    }
-  }else{ LIVE.redStable=0; }
-
-  $("#liveInfo").textContent=`Rojo ${redPct.toFixed(1)}% · estable ${LIVE.redStable}/${stableN}`;
-  setTimeout(liveLoop, delay);
-}
-
-/* ========= Handlers captura ========= */
-const onLiveStart = async ()=>{
-  log('Click en Iniciar captura…');
-  if(!navigator.mediaDevices?.getDisplayMedia){ log('Sin getDisplayMedia. Usa Chrome/Edge con permisos.'); alert('Tu navegador no permite compartir pantalla.'); return; }
-  try{
-    const stream=await navigator.mediaDevices.getDisplayMedia({ video:true, audio:false }); // genérico
-    log('Stream OK: '+(stream.getVideoTracks()[0]?.label||'(sin etiqueta)'));
-    const pv=$("#livePreview"); if(pv) pv.srcObject=stream;
-
-    LIVE.stream=stream;
-    LIVE.video=document.createElement('video');
-    LIVE.video.srcObject=stream; LIVE.video.muted=true; LIVE.video.playsInline=true;
-    await LIVE.video.play();
-
-    LIVE.running=true; LIVE.redStable=0; LIVE.lastGrabTs=0;
-    $("#liveInfo") && ($("#liveInfo").textContent='Captura iniciada (ROI auto centro)');
-    log('Captura iniciada. Ajusta offsets y umbral rojo si hace falta.');
-
-    const tracks=stream.getVideoTracks();
-    tracks[0] && tracks[0].addEventListener('ended', ()=>{ $("#liveStop")?.click(); });
-    liveLoop();
-  }catch(e){
-    log('No se pudo iniciar captura: '+(e?.name||'Error')+' - '+(e?.message||e));
-  }
-};
-const onLiveStop = ()=>{
-  log('Click en Detener');
-  LIVE.running=false;
-  try{ LIVE.stream?.getTracks().forEach(t=>t.stop()); }catch(_){}
-  LIVE.stream=null; LIVE.video=null;
-  const pv=$("#livePreview"); if(pv) pv.srcObject=null;
-  $("#liveInfo") && ($("#liveInfo").textContent='Sin captura');
-  log('Captura detenida.');
-};
-$("#liveStart") && $("#liveStart").addEventListener('click', onLiveStart, {passive:true});
-$("#liveStop")  && $("#liveStop").addEventListener('click', onLiveStop, {passive:true});
-
-/* ========= Init seguro ========= */
-function init(){
-  try{
-    ensureModel(); renderStats(); drawChart(); updatePredictionUI(null);
-    $("#sgPending").textContent="No"; $("#sgTotal").textContent="0"; $("#sgWins").textContent="0"; $("#sgLoss").textContent="0"; $("#sgAcc").textContent="0.0%";
-  }catch(e){ console.error('Init error:',e); log('Init error: '+(e?.message||e)); }
-}
-$("#btnReplot") && $("#btnReplot").addEventListener('click', ()=>{ renderStats(); drawChart(); });
-init();
-}); // DOMContentLoaded
 </script>
+
+<!-- ============== CAPTURA AUTOMÁTICA: panel flotante (independiente) ============== -->
+<script>
+(function(){
+  const css = `
+    .lc-box{position:fixed;right:12px;bottom:12px;width:320px;background:#0b1220;color:#e5e7eb;border:1px solid #1f2937;border-radius:12px;font:14px system-ui;z-index:999999;box-shadow:0 6px 24px rgba(0,0,0,.35)}
+    .lc-h{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid #1f2937}
+    .lc-b{padding:10px}
+    .lc-btn{padding:6px 10px;border:1px solid #334155;background:#111827;color:#e5e7eb;border-radius:8px;cursor:pointer}
+    .lc-btn:disabled{opacity:.5;cursor:not-allowed}
+    .lc-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+    .lc-in{width:80px;padding:6px;border:1px solid #334155;border-radius:8px;background:#0b1220;color:#e5e7eb}
+    .lc-pre{height:110px;width:100%;background:#0a0f1f;border:1px solid #1f2937;border-radius:8px;display:block}
+    .lc-log{max-height:120px;overflow:auto;border:1px solid #1f2937;border-radius:8px;padding:6px;background:#0a0f1f;font-size:12px}
+    .lc-badge{font-size:12px;padding:2px 8px;border:1px solid #334155;border-radius:999px}
+  `;
+  const style = document.createElement('style'); style.textContent = css; document.head.appendChild(style);
+  const box = document.createElement('div');
+  box.className = 'lc-box';
+  box.innerHTML = `
+    <div class="lc-h"><strong>LiveCapture (OCR)</strong><span class="lc-badge" id="lcStat">idle</span></div>
+    <div class="lc-b">
+      <div class="lc-row">
+        <button class="lc-btn" id="lcStart">Start</button>
+        <button class="lc-btn" id="lcStop" disabled>Stop</button>
+        <label><input type="checkbox" id="lcAuto" checked> auto-add</label>
+      </div>
+      <div class="lc-row">
+        <label>FPS <input class="lc-in" id="lcFps" type="number" value="3"></label>
+        <label>Rojo% <input class="lc-in" id="lcThr" type="number" value="10"></label>
+        <label>Stable <input class="lc-in" id="lcStb" type="number" value="2"></label>
+      </div>
+      <div class="lc-row">
+        <label>OffX <input class="lc-in" id="lcOffX" type="number" value="0"></label>
+        <label>OffY <input class="lc-in" id="lcOffY" type="number" value="0"></label>
+        <label>CD(s) <input class="lc-in" id="lcCd" type="number" value="2"></label>
+      </div>
+      <video id="lcPrev" class="lc-pre" autoplay muted playsinline></video>
+      <canvas id="lcCan" style="display:none"></canvas>
+      <div id="lcInfo" style="margin:6px 0;color:#94a3b8">Listo.</div>
+      <div id="lcLog" class="lc-log"></div>
+    </div>`;
+  document.body.appendChild(box);
+
+  const $ = (id)=>box.querySelector('#'+id);
+  const log = (m)=>{ const d=$('lcLog'); const line=document.createElement('div'); line.textContent='['+new Date().toLocaleTimeString()+'] '+m; d.prepend(line); };
+  const setStat = (t)=>{$('lcStat').textContent=t;}
+  const num = (id,def)=>{ const el=$(id); if(!el) return def; const v=parseFloat(String(el.value??'').replace(',','.')); return Number.isFinite(v)?v:def; };
+
+  const S = { stream:null, video:null, running:false, redStable:0, lastGrab:0 };
+  let worker = null;
+  async function ensureOCR(){ if(worker) return worker; worker = Tesseract.createWorker(); await worker.load(); await worker.loadLanguage('eng'); await worker.initialize('eng'); return worker; }
+
+  function roi(canvas){
+    const w=canvas.width,h=canvas.height, rw=Math.floor(w*0.45), rh=Math.floor(h*0.22);
+    let x=Math.floor((w-rw)/2)+num('lcOffX',0), y=Math.floor((h-rh)/2)+num('lcOffY',0);
+    return {x,y,w:rw,h:rh};
+  }
+  function redPct(img){ const d=img.data; let r=0,t=0; for(let i=0;i<d.length;i+=4){ const R=d[i],G=d[i+1],B=d[i+2],A=d[i+3]; if(A<10) continue; if(R>110 && R>G*1.25 && R>B*1.25) r++; t++; } return t? (r/t*100) : 0; }
+
+  async function loop(){
+    if(!S.running) return;
+    const fps = Math.max(1, Math.floor(num('lcFps',3))), delay = Math.round(1000/fps);
+    const can=$('lcCan'), ctx=can.getContext('2d'), v=S.video;
+    if(!v || !v.videoWidth){ $('lcInfo').textContent='Esperando frames…'; return setTimeout(loop, delay); }
+    if(can.width!==v.videoWidth||can.height!==v.videoHeight){ can.width=v.videoWidth; can.height=v.videoHeight; }
+    try{ ctx.drawImage(v,0,0,can.width,can.height); } catch(e){ log('No se pudo dibujar (elige "Toda la pantalla").'); return setTimeout(loop, delay); }
+
+    const r=roi(can); ctx.strokeStyle="#60a5fa"; ctx.setLineDash([6,4]); ctx.lineWidth=2; ctx.strokeRect(r.x,r.y,r.w,r.h);
+    let pct=0; try{ pct=redPct(ctx.getImageData(r.x,r.y,r.w,r.h)); } catch(e){ log('getImageData bloqueado (usa "Toda la pantalla").'); return setTimeout(loop, delay); }
+
+    const thr=Math.max(1,Math.floor(num('lcThr',10))), stb=Math.max(1,Math.floor(num('lcStb',2))), cdMs=Math.max(0,Math.floor(num('lcCd',2)))*1000, now=performance.now();
+
+    if(pct>=thr){
+      S.redStable++;
+      if(S.redStable>=stb && (now-S.lastGrab)>cdMs){
+        S.lastGrab=now;
+        try{
+          const o=roi(can), tmp=document.createElement('canvas'); tmp.width=o.w; tmp.height=o.h;
+          tmp.getContext('2d').drawImage(can,o.x,o.y,o.w,o.h,0,0,o.w,o.h);
+          await ensureOCR();
+          const { data:{ text } } = await worker.recognize(tmp);
+          const m=(text||'').toLowerCase().replace(/,/g,'.').match(/(\d+(\.\d+)?)/);
+          const val = m? parseFloat(m[1]) : null;
+          if(val && isFinite(val) && val>0){
+            log(`OCR ${val.toFixed(2)}× (rojo ${pct.toFixed(0)}%)`);
+            if($('lcAuto').checked){
+              if(typeof window.onNewRound === 'function'){ window.onNewRound(val); }
+              else { const ta=document.getElementById('ta'); if(ta){ ta.value=(ta.value.trim()?ta.value.trim()+' ':'')+val.toFixed(2); } }
+            }
+          } else { log('OCR sin número claro'); }
+        } catch(e){ log('OCR error: '+(e.message||e)); }
+        S.redStable=0;
+      }
+    } else S.redStable=0;
+
+    $('lcInfo').textContent=`Rojo ${pct.toFixed(1)}% · estable ${S.redStable}/${stb}`;
+    setTimeout(loop, delay);
+  }
+
+  $('lcStart').onclick = async ()=>{
+    try{
+      if(!navigator.mediaDevices?.getDisplayMedia){ alert('Tu navegador no permite compartir pantalla. Usa Chrome/Edge.'); return; }
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video:true, audio:false });
+      S.stream=stream; S.video=document.createElement('video'); S.video.srcObject=stream; S.video.muted=true; S.video.playsInline=true; await S.video.play();
+      $('lcPrev').srcObject=stream; S.running=true; S.redStable=0; S.lastGrab=0;
+      $('lcStart').disabled=true; $('lcStop').disabled=false; setStat('live');
+      log('Captura iniciada. Ajusta Rojo% (8–12) y OffX/OffY si hace falta.');
+      stream.getVideoTracks()[0].addEventListener('ended', ()=>$('lcStop').click());
+      loop();
+    }catch(e){ log('No se pudo iniciar: '+(e.name||'Error')+' - '+(e.message||e)); setStat('error'); }
+  };
+  $('lcStop').onclick = ()=>{
+    try{ S.stream?.getTracks().forEach(t=>t.stop()); }catch(_){}
+    $('lcPrev').srcObject=null; S.stream=null; S.video=null; S.running=false; S.redStable=0;
+    $('lcStart').disabled=false; $('lcStop').disabled=true; setStat('idle'); log('Captura detenida.');
+  };
+})();
+</script>
+<!-- /CAPTURA AUTOMÁTICA -->
 </body>
 </html>
