@@ -271,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setText('sgPending','No'); setText('sgTotal','0'); setText('sgWins','0'); setText('sgLoss','0'); setText('sgAcc','0.0%');
 });
 
-/* ===================== CAPTURA: 1 lectura por ronda (FSM hot/cold + reintentos) ===================== */
+/* ===================== CAPTURA: UNA SOLA LECTURA POR RONDA (detector hot/cold) ===================== */
 (function(){
   const $ = (id)=>document.getElementById(id);
   const log = (m)=>{ const d=$('lcLog'); const line=document.createElement('div'); line.textContent='['+new Date().toLocaleTimeString()+'] '+m; d.prepend(line); };
@@ -279,22 +279,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const S={
     stream:null,running:false,
-    hotFrames:0,coldFrames:0,
-    burstActive:false,capturedInBurst:false,
-    lastTry:0,retryCount:0,maxRetries:3,
-    ocrBusy:false,lastVal:null,lastValTime:0
+    roundOpen:false, hot:0, cold:0,
+    capturedInRound:false,
+    lastRoundOpen:0, lastCapture:0,
+    ocrBusy:false, lastVal:null
   };
 
   function roi(canvas){
     const w=canvas.width,h=canvas.height;
-    const rw=Math.floor(w*0.50), rh=Math.floor(h*0.24); // ROI más generoso
-    let x=Math.floor((w-rw)/2)+num('lcOffX',0);
-    let y=Math.floor((h-rh)/2)+Math.floor(h*0.03)+num('lcOffY',0);
+    const rw=Math.floor(w*0.48), rh=Math.floor(h*0.22); // centrado al número rojo
+    const x=Math.floor((w-rw)/2)+num('lcOffX',0);
+    const y=Math.floor((h-rh)/2)+Math.floor(h*0.04)+num('lcOffY',0);
     return {x,y,w:rw,h:rh};
   }
 
   function rgb2hsv(r,g,b){ r/=255; g/=255; b/=255; const max=Math.max(r,g,b), min=Math.min(r,g,b), d=max-min; let h=0; if(d!==0){ if(max===r) h=60*(((g-b)/d + (g<b?6:0))); else if(max===g) h=60*(((b-r)/d + 2)); else h=60*(((r-g)/d + 4)); } const s=max===0?0:d/max, v=max; return [h,s,v]; }
-  function redScoreHSV(img){ const d=img.data; let r=0,t=0; for(let i=0;i<d.length;i+=4){ const A=d[i+3]; if(A<10) continue; const [h,s,v]=rgb2hsv(d[i],d[i+1],d[i+2]); if(((h>=340||h<20)&&s>0.35&&v>0.28)) r++; t++; } return t?(r/t*100):0; }
+  function redScoreHSV(img){ const d=img.data; let r=0,t=0; for(let i=0;i<d.length;i+=4){ const A=d[i+3]; if(A<10) continue; const [h,s,v]=rgb2hsv(d[i],d[i+1],d[i+2]); if(((h>=340||h<20)&&s>0.35&&v>0.30)) r++; t++; } return t?(r/t*100):0; }
   function contrastScore(img){ const d=img.data; let sum=0,sum2=0,t=0; for(let i=0;i<d.length;i+=4){ const A=d[i+3]; if(A<10) continue; const Y=0.2126*d[i]+0.7152*d[i+1]+0.0722*d[i+2]; sum+=Y; sum2+=Y*Y; t++; } if(!t) return 0; const mean=sum/t; return Math.sqrt(Math.max(0,sum2/t-mean*mean)); }
 
   function normalizeText(t){
@@ -311,10 +311,10 @@ document.addEventListener('DOMContentLoaded', () => {
   function parseMultiplierFromOCR(text){
     const s = normalizeText(text);
     let m = s.match(/(\d+\.\d+)/);
-    if(m){ return parseFloat(m[1]); }
+    if(m) return parseFloat(m[1]);
     const m2 = s.match(/(\d{2,4})/);
     if(!m2) return null;
-    let n = parseInt(m2[1],10);
+    const n = parseInt(m2[1],10);
     if(n>=10 && n<=999) return n/100;
     if(n>=1000 && n<=9999) return n/100;
     return null;
@@ -324,7 +324,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if(S.ocrBusy) return null;
     S.ocrBusy = true;
     try{
-      if(!window.Tesseract?.recognize){ log('OCR no disponible'); return null; }
       const { data:{ text } } = await Tesseract.recognize(canvasRegion, 'eng');
       return text||'';
     }catch(e){ log('OCR error: '+(e.message||e)); return null; }
@@ -332,11 +331,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function runOCR(can){
-    // Upscale x2 para ayudar al OCR
-    const scale=2.0;
-    const up=document.createElement('canvas'); up.width=Math.floor(can.width*scale); up.height=Math.floor(can.height*scale);
-    const uctx=up.getContext('2d'); uctx.imageSmoothingEnabled=false; uctx.drawImage(can,0,0,up.width,up.height);
-    const text = await doOCR(up);
+    // Upscale x2 para mejorar precisión
+    const up=document.createElement('canvas'); up.width=can.width*2; up.height=can.height*2;
+    const u=up.getContext('2d'); u.imageSmoothingEnabled=false; u.drawImage(can,0,0,up.width,up.height);
+    const text=await doOCR(up);
     return parseMultiplierFromOCR(text||'');
   }
 
@@ -344,82 +342,71 @@ document.addEventListener('DOMContentLoaded', () => {
     if(!S.running) return;
     const fps=Math.max(1,Math.floor(num('lcFps',3))), delay=Math.round(1000/fps);
     const can=$('lcCan'), ctx=can.getContext('2d'), v=$('lcPrev');
-
-    if(!v || !v.videoWidth){ $('lcInfo').textContent='Esperando frames…'; return setTimeout(loop,delay); }
+    if(!v||!v.videoWidth){ $('lcInfo').textContent='Esperando frames…'; return setTimeout(loop,delay); }
     if(can.width!==v.videoWidth||can.height!==v.videoHeight){ can.width=v.videoWidth; can.height=v.videoHeight; }
 
-    try{ ctx.drawImage(v,0,0,can.width,can.height); }catch(e){ log('No se pudo dibujar (elige "Toda la pantalla").'); return setTimeout(loop,delay); }
-
+    ctx.drawImage(v,0,0,can.width,can.height);
     const r=roi(can);
     ctx.save(); ctx.strokeStyle="#60a5fa"; ctx.lineWidth=2; ctx.setLineDash([6,4]); ctx.strokeRect(r.x,r.y,r.w,r.h); ctx.restore();
 
-    let pctRed=0, contrast=0;
-    try{ const img=ctx.getImageData(r.x,r.y,r.w,r.h); pctRed = redScoreHSV(img); contrast = contrastScore(img); }
-    catch(e){ log('getImageData bloqueado (usa "Toda la pantalla").'); return setTimeout(loop,delay); }
+    let pctRed=0, contr=0; try{ const img=ctx.getImageData(r.x,r.y,r.w,r.h); pctRed=redScoreHSV(img); contr=contrastScore(img);}catch(e){ log('getImageData bloqueado: comparte "Toda la pantalla"'); return setTimeout(loop,delay); }
 
-    const thr    = Math.max(1,Math.floor(num('lcThr',10)));
-    const stb    = Math.max(1,Math.floor(num('lcStb',2)));
-    const now    = performance.now();
+    const thr = Math.max(1,Math.floor(num('lcThr',10)));
+    const stb = Math.max(1,Math.floor(num('lcStb',2)));
+    const cdMs = Math.max(0,Math.floor(num('lcCd',2)))*1000;
+    const useRed = $('lcUseRed')?.checked ?? true;
+    const hot = useRed ? (pctRed>=thr) : (pctRed>=thr || contr>28);
+    const now = performance.now();
 
-    const hot = (pctRed >= thr) || (contrast > 26); // disparo sensible
-
+    // Abrir/cerrar ronda (máquina de estados)
     if(hot){
-      S.hotFrames++; S.coldFrames=0;
-      if(!S.burstActive){ S.burstActive=true; S.capturedInBurst=false; S.retryCount=0; }
-
-      // Intentar OCR solo cuando está estable y aún no capturamos
-      if(S.hotFrames>=stb && !S.capturedInBurst && (now - S.lastTry) > 250 && S.retryCount < S.maxRetries && !S.ocrBusy){
-        S.lastTry = now; S.retryCount++;
+      if(!S.roundOpen){ S.roundOpen=true; S.hot=0; S.cold=0; S.capturedInRound=false; S.lastRoundOpen=now; }
+      S.hot++;
+      if(S.hot>=stb && !S.capturedInRound && (now-S.lastCapture)>=cdMs && !S.ocrBusy){
+        // Intentar una sola vez por ronda (si falla, reintenta en el próximo frame caliente)
         try{
-          const crop=document.createElement('canvas'); crop.width=r.w; crop.height=r.h;
-          crop.getContext('2d').drawImage(can,r.x,r.y,r.w,r.h,0,0,crop.width,crop.height);
-          const val = await runOCR(crop);
+          const crop=document.createElement('canvas'); crop.width=r.w; crop.height=r.h; crop.getContext('2d').drawImage(can,r.x,r.y,r.w,r.h,0,0,crop.width,crop.height);
+          const val=await runOCR(crop);
           if(val && isFinite(val) && val>=1.00 && val<=200){
-            // Antiduplicado global
-            if(!(S.lastVal !== null && Math.abs(val - S.lastVal) < 0.01 && (now - S.lastValTime) < 3000)){
-              if($('lcAuto')?.checked){
-                if(typeof window.onNewRound==='function'){ window.onNewRound(val); }
-                else { const ta=$('ta'); if(ta){ ta.value=(ta.value.trim()?ta.value.trim()+' ':'')+val.toFixed(2); } }
-              }
-              log('OCR OK '+val.toFixed(2)+'× (rojo '+pctRed.toFixed(0)+'% · contr '+contrast.toFixed(1)+')');
-              S.lastVal=val; S.lastValTime=now; S.capturedInBurst=true; // una captura por ronda
+            if(!(S.lastVal!=null && Math.abs(val-S.lastVal)<0.01 && (now-S.lastCapture)<3000)){
+              if($('lcAuto')?.checked){ if(typeof window.onNewRound==='function') window.onNewRound(val); }
+              log('OCR OK '+val.toFixed(2)+'× (rojo '+pctRed.toFixed(0)+'% · contr '+contr.toFixed(1)+')');
+              S.lastVal=val; S.lastCapture=now; S.capturedInRound=true;
             } else {
               log('Descartada duplicada '+val.toFixed(2)+'×');
-              S.capturedInBurst=true; // ya fue registrado hace poco
+              S.capturedInRound=true;
             }
           } else {
-            log('OCR candidato inválido; reintento…');
+            log('OCR sin número válido; reintento…');
           }
         }catch(e){ log('OCR error: '+(e.message||e)); }
       }
     } else {
-      // frío
-      S.coldFrames++; S.hotFrames=0;
-      if(S.burstActive && S.coldFrames>=3){
-        // rearmar tras 3 frames fríos
-        S.burstActive=false; S.capturedInBurst=false; S.retryCount=0;
-      }
+      if(S.roundOpen){ S.cold++; if(S.cold>=3){ S.roundOpen=false; S.hot=0; S.cold=0; S.capturedInRound=false; } }
     }
 
-    $('lcInfo').textContent='Rojo '+pctRed.toFixed(1)+'% · contr '+contrast.toFixed(1)+' · hot '+S.hotFrames+' · cold '+S.coldFrames+' · '+(S.burstActive?(S.capturedInBurst?'capturado':'armado'):'listo');
+    // Seguridad: si una ronda queda "atascada" > 25s, forzar cierre
+    if(S.roundOpen && (now-S.lastRoundOpen)>25000){ S.roundOpen=false; S.capturedInRound=false; S.hot=0; S.cold=0; }
+
+    $('lcInfo').textContent=`Rojo ${pctRed.toFixed(1)}% · contr ${contr.toFixed(1)} · hot ${S.hot} · cold ${S.cold} · ${S.roundOpen?(S.capturedInRound?'capturado':'armado'):'listo'}`;
     setTimeout(loop,delay);
   }
 
-  $('lcStart').onclick = async ()=>{
+  $('lcStart').onclick=async()=>{
     try{
       if(!navigator.mediaDevices?.getDisplayMedia){ alert('Tu navegador no permite compartir pantalla. Usa Chrome/Edge.'); return; }
       const stream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:false});
       $('lcPrev').srcObject=stream; await $('lcPrev').play();
-      Object.assign(S,{stream, running:true, hotFrames:0, coldFrames:0, burstActive:false, capturedInBurst:false, retryCount:0});
+      Object.assign(S,{stream,running:true,roundOpen:false,hot:0,cold:0,capturedInRound:false,lastRoundOpen:0});
       $('lcStart').disabled=true; $('lcStop').disabled=false; $('lcStat').textContent='live';
-      log('Captura iniciada. Sugerencias: Rojo% 8–12 · Stable 2–3 · OffY para centrar número. Comparte "Toda la pantalla".');
+      log('Captura iniciada. Recomendado: Rojo% 8–12 · Stable 2–3 · Cooldown 2–3 s · Ajusta OffY para centrar.');
       stream.getVideoTracks()[0].addEventListener('ended', ()=>$('lcStop').click());
       loop();
     }catch(e){ log('No se pudo iniciar: '+(e.name||'Error')+' - '+(e.message||e)); $('lcStat').textContent='error'; }
   };
-  $('lcStop').onclick = ()=>{
-    try{ S.stream?.getTracks().forEach(t=>t.stop()); }catch(_){}
-    $('lcPrev').srcObject=null; S.stream=null; S.running=false; S.hotFrames=S.coldFrames=0; S.burstActive=false; S.capturedInBurst=false; $('lcStart').disabled=false; $('lcStop').disabled=true; $('lcStat').textContent='idle'; log('Captura detenida.');
+  $('lcStop').onclick=()=>{
+    try{ S.stream?.getTracks().forEach(t=>t.stop()); }catch(_){ }
+    $('lcPrev').srcObject=null; S.stream=null; S.running=false; S.roundOpen=false; S.hot=0; S.cold=0; S.capturedInRound=false; $('lcStart').disabled=false; $('lcStop').disabled=true; $('lcStat').textContent='idle'; log('Captura detenida.');
   };
 })();
 </script>
