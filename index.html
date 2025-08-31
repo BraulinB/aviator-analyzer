@@ -138,7 +138,7 @@
           <button class="btn" id="lcStop" disabled>Detener</button>
           <label><input type="checkbox" id="lcAuto" checked> auto-add</label>
         </div>
-        <div class="liveRow">
+        <div class="rowflex">
           <label>FPS <input id="lcFps" type="number" value="3" style="width:80px"></label>
           <label>Rojo% <input id="lcThr" type="number" value="10" style="width:80px"></label>
           <label>Stable <input id="lcStb" type="number" value="2" style="width:80px"></label>
@@ -273,6 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /* ===================== CAPTURA: rojo robusto (sin doble confirmación) ===================== */
 (function(){
+  const $ = (id)=>document.getElementById(id);
   const log = (m)=>{ const d=$('lcLog'); const line=document.createElement('div'); line.textContent='['+new Date().toLocaleTimeString()+'] '+m; d.prepend(line); };
   const num=(id,def)=>{ const el=$(id); if(!el) return def; const v=parseFloat(String(el.value??'').replace(',','.')); return Number.isFinite(v)?v:def; };
 
@@ -423,7 +424,7 @@ document.addEventListener('DOMContentLoaded', () => {
       S.stream=stream; $('lcPrev').srcObject=stream; await $('lcPrev').play();
       Object.assign(S,{running:true, stable:0, lastGrab:0});
       $('lcStart').disabled=true; $('lcStop').disabled=false; $('lcStat').textContent='live';
-      log('Captura iniciada. Ajusta Rojo% (8–10), Stable 2–3, OffY para abarcar el número grande del centro.');
+      log('Captura iniciada. Ajusta Rojo% (8–12), Stable 2–3, OffY para abarcar el número grande del centro.');
       stream.getVideoTracks()[0].addEventListener('ended', ()=>$('lcStop').click());
       loop();
     }catch(e){ log('No se pudo iniciar: '+(e.name||'Error')+' - '+(e.message||e)); $('lcStat').textContent='error'; }
