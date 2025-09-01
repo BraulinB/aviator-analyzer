@@ -3,27 +3,16 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Aviator Learner — Bot Integrado (sin captura)</title>
+<title>Aviator Learner — Bot Integrado</title>
 <style>
-  :root { --bg:#0f172a; --card:#0b1220; --muted:#94a3b8; --text:#e5e7eb; --accent:#60a5fa; --ok:#22c55e; --bad:#ef4444; }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,Segoe UI,Inter,Roboto,Arial}
-  .wrap{max-width:1120px;margin:0 auto;padding:20px}
-  h1{margin:0 0 8px;font-size:22px}
-  h2{margin:0 0 8px;font-size:18px}
-  .card{background:var(--card);border:1px solid #1f2937;border-radius:14px;padding:14px;margin-top:12px}
-  .row{display:grid;grid-template-columns:1fr;gap:12px}
-  @media(min-width:1024px){ .row2{grid-template-columns:2fr 1fr} }
-  textarea,input,select,button{border-radius:10px;border:1px solid #334155;background:#0b1220;color:var(--text)}
+  body{background:#0f172a;color:#e5e7eb;font-family:system-ui,Segoe UI,Inter,Roboto,Arial;margin:0;padding:20px;}
+  .wrap{max-width:1120px;margin:0 auto}
+  .card{background:#0b1220;border:1px solid #1f2937;border-radius:14px;padding:14px;margin-top:12px}
+  textarea,input,button{border-radius:10px;border:1px solid #334155;background:#0b1220;color:#e5e7eb}
   textarea{width:100%;min-height:90px;padding:8px}
-  input,select{padding:8px;width:100%}
+  input{padding:8px;width:100%}
   .btn{padding:8px 12px;background:#111827;border:1px solid #334155;cursor:pointer;border-radius:10px}
   .btn:hover{border-color:#475569}
-  .muted{color:var(--muted);font-size:13px}
-  .rowflex{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  .pill{padding:2px 8px;border:1px solid #334155;border-radius:999px;font-size:12px}
-  .signal{font-weight:700} .ok{color:var(--ok)} .no{color:var(--bad)}
-  .small{font-size:12px}
   .table{width:100%;border-collapse:collapse;font-size:13px}
   .table td,.table th{border-bottom:1px solid #1f2937;padding:6px 4px;text-align:left}
   canvas.chart{width:100%;height:280px;background:#0a0f1f;border:1px solid #1f2937;border-radius:12px}
@@ -31,302 +20,152 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>🧪 Aviator Learner <span class="pill">educativo · sin autobet</span></h1>
+  <h1>🧪 Aviator Learner <span style="font-size:12px;border:1px solid #334155;border-radius:999px;padding:2px 8px;">educativo · sin autobet</span></h1>
 
-  <div class="row row2">
-    <div>
-      <!-- ENTRADA -->
-      <div class="card">
-        <h2>Entrada de rondas</h2>
-        <textarea id="ta" placeholder="Pega multiplicadores o espera TM: 1.20 2.47 8.30 145.00 1.10 ..."></textarea>
-        <div class="rowflex">
-          <button class="btn" id="btnAdd">Añadir</button>
-          <button class="btn" id="btnClear">Limpiar</button>
-          <input id="quick" placeholder="Rápido: 123 => 1.23" style="width:160px">
-          <button class="btn" id="btnQuick">Añadir rápido</button>
-        </div>
-        <div class="muted small" id="tmInfo">Listo. Si usas Tampermonkey verás “TM recibido: N.nn×”.</div>
-      </div>
-
-      <!-- MODELO -->
-      <div class="card">
-        <h2>Modelo online (SGD) + filtros de señal</h2>
-        <div class="rowflex">
-          <label>Target ≥ <input id="inpTarget" type="number" step="0.1" value="3" style="width:80px"></label>
-          <label>Umbral p≥ <input id="inpThresh" type="number" step="0.01" value="0.90" style="width:80px"></label>
-          <label>Hist. mínimo N<input id="inpMinN" type="number" value="30" style="width:80px"></label>
-          <label>Ventana W<input id="inpW" type="number" value="40" style="width:80px"></label>
-          <label>LR α<input id="inpLR" type="number" step="0.001" value="0.02" style="width:80px"></label>
-          <label>L2 λ<input id="inpL2" type="number" step="0.0001" value="0.001" style="width:90px"></label>
-        </div>
-        <div class="rowflex" style="margin-top:6px">
-          <label>Cooldown (rondas) <input id="gateCooldown" type="number" value="8" style="width:80px"></label>
-          <label>W_low <input id="gateWlow" type="number" value="20" style="width:80px"></label>
-          <label>μ_min <input id="gateMuMin" type="number" step="0.01" value="1.30" style="width:80px"></label>
-          <label>K débiles <input id="gateK" type="number" value="8" style="width:80px"></label>
-          <label>Débil < L <input id="gateL" type="number" step="0.01" value="1.30" style="width:80px"></label>
-          <label>Máx débiles M <input id="gateM" type="number" value="3" style="width:80px"></label>
-        </div>
-        <div class="rowflex" style="margin-top:6px">
-          <label>Bloq. Bajista <input id="gateBlockBear" type="checkbox" checked></label>
-          <label>T (temperatura) <input id="gateT" type="number" step="0.1" value="1.7" style="width:80px"></label>
-          <label>Umbral adaptativo <input id="gateAdaptive" type="checkbox" checked></label>
-          <label>Precisión objetivo <input id="gateTargetAcc" type="number" step="0.01" value="0.75" style="width:80px"></label>
-        </div>
-        <div class="rowflex" style="margin-top:6px">
-          <label>Top-quantil q<input id="gateQ" type="number" step="0.01" value="0.98" style="width:80px"></label>
-          <label>Ventana Pwin<input id="calW" type="number" value="80" style="width:80px"></label>
-          <label>Margen p-base<input id="gateMargin" type="number" step="0.01" value="0.15" style="width:80px"></label>
-        </div>
-        <div class="rowflex" style="margin-top:6px">
-          <button class="btn" id="btnReset">Reiniciar modelo</button>
-          <button class="btn" id="btnExportModel">Exportar modelo</button>
-          <label class="btn"><input type="file" id="fileModel" accept=".json" hidden>Importar modelo</label>
-        </div>
-        <div style="margin-top:8px">
-          <div>Prob. estimada próxima ≥ target: <span id="prob" class="signal">—</span></div>
-          <div>Señal: <span id="signal" class="signal no">—</span></div>
-          <div class="muted small">“Señal” ≠ garantía. Úsalo solo como análisis formativo (demo).</div>
-        </div>
-      </div>
-
-      <!-- GRÁFICA -->
-      <div class="card">
-        <div class="rowflex" style="justify-content:space-between;gap:12px">
-          <h2>Gráfica (cap 200×) + Tendencia</h2>
-          <div class="rowflex">
-            <label>Ventana (W) <input id="trW" type="number" value="40" style="width:90px"></label>
-            <label>Umbral pendiente <input id="trEps" type="number" step="0.001" value="0.01" style="width:90px"></label>
-            <button class="btn" id="btnReplot">Recalcular</button>
-          </div>
-        </div>
-        <canvas id="chart" class="chart" width="1080" height="280"></canvas>
-      </div>
+  <div class="card">
+    <h2>Entrada de rondas</h2>
+    <textarea id="ta" placeholder="Pega multiplicadores o espera TM/BC: 1.20 2.47 ..."></textarea>
+    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" id="btnAdd">Añadir</button>
+      <button class="btn" id="btnClear">Limpiar</button>
+      <input id="quick" placeholder="Rápido: 123 => 1.23" style="width:160px">
+      <button class="btn" id="btnQuick">Añadir rápido</button>
     </div>
-
-    <div>
-      <!-- ESTADÍSTICAS -->
-      <div class="card">
-        <h2>Estadísticas</h2>
-        <table class="table small">
-          <tr><th>N (rondas)</th><td id="stN">0</td></tr>
-          <tr><th>Media</th><td id="stMean">0.00×</td></tr>
-          <tr><th>Mediana</th><td id="stMed">0.00×</td></tr>
-          <tr><th>P(≥3×)</th><td id="stP3">0.0%</td></tr>
-          <tr><th>P(≥5×)</th><td id="stP5">0.0%</td></tr>
-          <tr><th>Máx</th><td id="stMax">0.00×</td></tr>
-          <tr><th>Tendencia</th><td id="stTrend">—</td></tr>
-        </table>
-      </div>
-
-      <!-- SEÑALES (resumen) -->
-      <div class="card">
-        <h2>Señales</h2>
-        <table class="table small">
-          <tr><th>Pendiente abierta</th><td id="sgPending">No</td></tr>
-          <tr><th>Total señales</th><td id="sgTotal">0</td></tr>
-          <tr><th>Ganadas</th><td id="sgWins">0</td></tr>
-          <tr><th>Perdidas</th><td id="sgLoss">0</td></tr>
-          <tr><th>Precisión</th><td id="sgAcc">0.0%</td></tr>
-        </table>
-      </div>
-    </div>
+    <div id="lcInfo" style="margin-top:6px;font-size:13px;color:#94a3b8">Listo. Si usas Tampermonkey verás “TM/BC recibido: N.nn×”.</div>
   </div>
 
-  <div class="card"><p class="muted small">Herramienta educativa. No interactúa con el sitio ni garantiza resultados.</p></div>
+  <div class="card">
+    <h2>Estadísticas</h2>
+    <table class="table small">
+      <tr><th>N (rondas)</th><td id="stN">0</td></tr>
+      <tr><th>Media</th><td id="stMean">0.00×</td></tr>
+      <tr><th>Mediana</th><td id="stMed">0.00×</td></tr>
+      <tr><th>P(≥3×)</th><td id="stP3">0.0%</td></tr>
+      <tr><th>P(≥5×)</th><td id="stP5">0.0%</td></tr>
+      <tr><th>Máx</th><td id="stMax">0.00×</td></tr>
+      <tr><th>Tendencia</th><td id="stTrend">—</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Señales</h2>
+    <table class="table small">
+      <tr><th>Pendiente abierta</th><td id="sgPending">No</td></tr>
+      <tr><th>Total señales</th><td id="sgTotal">0</td></tr>
+      <tr><th>Ganadas</th><td id="sgWins">0</td></tr>
+      <tr><th>Perdidas</th><td id="sgLoss">0</td></tr>
+      <tr><th>Precisión</th><td id="sgAcc">0.0%</td></tr>
+    </table>
+    <div style="margin-top:6px">Prob. próxima ≥ target: <span id="prob">—</span></div>
+    <div>Señal: <span id="signal" style="font-weight:700;color:#ef4444">—</span></div>
+  </div>
+
+  <div class="card"><p style="font-size:13px;color:#94a3b8">Herramienta educativa. No interactúa con el sitio ni garantiza resultados.</p></div>
 </div>
 
 <script>
-/* ===================== UTIL ===================== */
+// Utilidades
 const $ = (id)=>document.getElementById(id);
 const setText=(id,val)=>{const el=$(id); if(el) el.textContent=val;};
+const median=a=>{if(!a.length)return 0;const s=[...a].sort((x,y)=>x-y),m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2;}
 
-/* ===================== BOT (SGD + UI) ===================== */
-document.addEventListener('DOMContentLoaded', () => {
-  const parseList=s=>(s||'').split(/[\s,;]+/).map(t=>t.trim()).filter(Boolean).map(v=>parseFloat(v.replace(',','.'))).filter(x=>isFinite(x)&&x>0);
-  const median=a=>{if(!a.length)return 0;const s=[...a].sort((x,y)=>x-y),m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2;}
-  const stats=arr=>{const n=arr.length;if(!n)return{n:0,mean:0,med:0,max:0,p3:0,p5:0};const sum=arr.reduce((a,b)=>a+b,0);const mean=sum/n;const med=median(arr);const max=Math.max(...arr);const p=t=>arr.filter(x=>x>=t).length/n;return{n,mean,med,max,p3:p(3),p5:p(5)};}
-  const logit=p=>Math.log(Math.max(1e-9,p)/Math.max(1e-9,1-p));
-  const last=(a,k)=>a.slice(Math.max(0,a.length-k));
-  const G=(id,def)=>{const el=$(id); const v=parseFloat(String(el?.value??'').replace(',','.')); return Number.isFinite(v)?v:def;}
-  const GB=(id)=>!!($(id)&&$(id).checked);
+// Datos globales
+let DATA=[], MODEL=null, SIGNAL_PENDING=false, SG_TOTAL=0, SG_WINS=0, SG_LOSS=0;
 
-  let DATA=[], MODEL=null, SIGNAL_PENDING=false, SG_TOTAL=0, SG_WINS=0, SG_LOSS=0, LAST_SIGNAL_INDEX=-999999, N_UPDATES=0;
-  const P_HIST=[]; const P_HIST_MAX=300;
+// Modelo simple SGD
+class OnlineLogReg{
+  constructor(d,lr=0.02,l2=0.001){this.w=new Array(d).fill(0);this.lr=lr;this.l2=l2;this.prevX=null;this.prevP=null;}
+  static sg(z){return 1/(1+Math.exp(-Math.max(-50,Math.min(50,z))))}
+  predict(x){let z=0;for(let i=0;i<this.w.length;i++)z+=this.w[i]*x[i];return OnlineLogReg.sg(z)}
+  stepPrepare(x){const p=this.predict(x);this.prevX=x.slice();this.prevP=p;return p;}
+  update(y){if(!this.prevX||this.prevP==null)return;const x=this.prevX,p=this.prevP;const g=p-y;for(let i=0;i<this.w.length;i++){const grad=g*x[i]+this.l2*this.w[i];this.w[i]-=this.lr*grad;}this.prevX=null;this.prevP=null;}
+}
 
-  function featuresFrom(history,W,target){
-    const H=last(history,Math.max(1,Math.floor(W))); const n=H.length; if(n===0) return new Array(15).fill(0);
-    const caps=H.map(v=>Math.min(v,50)), logs=caps.map(v=>Math.log(1+v));
-    const mean=caps.reduce((a,b)=>a+b,0)/n, meanLog=logs.reduce((a,b)=>a+b,0)/n, med=median(caps);
-    const std=Math.sqrt((caps.reduce((a,b)=>a+(b-mean)**2,0)/n)||0);
-    const p3=caps.filter(v=>v>=3).length/n, p5=caps.filter(v=>v>=5).length/n;
-    let up=0,down=0; for(let i=caps.length-1;i>=0;i--){ if(caps[i]>=target){up++; if(down)break;} else{down++; if(up)break;} }
-    const L=last(caps,5); while(L.length<5)L.unshift(0);
-    let sinceHi=0; for(let i=caps.length-1;i>=0;i--){ if(caps[i]>=target) break; sinceHi++; }
-    return [1,mean,med,std,meanLog,p3,p5,up,down,sinceHi,...L];
-  }
+function featuresFrom(history,W,target){
+  const H=history.slice(-W); const n=H.length; if(n===0) return new Array(6).fill(0);
+  const mean=H.reduce((a,b)=>a+b,0)/n;
+  const med=median(H);
+  const max=Math.max(...H);
+  const p3=H.filter(v=>v>=3).length/n;
+  const p5=H.filter(v=>v>=5).length/n;
+  return [1,mean,med,max,p3,p5];
+}
 
-  class OnlineLogReg{
-    constructor(d,lr=0.02,l2=0.001){this.w=new Array(d).fill(0);this.lr0=lr;this.l2=l2;this.prevX=null;this.prevP=null;}
-    static sg(z){return 1/(1+Math.exp(-Math.max(-50,Math.min(50,z))))}
-    predict(x){let z=0;for(let i=0;i<this.w.length;i++)z+=this.w[i]*x[i];return OnlineLogReg.sg(z)}
-    stepPrepare(x){const p=this.predict(x);this.prevX=x.slice();this.prevP=p;return p;}
-    update(y){if(!this.prevX||this.prevP==null)return;const x=this.prevX,p=this.prevP;const g=p-y;const lr=this.lr0/Math.sqrt(1+N_UPDATES);for(let i=0;i<this.w.length;i++){const grad=g*x[i]+this.l2*this.w[i];this.w[i]-=lr*grad;}this.prevX=null;this.prevP=null;}
-  }
-  function ensureModel(){const lr=G('inpLR',0.02),l2=G('inpL2',0.001); if(!MODEL) MODEL=new OnlineLogReg(15,lr,l2); MODEL.lr0=lr; MODEL.l2=l2;}
+function renderStats(){
+  const n=DATA.length;
+  if(!n){setText('stN',0);return;}
+  const mean=DATA.reduce((a,b)=>a+b,0)/n;
+  setText('stN',n);
+  setText('stMean',mean.toFixed(2)+'×');
+  setText('stMed',median(DATA).toFixed(2)+'×');
+  setText('stMax',Math.max(...DATA).toFixed(2)+'×');
+  setText('stP3',(DATA.filter(x=>x>=3).length/n*100).toFixed(1)+'%');
+  setText('stP5',(DATA.filter(x=>x>=5).length/n*100).toFixed(1)+'%');
+  setText('stTrend','—');
+}
 
-  function renderStats(){
-    const s=stats(DATA);
-    setText('stN',s.n); setText('stMean',s.mean.toFixed(2)+'×'); setText('stMed',s.med.toFixed(2)+'×');
-    setText('stP3',(s.p3*100).toFixed(1)+'%'); setText('stP5',(s.p5*100).toFixed(1)+'%'); setText('stMax',s.max.toFixed(2)+'×');
-    const trW=Math.max(2,Math.floor(G('trW',40))), trEps=G('trEps',0.01);
-    const arr=DATA.map(v=>Math.min(v,50)); const w=Math.min(trW,arr.length);
-    let trend='—'; if(w>=2){ const slice=arr.slice(arr.length-w); const xMean=(w-1)/2,yMean=slice.reduce((a,b)=>a+b,0)/w; let num=0,den=0; for(let i=0;i<w;i++){const dx=i-xMean; num+=dx*(slice[i]-yMean); den+=dx*dx;} const slope=den?num/den:0; trend=slope>trEps?'Alcista':(slope<-trEps?'Bajista':'Lateral'); }
-    setText('stTrend',trend);
-  }
+function updateSignalCountersOnNewValue(v,target=3){
+  if(SIGNAL_PENDING){ if(v>=target) SG_WINS++; else SG_LOSS++; SIGNAL_PENDING=false; }
+  SG_TOTAL=SG_WINS+SG_LOSS; const acc=SG_TOTAL?(SG_WINS/SG_TOTAL*100).toFixed(1)+'%':'0.0%';
+  setText('sgPending', SIGNAL_PENDING?'Sí':'No'); setText('sgTotal', SG_TOTAL); setText('sgWins', SG_WINS); setText('sgLoss', SG_LOSS); setText('sgAcc', acc);
+}
 
-  function drawChart(){
-    const c=$('chart'), ctx=c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height);
-    if(!DATA.length){ ctx.fillStyle='#64748b'; ctx.fillText('Carga datos para ver la serie',10,20); return; }
-    const cap=200,s=DATA.map((v,i)=>({i:i+1,m:Math.min(v,cap),real:v})); const pad=30,w=c.width-pad*2,h=c.height-pad*2,max=cap,min=0;
-    ctx.strokeStyle='#13203a'; ctx.beginPath(); ctx.moveTo(pad,c.height-pad); ctx.lineTo(pad,pad); ctx.lineTo(c.width-pad,pad); ctx.stroke();
-    ctx.strokeStyle='#cbd5e1'; ctx.beginPath();
-    for(let i=0;i<s.length;i++){ const x=pad+(i/(s.length-1))*w; const y=c.height-pad-((s[i].m-min)/(max-min))*h; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);} ctx.stroke();
-    const wlen=Math.min(Math.max(2,Math.floor(G('trW',40))),s.length);
-    if(wlen>=2){ const arr=s.slice(s.length-wlen).map(o=>o.m); const xMean=(wlen-1)/2,yMean=arr.reduce((a,b)=>a+b,0)/wlen; let num=0,den=0; for(let i=0;i<wlen;i++){const dx=i-xMean; num+=dx*(arr[i]-yMean); den+=dx*dx;} const b=den?num/den:0,a=yMean-b*xMean; ctx.strokeStyle='#60a5fa'; ctx.beginPath(); for(let i=0;i<wlen;i++){ const xi=s.length-wlen+i; const x=pad+(xi/(s.length-1))*w; const yVal=a+b*i; const y=c.height-pad-((yVal-min)/(max-min))*h; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);} ctx.stroke(); }
-    const target=G('inpTarget',3); const yT=c.height-pad-((target-min)/(max-min))*h; ctx.setLineDash([5,5]); ctx.strokeStyle='#3b82f6'; ctx.beginPath(); ctx.moveTo(pad,yT); ctx.lineTo(c.width-pad,yT); ctx.stroke(); ctx.setLineDash([]);
-  }
+function updatePrediction(pRaw){
+  if(pRaw==null){ setText('prob','—'); setText('signal','—'); return; }
+  setText('prob',pRaw.toFixed(3));
+  if(pRaw>=0.9){ setText('signal','SEÑAL'); SIGNAL_PENDING=true; $('signal').style.color='#22c55e'; }
+  else{ setText('signal','No señal'); $('signal').style.color='#ef4444'; }
+}
 
-  function pushPred(p){ P_HIST.push(p); if(P_HIST.length>P_HIST_MAX) P_HIST.shift(); }
-  function quantile(a,q){ if(!a.length) return 1; const b=[...a].sort((x,y)=>x-y); const i=Math.min(b.length-1,Math.max(0,Math.floor(q*b.length-1))); return b[i]; }
+function maybePredictNext(){
+  const W=20,target=3;
+  if(DATA.length>=10){ const x=featuresFrom(DATA,W,target); const p=MODEL.stepPrepare(x); updatePrediction(p);} else updatePrediction(null);
+}
 
-  function updateSignalCountersOnNewValue(v){
-    const target=G('inpTarget',3);
-    if(SIGNAL_PENDING){ if(v>=target) SG_WINS++; else SG_LOSS++; SIGNAL_PENDING=false; }
-    SG_TOTAL=SG_WINS+SG_LOSS; const acc=SG_TOTAL?(SG_WINS/SG_TOTAL*100).toFixed(1)+'%':'0.0%';
-    setText('sgPending', SIGNAL_PENDING?'Sí':'No'); setText('sgTotal', SG_TOTAL); setText('sgWins', SG_WINS); setText('sgLoss', SG_LOSS); setText('sgAcc', acc);
-  }
+window.onNewRound = function(val){
+  const target=3;
+  if(MODEL&&MODEL.prevX){ const y=(val>=target)?1:0; MODEL.update(y); }
+  updateSignalCountersOnNewValue(val,target);
+  DATA.push(val);
+  renderStats(); maybePredictNext();
+  const ta=$('ta'); if(ta){ ta.value=(ta.value.trim()?ta.value.trim()+' ':'')+val.toFixed(2); }
+  const info=$('lcInfo'); if(info) info.textContent='Añadida: '+val.toFixed(2)+'×';
+};
 
-  function updatePredictionUI(pRaw){
-    const thBase=G('inpThresh',0.9), T=Math.max(0.5,G('gateT',1.0));
-    let p=(pRaw==null)?null:(1/(1+Math.exp(-logit(pRaw)/T)));
-    if(p==null){ setText('prob','—'); const s=$('signal'); if(s){ s.textContent='—'; s.className='signal no'; } setText('sgPending', SIGNAL_PENDING?'Sí':'No'); return; }
-    setText('prob',p.toFixed(3)); pushPred(p);
+// botones manuales
+$('btnAdd').onclick=()=>{ const v=($('ta').value||'').split(/\s+/).map(parseFloat).filter(x=>x>0); v.forEach(window.onNewRound); $('ta').value=''; };
+$('btnClear').onclick=()=>{ DATA=[];SIGNAL_PENDING=false;SG_TOTAL=SG_WINS=SG_LOSS=0;MODEL=new OnlineLogReg(6);renderStats();updatePrediction(null); };
+$('btnQuick').onclick=()=>{ const s=String($('quick').value||'').trim(); let v=null; if(s && !s.includes('.') && /^\d{2,4}$/.test(s)){ if(s.length===2)v=s[0]+'.'+s[1]; else if(s.length===3)v=s[0]+'.'+s.slice(1); else v=s.slice(0,2)+'.'+s.slice(2);} else v=s; const x=parseFloat(String(v).replace(',','.')); if(Number.isFinite(x)&&x>0){ window.onNewRound(x); $('quick').value=''; } };
 
-    // Baseline reciente y top-quantil
-    const calW=Math.max(20,Math.floor(G('calW',80)));
-    const base=DATA.length? (DATA.slice(-calW).filter(x=>x>=G('inpTarget',3)).length/Math.min(calW,DATA.length)) : 0.0;
-    const margin=G('gateMargin',0.15);
-    const q=G('gateQ',0.98); const qcut=quantile(P_HIST,q);
+MODEL=new OnlineLogReg(6);
 
-    const cooldown=Math.max(0,Math.floor(G('gateCooldown',0))), idx=DATA.length, cooldownOk=(idx-LAST_SIGNAL_INDEX)>=cooldown;
-    const Wlow=Math.max(1,Math.floor(G('gateWlow',20))), muMin=G('gateMuMin',1.30), mu=(DATA.length>=Wlow?DATA.slice(-Wlow).reduce((a,b)=>a+b,0)/Wlow:null), meanOk=(mu!==null && mu>=muMin);
-    const K=Math.max(1,Math.floor(G('gateK',8))), L=G('gateL',1.30), M=Math.max(0,Math.floor(G('gateM',3))), weakOk=(DATA.slice(-K).filter(v=>v<L).length)<=M;
-
-    const trW=Math.max(2,Math.floor(G('trW',40))), trEps=G('trEps',0.01);
-    let trendOk=true; const arr=DATA.map(v=>Math.min(v,50)); const w=Math.min(trW,arr.length); if(w>=2){ const slice=arr.slice(arr.length-w); const xMean=(w-1)/2,yMean=slice.reduce((a,b)=>a+b,0)/w; let num=0,den=0; for(let i=0;i<w;i++){const dx=i-xMean; num+=dx*(slice[i]-yMean); den+=dx*dx;} const slope=den?num/den:0; if(GB('gateBlockBear')) trendOk = !(slope<-trEps); }
-
-    let th=thBase; if(GB('gateAdaptive')){ const targetAcc=G('gateTargetAcc',0.75); const acc=SG_TOTAL?(SG_WINS/SG_TOTAL):0; if(acc<targetAcc) th=Math.min(0.995,thBase+0.05); else if(acc>targetAcc+0.15) th=Math.max(0.55,thBase-0.03); }
-
-    const gates=[ p>=(base+margin), p>=qcut, cooldownOk, meanOk, weakOk, trendOk ];
-    const allOk=gates.every(Boolean) && (p>=th);
-
-    const sigEl=$('signal');
-    if(allOk){
-      if(sigEl){ sigEl.textContent=`SEÑAL (p≥${Math.max(th,qcut,base+margin).toFixed(2)})`; sigEl.className='signal ok'; }
-      SIGNAL_PENDING=true; LAST_SIGNAL_INDEX=idx;
-    } else {
-      if(sigEl){ sigEl.textContent='No señal'; sigEl.className='signal no'; }
-    }
-    setText('sgPending', SIGNAL_PENDING?'Sí':'No');
-  }
-
-  function maybePredictNext(){
-    ensureModel(); const target=G('inpTarget',3), W=Math.max(5,Math.floor(G('inpW',40))), minN=Math.max(5,Math.floor(G('inpMinN',30)));
-    let p=null; if(DATA.length>=Math.max(5,minN)){ const x=featuresFrom(DATA,W,target); p=MODEL.stepPrepare(x); } updatePredictionUI(p);
-  }
-
-  // === Evento principal: cada nueva ronda ===
-  window.onNewRound = function(val){
-    const v = Math.round(val*100)/100; // normaliza 2 decimales
-    const target=G('inpTarget',3);
-
-    // Actualiza modelo (usa la ronda actual como label de la predicción anterior)
-    if(MODEL&&MODEL.prevX){ const y=(v>=target)?1:0; MODEL.update(y); N_UPDATES++; }
-
-    // Contadores de señal
-    if(SIGNAL_PENDING){ if(v>=target) SG_WINS++; else SG_LOSS++; SIGNAL_PENDING=false; }
-    SG_TOTAL=SG_WINS+SG_LOSS; const acc=SG_TOTAL?(SG_WINS/SG_TOTAL*100).toFixed(1)+'%':'0.0%';
-    setText('sgPending','No'); setText('sgTotal',SG_TOTAL); setText('sgWins',SG_WINS); setText('sgLoss',SG_LOSS); setText('sgAcc',acc);
-
-    // Datos + UI
-    DATA.push(v);
-    const ta=$('ta'); if(ta){ ta.value=(ta.value.trim()?ta.value.trim()+' ':'')+v.toFixed(2); }
-    renderStats(); drawChart(); maybePredictNext();
-  };
-
-  // === Controles de entrada ===
-  $('btnAdd').onclick=()=>{ try{ const v=parseList($('ta').value); if(!v.length) return; v.forEach(window.onNewRound); $('ta').value=''; }catch(e){} };
-  $('btnClear').onclick=()=>{ try{
-      DATA=[]; SIGNAL_PENDING=false; SG_TOTAL=SG_WINS=SG_LOSS=0;
-      if(MODEL){ MODEL.prevX=null; MODEL.prevP=null; }
-      renderStats(); drawChart(); updatePredictionUI(null);
-      setText('sgPending','No'); setText('sgTotal','0'); setText('sgWins','0'); setText('sgLoss','0'); setText('sgAcc','0.0%');
-  }catch(e){} };
-  $('btnQuick').onclick=()=>{ try{
-      const s=String($('quick').value||'').trim(); let v=null;
-      if(s && !s.includes('.') && /^\d{2,5}$/.test(s)){
-        if(s.length===2)v=s[0]+'.'+s[1]; else if(s.length===3)v=s[0]+'.'+s.slice(1); else v=s.slice(0,2)+'.'+s.slice(2);
-      } else v=s;
-      const x=parseFloat(String(v).replace(',','.'));
-      if(Number.isFinite(x)&&x>0){ window.onNewRound(x); $('quick').value=''; }
-  }catch(e){} };
-
-  ['inpThresh','gateCooldown','gateWlow','gateMuMin','gateK','gateL','gateM','gateBlockBear','gateT','gateAdaptive','gateTargetAcc','trW','trEps','gateQ','calW','gateMargin']
-    .forEach(id=>{ const el=$(id); el && el.addEventListener('input', ()=>updatePredictionUI(MODEL?.prevP ?? null)); });
-
-  $('btnReset').onclick=()=>{ MODEL=null; ensureModel(); MODEL.prevX=null; MODEL.prevP=null; N_UPDATES=0; updatePredictionUI(null); };
-  // Exportar / Importar modelo
-  $('btnExportModel').onclick=()=>{
-    const blob=new Blob([JSON.stringify({w:MODEL?.w||[],lr0:MODEL?.lr0||0.02,l2:MODEL?.l2||0.001},null,2)],{type:'application/json'});
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='aviator-model.json'; a.click();
-  };
-  $('fileModel').onchange=(e)=>{
-    const f=e.target.files?.[0]; if(!f) return;
-    const r=new FileReader();
-    r.onload=()=>{ try{ const obj=JSON.parse(r.result); ensureModel(); if(Array.isArray(obj.w)) MODEL.w=obj.w.slice(); if(obj.lr0) MODEL.lr0=obj.lr0; if(obj.l2) MODEL.l2=obj.l2; updatePredictionUI(null);}catch(_){ } };
-    r.readAsText(f);
-  };
-
-  // Init
-  ensureModel(); renderStats(); drawChart(); updatePredictionUI(null);
-  setText('sgPending','No'); setText('sgTotal','0'); setText('sgWins','0'); setText('sgLoss','0'); setText('sgAcc','0.0%');
-});
-
-/* ===================== RECEPTOR TAMPERMONKEY (1win.vip) ===================== */
+// === Receptor Tampermonkey clásico (postMessage) ===
 (function(){
-  const EXPECTED_ORIGIN = 'https://braulinb.github.io'; // tu bot en GitHub Pages
-
   window.addEventListener('message', (ev) => {
     const data = ev && ev.data || {};
     if (data.type !== 'aviator:round') return;
-
     const v = parseFloat(data.value);
     if (!isFinite(v) || v < 1) return;
-
-    // Si pruebas en local, puedes comentar la verificación de origin:
-    // if (ev.origin !== EXPECTED_ORIGIN) return;
-
-    if (typeof window.onNewRound === 'function') {
-      window.onNewRound(v);
-    } else {
-      const ta = $('ta');
-      if (ta) ta.value = (ta.value.trim() ? ta.value.trim() + ' ' : '') + v.toFixed(2);
-    }
-
-    const info = $('tmInfo');
+    window.onNewRound(v);
+    const info = document.getElementById('lcInfo');
     if (info) info.textContent = `TM recibido: ${v.toFixed(2)}×`;
   }, false);
+})();
+
+// === Receptor BroadcastChannel (nuevo) ===
+(function () {
+  try {
+    const ch = new BroadcastChannel('aviator-bridge');
+    ch.onmessage = (ev) => {
+      const data = ev && ev.data || {};
+      if (data.type !== 'aviator:round') return;
+      const v = parseFloat(data.value);
+      if (!isFinite(v) || v < 1) return;
+      window.onNewRound(v);
+      const info = document.getElementById('lcInfo');
+      if (info) info.textContent = `BC recibido: ${v.toFixed(2)}×`;
+    };
+  } catch(e) {}
 })();
 </script>
 </body>
