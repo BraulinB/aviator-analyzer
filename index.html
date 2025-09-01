@@ -237,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if(p==null){ setText('prob','—'); const s=$('signal'); if(s){ s.textContent='—'; s.className='signal no'; } setText('sgPending', SIGNAL_PENDING?'Sí':'No'); return; }
     setText('prob',p.toFixed(3)); pushPred(p);
 
-    // Baseline reciente de éxito y top‑quantil de predicciones
+    // Baseline reciente y top‑quantil
     const calW=Math.max(20,Math.floor(G('calW',80)));
     const base=DATA.length? (DATA.slice(-calW).filter(x=>x>=G('inpTarget',3)).length/Math.min(calW,DATA.length)) : 0.0;
     const margin=G('gateMargin',0.15);
@@ -252,7 +252,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let th=thBase; if(GB('gateAdaptive')){ const targetAcc=G('gateTargetAcc',0.75); const acc=SG_TOTAL?(SG_WINS/SG_TOTAL):0; if(acc<targetAcc) th=Math.min(0.995,thBase+0.05); else if(acc>targetAcc+0.15) th=Math.max(0.55,thBase-0.03); }
 
-    // Reglas extra: supera base+margin y estar en top‑quantil
     const gates=[ p>=(base+margin), p>=qcut, cooldownOk, meanOk, weakOk, trendOk ];
     const allOk=gates.every(Boolean) && (p>=th);
 
@@ -311,7 +310,6 @@ document.addEventListener('DOMContentLoaded', () => {
   async function tryCapture(can, r){ if(S.ocrBusy||S.captured) return; S.ocrBusy=true; try{ const crop=document.createElement('canvas'); crop.width=r.w; crop.height=r.h; crop.getContext('2d').drawImage(can,r.x,r.y,r.w,r.h,0,0,r.w,r.h); const val=await ocrMulti(crop); if(val&&val>=1&&val<=20000){ const out=Math.round(val*100)/100; if(typeof window.onNewRound==='function'){ window.onNewRound(out); } else { const ta=$('ta'); if(ta){ ta.value=(ta.value.trim()?ta.value.trim()+' ':'')+out.toFixed(2); } } log('OCR OK '+out.toFixed(2)+'×'); S.captured=true; } else if(val>20000){ log('>20000× ignorado'); } else { log('OCR sin número válido'); } } catch(e){ log('OCR error: '+(e.message||e)); } finally{ S.ocrBusy=false; } }
 
   async function loop(){ if(!S.running) return; const fps=Math.max(1,Math.floor(num('lcFps',3))), delay=Math.round(1000/fps); const can=$('lcCan'), ctx=can.getContext('2d'), v=$('lcPrev'); if(!v||!v.videoWidth){ setTimeout(loop,delay); return; } if(can.width!==v.videoWidth||can.height!==v.videoHeight){ can.width=v.videoWidth; can.height=v.videoHeight; } ctx.drawImage(v,0,0,can.width,can.height); const r=roi(can); ctx.save(); ctx.strokeStyle="#60a5fa"; ctx.lineWidth=2; ctx.setLineDash([6,4]); ctx.strokeRect(r.x,r.y,r.w,r.h); ctx.restore(); let pctRed=0; try{ const img=ctx.getImageData(r.x,r.y,r.w,r.h); pctRed=redScoreHSV(img);}catch(_){ } const thr=Math.max(1,Math.floor(num('lcThr',10))); const stb=Math.max(1,Math.floor(num('lcStb',2))); const now=performance.now(); const isHot=pctRed>=thr; if(isHot){ if(!S.roundOpen){ S.roundOpen=true; S.hot=0; S.cold=0; S.lastRoundOpen=now; } S.hot++; if(S.hot>=stb && !S.captured && !S.ocrBusy) tryCapture(can,r); } else { if(S.roundOpen){ S.cold++; if(S.cold>=3){ S.roundOpen=false; S.hot=0; S.cold=0; S.captured=false; } } }
-    // Rearme por tiempo (por si una ronda se quedó pegada)
     const maxRoundMs=15000; if(S.roundOpen && (now-S.lastRoundOpen)>maxRoundMs){ S.roundOpen=false; S.captured=false; S.hot=0; S.cold=0; log('Rearme por tiempo'); }
     const info=$('lcInfo'); if(info) info.textContent=`Rojo ${pctRed.toFixed(1)}% · hot ${S.hot} · cold ${S.cold} · ${(S.captured?'capturado':(S.roundOpen?'armado':'listo'))}`; setTimeout(loop,delay); }
 
