@@ -1,429 +1,500 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Aviator Learner — Bot + Captura integrada</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Aviator — Panel educativo (análisis, charts y backtesting)</title>
 <style>
-  :root { --bg:#0f172a; --card:#0b1220; --muted:#94a3b8; --text:#e5e7eb; --accent:#60a5fa; --ok:#22c55e; --bad:#ef4444; }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,Segoe UI,Inter,Roboto,Arial}
-  .wrap{max-width:1120px;margin:0 auto;padding:20px}
-  h1{margin:0 0 8px;font-size:22px}
-  h2{margin:0 0 8px;font-size:18px}
-  .card{background:var(--card);border:1px solid #1f2937;border-radius:14px;padding:14px;margin-top:12px}
-  .row{display:grid;grid-template-columns:1fr;gap:12px}
-  @media(min-width:1024px){ .row2{grid-template-columns:2fr 1fr} }
-  textarea,input,select,button{border-radius:10px;border:1px solid #334155;background:#0b1220;color:var(--text)}
-  textarea{width:100%;min-height:90px;padding:8px}
-  input,select{padding:8px;width:100%}
-  .btn{padding:8px 12px;background:#111827;border:1px solid #334155;cursor:pointer;border-radius:10px}
-  .btn:hover{border-color:#475569}
-  .muted{color:var(--muted);font-size:13px}
-  .rowflex{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  .pill{padding:2px 8px;border:1px solid #334155;border-radius:999px;font-size:12px}
-  .signal{font-weight:700} .ok{color:var(--ok)} .no{color:var(--bad)}
-  .small{font-size:12px}
-  .table{width:100%;border-collapse:collapse;font-size:13px}
-  .table td,.table th{border-bottom:1px solid #1f2937;padding:6px 4px;text-align:left}
-  canvas.chart{width:100%;height:280px;background:#0a0f1f;border:1px solid #1f2937;border-radius:12px}
-  .liveBox{display:grid;grid-template-rows:auto auto 1fr auto;gap:8px}
-  .liveRow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  .livePreview{width:100%;max-height:160px;border:1px solid #1f2937;border-radius:10px;background:#0a0f1f}
-  .liveCanvas{width:100%;height:240px;border:1px solid #1f2937;border-radius:10px;background:#020617}
-  .log{max-height:180px;overflow:auto;border:1px solid #1f2937;border-radius:10px;padding:8px;background:#0a0f1f;font-size:12px}
-  .badge{font-size:12px;padding:2px 8px;border:1px solid #334155;border-radius:999px}
+:root{
+  --bg:#0b0f14; --panel:#121822; --panel2:#0f1620; --text:#e8eef7; --muted:#9fb1c7;
+  --chip:#1f2937; --line:#1e2b3d; --accent:#67e8f9; --good:#22c55e; --bad:#ef4444; --warn:#f59e0b;
+  --shadow:0 10px 30px rgba(0,0,0,.35); --radius:16px;
+}
+*{box-sizing:border-box} body{margin:0;background:#0b0f14;color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial}
+header{position:sticky;top:0;backdrop-filter:blur(8px);background:rgba(11,15,20,.7);border-bottom:1px solid var(--line);z-index:10}
+.wrap{max-width:1200px;margin:0 auto;padding:16px}
+h1{margin:0;font-size:clamp(20px,3vw,28px)} .sub{color:var(--muted);font-size:13px}
+main{max-width:1200px;margin:18px auto;padding:0 16px 80px}
+.grid{display:grid;gap:16px} @media(min-width:980px){.grid{grid-template-columns:2fr 1.2fr}}
+.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
+.section{margin-top:16px}
+.section h2{margin:.2rem 0 .6rem;font-size:18px}
+.muted{color:var(--muted)} .mini{font-size:12px;color:var(--muted)}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.col{display:flex;flex-direction:column;gap:8px}
+input,textarea,select{background:#0b1220;border:1px solid #203147;border-radius:12px;color:var(--text);padding:10px 12px;font-size:16px;outline:none}
+input:focus,textarea:focus{border-color:#3b82f6}
+textarea{min-height:110px;resize:vertical}
+button{background:#0f172a;color:#e6f0ff;border:1px solid #334155;border-radius:12px;padding:10px 14px;font-size:15px;cursor:pointer;transition:.15s;box-shadow:var(--shadow)}
+button:hover{transform:translateY(-1px);border-color:#3b82f6}
+.primary{background:linear-gradient(90deg,#2563eb,#06b6d4);border:0}
+.ghost{background:transparent;border-color:#334155;box-shadow:none}
+.danger{border-left:4px solid var(--bad);background:#1a0f12;color:#ffd1d1;border-radius:10px;padding:10px 12px}
+.warning{border-left:4px solid var(--warn);background:#1b1407;color:#ffd596;border-radius:10px;padding:10px 12px}
+.success{border-left:4px solid var(--good);background:#0f1a12;color:#bbffd4;border-radius:10px;padding:10px 12px}
+.kbd{font-family:ui-monospace,Consolas,monospace;background:#0b1220;border:1px solid #203147;border-radius:6px;padding:2px 6px;font-size:12px;color:#b9c7dc}
+.chip{display:inline-flex;align-items:center;gap:8px;background:var(--chip);border:1px solid #2b3a52;border-radius:999px;padding:6px 10px;font-size:13px;color:#c9d6ea}
+.chip .dot{width:8px;height:8px;border-radius:50%}
+.chip-btn{background:#0b1220;border:1px solid #2b3a52;border-radius:999px;padding:6px 10px;font-size:13px;cursor:pointer}
+.chip-btn.active{background:#10233a;border-color:#3b82f6}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media(min-width:720px){.stats{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.stat{background:#0b1220;border:1px solid var(--line);padding:12px;border-radius:12px}
+.stat h3{margin:0;font-size:13px;color:#a6b6cf} .stat p{margin:6px 0 0;font-size:20px;font-weight:700}
+.table-wrap{overflow:auto;max-height:420px;border:1px solid var(--line);border-radius:12px}
+table{width:100%;min-width:560px;border-collapse:collapse} th,td{padding:10px 12px;border-bottom:1px solid #172132;text-align:left;font-size:14px}
+.tag{padding:4px 8px;border-radius:999px;font-size:12px;border:1px solid #2b3a52}
+.tag.good{background:#022b16;border-color:#063;color:#9effc0}
+.tag.bad{background:#2a0b0b;border-color:#3a1414;color:#ffb4b4}
+.tag.low{background:#2a100b;border-color:#47201a;color:#ffc2a8}
+.hr{height:1px;background:var(--line);margin:12px 0 16px}
+.svgbox{background:#0b1220;border:1px solid var(--line);border-radius:12px;padding:10px}
+.legend{display:flex;gap:8px;flex-wrap:wrap}
+.legend .sw{width:12px;height:12px;border-radius:3px;display:inline-block;margin-right:4px}
+.badge{display:inline-flex;gap:6px;align-items:center;padding:4px 8px;border-radius:999px;border:1px solid #2b3a52;background:#0b1220;font-size:12px}
+.grid2{display:grid;gap:12px} @media(min-width:980px){.grid2{grid-template-columns:1fr 1fr}}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
-<div class="wrap">
-  <h1>🧪 Aviator Learner <span class="pill">educativo · sin autobet</span></h1>
+<header>
+  <div class="wrap">
+    <h1>Panel educativo — Aviator (registro, charts, backtesting)</h1>
+    <div class="sub">Solo para análisis y estudio con datos introducidos manualmente. No es un predictor de apuestas.</div>
+  </div>
+</header>
 
-  <div class="row row2">
-    <div>
-      <!-- ENTRADA -->
-      <div class="card">
-        <h2>Entrada de rondas</h2>
-        <textarea id="ta" placeholder="Pega multiplicadores: 1.20 2.47 8.30 145.00 1.10 ..."></textarea>
-        <div class="rowflex">
-          <button class="btn" id="btnAdd">Añadir</button>
-          <button class="btn" id="btnClear">Limpiar</button>
-          <input id="quick" placeholder="Rápido: 123 => 1.23" style="width:160px">
-          <button class="btn" id="btnQuick">Añadir rápido</button>
+<main>
+  <div class="grid">
+    <section class="card">
+      <h2>Entradas</h2>
+      <p class="muted mini">Usa “Añadir rápido” (Enter confirma) o “Carga en bloque”. En móvil se abre teclado numérico.</p>
+      <div class="row">
+        <div class="col" style="flex:1 1 260px;min-width:260px">
+          <label for="quick">Añadir rápido (1 valor)</label>
+          <input id="quick" type="number" step="0.01" inputmode="decimal" placeholder="Ej: 1.27"/>
         </div>
+        <div class="col" style="width:140px"><label>&nbsp;</label><button id="btnAdd" class="primary">Añadir</button></div>
+        <div class="col" style="width:160px"><label>&nbsp;</label><button id="btnUndo" class="ghost">Deshacer último</button></div>
+      </div>
+      <div class="row section">
+        <div class="col" style="flex:1 1 420px;min-width:300px">
+          <label for="bulk">Carga en bloque (hasta 60+ líneas/espacios)</label>
+          <textarea id="bulk" placeholder="Ej:\n1.12\n1.87 3.05 7.90\n2.41\n..."></textarea>
+        </div>
+        <div class="col" style="width:160px;align-self:flex-end"><button id="btnBulk">Cargar bloque</button></div>
       </div>
 
-      <!-- MODELO -->
-      <div class="card">
-        <h2>Modelo online (SGD) + filtros de señal</h2>
-        <div class="rowflex">
-          <label>Target ≥ <input id="inpTarget" type="number" step="0.1" value="3" style="width:80px"></label>
-          <label>Umbral p≥ <input id="inpThresh" type="number" step="0.01" value="0.90" style="width:80px"></label>
-          <label>Hist. mínimo N<input id="inpMinN" type="number" value="30" style="width:80px"></label>
-          <label>Ventana W<input id="inpW" type="number" value="40" style="width:80px"></label>
-          <label>LR α<input id="inpLR" type="number" step="0.001" value="0.02" style="width:80px"></label>
-          <label>L2 λ<input id="inpL2" type="number" step="0.0001" value="0.001" style="width:90px"></label>
+      <div class="row section">
+        <div class="col" style="min-width:240px">
+          <label for="target">Umbral objetivo (X)</label>
+          <div class="row">
+            <input id="target" type="number" step="0.01" value="3.00" style="max-width:120px"/>
+            <button class="chip-btn" data-t="3">3×</button>
+            <button class="chip-btn" data-t="4">4×</button>
+            <button class="chip-btn" data-t="5">5×</button>
+            <button class="chip-btn" data-t="10">10×</button>
+            <button class="chip-btn" data-t="20">20×</button>
+          </div>
+          <span class="mini">Las etiquetas ganada/perdida usan este X.</span>
         </div>
-        <div class="rowflex" style="margin-top:6px">
-          <label>Cooldown (rondas) <input id="gateCooldown" type="number" value="8" style="width:80px"></label>
-          <label>W_low <input id="gateWlow" type="number" value="20" style="width:80px"></label>
-          <label>μ_min <input id="gateMuMin" type="number" step="0.01" value="1.30" style="width:80px"></label>
-          <label>K débiles <input id="gateK" type="number" value="8" style="width:80px"></label>
-          <label>Débil < L <input id="gateL" type="number" step="0.01" value="1.30" style="width:80px"></label>
-          <label>Máx débiles M <input id="gateM" type="number" value="3" style="width:80px"></label>
-        </div>
-        <div class="rowflex" style="margin-top:6px">
-          <label>Bloq. Bajista <input id="gateBlockBear" type="checkbox" checked></label>
-          <label>T (temperatura) <input id="gateT" type="number" step="0.1" value="1.7" style="width:80px"></label>
-          <label>Umbral adaptativo <input id="gateAdaptive" type="checkbox" checked></label>
-          <label>Precisión objetivo <input id="gateTargetAcc" type="number" step="0.01" value="0.75" style="width:80px"></label>
-        </div>
-        <div class="rowflex" style="margin-top:6px">
-          <label>Top-quantil q<input id="gateQ" type="number" step="0.01" value="0.98" style="width:80px"></label>
-          <label>Ventana Pwin<input id="calW" type="number" value="80" style="width:80px"></label>
-          <label>Margen p-base<input id="gateMargin" type="number" step="0.01" value="0.15" style="width:80px"></label>
-        </div>
-        <div class="rowflex" style="margin-top:6px">
-          <button class="btn" id="btnReset">Reiniciar modelo</button>
-          <button class="btn" id="btnExportModel">Exportar modelo</button>
-          <label class="btn"><input type="file" id="fileModel" accept=".json" hidden>Importar modelo</label>
-        </div>
-        <div style="margin-top:8px">
-          <div>Prob. estimada próxima ≥ target: <span id="prob" class="signal">—</span></div>
-          <div>Señal: <span id="signal" class="signal no">—</span></div>
-          <div class="muted small">“Señal” ≠ garantía. Úsalo solo como análisis formativo (demo).</div>
-        </div>
-      </div>
-
-      <!-- GRÁFICA -->
-      <div class="card">
-        <div class="rowflex" style="justify-content:space-between;gap:12px">
-          <h2>Gráfica (cap 200×) + Tendencia</h2>
-          <div class="rowflex">
-            <label>Ventana (W) <input id="trW" type="number" value="40" style="width:90px"></label>
-            <label>Umbral pendiente <input id="trEps" type="number" step="0.001" value="0.01" style="width:90px"></label>
-            <button class="btn" id="btnReplot">Recalcular</button>
+        <div class="col" style="min-width:220px">
+          <label for="window">Ventana de estudio (últimas N)</label>
+          <div class="row">
+            <input id="window" type="number" step="1" value="20" min="5" max="200" style="max-width:120px"/>
+            <span class="mini">Mínimo recomendado: 20</span>
           </div>
         </div>
-        <canvas id="chart" class="chart" width="1080" height="280"></canvas>
-      </div>
-    </div>
-
-    <div>
-      <!-- ESTADÍSTICAS -->
-      <div class="card">
-        <h2>Estadísticas</h2>
-        <table class="table small">
-          <tr><th>N (rondas)</th><td id="stN">0</td></tr>
-          <tr><th>Media</th><td id="stMean">0.00×</td></tr>
-          <tr><th>Mediana</th><td id="stMed">0.00×</td></tr>
-          <tr><th>P(≥3×)</th><td id="stP3">0.0%</td></tr>
-          <tr><th>P(≥5×)</th><td id="stP5">0.0%</td></tr>
-          <tr><th>Máx</th><td id="stMax">0.00×</td></tr>
-          <tr><th>Tendencia</th><td id="stTrend">—</td></tr>
-        </table>
+        <div class="col" style="min-width:220px">
+          <label for="conf">Umbral de “confianza” (empírico)</label>
+          <div class="row">
+            <input id="conf" type="number" step="0.01" value="0.95" min="0.5" max="0.99" style="max-width:120px"/>
+            <span class="mini">IC de Wilson, estudio histórico.</span>
+          </div>
+        </div>
       </div>
 
-      <!-- SEÑALES -->
-      <div class="card">
-        <h2>Señales</h2>
-        <table class="table small">
-          <tr><th>Pendiente abierta</th><td id="sgPending">No</td></tr>
-          <tr><th>Total señales</th><td id="sgTotal">0</td></tr>
-          <tr><th>Ganadas</th><td id="sgWins">0</td></tr>
-          <tr><th>Perdidas</th><td id="sgLoss">0</td></tr>
-          <tr><th>Precisión</th><td id="sgAcc">0.0%</td></tr>
-        </table>
+      <div class="row section">
+        <button id="btnExport">Exportar (JSON)</button>
+        <button id="btnImport" class="ghost">Importar…</button>
+        <input id="fileImport" type="file" accept="application/json" style="display:none"/>
+        <div style="flex:1"></div>
+        <button id="btnReset" class="ghost">Limpiar y empezar de cero</button>
       </div>
+    </section>
 
-      <!-- CAPTURA -->
-      <div class="card liveBox">
-        <div class="liveRow" style="justify-content:space-between">
-          <h2>Captura en tiempo real (integrada)</h2>
-          <span class="badge" id="lcStat">idle</span>
-        </div>
-        <div class="liveRow">
-          <button class="btn" id="lcStart">Iniciar</button>
-          <button class="btn" id="lcStop" disabled>Detener</button>
-          <label><input type="checkbox" id="lcAuto" checked> auto-add</label>
-        </div>
-        <div class="rowflex">
-          <label>FPS <input id="lcFps" type="number" value="3" style="width:80px"></label>
-          <label>Rojo% <input id="lcThr" type="number" value="10" style="width:80px"></label>
-          <label>Stable <input id="lcStb" type="number" value="2" style="width:80px"></label>
-          <label>OffX <input id="lcOffX" type="number" value="0" style="width:80px"></label>
-          <label>OffY <input id="lcOffY" type="number" value="0" style="width:80px"></label>
-          <label>Cooldown (s) <input id="lcCd" type="number" value="2" style="width:90px"></label>
-          <label><input type="checkbox" id="lcUseRed" checked> usar rojo</label>
-        </div>
-        <video id="lcPrev" class="livePreview" autoplay muted playsinline></video>
-        <canvas id="lcCan" class="liveCanvas"></canvas>
-        <div class="muted small" id="lcInfo">Listo.</div>
-        <div id="lcLog" class="log"></div>
+    <aside class="card">
+      <h2>Resumen</h2>
+      <div class="stats">
+        <div class="stat"><h3>Total rondas</h3><p id="stTotal">0</p></div>
+        <div class="stat"><h3>≥ X (histórico)</h3><p id="stWins">0</p></div>
+        <div class="stat"><h3>Tasa ≥ X</h3><p id="stRate">—</p></div>
+        <div class="stat"><h3>Mediana</h3><p id="stMedian">—</p></div>
+        <div class="stat"><h3>P10 / P90</h3><p id="stP1090">—</p></div>
+        <div class="stat"><h3>Promedio</h3><p id="stMean">—</p></div>
       </div>
-    </div>
+      <div class="hr"></div>
+      <div class="warning">
+        <b>“Señal” de estudio (no predictiva)</b><br/>
+        En la <b>ventana</b> elegida, calcula p̂=Pr(≥X) y su IC de Wilson. Si el <b>límite inferior</b> ≥ umbral, se marca como criterio empírico cumplido.
+        <div class="row" style="margin-top:8px">
+          <span class="chip"><span id="sigDot" class="dot" style="background:var(--warn)"></span>Estado: <b id="sigText">&nbsp;—</b></span>
+          <span class="chip">p̂: <b id="sigPhat">—</b></span>
+          <span class="chip">IC95%: <b id="sigCI">—</b></span>
+          <span class="chip">N: <b id="sigN">0</b></span>
+        </div>
+        <div class="mini" style="margin-top:6px">No predice la próxima ronda ni garantiza aciertos.</div>
+      </div>
+    </aside>
   </div>
 
-  <div class="card"><p class="muted small">Herramienta educativa. No interactúa con el sitio ni garantiza resultados.</p></div>
-</div>
+  <!-- CHARTS -->
+  <section class="card section">
+    <h2>Gráficas</h2>
+    <div class="grid2">
+      <div class="svgbox">
+        <div class="legend">
+          <span class="badge"><span class="sw" style="background:#59a6ff"></span>Serie temporal</span>
+          <span class="badge"><span class="sw" style="background:#9ca3af"></span>Línea X</span>
+          <span class="badge"><span class="sw" style="background:#169a58"></span>≥ X</span>
+          <span class="badge"><span class="sw" style="background:#b91c1c"></span>&lt; X</span>
+        </div>
+        <svg id="tsvg" viewBox="0 0 800 320" width="100%" height="320" role="img" aria-label="Serie temporal"></svg>
+        <div class="mini muted">Puntos más recientes a la derecha. Eje Y: multiplicador.</div>
+      </div>
+      <div class="svgbox">
+        <div class="legend">
+          <span class="badge"><span class="sw" style="background:#60a5fa"></span>Histograma</span>
+        </div>
+        <svg id="hsvg" viewBox="0 0 800 320" width="100%" height="320" role="img" aria-label="Histograma"></svg>
+        <div class="mini muted">Bins automáticos; útil para ver la cola de valores altos.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BACKTEST -->
+  <section class="card section">
+    <h2>Backtesting (regla de espera)</h2>
+    <p class="mini muted">
+      Recorre tus datos históricos de izquierda a derecha. En cada ronda i, si existen al menos N datos previos y el <b>límite inferior</b> del IC de Wilson para Pr(≥X) ≥ umbral,
+      se “permite” una entrada. Además se aplica un periodo de espera fijo después de cada entrada.
+      <br/>Este ejercicio es <b>descriptivo</b> sobre tus datos; no sirve para operar en vivo.
+    </p>
+    <div class="row">
+      <div class="col"><label>Espera (rondas) mínima</label><input id="btMin" type="number" value="6" min="0" step="1" style="max-width:120px"/></div>
+      <div class="col"><label>Espera (rondas) máxima</label><input id="btMax" type="number" value="8" min="0" step="1" style="max-width:120px"/></div>
+      <div class="col" style="align-self:flex-end"><button id="btnBT" class="primary">Ejecutar backtest</button></div>
+    </div>
+    <div class="stats" style="margin-top:12px">
+      <div class="stat"><h3>Entradas (6)</h3><p id="btN6">—</p></div>
+      <div class="stat"><h3>Win rate (6)</h3><p id="btW6">—</p></div>
+      <div class="stat"><h3>Entradas (8)</h3><p id="btN8">—</p></div>
+      <div class="stat"><h3>Win rate (8)</h3><p id="btW8">—</p></div>
+    </div>
+    <div class="table-wrap" style="margin-top:10px">
+      <table>
+        <thead><tr><th># ronda</th><th>valor</th><th>≥X</th><th>p̂(prev)</th><th>IC95% lo-hi</th><th>espera usada</th></tr></thead>
+        <tbody id="btBody"></tbody>
+      </table>
+    </div>
+    <div class="mini muted" style="margin-top:8px">Se listan hasta 120 últimas entradas del escenario de espera “máxima”.</div>
+  </section>
+
+  <!-- HIGH MULTS -->
+  <section class="card section">
+    <h2>Módulo ≥10× / ≥20× / ≥30× (frecuencias y ventanas sin apariciones)</h2>
+    <div id="hiBox" class="stats"></div>
+  </section>
+
+  <!-- TABLA DE RONDAS -->
+  <section class="card section">
+    <h2>Rondas (más reciente arriba)</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Multiplicador</th><th>Resultado a X</th><th>Excedente/Faltante</th><th>Marca</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card section">
+    <div class="danger"><b>No es un predictor de apuestas.</b> Aviator usa RNG/“provably fair”; no hay patrones explotables que garanticen aciertos.</div>
+    <div class="success" style="margin-top:10px">Este panel sirve para estudiar tu propio histórico (tasas ≥X, percentiles, rachas, gaps y resultados de backtests definidos por ti).</div>
+  </section>
+</main>
 
 <script>
-const $ = (id)=>document.getElementById(id);
-const setText=(id,val)=>{const el=$(id); if(el) el.textContent=val;};
+const state = { rounds:[], target:3.00, windowN:20, conf:0.95 };
+const LS_KEY = "aviator_panel_ext_v1";
+function saveLS(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+function loadLS(){
+  try{ const o = JSON.parse(localStorage.getItem(LS_KEY)||"{}");
+    if(Array.isArray(o.rounds)) state.rounds = o.rounds.filter(v=>typeof v==="number" && isFinite(v) && v>0);
+    if(typeof o.target==="number") state.target = o.target;
+    if(typeof o.windowN==="number") state.windowN = o.windowN;
+    if(typeof o.conf==="number") state.conf = o.conf;
+  }catch{}
+}
+function fmt(x,d=2){ return (!isFinite(x))?"—":(Math.round(x*10**d)/10**d).toFixed(d); }
+function pct(x){ return (x*100).toFixed(1)+"%"; }
+function mean(a){ return a.length? a.reduce((s,x)=>s+x,0)/a.length : NaN; }
+function quantiles(arr, qs=[0.1,0.5,0.9]){
+  if(!arr.length) return qs.map(()=>NaN);
+  const a=[...arr].sort((x,y)=>x-y);
+  return qs.map(q=>{ const pos=(a.length-1)*q, b=Math.floor(pos), r=pos-b; return a[b+1]!==undefined? a[b]+r*(a[b+1]-a[b]) : a[b];});
+}
+function wilson(k,n,z=1.96){
+  if(n===0) return [NaN,NaN,NaN];
+  const ph=k/n, denom=1+(z*z)/n, center=(ph+(z*z)/(2*n))/denom, half=(z*Math.sqrt((ph*(1-ph)+(z*z)/(4*n))/n))/denom;
+  return [Math.max(0,center-half), Math.min(1,center+half), ph];
+}
 
-/* ===================== BOT (SGD + UI) ===================== */
-document.addEventListener('DOMContentLoaded', () => {
-  const parseList=s=>(s||'').split(/[\s,;]+/).map(t=>t.trim()).filter(Boolean).map(v=>parseFloat(v.replace(',','.'))).filter(x=>isFinite(x)&&x>0);
-  const median=a=>{if(!a.length)return 0;const s=[...a].sort((x,y)=>x-y),m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2;}
-  const stats=arr=>{const n=arr.length;if(!n)return{n:0,mean:0,med:0,max:0,p3:0,p5:0};const sum=arr.reduce((a,b)=>a+b,0);const mean=sum/n;const med=median(arr);const max=Math.max(...arr);const p=t=>arr.filter(x=>x>=t).length/n;return{n,mean,med,max,p3:p(3),p5:p(5)};}
-  const logit=p=>Math.log(Math.max(1e-9,p)/Math.max(1e-9,1-p));
-  const last=(a,k)=>a.slice(Math.max(0,a.length-k));
-  const G=(id,def)=>{const el=$(id); const v=parseFloat(String(el?.value??'').replace(',','.')); return Number.isFinite(v)?v:def;}
-  const GB=(id)=>!!($(id)&&$(id).checked);
+/* ---------- Render resumen y tabla ---------- */
+const tbody = document.getElementById('tbody');
+const stTotal=document.getElementById('stTotal'), stWins=document.getElementById('stWins'), stRate=document.getElementById('stRate');
+const stMedian=document.getElementById('stMedian'), stP1090=document.getElementById('stP1090'), stMean=document.getElementById('stMean');
+const sigDot=document.getElementById('sigDot'), sigText=document.getElementById('sigText'), sigPhat=document.getElementById('sigPhat'), sigCI=document.getElementById('sigCI'), sigN=document.getElementById('sigN');
 
-  let DATA=[], MODEL=null, SIGNAL_PENDING=false, SG_TOTAL=0, SG_WINS=0, SG_LOSS=0, LAST_SIGNAL_INDEX=-999999, N_UPDATES=0;
-  const P_HIST=[]; const P_HIST_MAX=300;
+function renderSummary(){
+  const X = state.target;
+  const a = state.rounds;
+  stTotal.textContent = a.length;
+  const wins = a.filter(v=>v>=X).length;
+  stWins.textContent = wins;
+  stRate.textContent = a.length? pct(wins/a.length) : "—";
+  const [q10,q50,q90]=quantiles(a,[0.1,0.5,0.9]);
+  stMedian.textContent = isFinite(q50)? fmt(q50):"—";
+  stP1090.textContent = (isFinite(q10)&&isFinite(q90))? `${fmt(q10)} / ${fmt(q90)}` : "—";
+  stMean.textContent = a.length? fmt(mean(a)):"—";
 
-  function featuresFrom(history,W,target){
-    const H=last(history,Math.max(1,Math.floor(W))); const n=H.length; if(n===0) return new Array(15).fill(0);
-    const caps=H.map(v=>Math.min(v,50)), logs=caps.map(v=>Math.log(1+v));
-    const mean=caps.reduce((a,b)=>a+b,0)/n, meanLog=logs.reduce((a,b)=>a+b,0)/n, med=median(caps);
-    const std=Math.sqrt((caps.reduce((a,b)=>a+(b-mean)**2,0)/n)||0);
-    const p3=caps.filter(v=>v>=3).length/n, p5=caps.filter(v=>v>=5).length/n;
-    let up=0,down=0; for(let i=caps.length-1;i>=0;i--){ if(caps[i]>=target){up++; if(down)break;} else{down++; if(up)break;} }
-    const L=last(caps,5); while(L.length<5)L.unshift(0);
-    let sinceHi=0; for(let i=caps.length-1;i>=0;i--){ if(caps[i]>=target) break; sinceHi++; }
-    return [1,mean,med,std,meanLog,p3,p5,up,down,sinceHi,...L];
+  // Señal (ventana última)
+  const N = Math.min(state.windowN, a.length);
+  const slice = a.slice(-N);
+  const k = slice.filter(v=>v>=X).length;
+  const [lo,hi,ph] = N? wilson(k,N,1.96) : [NaN,NaN,NaN];
+  sigN.textContent = N;
+  sigPhat.textContent = isFinite(ph)? pct(ph):"—";
+  sigCI.textContent = (isFinite(lo)&&isFinite(hi))? `[${pct(lo)} , ${pct(hi)}]`:"—";
+  if(N>=20 && isFinite(lo) && lo>=state.conf){ sigText.textContent="criterio empírico cumplido"; sigDot.style.background="var(--good)"; }
+  else { sigText.textContent="sin criterio (o N<20)"; sigDot.style.background="var(--warn)"; }
+}
+
+function renderTable(){
+  const X = state.target;
+  tbody.innerHTML="";
+  [...state.rounds].map((v,i)=>({v,idx:i+1})).reverse().forEach(r=>{
+    const tr=document.createElement('tr');
+    const td1=document.createElement('td'); td1.textContent=r.idx;
+    const td2=document.createElement('td'); td2.textContent=fmt(r.v)+"×";
+    const td3=document.createElement('td'); td3.innerHTML=(r.v>=X)?'<span class="tag good">GANADA</span>':'<span class="tag bad">PERDIDA</span>';
+    const td4=document.createElement('td'); td4.textContent=(r.v>=X?'+':'-')+fmt(Math.abs(r.v-X))+'× '+(r.v>=X?'sobre X':'bajo X');
+    const td5=document.createElement('td'); td5.innerHTML=(r.v<=1.10)?'<span class="tag low">≤1.10</span>':(r.v>=X?'<span class="tag good">≥X</span>':'<span class="tag bad">&lt;X</span>');
+    [td1,td2,td3,td4,td5].forEach(td=>tr.appendChild(td)); tbody.appendChild(tr);
+  });
+}
+
+/* ---------- Dibujar charts (SVG) ---------- */
+function drawTimeSeries(){
+  const svg=document.getElementById('tsvg'); while(svg.firstChild) svg.removeChild(svg.firstChild);
+  const W=800,H=320, padL=40,padR=12,padT=10,padB=28;
+  const data=state.rounds; if(!data.length){ return drawEmpty(svg,W,H); }
+  const n=data.length, X=state.target;
+  const minY=0.9, maxY=Math.max(X*1.3, Math.max(...data)*1.05, 2);
+  const x=(i)=> padL + ( (W-padL-padR) * (i/(Math.max(1,n-1))) );
+  const y=(v)=> padT + (H-padT-padB) * (1 - ( (v-minY)/(maxY-minY) ));
+  // grid
+  const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+  for(let t=1;t<=Math.floor(maxY);t+=1){
+    const Y=y(t);
+    const line=el('line',{x1:padL,y1:Y,x2:W-padR,y2:Y,stroke:"#173048","stroke-width":1,opacity:.5});
+    g.appendChild(line);
+    const lbl=el('text',{x:8,y:Y+4,fill:"#9fb1c7","font-size":"10"}); lbl.textContent=t+"x"; g.appendChild(lbl);
   }
-  class OnlineLogReg{
-    constructor(d,lr=0.02,l2=0.001){this.w=new Array(d).fill(0);this.lr0=lr;this.l2=l2;this.prevX=null;this.prevP=null;}
-    static sg(z){return 1/(1+Math.exp(-Math.max(-50,Math.min(50,z))))}
-    predict(x){let z=0;for(let i=0;i<this.w.length;i++)z+=this.w[i]*x[i];return OnlineLogReg.sg(z)}
-    stepPrepare(x){const p=this.predict(x);this.prevX=x.slice();this.prevP=p;return p;}
-    update(y){if(!this.prevX||this.prevP==null)return;const x=this.prevX,p=this.prevP;const g=p-y;const lr=this.lr0/Math.sqrt(1+N_UPDATES);for(let i=0;i<this.w.length;i++){const grad=g*x[i]+this.l2*this.w[i];this.w[i]-=lr*grad;}this.prevX=null;this.prevP=null;}
+  svg.appendChild(g);
+  // threshold line
+  svg.appendChild(el('line',{x1:padL,y1:y(X),x2:W-padR,y2:y(X),stroke:"#9ca3af","stroke-dasharray":"4 4","stroke-width":1.5,opacity:.9}));
+  // polyline
+  const pts=data.map((v,i)=>`${x(i)},${y(v)}`).join(' ');
+  svg.appendChild(el('polyline',{points:pts,fill:"none",stroke:"#59a6ff","stroke-width":2}));
+  // points
+  data.forEach((v,i)=>{
+    const c=el('circle',{cx:x(i),cy:y(v),r:3,fill:(v>=X?"#169a58":"#b91c1c"),opacity:.9});
+    svg.appendChild(c);
+  });
+  // axis x labels (sparse)
+  for(let i=0;i<n;i+=Math.max(1,Math.floor(n/10))){
+    const tx=el('text',{x:x(i),y:H-8,fill:"#9fb1c7","font-size":"10","text-anchor":"middle"}); tx.textContent=(i+1); svg.appendChild(tx);
   }
-  function ensureModel(){const lr=G('inpLR',0.02),l2=G('inpL2',0.001); if(!MODEL) MODEL=new OnlineLogReg(15,lr,l2); MODEL.lr0=lr; MODEL.l2=l2;}
-
-  function renderStats(){
-    const s=stats(DATA);
-    setText('stN',s.n); setText('stMean',s.mean.toFixed(2)+'×'); setText('stMed',s.med.toFixed(2)+'×');
-    setText('stP3',(s.p3*100).toFixed(1)+'%'); setText('stP5',(s.p5*100).toFixed(1)+'%'); setText('stMax',s.max.toFixed(2)+'×');
-    const trW=Math.max(2,Math.floor(G('trW',40))), trEps=G('trEps',0.01);
-    const arr=DATA.map(v=>Math.min(v,50)); const w=Math.min(trW,arr.length);
-    let trend='—'; if(w>=2){ const slice=arr.slice(arr.length-w); const xMean=(w-1)/2,yMean=slice.reduce((a,b)=>a+b,0)/w; let num=0,den=0; for(let i=0;i<w;i++){const dx=i-xMean; num+=dx*(slice[i]-yMean); den+=dx*dx;} const slope=den?num/den:0; trend=slope>trEps?'Alcista':(slope<-trEps?'Bajista':'Lateral'); }
-    setText('stTrend',trend);
+}
+function drawHistogram(){
+  const svg=document.getElementById('hsvg'); while(svg.firstChild) svg.removeChild(svg.firstChild);
+  const W=800,H=320, padL=40,padR=12,padT=10,padB=28;
+  const a=state.rounds; if(!a.length){ return drawEmpty(svg,W,H); }
+  const maxV=Math.max(...a), minV=Math.min(...a);
+  const iqr=quantiles(a,[0.25,0.75]); const bw = Math.max(0.05, 2*(iqr[1]-iqr[0]) / Math.cbrt(a.length) || 0.2);
+  const bins=[];
+  const maxEdge=Math.max(minV+bw, Math.ceil((maxV+0.0001)/bw)*bw);
+  for(let edge=minV; edge<=maxEdge+1e-9; edge+=bw){ bins.push({edge:edge, count:0}); }
+  a.forEach(v=>{
+    let idx=Math.floor((v-minV)/bw); if(idx>=bins.length) idx=bins.length-1; if(idx<0) idx=0; bins[idx].count++;
+  });
+  const maxC=Math.max(1,...bins.map(b=>b.count));
+  const x=(i)=> padL + ( (W-padL-padR) * (i/bins.length) );
+  const y=(c)=> padT + (H-padT-padB) * (1 - (c/maxC) );
+  // axes
+  svg.appendChild(el('line',{x1:padL,y1:H-padB,x2:W-padR,y2:H-padB,stroke:"#173048"}));
+  svg.appendChild(el('line',{x1:padL,y1:padT,x2:padL,y2:H-padB,stroke:"#173048"}));
+  // bars
+  const barW = (W-padL-padR)/bins.length - 1;
+  bins.forEach((b,i)=>{
+    const x0=x(i)+0.5, y0=y(b.count); const h=(H-padT-padB)-(y0-padT);
+    const rect=el('rect',{x:x0,y:y0,width:Math.max(0,barW),height:Math.max(0,h),fill:"#60a5fa",opacity:.85});
+    svg.appendChild(rect);
+  });
+  // x labels sparse
+  const steps=Math.max(2,Math.floor(bins.length/8));
+  for(let i=0;i<bins.length;i+=steps){
+    const tx=el('text',{x:x(i)+barW/2,y:H-8,fill:"#9fb1c7","font-size":"10","text-anchor":"middle"}); tx.textContent=(bins[i].edge).toFixed(1); svg.appendChild(tx);
   }
+}
+function drawEmpty(svg,W,H){
+  svg.appendChild(el('rect',{x:0,y:0,width:W,height:H,fill:"transparent"}));
+  const t=el('text',{x:W/2,y:H/2,fill:"#768aa3","font-size":"13","text-anchor":"middle"}); t.textContent="Añade datos para ver la gráfica"; svg.appendChild(t);
+}
+function el(tag,attrs){ const e=document.createElementNS('http://www.w3.org/2000/svg',tag); for(const k in attrs) e.setAttribute(k, attrs[k]); return e; }
 
-  function drawChart(){
-    const c=$('chart'), ctx=c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height);
-    if(!DATA.length){ ctx.fillStyle='#64748b'; ctx.fillText('Carga datos para ver la serie',10,20); return; }
-    const cap=200,s=DATA.map((v,i)=>({i:i+1,m:Math.min(v,cap),real:v})); const pad=30,w=c.width-pad*2,h=c.height-pad*2,max=cap,min=0;
-    ctx.strokeStyle='#13203a'; ctx.beginPath(); ctx.moveTo(pad,c.height-pad); ctx.lineTo(pad,pad); ctx.lineTo(c.width-pad,pad); ctx.stroke();
-    ctx.strokeStyle='#cbd5e1'; ctx.beginPath();
-    for(let i=0;i<s.length;i++){ const x=pad+(i/(s.length-1))*w; const y=c.height-pad-((s[i].m-min)/(max-min))*h; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);} ctx.stroke();
-    const wlen=Math.min(Math.max(2,Math.floor(G('trW',40))),s.length);
-    if(wlen>=2){ const arr=s.slice(s.length-wlen).map(o=>o.m); const xMean=(wlen-1)/2,yMean=arr.reduce((a,b)=>a+b,0)/wlen; let num=0,den=0; for(let i=0;i<wlen;i++){const dx=i-xMean; num+=dx*(arr[i]-yMean); den+=dx*dx;} const b=den?num/den:0,a=yMean-b*xMean; ctx.strokeStyle='#60a5fa'; ctx.beginPath(); for(let i=0;i<wlen;i++){ const xi=s.length-wlen+i; const x=pad+(xi/(s.length-1))*w; const yVal=a+b*i; const y=c.height-pad-((yVal-min)/(max-min))*h; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);} ctx.stroke(); }
-    const target=G('inpTarget',3); const yT=c.height-pad-((target-min)/(max-min))*h; ctx.setLineDash([5,5]); ctx.strokeStyle='#3b82f6'; ctx.beginPath(); ctx.moveTo(pad,yT); ctx.lineTo(c.width-pad,yT); ctx.stroke(); ctx.setLineDash([]);
+/* ---------- Backtesting ---------- */
+const btBody=document.getElementById('btBody');
+const btN6=document.getElementById('btN6'), btW6=document.getElementById('btW6'), btN8=document.getElementById('btN8'), btW8=document.getElementById('btW8');
+
+function runBacktest(cooldown){
+  const X=state.target, N=state.windowN, conf=state.conf;
+  const data=state.rounds;
+  let wait=0;
+  const trades=[];
+  for(let i=0;i<data.length;i++){
+    if(i<N){ wait=Math.max(0,wait-1); continue; } // no base
+    const prev=data.slice(i-N,i);
+    const k=prev.filter(v=>v>=X).length;
+    const [lo,hi,ph]=wilson(k,N,1.96);
+    const allowed = (lo>=conf);
+    if(wait>0){ wait--; continue; }
+    if(allowed){
+      trades.push({idx:i+1, v:data[i], win:data[i]>=X, ph:ph, lo:lo, hi:hi, usedWait:cooldown});
+      wait=cooldown; // aplicar enfriamiento después de cada entrada
+    }
   }
+  const wins = trades.filter(t=>t.win).length;
+  return { trades, n: trades.length, wr: trades.length? wins/trades.length : NaN };
+}
+function renderBacktest(){
+  const min=parseInt(document.getElementById('btMin').value||"6",10);
+  const max=parseInt(document.getElementById('btMax').value||"8",10);
+  const r6=runBacktest(min), r8=runBacktest(max);
+  btN6.textContent = isFinite(r6.n)? r6.n : "—";
+  btW6.textContent = isFinite(r6.wr)? pct(r6.wr) : "—";
+  btN8.textContent = isFinite(r8.n)? r8.n : "—";
+  btW8.textContent = isFinite(r8.wr)? pct(r8.wr) : "—";
+  // tabla (limitar a 120 últimas del escenario "max")
+  btBody.innerHTML="";
+  r8.trades.slice(-120).forEach(t=>{
+    const tr=document.createElement('tr');
+    const td1=document.createElement('td'); td1.textContent=t.idx;
+    const td2=document.createElement('td'); td2.textContent=fmt(t.v)+"×";
+    const td3=document.createElement('td'); td3.innerHTML=t.win?'<span class="tag good">≥X</span>':'<span class="tag bad">&lt;X</span>';
+    const td4=document.createElement('td'); td4.textContent=pct(t.ph);
+    const td5=document.createElement('td'); td5.textContent=`${pct(t.lo)} - ${pct(t.hi)}`;
+    const td6=document.createElement('td'); td6.textContent=t.usedWait;
+    [td1,td2,td3,td4,td5,td6].forEach(td=>tr.appendChild(td)); btBody.appendChild(tr);
+  });
+}
 
-  function pushPred(p){ P_HIST.push(p); if(P_HIST.length>P_HIST_MAX) P_HIST.shift(); }
-  function quantile(a,q){ if(!a.length) return 1; const b=[...a].sort((x,y)=>x-y); const i=Math.min(b.length-1,Math.max(0,Math.floor(q*b.length-1))); return b[i]; }
-
-  function updateSignalCountersOnNewValue(v){
-    const target=G('inpTarget',3);
-    if(SIGNAL_PENDING){ if(v>=target) SG_WINS++; else SG_LOSS++; SIGNAL_PENDING=false; }
-    SG_TOTAL=SG_WINS+SG_LOSS; const acc=SG_TOTAL?(SG_WINS/SG_TOTAL*100).toFixed(1)+'%':'0.0%';
-    setText('sgPending', SIGNAL_PENDING?'Sí':'No'); setText('sgTotal', SG_TOTAL); setText('sgWins', SG_WINS); setText('sgLoss', SG_LOSS); setText('sgAcc', acc);
+/* ---------- High multipliers (≥10/20/30) ---------- */
+const hiBox=document.getElementById('hiBox');
+function gapsStats(th){
+  const a=state.rounds;
+  let last=-1; const gaps=[];
+  for(let i=0;i<a.length;i++){
+    if(a[i] >= th){
+      if(last===-1){ gaps.push(i); } else { gaps.push(i-last-1); }
+      last=i;
+    }
   }
+  const currentGap = (last===-1)? a.length : (a.length-last-1);
+  const maxGap = gaps.length? Math.max(...gaps) : currentGap;
+  const avgGap = gaps.length? (gaps.reduce((s,x)=>s+x,0)/gaps.length) : currentGap;
+  const count = a.filter(v=>v>=th).length;
+  const rate = a.length? count/a.length : NaN;
+  return {th,count,rate,maxGap,currentGap,avgGap};
+}
+function renderHighMults(){
+  const thresholds=[10,20,30];
+  hiBox.innerHTML="";
+  thresholds.forEach(th=>{
+    const st=gapsStats(th);
+    const box=document.createElement('div'); box.className="stat";
+    const h=document.createElement('h3'); h.textContent=`≥ ${th}×`;
+    const p=document.createElement('p'); p.textContent = `${st.count} (${isFinite(st.rate)?pct(st.rate):"—"})`;
+    box.appendChild(h); box.appendChild(p);
+    const small=document.createElement('div'); small.className="mini muted";
+    small.textContent = `Max gap: ${st.maxGap} · Gap actual: ${st.currentGap} · Gap medio: ${isFinite(st.avgGap)?st.avgGap.toFixed(1):"—"}`;
+    box.appendChild(small);
+    hiBox.appendChild(box);
+  });
+}
 
-  function updatePredictionUI(pRaw){
-    const thBase=G('inpThresh',0.9), T=Math.max(0.5,G('gateT',1.0));
-    let p=(pRaw==null)?null:(1/(1+Math.exp(-logit(pRaw)/T)));
-    if(p==null){ setText('prob','—'); const s=$('signal'); if(s){ s.textContent='—'; s.className='signal no'; } setText('sgPending', SIGNAL_PENDING?'Sí':'No'); return; }
-    setText('prob',p.toFixed(3)); pushPred(p);
-
-    const calW=Math.max(20,Math.floor(G('calW',80)));
-    const base=DATA.length? (DATA.slice(-calW).filter(x=>x>=G('inpTarget',3)).length/Math.min(calW,DATA.length)) : 0.0;
-    const margin=G('gateMargin',0.15);
-    const q=G('gateQ',0.98); const qcut=quantile(P_HIST,q);
-
-    const cooldown=Math.max(0,Math.floor(G('gateCooldown',0))), idx=DATA.length, cooldownOk=(idx-LAST_SIGNAL_INDEX)>=cooldown;
-    const Wlow=Math.max(1,Math.floor(G('gateWlow',20))), muMin=G('gateMuMin',1.30), mu=(DATA.length>=Wlow?DATA.slice(-Wlow).reduce((a,b)=>a+b,0)/Wlow:null), meanOk=(mu!==null && mu>=muMin);
-    const K=Math.max(1,Math.floor(G('gateK',8))), L=G('gateL',1.30), M=Math.max(0,Math.floor(G('gateM',3))), weakOk=(DATA.slice(-K).filter(v=>v<L).length)<=M;
-
-    const trW=Math.max(2,Math.floor(G('trW',40))), trEps=G('trEps',0.01);
-    let trendOk=true; const arr=DATA.map(v=>Math.min(v,50)); const w=Math.min(trW,arr.length); if(w>=2){ const slice=arr.slice(arr.length-w); const xMean=(w-1)/2,yMean=slice.reduce((a,b)=>a+b,0)/w; let num=0,den=0; for(let i=0;i<w;i++){const dx=i-xMean; num+=dx*(slice[i]-yMean); den+=dx*dx;} const slope=den?num/den:0; if(GB('gateBlockBear')) trendOk = !(slope<-trEps); }
-
-    let th=thBase; if(GB('gateAdaptive')){ const targetAcc=G('gateTargetAcc',0.75); const acc=SG_TOTAL?(SG_WINS/SG_TOTAL):0; if(acc<targetAcc) th=Math.min(0.995,thBase+0.05); else if(acc>targetAcc+0.15) th=Math.max(0.55,thBase-0.03); }
-
-    const gates=[ p>=(base+margin), p>=qcut, cooldownOk, meanOk, weakOk, trendOk ];
-    const allOk=gates.every(Boolean) && (p>=th);
-
-    const sigEl=$('signal');
-    if(allOk){ if(sigEl){ sigEl.textContent=`SEÑAL (p≥${Math.max(th,qcut,base+margin).toFixed(2)})`; sigEl.className='signal ok'; } SIGNAL_PENDING=true; LAST_SIGNAL_INDEX=idx; }
-    else{ if(sigEl){ sigEl.textContent='No señal'; sigEl.className='signal no'; } }
-    setText('sgPending', SIGNAL_PENDING?'Sí':'No');
-  }
-
-  function maybePredictNext(){
-    ensureModel(); const target=G('inpTarget',3), W=Math.max(5,Math.floor(G('inpW',40))), minN=Math.max(5,Math.floor(G('inpMinN',30)));
-    let p=null; if(DATA.length>=Math.max(5,minN)){ const x=featuresFrom(DATA,W,target); p=MODEL.stepPrepare(x); } updatePredictionUI(p);
-  }
-
-  window.onNewRound = function(val){
-    const v = Math.round(val*100)/100;
-    const target=G('inpTarget',3);
-    if(MODEL&&MODEL.prevX){ const y=(v>=target)?1:0; MODEL.update(y); N_UPDATES++; }
-    updateSignalCountersOnNewValue(v);
-    DATA.push(v);
-    renderStats(); drawChart(); maybePredictNext();
-    const ta=$('ta'); if(ta){ ta.value=(ta.value.trim()?ta.value.trim()+' ':'')+v.toFixed(2); }
-    setText('lcInfo','Añadida: '+v.toFixed(2)+'×');
-  };
-
-  $('btnAdd').onclick=()=>{ try{ const v=parseList($('ta').value); if(!v.length) return; v.forEach(window.onNewRound); $('ta').value=''; }catch(e){} };
-  $('btnClear').onclick=()=>{ try{ DATA=[]; SIGNAL_PENDING=false; SG_TOTAL=SG_WINS=SG_LOSS=0; if(MODEL){ MODEL.prevX=null; MODEL.prevP=null; } renderStats(); drawChart(); updatePredictionUI(null); setText('sgPending','No'); setText('sgTotal','0'); setText('sgWins','0'); setText('sgLoss','0'); setText('sgAcc','0.0%'); }catch(e){} };
-  $('btnQuick').onclick=()=>{ try{ const s=String($('quick').value||'').trim(); let v=null; if(s && !s.includes('.') && /^\d{2,5}$/.test(s)){ if(s.length===2)v=s[0]+'.'+s[1]; else if(s.length===3)v=s[0]+'.'+s.slice(1); else v=s.slice(0,2)+'.'+s.slice(2);} else v=s; const x=parseFloat(String(v).replace(',','.')); if(Number.isFinite(x)&&x>0){ window.onNewRound(x); $('quick').value=''; } }catch(e){} };
-  ['inpThresh','gateCooldown','gateWlow','gateMuMin','gateK','gateL','gateM','gateBlockBear','gateT','gateAdaptive','gateTargetAcc','trW','trEps','gateQ','calW','gateMargin']
-    .forEach(id=>{ const el=$(id); el && el.addEventListener('input', ()=>updatePredictionUI(MODEL?.prevP ?? null)); });
-  $('btnReset').onclick=()=>{ MODEL=null; ensureModel(); MODEL.prevX=null; MODEL.prevP=null; N_UPDATES=0; maybePredictNext(); };
-
-  ensureModel(); renderStats(); drawChart(); updatePredictionUI(null);
-  setText('sgPending','No'); setText('sgTotal','0'); setText('sgWins','0'); setText('sgLoss','0'); setText('sgAcc','0.0%');
+/* ---------- Inputs y acciones ---------- */
+function addValue(v){ if(isFinite(v) && v>0){ state.rounds.push(v); updateAll(); } }
+function addFromInput(){
+  const inp=document.getElementById('quick'); const raw=(inp.value||"").replace(","," .").replace(/\s+/g,"");
+  const val=parseFloat(raw.replace(",","."));
+  addValue(val); inp.value=""; inp.focus();
+}
+document.getElementById('btnAdd').onclick=addFromInput;
+document.getElementById('quick').addEventListener('keydown',e=>{ if(e.key==="Enter"){ e.preventDefault(); addFromInput(); }});
+document.getElementById('btnUndo').onclick=()=>{ state.rounds.pop(); updateAll(); };
+document.getElementById('btnBulk').onclick=()=>{
+  const txt=document.getElementById('bulk').value.trim(); if(!txt) return;
+  const parts=txt.split(/[\s,;]+/g).map(s=>parseFloat(s.replace(",",".")).valueOf()).filter(v=>isFinite(v)&&v>0);
+  parts.forEach(addValue); document.getElementById('bulk').value="";
+};
+document.querySelectorAll('.chip-btn').forEach(b=>b.onclick=()=>{ state.target=parseFloat(b.getAttribute('data-t')); document.getElementById('target').value=state.target.toFixed(2); document.querySelectorAll('.chip-btn').forEach(x=>x.classList.toggle('active',x===b)); updateAll(); });
+document.getElementById('target').onchange=(e)=>{ const x=parseFloat(e.target.value); if(isFinite(x)&&x>0){ state.target=x; updateAll(); }};
+document.getElementById('window').onchange=(e)=>{ const n=parseInt(e.target.value,10); if(Number.isInteger(n)&&n>=5){ state.windowN=n; updateAll(); }};
+document.getElementById('conf').onchange=(e)=>{ let c=parseFloat(e.target.value); c=Math.max(0.5,Math.min(0.99,c)); state.conf=c; e.target.value=c.toFixed(2); updateAll(); };
+document.getElementById('btnExport').onclick=()=>{
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download="aviator_analisis_edu.json"; a.click(); URL.revokeObjectURL(url);
+};
+document.getElementById('btnImport').onclick=()=>document.getElementById('fileImport').click();
+document.getElementById('fileImport').addEventListener('change',async (e)=>{
+  const file=e.target.files[0]; if(!file) return; const txt=await file.text();
+  try{ const o=JSON.parse(txt);
+    state.rounds = Array.isArray(o.rounds)? o.rounds.filter(v=>typeof v==="number"&&isFinite(v)&&v>0):[];
+    if(typeof o.target==="number") state.target=o.target;
+    if(typeof o.windowN==="number") state.windowN=o.windowN;
+    if(typeof o.conf==="number") state.conf=o.conf;
+    document.getElementById('target').value=state.target.toFixed(2);
+    document.getElementById('window').value=state.windowN;
+    document.getElementById('conf').value=state.conf.toFixed(2);
+    updateAll();
+  }catch{ alert("Archivo inválido"); }
+  e.target.value="";
 });
+document.getElementById('btnReset').onclick=()=>{ if(confirm("¿Borrar todo y empezar de cero?")){ state.rounds=[]; updateAll(); } };
+document.getElementById('btnBT').onclick=renderBacktest;
 
-/* ===================== CAPTURA ROBUSTA ===================== */
-(function(){
-  const log = (m)=>{ const d=$('lcLog'); if(!d) return; const line=document.createElement('div'); line.textContent='['+new Date().toLocaleTimeString()+'] '+m; d.prepend(line); };
-  const num=(id,def)=>{ const el=$(id); if(!el) return def; const v=parseFloat(String(el.value??'').replace(',','.')); return Number.isFinite(v)?v:def; };
-
-  const S={stream:null,running:false,roundOpen:false,hot:0,cold:0,captured:false,lastRoundOpen:0,ocrBusy:false,lastEmit:0};
-
-  function roi(canvas){
-    const w=canvas.width,h=canvas.height;
-    const rw=Math.floor(w*0.48), rh=Math.floor(h*0.22);
-    const x=Math.floor((w-rw)/2)+num('lcOffX',0);
-    const y=Math.floor((h-rh)/2)+Math.floor(h*0.04)+num('lcOffY',0);
-    return {x,y,w:rw,h:rh};
-  }
-
-  function normalizeText(t){
-    return String(t||'').replace(/[x×]/gi,'').replace(/[oO]/g,'0').replace(/[lI|]/g,'1')
-      .replace(/B/g,'8').replace(/S/g,'5').replace(/\s/g,'').replace(/[•·]/g,'.').replace(/,/g,'.');
-  }
-  function parseMultiplier(txt){
-    const s=normalizeText(txt);
-    let m=s.match(/(\d+\.\d{1,2})/); if(m) return parseFloat(m[1]);
-    const m2=s.match(/(\d{2,5})/); if(!m2) return null;
-    const n=parseInt(m2[1],10); if(n>=10&&n<=99999) return n/100;
-    return null;
-  }
-
-  function preprocess(src,mode=0){
-    const can=document.createElement('canvas'); can.width=src.width; can.height=src.height;
-    const ctx=can.getContext('2d'); ctx.drawImage(src,0,0);
-    if(mode===0) return can;
-    const img=ctx.getImageData(0,0,can.width,can.height); const d=img.data;
-    for(let i=0;i<d.length;i+=4){
-      const Y=(0.2126*d[i]+0.7152*d[i+1]+0.0722*d[i+2]);
-      let v=Y; if(mode===1) v=(Y-70)*1.8+70; else if(mode===2) v=Y>140?255:0; else if(mode===3) v=(Y-40)*2.2+40;
-      v=Math.max(0,Math.min(255,v)); d[i]=d[i+1]=d[i+2]=v;
-    }
-    ctx.putImageData(img,0,0); return can;
-  }
-
-  async function doOCR(image){ const {data}=await Tesseract.recognize(image,'eng',{tessedit_char_whitelist:'0123456789.'}); return data.text||''; }
-  async function ocrMulti(crop){
-    const up=document.createElement('canvas'); up.width=crop.width*2; up.height=crop.height*2;
-    const u=up.getContext('2d'); u.imageSmoothingEnabled=false; u.drawImage(crop,0,0,up.width,up.height);
-    const canv=[preprocess(up,0),preprocess(up,1),preprocess(up,2),preprocess(up,3)];
-    const vals=[];
-    for(const c of canv){ try{ const txt=await doOCR(c); const v=parseMultiplier(txt); if(v&&isFinite(v)) vals.push(v);}catch(_){ } }
-    if(!vals.length) return null;
-    const r=vals.map(x=>Math.round(x*100)/100).sort((a,b)=>a-b);
-    let best=r[0],cnt=1;
-    for(let i=0;i<r.length;i++){
-      let c=1; for(let j=i+1;j<r.length;j++){ if(Math.abs(r[j]-r[i])<=0.04) c++; }
-      if(c>cnt){ cnt=c; best=r[i]; }
-    }
-    return best;
-  }
-
-  function rgb2hsv(r,g,b){ r/=255; g/=255; b/=255; const max=Math.max(r,g,b), min=Math.min(r,g,b), d=max-min; let h=0;
-    if(d!==0){ if(max===r) h=60*(((g-b)/d + (g<b?6:0))); else if(max===g) h=60*(((b-r)/d + 2)); else h=60*(((r-g)/d + 4)); }
-    const s=max===0?0:d/max, v=max/255; return [h,s,v];
-  }
-  function redScoreHSV(img){ const d=img.data; let r=0,t=0; for(let i=0;i<d.length;i+=4){
-    const A=d[i+3]; if(A<10) continue; const [h,s,v]=rgb2hsv(d[i],d[i+1],d[i+2]); if(((h>=340||h<20)&&s>0.35&&v>0.30)) r++; t++; } return t?(r/t*100):0; }
-
-  async function tryCapture(can, r){
-    if(S.captured) return;
-    const crop=document.createElement('canvas'); crop.width=r.w; crop.height=r.h;
-    crop.getContext('2d').drawImage(can,r.x,r.y,r.w,r.h,0,0,r.w,r.h);
-    const val=await ocrMulti(crop);
-    if(val && val>=1 && val<=20000){
-      const out=Math.round(val*100)/100;
-      const now=performance.now();
-      if(now - S.lastEmit > Math.max(1200, num('lcCd',2)*1000)){ // 1.2s o cooldown
-        S.lastEmit = now;
-        S.captured = true;
-        const msg = 'OCR OK '+out.toFixed(2)+'×';
-        const ta=$('ta');
-        if($('lcAuto')?.checked && typeof window.onNewRound==='function'){ window.onNewRound(out); }
-        else if(ta){ ta.value=(ta.value.trim()?ta.value.trim()+' ':'')+out.toFixed(2); }
-        log(msg);
-      }
-    } else {
-      log('OCR sin número válido');
-    }
-  }
-
-  async function loop(){
-    if(!S.running) return;
-    const fps=Math.max(1,Math.floor(num('lcFps',3))), delay=Math.round(1000/fps);
-    const can=$('lcCan'), ctx=can.getContext('2d'), v=$('lcPrev');
-    if(!v||!v.videoWidth){ setTimeout(loop,delay); return; }
-    if(can.width!==v.videoWidth||can.height!==v.videoHeight){ can.width=v.videoWidth; can.height=v.videoHeight; }
-    ctx.drawImage(v,0,0,can.width,can.height);
-
-    const r=roi(can);
-    ctx.save(); ctx.strokeStyle="#60a5fa"; ctx.lineWidth=2; ctx.setLineDash([6,4]); ctx.strokeRect(r.x,r.y,r.w,r.h); ctx.restore();
-
-    let pctRed=0;
-    try{ const img=ctx.getImageData(r.x,r.y,r.w,r.h); pctRed=redScoreHSV(img);}catch(_){}
-    const thr=Math.max(1,Math.floor(num('lcThr',10)));
-    const stb=Math.max(1,Math.floor(num('lcStb',2)));
-
-    if(pctRed>=thr){
-      if(!S.roundOpen){ S.roundOpen=true; S.hot=0; S.cold=0; S.captured=false; S.lastEmit=0; }
-      if(++S.hot>=stb && !S.captured) { tryCapture(can,r); }
-    }else{
-      if(S.roundOpen && ++S.cold>=3){ S.roundOpen=false; S.hot=0; S.cold=0; S.captured=false; }
-    }
-
-    const info=$('lcInfo');
-    if(info) info.textContent=`Rojo ${pctRed.toFixed(1)}% · hot ${S.hot} · ${S.captured?'capturado':(S.roundOpen?'armado':'listo')}`;
-    setTimeout(loop,delay);
-  }
-
-  $('lcStart').onclick=async()=>{
-    try{
-      const stream=await navigator.mediaDevices.getDisplayMedia({video:{displaySurface:"monitor"},audio:false});
-      $('lcPrev').srcObject=stream; await $('lcPrev').play();
-      Object.assign(S,{stream,running:true,roundOpen:false,hot:0,cold:0,captured:false,lastEmit:0});
-      $('lcStart').disabled=true; $('lcStop').disabled=false; $('lcStat').textContent='live';
-      log('Captura iniciada. Rojo% 8–12 · Stable 2–3 · Ajusta OffY.');
-      stream.getVideoTracks()[0].addEventListener('ended', ()=>$('lcStop').click());
-      loop();
-    }catch(e){ log('No se pudo iniciar: '+(e.name||'Error')+' - '+(e.message||e)); $('lcStat').textContent='error'; }
-  };
-  $('lcStop').onclick=()=>{
-    try{ S.stream?.getTracks().forEach(t=>t.stop()); }catch(_){}
-    $('lcPrev').srcObject=null; S.stream=null; S.running=false; S.roundOpen=false; S.captured=false;
-    $('lcStart').disabled=false; $('lcStop').disabled=true; $('lcStat').textContent='idle';
-  };
-})();
+/* ---------- Update all ---------- */
+function updateAll(){
+  renderSummary(); renderTable(); drawTimeSeries(); drawHistogram(); renderHighMults(); saveLS();
+}
+function init(){
+  loadLS();
+  document.getElementById('target').value=state.target.toFixed(2);
+  document.getElementById('window').value=state.windowN;
+  document.getElementById('conf').value=state.conf.toFixed(2);
+  updateAll();
+}
+init();
 </script>
 </body>
 </html>
