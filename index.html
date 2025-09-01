@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Aviator — Panel educativo (señales con espera mínima 6, charts y estudio)</title>
+<title>Aviator — Panel educativo (señales con espera mínima 6)</title>
 <style>
 :root{
   --bg:#0b0f14; --panel:#121822; --panel2:#0f1620; --text:#e8eef7; --muted:#9fb1c7;
@@ -62,7 +62,7 @@ table{width:100%;min-width:560px;border-collapse:collapse} th,td{padding:10px 12
 <header>
   <div class="wrap">
     <h1>Panel educativo — Aviator (señales con espera mínima 6)</h1>
-    <div class="sub">Estudio con datos manuales. No predice apuestas ni garantiza aciertos.</div>
+    <div class="sub">Estudio con datos que tú envías. No predice apuestas ni garantiza aciertos.</div>
   </div>
 </header>
 
@@ -140,15 +140,14 @@ table{width:100%;min-width:560px;border-collapse:collapse} th,td{padding:10px 12
       </div>
       <div class="hr"></div>
       <div class="warning">
-        <b>“Señal” de estudio (no predictiva)</b><br/>
-        Regla: <b>espera mínima de 6 rondas</b>. Tras esa espera, solo se emite señal si el <b>límite inferior</b> del IC95% de Wilson para Pr(≥X) en la ventana ≥ <b>umbral</b>.
+        <b>“Señal” (no predictiva)</b>: <b>espera mínima 6 rondas</b>. Luego, se emite señal solo si el <b>límite inferior</b> del IC95% de Wilson para Pr(≥X) en la ventana ≥ umbral.
         <div class="row" style="margin-top:8px">
           <span class="chip"><span id="sigDot" class="dot" style="background:var(--warn)"></span>Estado actual: <b id="sigText">&nbsp;—</b></span>
           <span class="chip">p̂ (última ventana): <b id="sigPhat">—</b></span>
           <span class="chip">IC95%: <b id="sigCI">—</b></span>
           <span class="chip">N ventana: <b id="sigN">0</b></span>
         </div>
-        <div class="mini" style="margin-top:6px">No predice la próxima ronda ni garantiza aciertos; sirve para estudiar tu histórico.</div>
+        <div class="mini" style="margin-top:6px">No predice la próxima ronda; describe tu histórico.</div>
       </div>
     </aside>
   </div>
@@ -165,7 +164,7 @@ table{width:100%;min-width:560px;border-collapse:collapse} th,td{padding:10px 12
           <span class="badge"><span class="sw" style="background:#b91c1c"></span>&lt; X</span>
         </div>
         <svg id="tsvg" viewBox="0 0 800 320" width="100%" height="320" role="img" aria-label="Serie temporal"></svg>
-        <div class="mini muted">Puntos: más recientes a la derecha. Eje Y: multiplicador.</div>
+        <div class="mini muted">Más recientes a la derecha. Eje Y: multiplicador.</div>
       </div>
       <div class="svgbox">
         <div class="legend"><span class="badge"><span class="sw" style="background:#60a5fa"></span>Histograma</span></div>
@@ -177,7 +176,7 @@ table{width:100%;min-width:560px;border-collapse:collapse} th,td{padding:10px 12
 
   <!-- MÓDULO ≥10 / ≥20 / ≥30 -->
   <section class="card section">
-    <h2>Módulo ≥10× / ≥20× / ≥30× (frecuencias y ventanas sin apariciones)</h2>
+    <h2>Módulo ≥10× / ≥20× / ≥30×</h2>
     <div id="hiBox" class="stats"></div>
   </section>
 
@@ -196,10 +195,10 @@ table{width:100%;min-width:560px;border-collapse:collapse} th,td{padding:10px 12
         <tbody id="enBody"></tbody>
       </table>
     </div>
-    <div class="mini muted" style="margin-top:8px">Aquí solo se listan rondas donde el sistema emitió una <b>señal</b> (tras esperar mínimo 6 y cumplir el criterio).</div>
+    <div class="mini muted" style="margin-top:8px">Solo rondas donde hubo <b>señal</b> (espera mínima 6 + criterio cumplido).</div>
   </section>
 
-  <!-- TABLA DE TODAS LAS RONDAS (opcional, para referencia) -->
+  <!-- TODAS LAS RONDAS (referencia visual) -->
   <section class="card section">
     <h2>Todas las rondas cargadas (referencia)</h2>
     <div class="table-wrap">
@@ -211,27 +210,23 @@ table{width:100%;min-width:560px;border-collapse:collapse} th,td{padding:10px 12
   </section>
 
   <section class="card section">
-    <div class="danger"><b>No es un predictor de apuestas.</b> Aviator usa RNG/“provably fair”.</div>
-    <div class="success" style="margin-top:10px">El panel resume tu histórico y las señales generadas por la regla (ventana + IC) con espera mínima de 6.</div>
+    <div class="danger"><b>No es un predictor de apuestas.</b> Usa solo datos que puedas copiar o enviar tú mismo y respeta los TOS del sitio que uses.</div>
   </section>
 </main>
 
 <script>
 const COOL_MIN = 6; // espera mínima entre señales
-const state = { rounds:[], target:3.00, windowN:20, conf:0.95, entries:[] /* señales calculadas */ };
+const state = { rounds:[], target:3.00, windowN:20, conf:0.95, entries:[] };
 const LS_KEY = "aviator_panel_wait6_v1";
 
-/* Utilidades */
+/* Utils */
 function saveLS(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
-function loadLS(){
-  try{
-    const o = JSON.parse(localStorage.getItem(LS_KEY)||"{}");
-    if(Array.isArray(o.rounds)) state.rounds = o.rounds.filter(v=>typeof v==="number" && isFinite(v) && v>0);
-    if(typeof o.target==="number") state.target=o.target;
-    if(typeof o.windowN==="number") state.windowN=o.windowN;
-    if(typeof o.conf==="number") state.conf=o.conf;
-  }catch{}
-}
+function loadLS(){ try{ const o=JSON.parse(localStorage.getItem(LS_KEY)||"{}");
+  if(Array.isArray(o.rounds)) state.rounds=o.rounds.filter(v=>typeof v==="number"&&isFinite(v)&&v>0);
+  if(typeof o.target==="number") state.target=o.target;
+  if(typeof o.windowN==="number") state.windowN=o.windowN;
+  if(typeof o.conf==="number") state.conf=o.conf;
+}catch{} }
 function fmt(x,d=2){ return (!isFinite(x))?"—":(Math.round(x*10**d)/10**d).toFixed(d); }
 function pct(x){ return (x*100).toFixed(1)+"%"; }
 function mean(a){ return a.length? a.reduce((s,x)=>s+x,0)/a.length : NaN; }
@@ -246,86 +241,62 @@ function wilson(k,n,z=1.96){
   return [Math.max(0,center-half), Math.min(1,center+half), ph];
 }
 
-/* Señales históricas con espera mínima 6 */
+/* Señales con espera mínima 6 */
 function computeEntries(){
   const X=state.target, N=state.windowN, conf=state.conf, data=state.rounds;
-  const entries=[];
-  let cooldown=0;
+  const entries=[]; let cooldown=0;
   for(let i=0;i<data.length;i++){
-    if(i<N){ if(cooldown>0) cooldown--; continue; } // no hay base suficiente
-    // calcular p̂ en la ventana previa (i-N .. i-1)
-    const prev = data.slice(i-N, i);
-    const k = prev.filter(v=>v>=X).length;
-    const [lo,hi,ph] = wilson(k,N,1.96);
-    const allowed = (lo>=conf);       // criterio empírico
-    const canSignal = (cooldown<=0);  // ya pasó la espera mínima
+    if(i<N){ if(cooldown>0) cooldown--; continue; }
+    const prev=data.slice(i-N,i);
+    const k=prev.filter(v=>v>=X).length;
+    const [lo,hi,ph]=wilson(k,N,1.96);
+    const allowed=(lo>=conf), canSignal=(cooldown<=0);
     if(allowed && canSignal){
-      const v = data[i];
+      const v=data[i];
       entries.push({ idx:i+1, v, win:(v>=X), ph, lo, hi, usedWait:COOL_MIN });
-      cooldown = COOL_MIN;            // reiniciar espera mínima
+      cooldown = COOL_MIN;
     }else{
-      if(cooldown>0) cooldown--;      // reducir contador entre señales
+      if(cooldown>0) cooldown--;
     }
   }
-  state.entries = entries;
+  state.entries=entries;
 }
 
-/* Render de resumen, señal “actual”, módulos, etc. */
-const stTotal=document.getElementById('stTotal');
-const stEntries=document.getElementById('stEntries');
-const stEntryWR=document.getElementById('stEntryWR');
-const stMedian=document.getElementById('stMedian');
-const stP1090=document.getElementById('stP1090');
-const stMean=document.getElementById('stMean');
-
-const sigDot=document.getElementById('sigDot');
-const sigText=document.getElementById('sigText');
-const sigPhat=document.getElementById('sigPhat');
-const sigCI=document.getElementById('sigCI');
-const sigN=document.getElementById('sigN');
+/* Resumen y tablas */
+const stTotal=document.getElementById('stTotal'), stEntries=document.getElementById('stEntries'), stEntryWR=document.getElementById('stEntryWR');
+const stMedian=document.getElementById('stMedian'), stP1090=document.getElementById('stP1090'), stMean=document.getElementById('stMean');
+const sigDot=document.getElementById('sigDot'), sigText=document.getElementById('sigText'), sigPhat=document.getElementById('sigPhat'), sigCI=document.getElementById('sigCI'), sigN=document.getElementById('sigN');
 
 function renderSummary(){
   const X=state.target, a=state.rounds;
-  stTotal.textContent = a.length;
+  stTotal.textContent=a.length;
   const [q10,q50,q90]=quantiles(a,[0.1,0.5,0.9]);
-  stMedian.textContent = isFinite(q50)? fmt(q50):"—";
-  stP1090.textContent = (isFinite(q10)&&isFinite(q90))? `${fmt(q10)} / ${fmt(q90)}` : "—";
-  stMean.textContent = a.length? fmt(mean(a)):"—";
+  stMedian.textContent=isFinite(q50)?fmt(q50):"—";
+  stP1090.textContent=(isFinite(q10)&&isFinite(q90))?`${fmt(q10)} / ${fmt(q90)}`:"—";
+  stMean.textContent=a.length?fmt(mean(a)):"—";
 
-  // Señal "actual": calcula en la última ventana (sin emitir)
   const N=Math.min(state.windowN, a.length);
   const slice=a.slice(-N);
   const k=slice.filter(v=>v>=X).length;
-  const [lo,hi,ph]=N? wilson(k,N,1.96) : [NaN,NaN,NaN];
-  sigN.textContent = N;
-  sigPhat.textContent = isFinite(ph)? pct(ph):"—";
-  sigCI.textContent = (isFinite(lo)&&isFinite(hi))? `[${pct(lo)} , ${pct(hi)}]`:"—";
+  const [lo,hi,ph]=N?wilson(k,N,1.96):[NaN,NaN,NaN];
+  sigN.textContent=N;
+  sigPhat.textContent=isFinite(ph)?pct(ph):"—";
+  sigCI.textContent=(isFinite(lo)&&isFinite(hi))?`[${pct(lo)} , ${pct(hi)}]`:"—";
   if(N>=20 && isFinite(lo) && lo>=state.conf){ sigText.textContent="criterio empírico cumplido"; sigDot.style.background="var(--good)"; }
   else { sigText.textContent="sin criterio (o N<20)"; sigDot.style.background="var(--warn)"; }
 
-  // Resumen de entradas
-  const en = state.entries;
-  const wins = en.filter(e=>e.win).length;
-  stEntries.textContent = en.length;
-  stEntryWR.textContent = en.length? pct(wins/en.length) : "—";
+  const en=state.entries, wins=en.filter(e=>e.win).length;
+  stEntries.textContent=en.length;
+  stEntryWR.textContent=en.length?pct(wins/en.length):"—";
 }
 
-/* Tabla de entradas */
-const enBody=document.getElementById('enBody');
-const enN=document.getElementById('enN');
-const enW=document.getElementById('enW');
-const enWR=document.getElementById('enWR');
-const enLast=document.getElementById('enLast');
-
+const enBody=document.getElementById('enBody'), enN=document.getElementById('enN'), enW=document.getElementById('enW'), enWR=document.getElementById('enWR'), enLast=document.getElementById('enLast');
 function renderEntriesTable(){
-  const en = state.entries;
+  const en=state.entries;
   enBody.innerHTML="";
-  enN.textContent = en.length;
-  const wins = en.filter(e=>e.win).length;
-  enW.textContent = wins;
-  enWR.textContent = en.length? pct(wins/en.length) : "—";
-  enLast.textContent = en.length? `ronda ${en[en.length-1].idx}` : "—";
-
+  enN.textContent=en.length;
+  const wins=en.filter(e=>e.win).length; enW.textContent=wins; enWR.textContent=en.length?pct(wins/en.length):"—";
+  enLast.textContent=en.length?`ronda ${en[en.length-1].idx}`:"—";
   en.slice(-200).forEach(t=>{
     const tr=document.createElement('tr');
     const td1=document.createElement('td'); td1.textContent=t.idx;
@@ -338,7 +309,6 @@ function renderEntriesTable(){
   });
 }
 
-/* Tabla de todas las rondas (solo marca baja ≤1.10 y ≥X/<X como referencia visual) */
 const tbody=document.getElementById('tbody');
 function renderAllRounds(){
   const X=state.target;
@@ -347,13 +317,12 @@ function renderAllRounds(){
     const tr=document.createElement('tr');
     const td1=document.createElement('td'); td1.textContent=r.idx;
     const td2=document.createElement('td'); td2.textContent=fmt(r.v)+"×";
-    const td3=document.createElement('td'); 
-    td3.innerHTML=(r.v<=1.10)?'<span class="tag low">≤1.10</span>':(r.v>=X?'<span class="tag good">≥X</span>':'<span class="tag bad">&lt;X</span>');
+    const td3=document.createElement('td'); td3.innerHTML=(r.v<=1.10)?'<span class="tag low">≤1.10</span>':(r.v>=X?'<span class="tag good">≥X</span>':'<span class="tag bad">&lt;X</span>');
     [td1,td2,td3].forEach(td=>tr.appendChild(td)); tbody.appendChild(tr);
   });
 }
 
-/* CHARTS: serie temporal + histograma */
+/* Charts */
 function elNS(tag,attrs){ const e=document.createElementNS('http://www.w3.org/2000/svg',tag); for(const k in attrs) e.setAttribute(k,attrs[k]); return e; }
 function drawEmpty(svg,W,H){ svg.appendChild(elNS('rect',{x:0,y:0,width:W,height:H,fill:'transparent'})); const t=elNS('text',{x:W/2,y:H/2,fill:'#768aa3','font-size':'13','text-anchor':'middle'}); t.textContent='Añade datos para ver la gráfica'; svg.appendChild(t); }
 function drawTimeSeries(){
@@ -366,29 +335,20 @@ function drawTimeSeries(){
   const sy=(v)=> T + (H-T-B) * (1 - ((v-minY)/(maxY-minY)));
   svg.appendChild(elNS('line',{x1:L,y1:H-B,x2:W-R,y2:H-B,stroke:'#173048'}));
   svg.appendChild(elNS('line',{x1:L,y1:T,x2:L,y2:H-B,stroke:'#173048'}));
-  // grid y etiquetas
   for(let t=1;t<=Math.floor(maxY);t++){
-    const Y=sy(t);
-    svg.appendChild(elNS('line',{x1:L,y1:Y,x2:W-R,y2:Y,stroke:'#173048','stroke-width':1,opacity:.5}));
+    const Y=sy(t); svg.appendChild(elNS('line',{x1:L,y1:Y,x2:W-R,y2:Y,stroke:'#173048','stroke-width':1,opacity:.5}));
     const lbl=elNS('text',{x:8,y:Y+4,fill:'#9fb1c7','font-size':'10'}); lbl.textContent=t+'x'; svg.appendChild(lbl);
   }
-  // línea de X
   svg.appendChild(elNS('line',{x1:L,y1:sy(X),x2:W-R,y2:sy(X),stroke:'#9ca3af','stroke-dasharray':'4 4','stroke-width':1.5,opacity:.9}));
-  // polyline
   const pts=data.map((v,i)=>`${sx(i)},${sy(v)}`).join(' ');
   svg.appendChild(elNS('polyline',{points:pts,fill:'none',stroke:'#59a6ff','stroke-width':2}));
-  // puntos coloreados
-  data.forEach((v,i)=>{
-    svg.appendChild(elNS('circle',{cx:sx(i),cy:sy(v),r:3,fill:(v>=X?'#169a58':'#b91c1c'),opacity:.9}));
-  });
+  data.forEach((v,i)=>svg.appendChild(elNS('circle',{cx:sx(i),cy:sy(v),r:3,fill:(v>=X?'#169a58':'#b91c1c'),opacity:.9})));
 }
-function quantilesArr(a,qs){ return quantiles(a,qs); }
 function drawHistogram(){
   const svg=document.getElementById('hsvg'); while(svg.firstChild) svg.removeChild(svg.firstChild);
   const W=800,H=320,L=40,R=12,T=10,B=28;
   const a=state.rounds; if(!a.length){ return drawEmpty(svg,W,H); }
-  const [q25,q75]=quantilesArr(a,[0.25,0.75]);
-  const bw = Math.max(0.05, 2*(q75-q25)/Math.cbrt(a.length) || 0.2);
+  const [q25,q75]=quantiles(a,[0.25,0.75]); const bw=Math.max(0.05, 2*(q75-q25)/Math.cbrt(a.length) || 0.2);
   const minV=Math.min(...a), maxV=Math.max(...a);
   const bins=[]; const maxEdge=Math.max(minV+bw, Math.ceil((maxV+0.0001)/bw)*bw);
   for(let e=minV; e<=maxEdge+1e-9; e+=bw){ bins.push({edge:e,count:0}); }
@@ -399,26 +359,21 @@ function drawHistogram(){
   svg.appendChild(elNS('line',{x1:L,y1:H-B,x2:W-R,y2:H-B,stroke:'#173048'}));
   svg.appendChild(elNS('line',{x1:L,y1:T,x2:L,y2:H-B,stroke:'#173048'}));
   const barW=(W-L-R)/bins.length - 1;
-  bins.forEach((b,i)=>{
-    const y0=sy(b.count); const h=(H-T-B)-(y0-T);
-    svg.appendChild(elNS('rect',{x:sx(i)+0.5,y:y0,width:Math.max(0,barW),height:Math.max(0,h),fill:'#60a5fa',opacity:.85}));
-  });
+  bins.forEach((b,i)=>{ const y0=sy(b.count); const h=(H-T-B)-(y0-T); svg.appendChild(elNS('rect',{x:sx(i)+0.5,y:y0,width:Math.max(0,barW),height:Math.max(0,h),fill:'#60a5fa',opacity:.85})); });
   const steps=Math.max(2,Math.floor(bins.length/8));
-  for(let i=0;i<bins.length;i+=steps){
-    const tx=elNS('text',{x:sx(i)+barW/2,y:H-8,fill:'#9fb1c7','font-size':'10','text-anchor':'middle'}); tx.textContent=(bins[i].edge).toFixed(1); svg.appendChild(tx);
-  }
+  for(let i=0;i<bins.length;i+=steps){ const tx=elNS('text',{x:sx(i)+barW/2,y:H-8,fill:'#9fb1c7','font-size':'10','text-anchor':'middle'}); tx.textContent=(bins[i].edge).toFixed(1); svg.appendChild(tx); }
 }
 
-/* Módulo de ≥10/20/30 */
+/* High mults */
 const hiBox=document.getElementById('hiBox');
 function gapsStats(th){
   const a=state.rounds; let last=-1; const gaps=[];
   for(let i=0;i<a.length;i++){ if(a[i]>=th){ if(last===-1) gaps.push(i); else gaps.push(i-last-1); last=i; } }
-  const currentGap = (last===-1)? a.length : (a.length-last-1);
-  const maxGap = gaps.length? Math.max(...gaps) : currentGap;
-  const avgGap = gaps.length? (gaps.reduce((s,x)=>s+x,0)/gaps.length) : currentGap;
-  const count = a.filter(v=>v>=th).length;
-  const rate = a.length? count/a.length : NaN;
+  const currentGap=(last===-1)?a.length:(a.length-last-1);
+  const maxGap=gaps.length?Math.max(...gaps):currentGap;
+  const avgGap=gaps.length?(gaps.reduce((s,x)=>s+x,0)/gaps.length):currentGap;
+  const count=a.filter(v=>v>=th).length;
+  const rate=a.length?count/a.length:NaN;
   return {th,count,rate,maxGap,currentGap,avgGap};
 }
 function renderHighMults(){
@@ -427,71 +382,49 @@ function renderHighMults(){
     const st=gapsStats(th);
     const box=document.createElement('div'); box.className="stat";
     const h=document.createElement('h3'); h.textContent=`≥ ${th}×`;
-    const p=document.createElement('p'); p.textContent = `${st.count} (${isFinite(st.rate)?pct(st.rate):"—"})`;
+    const p=document.createElement('p'); p.textContent=`${st.count} (${isFinite(st.rate)?pct(st.rate):"—"})`;
     const small=document.createElement('div'); small.className="mini muted";
-    small.textContent = `Max gap: ${st.maxGap} · Gap actual: ${st.currentGap} · Gap medio: ${isFinite(st.avgGap)?st.avgGap.toFixed(1):"—"}`;
+    small.textContent=`Max gap: ${st.maxGap} · Gap actual: ${st.currentGap} · Gap medio: ${isFinite(st.avgGap)?st.avgGap.toFixed(1):"—"}`;
     box.appendChild(h); box.appendChild(p); box.appendChild(small); hiBox.appendChild(box);
   });
 }
 
-/* Tabla de todas las rondas (referencia) */
-function renderAll(){
-  renderAllRounds();
-}
-
-/* Entradas/Señales + Resumen */
+/* Update */
 function updateAll(){
-  computeEntries();      // recalcular señales con espera mínima 6
-  renderSummary();       // resumen y estado actual
-  renderEntriesTable();  // tabla de señales
+  computeEntries();
+  renderSummary();
+  renderEntriesTable();
   drawTimeSeries();
   drawHistogram();
   renderHighMults();
-  renderAll();
+  renderAllRounds();
   saveLS();
 }
 
-/* Entradas de usuario */
+/* Entradas de usuario y listeners de datos */
 function addValue(v){ if(isFinite(v) && v>0){ state.rounds.push(v); updateAll(); } }
-function addFromInput(){
-  const inp=document.getElementById('quick'); const raw=(inp.value||"").trim().replace(",",".");
-  const val=parseFloat(raw); addValue(val); inp.value=""; inp.focus();
-}
+function addFromInput(){ const inp=document.getElementById('quick'); const raw=(inp.value||"").trim().replace(",","."); const val=parseFloat(raw); addValue(val); inp.value=""; inp.focus(); }
 document.getElementById('btnAdd').onclick=addFromInput;
 document.getElementById('quick').addEventListener('keydown',e=>{ if(e.key==="Enter"){ e.preventDefault(); addFromInput(); }});
 document.getElementById('btnUndo').onclick=()=>{ state.rounds.pop(); updateAll(); };
-document.getElementById('btnBulk').onclick=()=>{
-  const txt=document.getElementById('bulk').value.trim(); if(!txt) return;
-  const parts=txt.split(/[\s,;]+/g).map(s=>parseFloat(s.replace(",",".")).valueOf()).filter(v=>isFinite(v)&&v>0);
-  parts.forEach(addValue); document.getElementById('bulk').value="";
-};
+document.getElementById('btnBulk').onclick=()=>{ const txt=document.getElementById('bulk').value.trim(); if(!txt) return; const parts=txt.split(/[\s,;]+/g).map(s=>parseFloat(s.replace(",",".")).valueOf()).filter(v=>isFinite(v)&&v>0); parts.forEach(addValue); document.getElementById('bulk').value=""; };
 document.querySelectorAll('.chip-btn').forEach(b=>b.onclick=()=>{ state.target=parseFloat(b.getAttribute('data-t')); document.getElementById('target').value=state.target.toFixed(2); document.querySelectorAll('.chip-btn').forEach(x=>x.classList.toggle('active',x===b)); updateAll(); });
 document.getElementById('target').onchange=(e)=>{ const x=parseFloat(e.target.value); if(isFinite(x)&&x>0){ state.target=x; updateAll(); }};
 document.getElementById('window').onchange=(e)=>{ const n=parseInt(e.target.value,10); if(Number.isInteger(n)&&n>=5){ state.windowN=n; updateAll(); }};
 document.getElementById('conf').onchange=(e)=>{ let c=parseFloat(e.target.value); c=Math.max(0.5,Math.min(0.99,c)); state.conf=c; e.target.value=c.toFixed(2); updateAll(); };
-
-/* Export/Import/Reset */
-document.getElementById('btnExport').onclick=()=>{
-  const blob=new Blob([JSON.stringify({rounds:state.rounds,target:state.target,windowN:state.windowN,conf:state.conf},null,2)],{type:"application/json"});
-  const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download="aviator_analisis_edu.json"; a.click(); URL.revokeObjectURL(url);
-};
+document.getElementById('btnExport').onclick=()=>{ const blob=new Blob([JSON.stringify({rounds:state.rounds,target:state.target,windowN:state.windowN,conf:state.conf},null,2)],{type:"application/json"}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download="aviator_analisis_edu.json"; a.click(); URL.revokeObjectURL(url); };
 document.getElementById('btnImport').onclick=()=>document.getElementById('fileImport').click();
-document.getElementById('fileImport').addEventListener('change',async (e)=>{
-  const file=e.target.files[0]; if(!file) return; const txt=await file.text();
-  try{
-    const o=JSON.parse(txt);
-    state.rounds = Array.isArray(o.rounds)? o.rounds.filter(v=>typeof v==="number"&&isFinite(v)&&v>0):[];
-    if(typeof o.target==="number") state.target=o.target;
-    if(typeof o.windowN==="number") state.windowN=o.windowN;
-    if(typeof o.conf==="number") state.conf=o.conf;
-    document.getElementById('target').value=state.target.toFixed(2);
-    document.getElementById('window').value=state.windowN;
-    document.getElementById('conf').value=state.conf.toFixed(2);
-    updateAll();
-  }catch{ alert("Archivo inválido"); }
-  e.target.value="";
-});
+document.getElementById('fileImport').addEventListener('change',async (e)=>{ const file=e.target.files[0]; if(!file) return; const txt=await file.text(); try{ const o=JSON.parse(txt); state.rounds=Array.isArray(o.rounds)?o.rounds.filter(v=>typeof v==="number"&&isFinite(v)&&v>0):[]; if(typeof o.target==="number") state.target=o.target; if(typeof o.windowN==="number") state.windowN=o.windowN; if(typeof o.conf==="number") state.conf=o.conf; document.getElementById('target').value=state.target.toFixed(2); document.getElementById('window').value=state.windowN; document.getElementById('conf').value=state.conf.toFixed(2); updateAll(); }catch{ alert("Archivo inválido"); } e.target.value=""; });
 document.getElementById('btnReset').onclick=()=>{ if(confirm("¿Borrar todo y empezar de cero?")){ state.rounds=[]; updateAll(); } };
+
+/* Listener de postMessage: llega desde el userscript */
+window.addEventListener('message',(ev)=>{
+  const msg=ev && ev.data;
+  if(!msg || typeof msg!=='object') return;
+  if(msg.type==='aviator:result'){
+    const v=parseFloat(String(msg.value).replace(",",".")); if(isFinite(v) && v>0){ addValue(v); }
+  }
+});
 
 /* Init */
 (function init(){
