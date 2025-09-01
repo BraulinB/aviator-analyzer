@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Aviator Learner — Bot + Captura integrada</title>
+<title>Aviator Learner — Bot Integrado (sin captura)</title>
 <style>
   :root { --bg:#0f172a; --card:#0b1220; --muted:#94a3b8; --text:#e5e7eb; --accent:#60a5fa; --ok:#22c55e; --bad:#ef4444; }
   *{box-sizing:border-box}
@@ -27,14 +27,7 @@
   .table{width:100%;border-collapse:collapse;font-size:13px}
   .table td,.table th{border-bottom:1px solid #1f2937;padding:6px 4px;text-align:left}
   canvas.chart{width:100%;height:280px;background:#0a0f1f;border:1px solid #1f2937;border-radius:12px}
-  .liveBox{display:grid;grid-template-rows:auto auto 1fr auto;gap:8px}
-  .liveRow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  .livePreview{width:100%;max-height:160px;border:1px solid #1f2937;border-radius:10px;background:#0a0f1f}
-  .liveCanvas{width:100%;height:240px;border:1px solid #1f2937;border-radius:10px;background:#020617}
-  .log{max-height:180px;overflow:auto;border:1px solid #1f2937;border-radius:10px;padding:8px;background:#0a0f1f;font-size:12px}
-  .badge{font-size:12px;padding:2px 8px;border:1px solid #334155;border-radius:999px}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -45,13 +38,14 @@
       <!-- ENTRADA -->
       <div class="card">
         <h2>Entrada de rondas</h2>
-        <textarea id="ta" placeholder="Pega multiplicadores: 1.20 2.47 8.30 145.00 1.10 ..."></textarea>
+        <textarea id="ta" placeholder="Pega multiplicadores o espera TM: 1.20 2.47 8.30 145.00 1.10 ..."></textarea>
         <div class="rowflex">
           <button class="btn" id="btnAdd">Añadir</button>
           <button class="btn" id="btnClear">Limpiar</button>
           <input id="quick" placeholder="Rápido: 123 => 1.23" style="width:160px">
           <button class="btn" id="btnQuick">Añadir rápido</button>
         </div>
+        <div class="muted small" id="tmInfo">Listo. Si usas Tampermonkey verás “TM recibido: N.nn×”.</div>
       </div>
 
       <!-- MODELO -->
@@ -125,7 +119,7 @@
         </table>
       </div>
 
-      <!-- SEÑALES -->
+      <!-- SEÑALES (resumen) -->
       <div class="card">
         <h2>Señales</h2>
         <table class="table small">
@@ -136,32 +130,6 @@
           <tr><th>Precisión</th><td id="sgAcc">0.0%</td></tr>
         </table>
       </div>
-
-      <!-- CAPTURA -->
-      <div class="card liveBox">
-        <div class="liveRow" style="justify-content:space-between">
-          <h2>Captura en tiempo real (integrada)</h2>
-          <span class="badge" id="lcStat">idle</span>
-        </div>
-        <div class="liveRow">
-          <button class="btn" id="lcStart">Iniciar</button>
-          <button class="btn" id="lcStop" disabled>Detener</button>
-          <label><input type="checkbox" id="lcAuto" checked> auto-add</label>
-        </div>
-        <div class="rowflex">
-          <label>FPS <input id="lcFps" type="number" value="3" style="width:80px"></label>
-          <label>Rojo% <input id="lcThr" type="number" value="10" style="width:80px"></label>
-          <label>Stable <input id="lcStb" type="number" value="2" style="width:80px"></label>
-          <label>OffX <input id="lcOffX" type="number" value="0" style="width:80px"></label>
-          <label>OffY <input id="lcOffY" type="number" value="0" style="width:80px"></label>
-          <label>Cooldown (s) <input id="lcCd" type="number" value="2" style="width:90px"></label>
-          <label><input type="checkbox" id="lcUseRed" checked> usar rojo</label>
-        </div>
-        <video id="lcPrev" class="livePreview" autoplay muted playsinline></video>
-        <canvas id="lcCan" class="liveCanvas"></canvas>
-        <div class="muted small" id="lcInfo">Listo.</div>
-        <div id="lcLog" class="log"></div>
-      </div>
     </div>
   </div>
 
@@ -169,6 +137,7 @@
 </div>
 
 <script>
+/* ===================== UTIL ===================== */
 const $ = (id)=>document.getElementById(id);
 const setText=(id,val)=>{const el=$(id); if(el) el.textContent=val;};
 
@@ -196,6 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let sinceHi=0; for(let i=caps.length-1;i>=0;i--){ if(caps[i]>=target) break; sinceHi++; }
     return [1,mean,med,std,meanLog,p3,p5,up,down,sinceHi,...L];
   }
+
   class OnlineLogReg{
     constructor(d,lr=0.02,l2=0.001){this.w=new Array(d).fill(0);this.lr0=lr;this.l2=l2;this.prevX=null;this.prevP=null;}
     static sg(z){return 1/(1+Math.exp(-Math.max(-50,Math.min(50,z))))}
@@ -243,6 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if(p==null){ setText('prob','—'); const s=$('signal'); if(s){ s.textContent='—'; s.className='signal no'; } setText('sgPending', SIGNAL_PENDING?'Sí':'No'); return; }
     setText('prob',p.toFixed(3)); pushPred(p);
 
+    // Baseline reciente y top-quantil
     const calW=Math.max(20,Math.floor(G('calW',80)));
     const base=DATA.length? (DATA.slice(-calW).filter(x=>x>=G('inpTarget',3)).length/Math.min(calW,DATA.length)) : 0.0;
     const margin=G('gateMargin',0.15);
@@ -261,8 +232,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const allOk=gates.every(Boolean) && (p>=th);
 
     const sigEl=$('signal');
-    if(allOk){ if(sigEl){ sigEl.textContent=`SEÑAL (p≥${Math.max(th,qcut,base+margin).toFixed(2)})`; sigEl.className='signal ok'; } SIGNAL_PENDING=true; LAST_SIGNAL_INDEX=idx; }
-    else{ if(sigEl){ sigEl.textContent='No señal'; sigEl.className='signal no'; } }
+    if(allOk){
+      if(sigEl){ sigEl.textContent=`SEÑAL (p≥${Math.max(th,qcut,base+margin).toFixed(2)})`; sigEl.className='signal ok'; }
+      SIGNAL_PENDING=true; LAST_SIGNAL_INDEX=idx;
+    } else {
+      if(sigEl){ sigEl.textContent='No señal'; sigEl.className='signal no'; }
+    }
     setText('sgPending', SIGNAL_PENDING?'Sí':'No');
   }
 
@@ -271,158 +246,87 @@ document.addEventListener('DOMContentLoaded', () => {
     let p=null; if(DATA.length>=Math.max(5,minN)){ const x=featuresFrom(DATA,W,target); p=MODEL.stepPrepare(x); } updatePredictionUI(p);
   }
 
+  // === Evento principal: cada nueva ronda ===
   window.onNewRound = function(val){
-    const v = Math.round(val*100)/100;
+    const v = Math.round(val*100)/100; // normaliza 2 decimales
     const target=G('inpTarget',3);
+
+    // Actualiza modelo (usa la ronda actual como label de la predicción anterior)
     if(MODEL&&MODEL.prevX){ const y=(v>=target)?1:0; MODEL.update(y); N_UPDATES++; }
-    updateSignalCountersOnNewValue(v);
+
+    // Contadores de señal
+    if(SIGNAL_PENDING){ if(v>=target) SG_WINS++; else SG_LOSS++; SIGNAL_PENDING=false; }
+    SG_TOTAL=SG_WINS+SG_LOSS; const acc=SG_TOTAL?(SG_WINS/SG_TOTAL*100).toFixed(1)+'%':'0.0%';
+    setText('sgPending','No'); setText('sgTotal',SG_TOTAL); setText('sgWins',SG_WINS); setText('sgLoss',SG_LOSS); setText('sgAcc',acc);
+
+    // Datos + UI
     DATA.push(v);
-    renderStats(); drawChart(); maybePredictNext();
     const ta=$('ta'); if(ta){ ta.value=(ta.value.trim()?ta.value.trim()+' ':'')+v.toFixed(2); }
-    setText('lcInfo','Añadida: '+v.toFixed(2)+'×');
+    renderStats(); drawChart(); maybePredictNext();
   };
 
+  // === Controles de entrada ===
   $('btnAdd').onclick=()=>{ try{ const v=parseList($('ta').value); if(!v.length) return; v.forEach(window.onNewRound); $('ta').value=''; }catch(e){} };
-  $('btnClear').onclick=()=>{ try{ DATA=[]; SIGNAL_PENDING=false; SG_TOTAL=SG_WINS=SG_LOSS=0; if(MODEL){ MODEL.prevX=null; MODEL.prevP=null; } renderStats(); drawChart(); updatePredictionUI(null); setText('sgPending','No'); setText('sgTotal','0'); setText('sgWins','0'); setText('sgLoss','0'); setText('sgAcc','0.0%'); }catch(e){} };
-  $('btnQuick').onclick=()=>{ try{ const s=String($('quick').value||'').trim(); let v=null; if(s && !s.includes('.') && /^\d{2,5}$/.test(s)){ if(s.length===2)v=s[0]+'.'+s[1]; else if(s.length===3)v=s[0]+'.'+s.slice(1); else v=s.slice(0,2)+'.'+s.slice(2);} else v=s; const x=parseFloat(String(v).replace(',','.')); if(Number.isFinite(x)&&x>0){ window.onNewRound(x); $('quick').value=''; } }catch(e){} };
+  $('btnClear').onclick=()=>{ try{
+      DATA=[]; SIGNAL_PENDING=false; SG_TOTAL=SG_WINS=SG_LOSS=0;
+      if(MODEL){ MODEL.prevX=null; MODEL.prevP=null; }
+      renderStats(); drawChart(); updatePredictionUI(null);
+      setText('sgPending','No'); setText('sgTotal','0'); setText('sgWins','0'); setText('sgLoss','0'); setText('sgAcc','0.0%');
+  }catch(e){} };
+  $('btnQuick').onclick=()=>{ try{
+      const s=String($('quick').value||'').trim(); let v=null;
+      if(s && !s.includes('.') && /^\d{2,5}$/.test(s)){
+        if(s.length===2)v=s[0]+'.'+s[1]; else if(s.length===3)v=s[0]+'.'+s.slice(1); else v=s.slice(0,2)+'.'+s.slice(2);
+      } else v=s;
+      const x=parseFloat(String(v).replace(',','.'));
+      if(Number.isFinite(x)&&x>0){ window.onNewRound(x); $('quick').value=''; }
+  }catch(e){} };
+
   ['inpThresh','gateCooldown','gateWlow','gateMuMin','gateK','gateL','gateM','gateBlockBear','gateT','gateAdaptive','gateTargetAcc','trW','trEps','gateQ','calW','gateMargin']
     .forEach(id=>{ const el=$(id); el && el.addEventListener('input', ()=>updatePredictionUI(MODEL?.prevP ?? null)); });
-  $('btnReset').onclick=()=>{ MODEL=null; ensureModel(); MODEL.prevX=null; MODEL.prevP=null; N_UPDATES=0; maybePredictNext(); };
 
+  $('btnReset').onclick=()=>{ MODEL=null; ensureModel(); MODEL.prevX=null; MODEL.prevP=null; N_UPDATES=0; updatePredictionUI(null); };
+  // Exportar / Importar modelo
+  $('btnExportModel').onclick=()=>{
+    const blob=new Blob([JSON.stringify({w:MODEL?.w||[],lr0:MODEL?.lr0||0.02,l2:MODEL?.l2||0.001},null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='aviator-model.json'; a.click();
+  };
+  $('fileModel').onchange=(e)=>{
+    const f=e.target.files?.[0]; if(!f) return;
+    const r=new FileReader();
+    r.onload=()=>{ try{ const obj=JSON.parse(r.result); ensureModel(); if(Array.isArray(obj.w)) MODEL.w=obj.w.slice(); if(obj.lr0) MODEL.lr0=obj.lr0; if(obj.l2) MODEL.l2=obj.l2; updatePredictionUI(null);}catch(_){ } };
+    r.readAsText(f);
+  };
+
+  // Init
   ensureModel(); renderStats(); drawChart(); updatePredictionUI(null);
   setText('sgPending','No'); setText('sgTotal','0'); setText('sgWins','0'); setText('sgLoss','0'); setText('sgAcc','0.0%');
 });
 
-/* ===================== CAPTURA ROBUSTA ===================== */
+/* ===================== RECEPTOR TAMPERMONKEY (1win.vip) ===================== */
 (function(){
-  const log = (m)=>{ const d=$('lcLog'); if(!d) return; const line=document.createElement('div'); line.textContent='['+new Date().toLocaleTimeString()+'] '+m; d.prepend(line); };
-  const num=(id,def)=>{ const el=$(id); if(!el) return def; const v=parseFloat(String(el.value??'').replace(',','.')); return Number.isFinite(v)?v:def; };
+  const EXPECTED_ORIGIN = 'https://braulinb.github.io'; // tu bot en GitHub Pages
 
-  const S={stream:null,running:false,roundOpen:false,hot:0,cold:0,captured:false,lastRoundOpen:0,ocrBusy:false,lastEmit:0};
+  window.addEventListener('message', (ev) => {
+    const data = ev && ev.data || {};
+    if (data.type !== 'aviator:round') return;
 
-  function roi(canvas){
-    const w=canvas.width,h=canvas.height;
-    const rw=Math.floor(w*0.48), rh=Math.floor(h*0.22);
-    const x=Math.floor((w-rw)/2)+num('lcOffX',0);
-    const y=Math.floor((h-rh)/2)+Math.floor(h*0.04)+num('lcOffY',0);
-    return {x,y,w:rw,h:rh};
-  }
+    const v = parseFloat(data.value);
+    if (!isFinite(v) || v < 1) return;
 
-  function normalizeText(t){
-    return String(t||'').replace(/[x×]/gi,'').replace(/[oO]/g,'0').replace(/[lI|]/g,'1')
-      .replace(/B/g,'8').replace(/S/g,'5').replace(/\s/g,'').replace(/[•·]/g,'.').replace(/,/g,'.');
-  }
-  function parseMultiplier(txt){
-    const s=normalizeText(txt);
-    let m=s.match(/(\d+\.\d{1,2})/); if(m) return parseFloat(m[1]);
-    const m2=s.match(/(\d{2,5})/); if(!m2) return null;
-    const n=parseInt(m2[1],10); if(n>=10&&n<=99999) return n/100;
-    return null;
-  }
+    // Si pruebas en local, puedes comentar la verificación de origin:
+    // if (ev.origin !== EXPECTED_ORIGIN) return;
 
-  function preprocess(src,mode=0){
-    const can=document.createElement('canvas'); can.width=src.width; can.height=src.height;
-    const ctx=can.getContext('2d'); ctx.drawImage(src,0,0);
-    if(mode===0) return can;
-    const img=ctx.getImageData(0,0,can.width,can.height); const d=img.data;
-    for(let i=0;i<d.length;i+=4){
-      const Y=(0.2126*d[i]+0.7152*d[i+1]+0.0722*d[i+2]);
-      let v=Y; if(mode===1) v=(Y-70)*1.8+70; else if(mode===2) v=Y>140?255:0; else if(mode===3) v=(Y-40)*2.2+40;
-      v=Math.max(0,Math.min(255,v)); d[i]=d[i+1]=d[i+2]=v;
-    }
-    ctx.putImageData(img,0,0); return can;
-  }
-
-  async function doOCR(image){ const {data}=await Tesseract.recognize(image,'eng',{tessedit_char_whitelist:'0123456789.'}); return data.text||''; }
-  async function ocrMulti(crop){
-    const up=document.createElement('canvas'); up.width=crop.width*2; up.height=crop.height*2;
-    const u=up.getContext('2d'); u.imageSmoothingEnabled=false; u.drawImage(crop,0,0,up.width,up.height);
-    const canv=[preprocess(up,0),preprocess(up,1),preprocess(up,2),preprocess(up,3)];
-    const vals=[];
-    for(const c of canv){ try{ const txt=await doOCR(c); const v=parseMultiplier(txt); if(v&&isFinite(v)) vals.push(v);}catch(_){ } }
-    if(!vals.length) return null;
-    const r=vals.map(x=>Math.round(x*100)/100).sort((a,b)=>a-b);
-    let best=r[0],cnt=1;
-    for(let i=0;i<r.length;i++){
-      let c=1; for(let j=i+1;j<r.length;j++){ if(Math.abs(r[j]-r[i])<=0.04) c++; }
-      if(c>cnt){ cnt=c; best=r[i]; }
-    }
-    return best;
-  }
-
-  function rgb2hsv(r,g,b){ r/=255; g/=255; b/=255; const max=Math.max(r,g,b), min=Math.min(r,g,b), d=max-min; let h=0;
-    if(d!==0){ if(max===r) h=60*(((g-b)/d + (g<b?6:0))); else if(max===g) h=60*(((b-r)/d + 2)); else h=60*(((r-g)/d + 4)); }
-    const s=max===0?0:d/max, v=max/255; return [h,s,v];
-  }
-  function redScoreHSV(img){ const d=img.data; let r=0,t=0; for(let i=0;i<d.length;i+=4){
-    const A=d[i+3]; if(A<10) continue; const [h,s,v]=rgb2hsv(d[i],d[i+1],d[i+2]); if(((h>=340||h<20)&&s>0.35&&v>0.30)) r++; t++; } return t?(r/t*100):0; }
-
-  async function tryCapture(can, r){
-    if(S.captured) return;
-    const crop=document.createElement('canvas'); crop.width=r.w; crop.height=r.h;
-    crop.getContext('2d').drawImage(can,r.x,r.y,r.w,r.h,0,0,r.w,r.h);
-    const val=await ocrMulti(crop);
-    if(val && val>=1 && val<=20000){
-      const out=Math.round(val*100)/100;
-      const now=performance.now();
-      if(now - S.lastEmit > Math.max(1200, num('lcCd',2)*1000)){ // 1.2s o cooldown
-        S.lastEmit = now;
-        S.captured = true;
-        const msg = 'OCR OK '+out.toFixed(2)+'×';
-        const ta=$('ta');
-        if($('lcAuto')?.checked && typeof window.onNewRound==='function'){ window.onNewRound(out); }
-        else if(ta){ ta.value=(ta.value.trim()?ta.value.trim()+' ':'')+out.toFixed(2); }
-        log(msg);
-      }
+    if (typeof window.onNewRound === 'function') {
+      window.onNewRound(v);
     } else {
-      log('OCR sin número válido');
-    }
-  }
-
-  async function loop(){
-    if(!S.running) return;
-    const fps=Math.max(1,Math.floor(num('lcFps',3))), delay=Math.round(1000/fps);
-    const can=$('lcCan'), ctx=can.getContext('2d'), v=$('lcPrev');
-    if(!v||!v.videoWidth){ setTimeout(loop,delay); return; }
-    if(can.width!==v.videoWidth||can.height!==v.videoHeight){ can.width=v.videoWidth; can.height=v.videoHeight; }
-    ctx.drawImage(v,0,0,can.width,can.height);
-
-    const r=roi(can);
-    ctx.save(); ctx.strokeStyle="#60a5fa"; ctx.lineWidth=2; ctx.setLineDash([6,4]); ctx.strokeRect(r.x,r.y,r.w,r.h); ctx.restore();
-
-    let pctRed=0;
-    try{ const img=ctx.getImageData(r.x,r.y,r.w,r.h); pctRed=redScoreHSV(img);}catch(_){}
-    const thr=Math.max(1,Math.floor(num('lcThr',10)));
-    const stb=Math.max(1,Math.floor(num('lcStb',2)));
-
-    if(pctRed>=thr){
-      if(!S.roundOpen){ S.roundOpen=true; S.hot=0; S.cold=0; S.captured=false; S.lastEmit=0; }
-      if(++S.hot>=stb && !S.captured) { tryCapture(can,r); }
-    }else{
-      if(S.roundOpen && ++S.cold>=3){ S.roundOpen=false; S.hot=0; S.cold=0; S.captured=false; }
+      const ta = $('ta');
+      if (ta) ta.value = (ta.value.trim() ? ta.value.trim() + ' ' : '') + v.toFixed(2);
     }
 
-    const info=$('lcInfo');
-    if(info) info.textContent=`Rojo ${pctRed.toFixed(1)}% · hot ${S.hot} · ${S.captured?'capturado':(S.roundOpen?'armado':'listo')}`;
-    setTimeout(loop,delay);
-  }
-
-  $('lcStart').onclick=async()=>{
-    try{
-      const stream=await navigator.mediaDevices.getDisplayMedia({video:{displaySurface:"monitor"},audio:false});
-      $('lcPrev').srcObject=stream; await $('lcPrev').play();
-      Object.assign(S,{stream,running:true,roundOpen:false,hot:0,cold:0,captured:false,lastEmit:0});
-      $('lcStart').disabled=true; $('lcStop').disabled=false; $('lcStat').textContent='live';
-      log('Captura iniciada. Rojo% 8–12 · Stable 2–3 · Ajusta OffY.');
-      stream.getVideoTracks()[0].addEventListener('ended', ()=>$('lcStop').click());
-      loop();
-    }catch(e){ log('No se pudo iniciar: '+(e.name||'Error')+' - '+(e.message||e)); $('lcStat').textContent='error'; }
-  };
-  $('lcStop').onclick=()=>{
-    try{ S.stream?.getTracks().forEach(t=>t.stop()); }catch(_){}
-    $('lcPrev').srcObject=null; S.stream=null; S.running=false; S.roundOpen=false; S.captured=false;
-    $('lcStart').disabled=false; $('lcStop').disabled=true; $('lcStat').textContent='idle';
-  };
+    const info = $('tmInfo');
+    if (info) info.textContent = `TM recibido: ${v.toFixed(2)}×`;
+  }, false);
 })();
 </script>
 </body>
