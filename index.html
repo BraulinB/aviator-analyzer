@@ -3,50 +3,38 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Aviator Learner — Móvil (amigable)</title>
+<title>Aviator Learner — Móvil</title>
 <style>
   :root { --bg:#0f172a; --card:#0b1220; --muted:#94a3b8; --text:#e5e7eb; --accent:#60a5fa; --ok:#22c55e; --bad:#ef4444; }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,Segoe UI,Inter,Roboto,Arial}
   .wrap{max-width:100%;margin:0 auto;padding:12px}
-  h1{margin:0 0 10px;font-size:20px;text-align:center}
+  h1{text-align:center;margin:0 0 10px;font-size:20px}
   h2{margin:0 0 6px;font-size:16px}
   .card{background:var(--card);border:1px solid #1f2937;border-radius:14px;padding:12px;margin-top:10px}
-  .row{display:grid;grid-template-columns:1fr;gap:10px}
+  .rowflex{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   textarea,input,select,button{border-radius:12px;border:1px solid #334155;background:#0b1220;color:var(--text);font-size:16px}
-  textarea{width:100%;min-height:80px;padding:10px;font-size:15px}
-  input,select{padding:12px;width:100%}
+  textarea{width:100%;min-height:80px;padding:10px}
+  input{padding:12px;width:100%}
   .btn{padding:12px;background:#111827;border:1px solid #334155;cursor:pointer;border-radius:12px;width:100%}
   .btn:hover{border-color:#475569}
   .muted{color:var(--muted);font-size:13px}
-  .signalBox{text-align:center;margin-top:12px}
-  .signal{font-weight:700;font-size:22px;display:block;margin-top:6px}
+  .signal{font-weight:700;font-size:22px;display:block;margin-top:6px;text-align:center}
   .ok{color:var(--ok)} .no{color:var(--bad)}
   .table{width:100%;border-collapse:collapse;font-size:13px}
   .table td,.table th{border-bottom:1px solid #1f2937;padding:6px 4px;text-align:left}
   canvas.chart{width:100%;height:220px;background:#0a0f1f;border:1px solid #1f2937;border-radius:12px}
-  .rowflex{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  /* Barra de señal destacada */
-  .signalBar{position:sticky;top:0;z-index:50;display:none;align-items:center;justify-content:center;gap:10px;background:#0b3120;border:1px solid #14532d;color:#bbf7d0;padding:10px 12px;border-radius:12px;margin:10px 0}
-  .signalBar.show{display:flex}
-  .signalBadge{font-weight:800;padding:4px 10px;border-radius:999px;background:#16a34a;color:#052e16;border:1px solid #14532d}
-  .pulse{animation:pulse 1.2s ease-in-out infinite}
-  @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.05)}100%{transform:scale(1)}}
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>📱 Aviator Learner</h1>
-  <div id="sigBar" class="signalBar" aria-live="polite" aria-atomic="true">
-    <span class="signalBadge">SEÑAL ACTIVA</span>
-    <span id="sigBarTxt">p≥— · condiciones OK</span>
-  </div>
 
   <div class="card">
     <h2>Entrada rápida</h2>
     <input id="quick" type="text" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" placeholder="Ej: 123 ⇒ 1.23 (Enter)" enterkeyhint="done" />
     <button class="btn" id="btnQuick">Añadir rápido</button>
-    <div class="signalBox">
+    <div>
       <div>Prob. próxima ≥ target: <span id="prob" class="signal">—</span></div>
       <span id="signal" class="signal no">—</span>
     </div>
@@ -66,11 +54,6 @@
       <button class="btn" id="btnAdd60">Añadir 60</button>
       <label><input type="checkbox" id="cbReplace"> Reemplazar dataset</label>
     </div>
-  </div>
-
-  <div class="card">
-    <h2>Gráfica y tendencia</h2>
-    <canvas id="chart" class="chart" width="360" height="220"></canvas>
   </div>
 
   <div class="card">
@@ -97,38 +80,58 @@
     </table>
   </div>
 
+  <div class="card">
+    <h2>Gráfica y tendencia</h2>
+    <canvas id="chart" class="chart" width="360" height="220"></canvas>
+  </div>
+
   <div class="card"><p class="muted">Herramienta educativa. No interactúa con el sitio ni garantiza resultados.</p></div>
 </div>
 
 <script>
 const $ = (id)=>document.getElementById(id);
 const setText=(id,val)=>{const el=$(id); if(el) el.textContent=val;};
-let SIG_ACTIVE=false;
 
-document.addEventListener('DOMContentLoaded', () => {
-  function addQuick(){
-    const s=String($('quick').value||'').trim();
-    if(!s) return;
-    let v=null;
-    if(!s.includes('.') && /^\d{2,4}$/.test(s)){
-      if(s.length===2)v=s[0]+'.'+s[1];
-      else if(s.length===3)v=s[0]+'.'+s.slice(1);
-      else v=s.slice(0,2)+'.'+s.slice(2);
-    } else v=s;
-    const x=parseFloat(v.replace(',','.'));
-    if(Number.isFinite(x)&&x>0){
-      alert('Añadida ronda: '+x.toFixed(2)+'×');
-      $('quick').value='';
-      // mostrar señal ejemplo
-      const bar=$('sigBar');
-      if(bar){ bar.classList.add('show','pulse'); $('#sigBarTxt').textContent=`Valor ${x.toFixed(2)}× añadido`; }
-      SIG_ACTIVE=true;
-      if(window.navigator?.vibrate){ try{ navigator.vibrate(80);}catch(_){} }
-    }
-  }
-  $('btnQuick').onclick=addQuick;
-  $('quick').addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ ev.preventDefault(); addQuick(); }});
-  $('quick').addEventListener('focus',()=>{ try{$('quick').scrollIntoView({block:'center'});}catch(_){}});
+let DATA=[], MODEL=null, SIGNAL_PENDING=false, SG_TOTAL=0, SG_WINS=0, SG_LOSS=0, LAST_SIGNAL_INDEX=-999999;
+
+function parseList(s){return (s||'').split(/[\s,;]+/).map(t=>t.trim()).filter(Boolean).map(v=>parseFloat(v.replace(',','.'))).filter(x=>isFinite(x)&&x>0);}
+function median(a){if(!a.length)return 0;const s=[...a].sort((x,y)=>x-y),m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2;}
+function stats(arr){const n=arr.length;if(!n)return{n:0,mean:0,med:0,max:0,p3:0,p5:0};const sum=arr.reduce((a,b)=>a+b,0);const mean=sum/n;const med=median(arr);const max=Math.max(...arr);const p=t=>arr.filter(x=>x>=t).length/n;return{n,mean,med,max,p3:p(3),p5:p(5)};}
+function logit(p){return Math.log(Math.max(1e-9,p)/Math.max(1e-9,1-p));}
+function last(a,k){return a.slice(Math.max(0,a.length-k));}
+function G(id,def){const el=$(id); const v=parseFloat(String(el?.value??'').replace(',','.')); return Number.isFinite(v)?v:def;}
+function GB(id){return !!($(id)&&$(id).checked);}
+
+class OnlineLogReg{constructor(d,lr=0.02,l2=0.001){this.w=new Array(d).fill(0);this.lr=lr;this.l2=l2;this.prevX=null;this.prevP=null;}
+  static sg(z){return 1/(1+Math.exp(-Math.max(-50,Math.min(50,z))))}
+  predict(x){let z=0;for(let i=0;i<this.w.length;i++)z+=this.w[i]*x[i];return OnlineLogReg.sg(z)}
+  stepPrepare(x){const p=this.predict(x);this.prevX=x.slice();this.prevP=p;return p;}
+  update(y){if(!this.prevX||this.prevP==null)return;const x=this.prevX,p=this.prevP;const g=p-y;for(let i=0;i<this.w.length;i++){const grad=g*x[i]+this.l2*this.w[i];this.w[i]-=this.lr*grad;}this.prevX=null;this.prevP=null;}
+}
+
+function ensureModel(){const lr=0.02,l2=0.001; if(!MODEL) MODEL=new OnlineLogReg(15,lr,l2);}
+
+function renderStats(){const s=stats(DATA);setText('stN',s.n);setText('stMean',s.mean.toFixed(2)+'×');setText('stMed',s.med.toFixed(2)+'×');setText('stP3',(s.p3*100).toFixed(1)+'%');setText('stP5',(s.p5*100).toFixed(1)+'%');setText('stMax',s.max.toFixed(2)+'×');setText('stTrend','—');}
+
+function drawChart(){const c=$('chart'),ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);if(!DATA.length){ctx.fillStyle='#64748b';ctx.fillText('Carga datos',10,20);return;}const cap=200,s=DATA.map((v,i)=>({i:i+1,m:Math.min(v,cap)}));const pad=20,w=c.width-pad*2,h=c.height-pad*2,max=cap,min=0;ctx.strokeStyle='#cbd5e1';ctx.beginPath();for(let i=0;i<s.length;i++){const x=pad+(i/(s.length-1))*w;const y=c.height-pad-((s[i].m-min)/(max-min))*h;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.stroke();}
+
+function updateSignalCountersOnNewValue(v){const target=G('inpTarget',3);if(SIGNAL_PENDING){if(v>=target)SG_WINS++;else SG_LOSS++;SIGNAL_PENDING=false;}SG_TOTAL=SG_WINS+SG_LOSS;const acc=SG_TOTAL?(SG_WINS/SG_TOTAL*100).toFixed(1)+'%':'0.0%';setText('sgPending',SIGNAL_PENDING?'Sí':'No');setText('sgTotal',SG_TOTAL);setText('sgWins',SG_WINS);setText('sgLoss',SG_LOSS);setText('sgAcc',acc);}
+
+function updatePredictionUI(pRaw){if(pRaw==null){setText('prob','—');$('signal').textContent='—';$('signal').className='signal no';return;}setText('prob',pRaw.toFixed(3));$('signal').textContent=(pRaw>=0.5?'SEÑAL':'No señal');$('signal').className='signal '+(pRaw>=0.5?'ok':'no');}
+
+function maybePredictNext(){ensureModel();let p=null;if(DATA.length>=5){const x=new Array(15).fill(0);p=MODEL.stepPrepare(x);}updatePredictionUI(p);}
+
+window.onNewRound=function(val){if(MODEL&&MODEL.prevX){const y=(val>=3)?1:0;MODEL.update(y);}updateSignalCountersOnNewValue(val);DATA.push(val);renderStats();drawChart();maybePredictNext();}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  $('btnQuick').onclick=()=>{const s=$('quick').value.trim();if(!s)return;let v=parseFloat(s.replace(',','.'));if(!s.includes('.')&&/^\d{2,4}$/.test(s)){if(s.length===2)v=parseFloat(s[0]+'.'+s[1]);else if(s.length===3)v=parseFloat(s[0]+'.'+s.slice(1));else v=parseFloat(s.slice(0,2)+'.'+s.slice(2));}if(Number.isFinite(v)&&v>0){window.onNewRound(v);$('quick').value='';}};
+  $('quick').addEventListener('keydown',(ev)=>{if(ev.key==='Enter'){ev.preventDefault();$('btnQuick').click();}});
+
+  $('btnAdd').onclick=()=>{const vals=parseList($('ta').value);vals.forEach(v=>window.onNewRound(v));$('ta').value='';};
+  $('btnClear').onclick=()=>{DATA=[];SIGNAL_PENDING=false;SG_TOTAL=SG_WINS=SG_LOSS=0;MODEL=null;renderStats();drawChart();updatePredictionUI(null);};
+  $('btnAdd60').onclick=()=>{const vals=parseList($('ta60').value).slice(-60);if($('cbReplace').checked){DATA=[];}vals.forEach(v=>window.onNewRound(v));$('ta60').value='';};
+
+  ensureModel();renderStats();drawChart();updatePredictionUI(null);
 });
 </script>
 </body>
