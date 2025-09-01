@@ -3,19 +3,22 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Aviator — Panel educativo (análisis, charts y backtesting)</title>
+<title>Aviator — Panel educativo (señales con espera mínima 6, charts y estudio)</title>
 <style>
 :root{
   --bg:#0b0f14; --panel:#121822; --panel2:#0f1620; --text:#e8eef7; --muted:#9fb1c7;
   --chip:#1f2937; --line:#1e2b3d; --accent:#67e8f9; --good:#22c55e; --bad:#ef4444; --warn:#f59e0b;
   --shadow:0 10px 30px rgba(0,0,0,.35); --radius:16px;
 }
-*{box-sizing:border-box} body{margin:0;background:#0b0f14;color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial}
+*{box-sizing:border-box}
+body{margin:0;background:#0b0f14;color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial}
 header{position:sticky;top:0;backdrop-filter:blur(8px);background:rgba(11,15,20,.7);border-bottom:1px solid var(--line);z-index:10}
 .wrap{max-width:1200px;margin:0 auto;padding:16px}
-h1{margin:0;font-size:clamp(20px,3vw,28px)} .sub{color:var(--muted);font-size:13px}
+h1{margin:0;font-size:clamp(20px,3vw,28px)}
+.sub{color:var(--muted);font-size:13px}
 main{max-width:1200px;margin:18px auto;padding:0 16px 80px}
-.grid{display:grid;gap:16px} @media(min-width:980px){.grid{grid-template-columns:2fr 1.2fr}}
+.grid{display:grid;gap:16px}
+@media(min-width:980px){.grid{grid-template-columns:2fr 1.2fr}}
 .card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
 .section{margin-top:16px}
 .section h2{margin:.2rem 0 .6rem;font-size:18px}
@@ -41,13 +44,13 @@ button:hover{transform:translateY(-1px);border-color:#3b82f6}
 @media(min-width:720px){.stats{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .stat{background:#0b1220;border:1px solid var(--line);padding:12px;border-radius:12px}
 .stat h3{margin:0;font-size:13px;color:#a6b6cf} .stat p{margin:6px 0 0;font-size:20px;font-weight:700}
+.hr{height:1px;background:var(--line);margin:12px 0 16px}
 .table-wrap{overflow:auto;max-height:420px;border:1px solid var(--line);border-radius:12px}
 table{width:100%;min-width:560px;border-collapse:collapse} th,td{padding:10px 12px;border-bottom:1px solid #172132;text-align:left;font-size:14px}
 .tag{padding:4px 8px;border-radius:999px;font-size:12px;border:1px solid #2b3a52}
 .tag.good{background:#022b16;border-color:#063;color:#9effc0}
 .tag.bad{background:#2a0b0b;border-color:#3a1414;color:#ffb4b4}
 .tag.low{background:#2a100b;border-color:#47201a;color:#ffc2a8}
-.hr{height:1px;background:var(--line);margin:12px 0 16px}
 .svgbox{background:#0b1220;border:1px solid var(--line);border-radius:12px;padding:10px}
 .legend{display:flex;gap:8px;flex-wrap:wrap}
 .legend .sw{width:12px;height:12px;border-radius:3px;display:inline-block;margin-right:4px}
@@ -58,16 +61,17 @@ table{width:100%;min-width:560px;border-collapse:collapse} th,td{padding:10px 12
 <body>
 <header>
   <div class="wrap">
-    <h1>Panel educativo — Aviator (registro, charts, backtesting)</h1>
-    <div class="sub">Solo para análisis y estudio con datos introducidos manualmente. No es un predictor de apuestas.</div>
+    <h1>Panel educativo — Aviator (señales con espera mínima 6)</h1>
+    <div class="sub">Estudio con datos manuales. No predice apuestas ni garantiza aciertos.</div>
   </div>
 </header>
 
 <main>
   <div class="grid">
+    <!-- ENTRADAS -->
     <section class="card">
       <h2>Entradas</h2>
-      <p class="muted mini">Usa “Añadir rápido” (Enter confirma) o “Carga en bloque”. En móvil se abre teclado numérico.</p>
+      <p class="muted mini">“Añadir rápido” acepta <span class="kbd">Enter</span>. En móvil abre teclado numérico.</p>
       <div class="row">
         <div class="col" style="flex:1 1 260px;min-width:260px">
           <label for="quick">Añadir rápido (1 valor)</label>
@@ -76,6 +80,7 @@ table{width:100%;min-width:560px;border-collapse:collapse} th,td{padding:10px 12
         <div class="col" style="width:140px"><label>&nbsp;</label><button id="btnAdd" class="primary">Añadir</button></div>
         <div class="col" style="width:160px"><label>&nbsp;</label><button id="btnUndo" class="ghost">Deshacer último</button></div>
       </div>
+
       <div class="row section">
         <div class="col" style="flex:1 1 420px;min-width:300px">
           <label for="bulk">Carga en bloque (hasta 60+ líneas/espacios)</label>
@@ -101,14 +106,14 @@ table{width:100%;min-width:560px;border-collapse:collapse} th,td{padding:10px 12
           <label for="window">Ventana de estudio (últimas N)</label>
           <div class="row">
             <input id="window" type="number" step="1" value="20" min="5" max="200" style="max-width:120px"/>
-            <span class="mini">Mínimo recomendado: 20</span>
+            <span class="mini">Recomendado: ≥ 20</span>
           </div>
         </div>
         <div class="col" style="min-width:220px">
           <label for="conf">Umbral de “confianza” (empírico)</label>
           <div class="row">
             <input id="conf" type="number" step="0.01" value="0.95" min="0.5" max="0.99" style="max-width:120px"/>
-            <span class="mini">IC de Wilson, estudio histórico.</span>
+            <span class="mini">IC de Wilson, histórico.</span>
           </div>
         </div>
       </div>
@@ -122,12 +127,13 @@ table{width:100%;min-width:560px;border-collapse:collapse} th,td{padding:10px 12
       </div>
     </section>
 
+    <!-- RESUMEN -->
     <aside class="card">
       <h2>Resumen</h2>
       <div class="stats">
-        <div class="stat"><h3>Total rondas</h3><p id="stTotal">0</p></div>
-        <div class="stat"><h3>≥ X (histórico)</h3><p id="stWins">0</p></div>
-        <div class="stat"><h3>Tasa ≥ X</h3><p id="stRate">—</p></div>
+        <div class="stat"><h3>Total rondas cargadas</h3><p id="stTotal">0</p></div>
+        <div class="stat"><h3>Entradas (señales)</h3><p id="stEntries">0</p></div>
+        <div class="stat"><h3>Win rate (entradas)</h3><p id="stEntryWR">—</p></div>
         <div class="stat"><h3>Mediana</h3><p id="stMedian">—</p></div>
         <div class="stat"><h3>P10 / P90</h3><p id="stP1090">—</p></div>
         <div class="stat"><h3>Promedio</h3><p id="stMean">—</p></div>
@@ -135,14 +141,14 @@ table{width:100%;min-width:560px;border-collapse:collapse} th,td{padding:10px 12
       <div class="hr"></div>
       <div class="warning">
         <b>“Señal” de estudio (no predictiva)</b><br/>
-        En la <b>ventana</b> elegida, calcula p̂=Pr(≥X) y su IC de Wilson. Si el <b>límite inferior</b> ≥ umbral, se marca como criterio empírico cumplido.
+        Regla: <b>espera mínima de 6 rondas</b>. Tras esa espera, solo se emite señal si el <b>límite inferior</b> del IC95% de Wilson para Pr(≥X) en la ventana ≥ <b>umbral</b>.
         <div class="row" style="margin-top:8px">
-          <span class="chip"><span id="sigDot" class="dot" style="background:var(--warn)"></span>Estado: <b id="sigText">&nbsp;—</b></span>
-          <span class="chip">p̂: <b id="sigPhat">—</b></span>
+          <span class="chip"><span id="sigDot" class="dot" style="background:var(--warn)"></span>Estado actual: <b id="sigText">&nbsp;—</b></span>
+          <span class="chip">p̂ (última ventana): <b id="sigPhat">—</b></span>
           <span class="chip">IC95%: <b id="sigCI">—</b></span>
-          <span class="chip">N: <b id="sigN">0</b></span>
+          <span class="chip">N ventana: <b id="sigN">0</b></span>
         </div>
-        <div class="mini" style="margin-top:6px">No predice la próxima ronda ni garantiza aciertos.</div>
+        <div class="mini" style="margin-top:6px">No predice la próxima ronda ni garantiza aciertos; sirve para estudiar tu histórico.</div>
       </div>
     </aside>
   </div>
@@ -159,79 +165,71 @@ table{width:100%;min-width:560px;border-collapse:collapse} th,td{padding:10px 12
           <span class="badge"><span class="sw" style="background:#b91c1c"></span>&lt; X</span>
         </div>
         <svg id="tsvg" viewBox="0 0 800 320" width="100%" height="320" role="img" aria-label="Serie temporal"></svg>
-        <div class="mini muted">Puntos más recientes a la derecha. Eje Y: multiplicador.</div>
+        <div class="mini muted">Puntos: más recientes a la derecha. Eje Y: multiplicador.</div>
       </div>
       <div class="svgbox">
-        <div class="legend">
-          <span class="badge"><span class="sw" style="background:#60a5fa"></span>Histograma</span>
-        </div>
+        <div class="legend"><span class="badge"><span class="sw" style="background:#60a5fa"></span>Histograma</span></div>
         <svg id="hsvg" viewBox="0 0 800 320" width="100%" height="320" role="img" aria-label="Histograma"></svg>
-        <div class="mini muted">Bins automáticos; útil para ver la cola de valores altos.</div>
+        <div class="mini muted">Bins automáticos; observa la cola de valores altos.</div>
       </div>
     </div>
   </section>
 
-  <!-- BACKTEST -->
-  <section class="card section">
-    <h2>Backtesting (regla de espera)</h2>
-    <p class="mini muted">
-      Recorre tus datos históricos de izquierda a derecha. En cada ronda i, si existen al menos N datos previos y el <b>límite inferior</b> del IC de Wilson para Pr(≥X) ≥ umbral,
-      se “permite” una entrada. Además se aplica un periodo de espera fijo después de cada entrada.
-      <br/>Este ejercicio es <b>descriptivo</b> sobre tus datos; no sirve para operar en vivo.
-    </p>
-    <div class="row">
-      <div class="col"><label>Espera (rondas) mínima</label><input id="btMin" type="number" value="6" min="0" step="1" style="max-width:120px"/></div>
-      <div class="col"><label>Espera (rondas) máxima</label><input id="btMax" type="number" value="8" min="0" step="1" style="max-width:120px"/></div>
-      <div class="col" style="align-self:flex-end"><button id="btnBT" class="primary">Ejecutar backtest</button></div>
-    </div>
-    <div class="stats" style="margin-top:12px">
-      <div class="stat"><h3>Entradas (6)</h3><p id="btN6">—</p></div>
-      <div class="stat"><h3>Win rate (6)</h3><p id="btW6">—</p></div>
-      <div class="stat"><h3>Entradas (8)</h3><p id="btN8">—</p></div>
-      <div class="stat"><h3>Win rate (8)</h3><p id="btW8">—</p></div>
-    </div>
-    <div class="table-wrap" style="margin-top:10px">
-      <table>
-        <thead><tr><th># ronda</th><th>valor</th><th>≥X</th><th>p̂(prev)</th><th>IC95% lo-hi</th><th>espera usada</th></tr></thead>
-        <tbody id="btBody"></tbody>
-      </table>
-    </div>
-    <div class="mini muted" style="margin-top:8px">Se listan hasta 120 últimas entradas del escenario de espera “máxima”.</div>
-  </section>
-
-  <!-- HIGH MULTS -->
+  <!-- MÓDULO ≥10 / ≥20 / ≥30 -->
   <section class="card section">
     <h2>Módulo ≥10× / ≥20× / ≥30× (frecuencias y ventanas sin apariciones)</h2>
     <div id="hiBox" class="stats"></div>
   </section>
 
-  <!-- TABLA DE RONDAS -->
+  <!-- ENTRADAS (SEÑALES) -->
   <section class="card section">
-    <h2>Rondas (más reciente arriba)</h2>
+    <h2>Entradas (señales) y resultado</h2>
+    <div class="stats" style="margin-bottom:10px">
+      <div class="stat"><h3>Señales totales</h3><p id="enN">0</p></div>
+      <div class="stat"><h3>Ganadas</h3><p id="enW">0</p></div>
+      <div class="stat"><h3>Win rate</h3><p id="enWR">—</p></div>
+      <div class="stat"><h3>Última señal</h3><p id="enLast">—</p></div>
+    </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>#</th><th>Multiplicador</th><th>Resultado a X</th><th>Excedente/Faltante</th><th>Marca</th></tr></thead>
+        <thead><tr><th># ronda</th><th>multiplicador</th><th>≥X</th><th>p̂(prev)</th><th>IC95% lo-hi</th><th>espera aplicada</th></tr></thead>
+        <tbody id="enBody"></tbody>
+      </table>
+    </div>
+    <div class="mini muted" style="margin-top:8px">Aquí solo se listan rondas donde el sistema emitió una <b>señal</b> (tras esperar mínimo 6 y cumplir el criterio).</div>
+  </section>
+
+  <!-- TABLA DE TODAS LAS RONDAS (opcional, para referencia) -->
+  <section class="card section">
+    <h2>Todas las rondas cargadas (referencia)</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Multiplicador</th><th>Marca</th></tr></thead>
         <tbody id="tbody"></tbody>
       </table>
     </div>
   </section>
 
   <section class="card section">
-    <div class="danger"><b>No es un predictor de apuestas.</b> Aviator usa RNG/“provably fair”; no hay patrones explotables que garanticen aciertos.</div>
-    <div class="success" style="margin-top:10px">Este panel sirve para estudiar tu propio histórico (tasas ≥X, percentiles, rachas, gaps y resultados de backtests definidos por ti).</div>
+    <div class="danger"><b>No es un predictor de apuestas.</b> Aviator usa RNG/“provably fair”.</div>
+    <div class="success" style="margin-top:10px">El panel resume tu histórico y las señales generadas por la regla (ventana + IC) con espera mínima de 6.</div>
   </section>
 </main>
 
 <script>
-const state = { rounds:[], target:3.00, windowN:20, conf:0.95 };
-const LS_KEY = "aviator_panel_ext_v1";
+const COOL_MIN = 6; // espera mínima entre señales
+const state = { rounds:[], target:3.00, windowN:20, conf:0.95, entries:[] /* señales calculadas */ };
+const LS_KEY = "aviator_panel_wait6_v1";
+
+/* Utilidades */
 function saveLS(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
 function loadLS(){
-  try{ const o = JSON.parse(localStorage.getItem(LS_KEY)||"{}");
+  try{
+    const o = JSON.parse(localStorage.getItem(LS_KEY)||"{}");
     if(Array.isArray(o.rounds)) state.rounds = o.rounds.filter(v=>typeof v==="number" && isFinite(v) && v>0);
-    if(typeof o.target==="number") state.target = o.target;
-    if(typeof o.windowN==="number") state.windowN = o.windowN;
-    if(typeof o.conf==="number") state.conf = o.conf;
+    if(typeof o.target==="number") state.target=o.target;
+    if(typeof o.windowN==="number") state.windowN=o.windowN;
+    if(typeof o.conf==="number") state.conf=o.conf;
   }catch{}
 }
 function fmt(x,d=2){ return (!isFinite(x))?"—":(Math.round(x*10**d)/10**d).toFixed(d); }
@@ -248,177 +246,174 @@ function wilson(k,n,z=1.96){
   return [Math.max(0,center-half), Math.min(1,center+half), ph];
 }
 
-/* ---------- Render resumen y tabla ---------- */
-const tbody = document.getElementById('tbody');
-const stTotal=document.getElementById('stTotal'), stWins=document.getElementById('stWins'), stRate=document.getElementById('stRate');
-const stMedian=document.getElementById('stMedian'), stP1090=document.getElementById('stP1090'), stMean=document.getElementById('stMean');
-const sigDot=document.getElementById('sigDot'), sigText=document.getElementById('sigText'), sigPhat=document.getElementById('sigPhat'), sigCI=document.getElementById('sigCI'), sigN=document.getElementById('sigN');
+/* Señales históricas con espera mínima 6 */
+function computeEntries(){
+  const X=state.target, N=state.windowN, conf=state.conf, data=state.rounds;
+  const entries=[];
+  let cooldown=0;
+  for(let i=0;i<data.length;i++){
+    if(i<N){ if(cooldown>0) cooldown--; continue; } // no hay base suficiente
+    // calcular p̂ en la ventana previa (i-N .. i-1)
+    const prev = data.slice(i-N, i);
+    const k = prev.filter(v=>v>=X).length;
+    const [lo,hi,ph] = wilson(k,N,1.96);
+    const allowed = (lo>=conf);       // criterio empírico
+    const canSignal = (cooldown<=0);  // ya pasó la espera mínima
+    if(allowed && canSignal){
+      const v = data[i];
+      entries.push({ idx:i+1, v, win:(v>=X), ph, lo, hi, usedWait:COOL_MIN });
+      cooldown = COOL_MIN;            // reiniciar espera mínima
+    }else{
+      if(cooldown>0) cooldown--;      // reducir contador entre señales
+    }
+  }
+  state.entries = entries;
+}
+
+/* Render de resumen, señal “actual”, módulos, etc. */
+const stTotal=document.getElementById('stTotal');
+const stEntries=document.getElementById('stEntries');
+const stEntryWR=document.getElementById('stEntryWR');
+const stMedian=document.getElementById('stMedian');
+const stP1090=document.getElementById('stP1090');
+const stMean=document.getElementById('stMean');
+
+const sigDot=document.getElementById('sigDot');
+const sigText=document.getElementById('sigText');
+const sigPhat=document.getElementById('sigPhat');
+const sigCI=document.getElementById('sigCI');
+const sigN=document.getElementById('sigN');
 
 function renderSummary(){
-  const X = state.target;
-  const a = state.rounds;
+  const X=state.target, a=state.rounds;
   stTotal.textContent = a.length;
-  const wins = a.filter(v=>v>=X).length;
-  stWins.textContent = wins;
-  stRate.textContent = a.length? pct(wins/a.length) : "—";
   const [q10,q50,q90]=quantiles(a,[0.1,0.5,0.9]);
   stMedian.textContent = isFinite(q50)? fmt(q50):"—";
   stP1090.textContent = (isFinite(q10)&&isFinite(q90))? `${fmt(q10)} / ${fmt(q90)}` : "—";
   stMean.textContent = a.length? fmt(mean(a)):"—";
 
-  // Señal (ventana última)
-  const N = Math.min(state.windowN, a.length);
-  const slice = a.slice(-N);
-  const k = slice.filter(v=>v>=X).length;
-  const [lo,hi,ph] = N? wilson(k,N,1.96) : [NaN,NaN,NaN];
+  // Señal "actual": calcula en la última ventana (sin emitir)
+  const N=Math.min(state.windowN, a.length);
+  const slice=a.slice(-N);
+  const k=slice.filter(v=>v>=X).length;
+  const [lo,hi,ph]=N? wilson(k,N,1.96) : [NaN,NaN,NaN];
   sigN.textContent = N;
   sigPhat.textContent = isFinite(ph)? pct(ph):"—";
   sigCI.textContent = (isFinite(lo)&&isFinite(hi))? `[${pct(lo)} , ${pct(hi)}]`:"—";
   if(N>=20 && isFinite(lo) && lo>=state.conf){ sigText.textContent="criterio empírico cumplido"; sigDot.style.background="var(--good)"; }
   else { sigText.textContent="sin criterio (o N<20)"; sigDot.style.background="var(--warn)"; }
+
+  // Resumen de entradas
+  const en = state.entries;
+  const wins = en.filter(e=>e.win).length;
+  stEntries.textContent = en.length;
+  stEntryWR.textContent = en.length? pct(wins/en.length) : "—";
 }
 
-function renderTable(){
-  const X = state.target;
+/* Tabla de entradas */
+const enBody=document.getElementById('enBody');
+const enN=document.getElementById('enN');
+const enW=document.getElementById('enW');
+const enWR=document.getElementById('enWR');
+const enLast=document.getElementById('enLast');
+
+function renderEntriesTable(){
+  const en = state.entries;
+  enBody.innerHTML="";
+  enN.textContent = en.length;
+  const wins = en.filter(e=>e.win).length;
+  enW.textContent = wins;
+  enWR.textContent = en.length? pct(wins/en.length) : "—";
+  enLast.textContent = en.length? `ronda ${en[en.length-1].idx}` : "—";
+
+  en.slice(-200).forEach(t=>{
+    const tr=document.createElement('tr');
+    const td1=document.createElement('td'); td1.textContent=t.idx;
+    const td2=document.createElement('td'); td2.textContent=fmt(t.v)+"×";
+    const td3=document.createElement('td'); td3.innerHTML=t.win?'<span class="tag good">GANADA (≥X)</span>':'<span class="tag bad">PERDIDA (&lt;X)</span>';
+    const td4=document.createElement('td'); td4.textContent=pct(t.ph);
+    const td5=document.createElement('td'); td5.textContent=`${pct(t.lo)} - ${pct(t.hi)}`;
+    const td6=document.createElement('td'); td6.textContent=t.usedWait;
+    [td1,td2,td3,td4,td5,td6].forEach(td=>tr.appendChild(td)); enBody.appendChild(tr);
+  });
+}
+
+/* Tabla de todas las rondas (solo marca baja ≤1.10 y ≥X/<X como referencia visual) */
+const tbody=document.getElementById('tbody');
+function renderAllRounds(){
+  const X=state.target;
   tbody.innerHTML="";
   [...state.rounds].map((v,i)=>({v,idx:i+1})).reverse().forEach(r=>{
     const tr=document.createElement('tr');
     const td1=document.createElement('td'); td1.textContent=r.idx;
     const td2=document.createElement('td'); td2.textContent=fmt(r.v)+"×";
-    const td3=document.createElement('td'); td3.innerHTML=(r.v>=X)?'<span class="tag good">GANADA</span>':'<span class="tag bad">PERDIDA</span>';
-    const td4=document.createElement('td'); td4.textContent=(r.v>=X?'+':'-')+fmt(Math.abs(r.v-X))+'× '+(r.v>=X?'sobre X':'bajo X');
-    const td5=document.createElement('td'); td5.innerHTML=(r.v<=1.10)?'<span class="tag low">≤1.10</span>':(r.v>=X?'<span class="tag good">≥X</span>':'<span class="tag bad">&lt;X</span>');
-    [td1,td2,td3,td4,td5].forEach(td=>tr.appendChild(td)); tbody.appendChild(tr);
+    const td3=document.createElement('td'); 
+    td3.innerHTML=(r.v<=1.10)?'<span class="tag low">≤1.10</span>':(r.v>=X?'<span class="tag good">≥X</span>':'<span class="tag bad">&lt;X</span>');
+    [td1,td2,td3].forEach(td=>tr.appendChild(td)); tbody.appendChild(tr);
   });
 }
 
-/* ---------- Dibujar charts (SVG) ---------- */
+/* CHARTS: serie temporal + histograma */
+function elNS(tag,attrs){ const e=document.createElementNS('http://www.w3.org/2000/svg',tag); for(const k in attrs) e.setAttribute(k,attrs[k]); return e; }
+function drawEmpty(svg,W,H){ svg.appendChild(elNS('rect',{x:0,y:0,width:W,height:H,fill:'transparent'})); const t=elNS('text',{x:W/2,y:H/2,fill:'#768aa3','font-size':'13','text-anchor':'middle'}); t.textContent='Añade datos para ver la gráfica'; svg.appendChild(t); }
 function drawTimeSeries(){
   const svg=document.getElementById('tsvg'); while(svg.firstChild) svg.removeChild(svg.firstChild);
-  const W=800,H=320, padL=40,padR=12,padT=10,padB=28;
+  const W=800,H=320, L=40,R=12,T=10,B=28;
   const data=state.rounds; if(!data.length){ return drawEmpty(svg,W,H); }
-  const n=data.length, X=state.target;
+  const X=state.target, n=data.length;
   const minY=0.9, maxY=Math.max(X*1.3, Math.max(...data)*1.05, 2);
-  const x=(i)=> padL + ( (W-padL-padR) * (i/(Math.max(1,n-1))) );
-  const y=(v)=> padT + (H-padT-padB) * (1 - ( (v-minY)/(maxY-minY) ));
-  // grid
-  const g=document.createElementNS('http://www.w3.org/2000/svg','g');
-  for(let t=1;t<=Math.floor(maxY);t+=1){
-    const Y=y(t);
-    const line=el('line',{x1:padL,y1:Y,x2:W-padR,y2:Y,stroke:"#173048","stroke-width":1,opacity:.5});
-    g.appendChild(line);
-    const lbl=el('text',{x:8,y:Y+4,fill:"#9fb1c7","font-size":"10"}); lbl.textContent=t+"x"; g.appendChild(lbl);
+  const sx=(i)=> L + ((W-L-R) * (i/Math.max(1,n-1)));
+  const sy=(v)=> T + (H-T-B) * (1 - ((v-minY)/(maxY-minY)));
+  svg.appendChild(elNS('line',{x1:L,y1:H-B,x2:W-R,y2:H-B,stroke:'#173048'}));
+  svg.appendChild(elNS('line',{x1:L,y1:T,x2:L,y2:H-B,stroke:'#173048'}));
+  // grid y etiquetas
+  for(let t=1;t<=Math.floor(maxY);t++){
+    const Y=sy(t);
+    svg.appendChild(elNS('line',{x1:L,y1:Y,x2:W-R,y2:Y,stroke:'#173048','stroke-width':1,opacity:.5}));
+    const lbl=elNS('text',{x:8,y:Y+4,fill:'#9fb1c7','font-size':'10'}); lbl.textContent=t+'x'; svg.appendChild(lbl);
   }
-  svg.appendChild(g);
-  // threshold line
-  svg.appendChild(el('line',{x1:padL,y1:y(X),x2:W-padR,y2:y(X),stroke:"#9ca3af","stroke-dasharray":"4 4","stroke-width":1.5,opacity:.9}));
+  // línea de X
+  svg.appendChild(elNS('line',{x1:L,y1:sy(X),x2:W-R,y2:sy(X),stroke:'#9ca3af','stroke-dasharray':'4 4','stroke-width':1.5,opacity:.9}));
   // polyline
-  const pts=data.map((v,i)=>`${x(i)},${y(v)}`).join(' ');
-  svg.appendChild(el('polyline',{points:pts,fill:"none",stroke:"#59a6ff","stroke-width":2}));
-  // points
+  const pts=data.map((v,i)=>`${sx(i)},${sy(v)}`).join(' ');
+  svg.appendChild(elNS('polyline',{points:pts,fill:'none',stroke:'#59a6ff','stroke-width':2}));
+  // puntos coloreados
   data.forEach((v,i)=>{
-    const c=el('circle',{cx:x(i),cy:y(v),r:3,fill:(v>=X?"#169a58":"#b91c1c"),opacity:.9});
-    svg.appendChild(c);
+    svg.appendChild(elNS('circle',{cx:sx(i),cy:sy(v),r:3,fill:(v>=X?'#169a58':'#b91c1c'),opacity:.9}));
   });
-  // axis x labels (sparse)
-  for(let i=0;i<n;i+=Math.max(1,Math.floor(n/10))){
-    const tx=el('text',{x:x(i),y:H-8,fill:"#9fb1c7","font-size":"10","text-anchor":"middle"}); tx.textContent=(i+1); svg.appendChild(tx);
-  }
 }
+function quantilesArr(a,qs){ return quantiles(a,qs); }
 function drawHistogram(){
   const svg=document.getElementById('hsvg'); while(svg.firstChild) svg.removeChild(svg.firstChild);
-  const W=800,H=320, padL=40,padR=12,padT=10,padB=28;
+  const W=800,H=320,L=40,R=12,T=10,B=28;
   const a=state.rounds; if(!a.length){ return drawEmpty(svg,W,H); }
-  const maxV=Math.max(...a), minV=Math.min(...a);
-  const iqr=quantiles(a,[0.25,0.75]); const bw = Math.max(0.05, 2*(iqr[1]-iqr[0]) / Math.cbrt(a.length) || 0.2);
-  const bins=[];
-  const maxEdge=Math.max(minV+bw, Math.ceil((maxV+0.0001)/bw)*bw);
-  for(let edge=minV; edge<=maxEdge+1e-9; edge+=bw){ bins.push({edge:edge, count:0}); }
-  a.forEach(v=>{
-    let idx=Math.floor((v-minV)/bw); if(idx>=bins.length) idx=bins.length-1; if(idx<0) idx=0; bins[idx].count++;
-  });
+  const [q25,q75]=quantilesArr(a,[0.25,0.75]);
+  const bw = Math.max(0.05, 2*(q75-q25)/Math.cbrt(a.length) || 0.2);
+  const minV=Math.min(...a), maxV=Math.max(...a);
+  const bins=[]; const maxEdge=Math.max(minV+bw, Math.ceil((maxV+0.0001)/bw)*bw);
+  for(let e=minV; e<=maxEdge+1e-9; e+=bw){ bins.push({edge:e,count:0}); }
+  a.forEach(v=>{ let idx=Math.floor((v-minV)/bw); if(idx>=bins.length) idx=bins.length-1; if(idx<0) idx=0; bins[idx].count++; });
   const maxC=Math.max(1,...bins.map(b=>b.count));
-  const x=(i)=> padL + ( (W-padL-padR) * (i/bins.length) );
-  const y=(c)=> padT + (H-padT-padB) * (1 - (c/maxC) );
-  // axes
-  svg.appendChild(el('line',{x1:padL,y1:H-padB,x2:W-padR,y2:H-padB,stroke:"#173048"}));
-  svg.appendChild(el('line',{x1:padL,y1:padT,x2:padL,y2:H-padB,stroke:"#173048"}));
-  // bars
-  const barW = (W-padL-padR)/bins.length - 1;
+  const sx=(i)=> L + ((W-L-R) * (i/bins.length));
+  const sy=(c)=> T + (H-T-B) * (1 - (c/maxC));
+  svg.appendChild(elNS('line',{x1:L,y1:H-B,x2:W-R,y2:H-B,stroke:'#173048'}));
+  svg.appendChild(elNS('line',{x1:L,y1:T,x2:L,y2:H-B,stroke:'#173048'}));
+  const barW=(W-L-R)/bins.length - 1;
   bins.forEach((b,i)=>{
-    const x0=x(i)+0.5, y0=y(b.count); const h=(H-padT-padB)-(y0-padT);
-    const rect=el('rect',{x:x0,y:y0,width:Math.max(0,barW),height:Math.max(0,h),fill:"#60a5fa",opacity:.85});
-    svg.appendChild(rect);
+    const y0=sy(b.count); const h=(H-T-B)-(y0-T);
+    svg.appendChild(elNS('rect',{x:sx(i)+0.5,y:y0,width:Math.max(0,barW),height:Math.max(0,h),fill:'#60a5fa',opacity:.85}));
   });
-  // x labels sparse
   const steps=Math.max(2,Math.floor(bins.length/8));
   for(let i=0;i<bins.length;i+=steps){
-    const tx=el('text',{x:x(i)+barW/2,y:H-8,fill:"#9fb1c7","font-size":"10","text-anchor":"middle"}); tx.textContent=(bins[i].edge).toFixed(1); svg.appendChild(tx);
+    const tx=elNS('text',{x:sx(i)+barW/2,y:H-8,fill:'#9fb1c7','font-size':'10','text-anchor':'middle'}); tx.textContent=(bins[i].edge).toFixed(1); svg.appendChild(tx);
   }
 }
-function drawEmpty(svg,W,H){
-  svg.appendChild(el('rect',{x:0,y:0,width:W,height:H,fill:"transparent"}));
-  const t=el('text',{x:W/2,y:H/2,fill:"#768aa3","font-size":"13","text-anchor":"middle"}); t.textContent="Añade datos para ver la gráfica"; svg.appendChild(t);
-}
-function el(tag,attrs){ const e=document.createElementNS('http://www.w3.org/2000/svg',tag); for(const k in attrs) e.setAttribute(k, attrs[k]); return e; }
 
-/* ---------- Backtesting ---------- */
-const btBody=document.getElementById('btBody');
-const btN6=document.getElementById('btN6'), btW6=document.getElementById('btW6'), btN8=document.getElementById('btN8'), btW8=document.getElementById('btW8');
-
-function runBacktest(cooldown){
-  const X=state.target, N=state.windowN, conf=state.conf;
-  const data=state.rounds;
-  let wait=0;
-  const trades=[];
-  for(let i=0;i<data.length;i++){
-    if(i<N){ wait=Math.max(0,wait-1); continue; } // no base
-    const prev=data.slice(i-N,i);
-    const k=prev.filter(v=>v>=X).length;
-    const [lo,hi,ph]=wilson(k,N,1.96);
-    const allowed = (lo>=conf);
-    if(wait>0){ wait--; continue; }
-    if(allowed){
-      trades.push({idx:i+1, v:data[i], win:data[i]>=X, ph:ph, lo:lo, hi:hi, usedWait:cooldown});
-      wait=cooldown; // aplicar enfriamiento después de cada entrada
-    }
-  }
-  const wins = trades.filter(t=>t.win).length;
-  return { trades, n: trades.length, wr: trades.length? wins/trades.length : NaN };
-}
-function renderBacktest(){
-  const min=parseInt(document.getElementById('btMin').value||"6",10);
-  const max=parseInt(document.getElementById('btMax').value||"8",10);
-  const r6=runBacktest(min), r8=runBacktest(max);
-  btN6.textContent = isFinite(r6.n)? r6.n : "—";
-  btW6.textContent = isFinite(r6.wr)? pct(r6.wr) : "—";
-  btN8.textContent = isFinite(r8.n)? r8.n : "—";
-  btW8.textContent = isFinite(r8.wr)? pct(r8.wr) : "—";
-  // tabla (limitar a 120 últimas del escenario "max")
-  btBody.innerHTML="";
-  r8.trades.slice(-120).forEach(t=>{
-    const tr=document.createElement('tr');
-    const td1=document.createElement('td'); td1.textContent=t.idx;
-    const td2=document.createElement('td'); td2.textContent=fmt(t.v)+"×";
-    const td3=document.createElement('td'); td3.innerHTML=t.win?'<span class="tag good">≥X</span>':'<span class="tag bad">&lt;X</span>';
-    const td4=document.createElement('td'); td4.textContent=pct(t.ph);
-    const td5=document.createElement('td'); td5.textContent=`${pct(t.lo)} - ${pct(t.hi)}`;
-    const td6=document.createElement('td'); td6.textContent=t.usedWait;
-    [td1,td2,td3,td4,td5,td6].forEach(td=>tr.appendChild(td)); btBody.appendChild(tr);
-  });
-}
-
-/* ---------- High multipliers (≥10/20/30) ---------- */
+/* Módulo de ≥10/20/30 */
 const hiBox=document.getElementById('hiBox');
 function gapsStats(th){
-  const a=state.rounds;
-  let last=-1; const gaps=[];
-  for(let i=0;i<a.length;i++){
-    if(a[i] >= th){
-      if(last===-1){ gaps.push(i); } else { gaps.push(i-last-1); }
-      last=i;
-    }
-  }
+  const a=state.rounds; let last=-1; const gaps=[];
+  for(let i=0;i<a.length;i++){ if(a[i]>=th){ if(last===-1) gaps.push(i); else gaps.push(i-last-1); last=i; } }
   const currentGap = (last===-1)? a.length : (a.length-last-1);
   const maxGap = gaps.length? Math.max(...gaps) : currentGap;
   const avgGap = gaps.length? (gaps.reduce((s,x)=>s+x,0)/gaps.length) : currentGap;
@@ -427,27 +422,40 @@ function gapsStats(th){
   return {th,count,rate,maxGap,currentGap,avgGap};
 }
 function renderHighMults(){
-  const thresholds=[10,20,30];
   hiBox.innerHTML="";
-  thresholds.forEach(th=>{
+  [10,20,30].forEach(th=>{
     const st=gapsStats(th);
     const box=document.createElement('div'); box.className="stat";
     const h=document.createElement('h3'); h.textContent=`≥ ${th}×`;
     const p=document.createElement('p'); p.textContent = `${st.count} (${isFinite(st.rate)?pct(st.rate):"—"})`;
-    box.appendChild(h); box.appendChild(p);
     const small=document.createElement('div'); small.className="mini muted";
     small.textContent = `Max gap: ${st.maxGap} · Gap actual: ${st.currentGap} · Gap medio: ${isFinite(st.avgGap)?st.avgGap.toFixed(1):"—"}`;
-    box.appendChild(small);
-    hiBox.appendChild(box);
+    box.appendChild(h); box.appendChild(p); box.appendChild(small); hiBox.appendChild(box);
   });
 }
 
-/* ---------- Inputs y acciones ---------- */
+/* Tabla de todas las rondas (referencia) */
+function renderAll(){
+  renderAllRounds();
+}
+
+/* Entradas/Señales + Resumen */
+function updateAll(){
+  computeEntries();      // recalcular señales con espera mínima 6
+  renderSummary();       // resumen y estado actual
+  renderEntriesTable();  // tabla de señales
+  drawTimeSeries();
+  drawHistogram();
+  renderHighMults();
+  renderAll();
+  saveLS();
+}
+
+/* Entradas de usuario */
 function addValue(v){ if(isFinite(v) && v>0){ state.rounds.push(v); updateAll(); } }
 function addFromInput(){
-  const inp=document.getElementById('quick'); const raw=(inp.value||"").replace(","," .").replace(/\s+/g,"");
-  const val=parseFloat(raw.replace(",","."));
-  addValue(val); inp.value=""; inp.focus();
+  const inp=document.getElementById('quick'); const raw=(inp.value||"").trim().replace(",",".");
+  const val=parseFloat(raw); addValue(val); inp.value=""; inp.focus();
 }
 document.getElementById('btnAdd').onclick=addFromInput;
 document.getElementById('quick').addEventListener('keydown',e=>{ if(e.key==="Enter"){ e.preventDefault(); addFromInput(); }});
@@ -461,14 +469,17 @@ document.querySelectorAll('.chip-btn').forEach(b=>b.onclick=()=>{ state.target=p
 document.getElementById('target').onchange=(e)=>{ const x=parseFloat(e.target.value); if(isFinite(x)&&x>0){ state.target=x; updateAll(); }};
 document.getElementById('window').onchange=(e)=>{ const n=parseInt(e.target.value,10); if(Number.isInteger(n)&&n>=5){ state.windowN=n; updateAll(); }};
 document.getElementById('conf').onchange=(e)=>{ let c=parseFloat(e.target.value); c=Math.max(0.5,Math.min(0.99,c)); state.conf=c; e.target.value=c.toFixed(2); updateAll(); };
+
+/* Export/Import/Reset */
 document.getElementById('btnExport').onclick=()=>{
-  const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const blob=new Blob([JSON.stringify({rounds:state.rounds,target:state.target,windowN:state.windowN,conf:state.conf},null,2)],{type:"application/json"});
   const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download="aviator_analisis_edu.json"; a.click(); URL.revokeObjectURL(url);
 };
 document.getElementById('btnImport').onclick=()=>document.getElementById('fileImport').click();
 document.getElementById('fileImport').addEventListener('change',async (e)=>{
   const file=e.target.files[0]; if(!file) return; const txt=await file.text();
-  try{ const o=JSON.parse(txt);
+  try{
+    const o=JSON.parse(txt);
     state.rounds = Array.isArray(o.rounds)? o.rounds.filter(v=>typeof v==="number"&&isFinite(v)&&v>0):[];
     if(typeof o.target==="number") state.target=o.target;
     if(typeof o.windowN==="number") state.windowN=o.windowN;
@@ -481,20 +492,15 @@ document.getElementById('fileImport').addEventListener('change',async (e)=>{
   e.target.value="";
 });
 document.getElementById('btnReset').onclick=()=>{ if(confirm("¿Borrar todo y empezar de cero?")){ state.rounds=[]; updateAll(); } };
-document.getElementById('btnBT').onclick=renderBacktest;
 
-/* ---------- Update all ---------- */
-function updateAll(){
-  renderSummary(); renderTable(); drawTimeSeries(); drawHistogram(); renderHighMults(); saveLS();
-}
-function init(){
+/* Init */
+(function init(){
   loadLS();
   document.getElementById('target').value=state.target.toFixed(2);
   document.getElementById('window').value=state.windowN;
   document.getElementById('conf').value=state.conf.toFixed(2);
   updateAll();
-}
-init();
+})();
 </script>
 </body>
 </html>
