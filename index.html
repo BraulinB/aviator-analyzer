@@ -1,422 +1,472 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aviator Analyzer Pro - 1Win</title>
-  <!-- Bootstrap 5 -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-  <style>
-    :root {
-      --primary: #0d47a1;
-      --secondary: #1a237e;
-      --success: #28a745;
-      --danger: #dc3545;
-      --warning: #ffc107;
-      --bg-dark: #121212;
-      --text-light: #e0e0e0;
-    }
-    body {
-      background-color: var(--bg-dark);
-      color: var(--text-light);
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      padding-bottom: 80px;
-    }
-    .card {
-      background: #1e1e1e;
-      border: 1px solid #333;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
-    .senal-verde {
-      background: linear-gradient(135deg, var(--success), #009624);
-      animation: pulse 2s infinite;
-    }
-    .senal-roja {
-      background: linear-gradient(135deg, var(--danger), #d50000);
-    }
-    @keyframes pulse {
-      0% { box-shadow: 0 0 0 0 rgba(0, 200, 83, 0.7); }
-      70% { box-shadow: 0 0 0 15px rgba(0, 200, 83, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(0, 200, 83, 0); }
-    }
-    .grafico-container {
-      height: 250px;
-    }
-    .multiplicador-btn {
-      font-size: 1.2rem;
-      font-weight: bold;
-      padding: 8px 15px;
-      margin: 5px;
-      border-radius: 8px;
-    }
-    .historial-item {
-      padding: 8px 12px;
-      margin: 4px 0;
-      border-radius: 6px;
-      background: #2d2d2d;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .input-crash {
-      font-size: 1.5rem;
-      text-align: center;
-      height: 50px;
-      background: #2d2d2d;
-      color: #fff;
-      border: 2px solid var(--warning);
-    }
-    .toast {
-      background: #2d2d2d;
-      color: #fff;
-      border-left: 4px solid var(--success);
-    }
-    /* Mejoras Visuales */
-    .btn-primary {
-      background: var(--primary);
-      border: none;
-    }
-    .btn-primary:hover {
-      background: darken(var(--primary), 10%);
-    }
-    .progress-bar {
-      transition: width 0.3s ease;
-    }
-    .chartjs-grid {
-      stroke-dasharray: 2,2 !important;
-    }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Aviator Analyzer – Gocho</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --muted:#8b93a7; --text:#e8ecf1;
+    --accent:#5b9cff; --green:#1dd1a1; --red:#ff6b6b; --amber:#f7b733;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 "Inter",system-ui,-apple-system,Segoe UI,Roboto}
+  header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #202636;background:#10131a;position:sticky;top:0;z-index:10}
+  header h1{margin:0;font-size:16px;letter-spacing:.3px}
+  .wrap{max-width:1080px;margin:18px auto;padding:0 12px}
+  .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:14px}
+  .card{background:var(--panel);border:1px solid #22283a;border-radius:12px;padding:14px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  input,select,button{background:#0d1017;border:1px solid #2a3147;color:var(--text);border-radius:9px;padding:10px 12px;font:600 14px Inter;outline:none}
+  input[type="text"],input[type="number"]{width:120px}
+  input::placeholder{color:#6d7690}
+  button{cursor:pointer}
+  button.primary{background:linear-gradient(180deg,#2a7bff,#1f5ed8);border:none}
+  button.ghost{background:#0d1017}
+  .chip{padding:6px 10px;border-radius:999px;border:1px solid #33405f;cursor:pointer;font-weight:600}
+  .chip.active{border-color:var(--accent);box-shadow:0 0 0 2px rgba(91,156,255,.2) inset}
+  .stat{min-width:85px}
+  .stat .v{font-weight:700}
+  .muted{color:var(--muted)}
+  .ok{color:var(--green)} .bad{color:var(--red)}
+  .hl{color:var(--amber)}
+  canvas{width:100%;height:280px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:8px;border-bottom:1px solid #262c3f;text-align:left}
+  .badge{font-weight:700;padding:3px 8px;border-radius:6px}
+  .b-green{background:rgba(29,209,161,.15);color:var(--green)}
+  .b-red{background:rgba(255,107,107,.15);color:var(--red)}
+  .b-blue{background:rgba(91,156,255,.15);color:var(--accent)}
+  .note{font-size:12px;color:#9aa3ba;margin-top:6px}
+  @media (max-width:960px){.grid{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
-  <div class="container py-3">
-    <div class="text-center mb-4">
-      <h1 class="display-6 fw-bold text-primary">AVIATOR ANALYZER PRO</h1>
-      <p class="text-muted">Sistema Inteligente de Análisis - 1Win</p>
-    </div>
+<header>
+  <h1>🛩️ Aviator Analyzer • <span class="muted">Gocho</span></h1>
+  <div class="row">
+    <label class="row" style="gap:6px">
+      <input type="checkbox" id="beep" checked />
+      <span class="muted">Beep señal</span>
+    </label>
+    <button id="export" class="ghost">Exportar CSV</button>
+  </div>
+</header>
 
-    <!-- Entrada Manual -->
-    <div class="card p-3 mb-4">
-      <h5 class="mb-3">Registro de Rondas</h5>
-      <div class="input-group mb-3">
-        <input type="text" id="crashInput" class="form-control input-crash" 
-               placeholder="Ej: 1.00, 2.5x, 3.14" 
-               onfocus="this.select()" inputmode="decimal">
-        <button class="btn btn-primary" id="registrarBtn">Registrar</button>
+<div class="wrap">
+  <div class="grid">
+    <!-- IZQUIERDA: captura + controles -->
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div class="row">
+          <input id="crash" type="text" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]+" placeholder="Nuevo crash" autofocus />
+          <button id="add" class="primary">Agregar (⏎)</button>
+          <button id="undo" class="ghost">Deshacer</button>
+          <button id="reset" class="ghost">Reset</button>
+        </div>
+        <div class="row">
+          <span class="muted">Objetivo</span>
+          <input id="target" type="text" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]+" value="3.5" />
+          <div id="chips" class="row">
+            <!-- chips rápidos -->
+          </div>
+        </div>
       </div>
-      <div class="d-flex justify-content-between">
-        <button class="btn multiplicador-btn" style="background: #4a148c; color: white" onclick="setMultiplicador(2)">2x</button>
-        <button class="btn multiplicador-btn" style="background: #311b92; color: white" onclick="setMultiplicador(3)">3x</button>
-        <button class="btn multiplicador-btn" style="background: #1a237e; color: white" onclick="setMultiplicador(5)">5x</button>
-        <button class="btn multiplicador-btn" style="background: #0d47a1; color: white" onclick="setMultiplicador(10)">10x</button>
-      </div>
-    </div>
 
-    <!-- Señal de Entrada -->
-    <div class="card p-3 mb-4" id="senalContainer">
-      <h5 class="mb-3">Señal Inteligente</h5>
-      <div class="alert text-center p-4" id="senalText">
-        <h3>Analizando tendencias...</h3>
-        <p class="mb-0">Esperando datos suficientes (mínimo 8 rondas)</p>
+      <div class="row" style="margin-top:10px;flex-wrap:wrap">
+        <div class="stat">P(≥2x): <span id="p2" class="v">–</span></div>
+        <div class="stat">P(≥5x): <span id="p5" class="v">–</span></div>
+        <div class="stat">P(≥10x): <span id="p10" class="v">–</span></div>
+        <div class="stat">MA10: <span id="ma10" class="v">–</span></div>
+        <div class="stat">Racha &lt;1.70: <span id="streakLow" class="v">–</span></div>
+        <div class="stat">CoolDown: <span id="cool" class="v">0</span></div>
       </div>
-      <div class="d-flex justify-content-between mt-3">
-        <div>
-          <small class="text-muted">Última señal hace:</small>
-          <div id="tiempoEspera">0 rondas</div>
-        </div>
-        <div>
-          <small class="text-muted">Precisión actual:</small>
-          <div id="precision">0%</div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Gráfico de Tendencias -->
-    <div class="card p-3 mb-4">
-      <h5 class="mb-3">Análisis de Tendencias</h5>
-      <div class="grafico-container">
-        <canvas id="tendenciaChart"></canvas>
+      <div class="row" style="margin-top:10px">
+        <button id="signal" class="primary">📣 Buscar señal</button>
+        <div id="signalOut" class="note">Sin señal.</div>
       </div>
-      <div class="d-flex justify-content-around mt-2">
-        <div class="text-center">
-          <div id="prob2x" class="fw-bold" style="color: var(--success)">0%</div>
-          <small>≥ 2x</small>
-        </div>
-        <div class="text-center">
-          <div id="prob5x" class="fw-bold" style="color: var(--warning)">0%</div>
-          <small>≥ 5x</small>
-        </div>
-        <div class="text-center">
-          <div id="prob10x" class="fw-bold" style="color: var(--danger)">0%</div>
-          <small>≥ 10x</small>
-        </div>
+
+      <div style="margin-top:12px">
+        <canvas id="series"></canvas>
       </div>
     </div>
 
-    <!-- Estadísticas -->
-    <div class="card p-3 mb-4">
-      <h5 class="mb-3">Estadísticas en Tiempo Real</h5>
-      <div class="row text-center">
-        <div class="col-6 border-end">
-          <h6 id="promedioMovil">0.00x</h6>
-          <small>Promedio (últimas 10)</small>
-        </div>
-        <div class="col-6">
-          <h6 id="maximoReciente">0.00x</h6>
-          <small>Máximo reciente</small>
-        </div>
-      </div>
-      <div class="mt-3">
-        <div class="progress" style="height: 20px;">
-          <div id="barraTendencia" class="progress-bar" role="progressbar" style="width: 0%"></div>
-        </div>
-        <div class="d-flex justify-content-between mt-1">
-          <small>Bajista</small>
-          <small>Alcista</small>
-        </div>
-      </div>
-    </div>
+    <!-- DERECHA: exactitud y apuestas -->
+    <div class="card">
+      <h3 style="margin:0 0 6px 0">Aciertos por rango</h3>
+      <canvas id="accChart"></canvas>
 
-    <!-- Historial -->
-    <div class="card p-3">
-      <h5 class="mb-3">Historial Reciente</h5>
-      <div id="historialList" style="max-height: 200px; overflow-y: auto;">
-        <!-- Los elementos se generarán dinámicamente -->
-      </div>
+      <h3 style="margin:12px 0 6px 0">Apuestas registradas</h3>
+      <table id="betsTbl">
+        <thead><tr><th>#</th><th>Objetivo</th><th>Crash</th><th>Resultado</th><th>EV est.</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="note">Se marca ganada si crash &gt; objetivo. Igual o menor se cuenta como pérdida (tu regla).</div>
     </div>
   </div>
+</div>
 
-  <!-- Toast de Notificación -->
-  <div class="toast-container position-fixed bottom-0 end-0 p-3">
-    <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-      <div class="toast-header">
-        <strong class="me-auto text-primary">Aviator Analyzer</strong>
-        <small>Ahora</small>
-        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-      </div>
-      <div class="toast-body">
-        ¡Señal de entrada detectada!
-      </div>
-    </div>
-  </div>
+<!-- Librerías -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<!-- Firebase compat para que sea sencillo -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
-  <script>
-    // Configuración de Firebase
-    const firebaseConfig = {
-      apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
-      authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
-      projectId: "aviator-analyzer-b29a7",
-      storageBucket: "aviator-analyzer-b29a7.firebasestorage.app",
-      databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.europe-west1.firebasedatabase.app",
-      messagingSenderId: "575063626276",
-      appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1"
-    };
+<script>
+/** ==================== Firebase ==================== **/
+const firebaseConfig = {
+  apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
+  authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
+  projectId: "aviator-analyzer-b29a7",
+  storageBucket: "aviator-analyzer-b29a7.firebasestorage.app",
+  messagingSenderId: "575063626276",
+  appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
+  measurementId: "G-325QCBSQMH",
+  // ⚠️ Añade tu databaseURL real desde Firebase Console:
+  // databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com"
+};
+let app, db, auth, uid = null;
+let online = false;
 
-    // Inicializar Firebase
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    const historialRef = db.ref('historial');
-    const senalesRef = db.ref('senales');
+try {
+  app = firebase.initializeApp(firebaseConfig);
+  auth = firebase.auth();
+  db = firebase.database();
+  auth.signInAnonymously().then(cred => {
+    uid = cred.user.uid;
+    online = true;
+    attachRealtime();
+  }).catch(()=>{ console.warn("Firebase auth failed. Modo local."); });
+} catch(e) { console.warn("Firebase init failed. Modo local.", e); }
 
-    // Variables globales
-    let historial = [];
-    let ultimaSenal = 0;
-    let precision = { ganadas: 0, totales: 0 };
-    let tendenciaChart = null;
-    let beepSound = new Audio('audio/beep.mp3'); // Reemplaza con tu archivo real
+/** ==================== Estado local ==================== **/
+const LS = (k,v)=> v===undefined ? JSON.parse(localStorage.getItem(k)||"null") : localStorage.setItem(k,JSON.stringify(v));
+const state = {
+  crashes: LS("crashes") || [],
+  bets: LS("bets") || [],
+  model: LS("model") || { w2:[], w5:[], gamma:2.0 },
+  cooldown: LS("cooldown") || 0,
+  lastSignalIndex: LS("lastSignalIndex") || -1000,
+  settings: LS("settings") || { margin2:0.03, margin3_4:0.05, margin5:0.08, margin10:0.10, avoidLowThreshold:4, cooldownRounds:8 }
+};
+persist();
 
-    // Variables para carga masiva
-    let rondasMasivas = [];
+function persist(){ LS("crashes",state.crashes); LS("bets",state.bets); LS("model",state.model); LS("cooldown",state.cooldown); LS("lastSignalIndex",state.lastSignalIndex); LS("settings", state.settings); }
 
-    // Inicializar gráfico
-    function initChart() {
-      const ctx = document.getElementById('tendenciaChart').getContext('2d');
-      tendenciaChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: [],
-          datasets: [{
-            label: 'Crash History',
-            data: [],
-            borderColor: var(--success),
-            backgroundColor: 'rgba(0, 200, 83, 0.1)',
-            borderWidth: 2,
-            pointRadius: 0,
-            fill: true,
-            tension: 0.3
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false }
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              grid: { color: 'rgba(255,255,255,0.1)' },
-              ticks: { color: '#bbb' }
-            },
-            x: {
-              grid: { display: false },
-              ticks: { color: '#bbb' }
-            }
-          }
-        }
-      });
+/** ==================== Utilidades ==================== **/
+const mean = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : 0;
+const ewma = (arr, alpha=0.3) => { if(!arr.length) return []; let s = arr[0]; return arr.map(v => (s = alpha*v + (1-alpha)*s)); };
+const lastN = (a,n)=> a.slice(-n);
+const streak = (arr, pred) => { let c=0; for(let i=arr.length-1;i>=0;i--){ if(pred(arr[i])) c++; else break; } return c; };
+const since = (arr, pred) => { for(let i=arr.length-1;i>=0;i--){ if(pred(arr[i])) return arr.length-1-i; } return arr.length; };
+const clamp = (x,a,b)=>Math.max(a,Math.min(b,x));
+const rnd = x => Math.round(x*100)/100;
+
+/** ==================== Modelo ligero (online) ==================== **/
+const Model = {
+  F:10, lr:0.05,
+  w2: state.model.w2.length?state.model.w2:new Array(10).fill(0),
+  w5: state.model.w5.length?state.model.w5:new Array(10).fill(0),
+  gamma: state.model.gamma || 2.0,
+  sigmoid(z){ return 1/(1+Math.exp(-z)); },
+  dot(w,f){ let s=0; for(let i=0;i<w.length;i++) s+= w[i]*f[i]; return s; },
+  predict(w,f){ return this.sigmoid(this.dot(w,f)); },
+  update(w,f,y){ const p=this.predict(w,f); for(let i=0;i<w.length;i++) w[i]+= this.lr*(y-p)*f[i]; },
+
+  features(cr){
+    const N = cr.length; const l = cr[N-1] ?? 1.0;
+    const m5 = mean(lastN(cr,5)), m10 = mean(lastN(cr,10));
+    const low8 = lastN(cr,8).filter(v=>v<1.7).length/8;
+    const lowStreak = streak(cr, v=>v<1.7)/10;
+    const since5 = since(cr, v=>v>=5)/30, since10 = since(cr, v=>v>=10)/30;
+    const E = ewma(lastN(cr,10),0.3); const slope = E.length>=6? E.at(-1)-E.at(-6):0;
+    const pct2in10 = lastN(cr,10).filter(v=>v>=2).length/10;
+    return [1, l, m5||0, m10||0, low8||0, lowStreak||0, since5, since10, slope||0, pct2in10||0];
+  },
+
+  // Probabilidad empírica reciente
+  empirical(cr, T){
+    const win = cr.filter(v=>v>=T).length;
+    return cr.length? win/cr.length : 0;
+  },
+
+  // Probabilidad “híbrida” ≥2, ≥5, ≥10
+  tails(cr){
+    const f = this.features(cr);
+    const p2m = this.predict(this.w2,f);
+    const p5m = this.predict(this.w5,f);
+    const win=function(T){ return lastN(cr,30).filter(v=>v>=T).length; }
+    const n30 = Math.max(1,lastN(cr,30).length);
+    const p2e = win(2)/n30, p5e = win(5)/n30, p10e = win(10)/n30;
+    // blend modelo + empirico (ponderaciones adaptables)
+    const p2 = 0.5*p2m + 0.5*p2e;
+    const p5 = 0.5*p5m + 0.5*p5e;
+    const p10= 0.6*p10e + 0.4*Math.max(0,Math.min(1,p5e/3)); // heurística para colas
+    return {p2, p5, p10};
+  },
+
+  // Probabilidad ≥T usando p2, p5, p10 y cola potencia para T>5
+  pTail(cr, T){
+    const {p2,p5,p10} = this.tails(lastN(cr,30));
+    if(T<=2) return p2;
+    if(T<=5){
+      if(p2<=0 || p5<=0) return 0;
+      const t = (T-2)/3;
+      return Math.exp(Math.log(p2) + t*(Math.log(p5)-Math.log(p2)));
     }
-
-    // Registrar crash manual
-    document.getElementById('registrarBtn').addEventListener('click', () => {
-      const valores = document.getElementById('crashInput').value.split(/[\s,]+/).filter(v => v);
-      valores.forEach(valorStr => {
-        const valor = parseFloat(valorStr.replace('x', ''));
-        if (!isNaN(valor) && valor >= 1.00) {
-          historialRef.push(valor);
-          rondasMasivas.push(valor);
-        }
-      });
-      document.getElementById('crashInput').value = '';
-    });
-
-    // Función para establecer multiplicador rápido
-    function setMultiplicador(valor) {
-      document.getElementById('crashInput').value = valor;
-      document.getElementById('crashInput').focus();
-    }
-
-    // Analizar tendencias y generar señal
-    function analizarTendencias() {
-      if (historial.length < 8) return;
-
-      const ultimas10 = historial.slice(-10);
-      const promedio = ultimas10.reduce((a, b) => a + b, 0) / ultimas10.length;
-      const rondasDesdeSenal = historial.length - ultimaSenal;
-
-      // Calcular probabilidades
-      const prob2x = (ultimas10.filter(x => x >= 2).length / ultimas10.length * 100).toFixed(1);
-      const prob5x = (ultimas10.filter(x => x >= 5).length / ultimas10.length * 100).toFixed(1);
-      const prob10x = (ultimas10.filter(x => x >= 10).length / ultimas10.length * 100).toFixed(1);
-
-      // Actualizar interfaz
-      document.getElementById('prob2x').textContent = `${prob2x}%`;
-      document.getElementById('prob5x').textContent = `${prob5x}%`;
-      document.getElementById('prob10x').textContent = `${prob10x}%`;
-      document.getElementById('promedioMovil').textContent = `${promedio.toFixed(2)}x`;
-      document.getElementById('maximoReciente').textContent = `${Math.max(...ultimas10).toFixed(2)}x`;
-
-      // Calcular tendencia (0-100%)
-      const tendencia = Math.min(100, Math.max(0, (promedio - 1) * 10));
-      document.getElementById('barraTendencia').style.width = `${tendencia}%`;
-      document.getElementById('barraTendencia').style.backgroundColor = 
-        tendencia > 50 ? 'var(--success)' : 'var(--danger)';
-
-      // Generar señal inteligente (mínimo 8 rondas entre señales)
-      if (rondasDesdeSenal >= 8) {
-        let recomendacion = '';
-        let multiplicador = 0;
-        let clase = '';
-
-        // Lógica de decisión mejorada
-        if (prob2x > 70 && promedio > 2.5) {
-          multiplicador = 2.8;
-          recomendacion = `¡ENTRADA EN ${multiplicador}x!`;
-          clase = 'senal-verde';
-        } 
-        else if (prob5x > 40 && promedio > 4) {
-          multiplicador = 4.5;
-          recomendacion = `¡ENTRADA EN ${multiplicador}x!`;
-          clase = 'senal-verde';
-        }
-        else if (prob10x > 25) {
-          multiplicador = 9;
-          recomendacion = `¡ENTRADA EN ${multiplicador}x!`;
-          clase = 'senal-verde';
-        }
-        else {
-          recomendacion = 'Espera - Condiciones no óptimas';
-          clase = 'senal-roja';
-        }
-
-        // Actualizar señal
-        if (clase === 'senal-verde') {
-          document.getElementById('senalText').innerHTML = `
-            <h3>${recomendacion}</h3>
-            <p class="mb-0">Probabilidad estimada: ${prob2x > 70 ? 'Alta' : 'Media'} | Últimas 10 rondas</p>
-          `;
-          document.getElementById('senalText').className = 'alert text-center p-4 ' + clase;
-          
-          // Notificación con sonido
-          try { beepSound.play(); } catch (e) {}
-          
-          const toast = new bootstrap.Toast(document.getElementById('liveToast'));
-          toast.show();
-          
-          ultimaSenal = historial.length;
-        }
+    if(T<=10){
+      if(p5>0 && p10>0){
+        const t = (T-5)/5;
+        return Math.exp(Math.log(p5) + t*(Math.log(p10)-Math.log(p5)));
       }
-
-      // Actualizar contador de espera
-      document.getElementById('tiempoEspera').textContent = 
-        `${Math.max(0, 8 - (historial.length - ultimaSenal))} rondas`;
+      if(p5>0) return p5*Math.pow(T/5,-this.gamma);
+      return 0;
     }
+    return (p10>0? p10*Math.pow(T/10,-this.gamma):0);
+  },
 
-    // Actualizar historial en interfaz
-    function actualizarHistorial() {
-      const contenedor = document.getElementById('historialList');
-      contenedor.innerHTML = '';
-      
-      [...historial].reverse().slice(0, 15).forEach(valor => {
-        const item = document.createElement('div');
-        item.className = 'historial-item d-flex justify-content-between';
-        item.innerHTML = `
-          <span>Crash: <strong>${valor.toFixed(2)}x</strong></span>
-          <span class="${valor >= 2 ? 'text-success' : 'text-danger'}">
-            ${valor >= 2 ? '↑' : '↓'}
-          </span>
-        `;
-        contenedor.appendChild(item);
-      });
+  // Entrenamiento online: si hubo apuesta en T y resultado r (1 ganado, 0 perdido)
+  learn(cr, T, crash){
+    const f = this.features(cr);
+    const y2 = crash>2?1:0; this.update(this.w2,f,y2);
+    const y5 = crash>5?1:0; this.update(this.w5,f,y5);
+
+    // Actualiza gamma (cola) con MLE Pareto sobre valores >=5 recientes
+    const tail = lastN(cr,120).filter(v=>v>=5);
+    if(tail.length>=6){
+      const xm=5; const s = tail.reduce((a,v)=>a+Math.log(v/xm),0);
+      const k = tail.length; this.gamma = Math.max(1.05, 1 + k/Math.max(1e-6,s));
     }
+    state.model = { w2:this.w2, w5:this.w5, gamma:this.gamma }; persist(); pushModel();
+  }
+};
 
-    // Actualizar gráfico
-    function actualizarGrafico() {
-      if (!tendenciaChart) return;
-      
-      const datos = historial.slice(-20);
-      tendenciaChart.data.labels = Array.from({length: datos.length}, (_, i) => i + 1);
-      tendenciaChart.data.datasets[0].data = datos;
-      
-      // Color dinámico según tendencia
-      const promedioReciente = datos.reduce((a, b) => a + b, 0) / datos.length;
-      tendenciaChart.data.datasets[0].borderColor = 
-        promedioReciente > 3 ? 'var(--success)' : 'var(--danger)';
-      
-      tendenciaChart.update();
-    }
+/** ==================== Sincronización en tiempo real ==================== **/
+function attachRealtime(){
+  if(!online||!uid) return;
+  const base = db.ref(`users/${uid}`);
+  // escuchar dataset remoto
+  base.child("crashes").on("value",snap=>{
+    const val = snap.val(); if(!val) return;
+    const arr = Object.values(val).sort((a,b)=>a.i-b.i).map(o=>o.v);
+    if(arr.length>state.crashes.length){ state.crashes = arr; renderAll(); persist(); }
+  });
+  base.child("model").on("value",snap=>{
+    const m=snap.val(); if(m){ state.model=m; Model.w2=m.w2; Model.w5=m.w5; Model.gamma=m.gamma; }
+  });
+}
+function pushCrashes(){
+  if(!online||!uid) return;
+  const map={}; state.crashes.forEach((v,i)=> map[i]={i,v});
+  db.ref(`users/${uid}/crashes`).set(map);
+}
+function pushModel(){
+  if(!online||!uid) return;
+  db.ref(`users/${uid}/model`).set({ w2:Model.w2, w5:Model.w5, gamma:Model.gamma });
+}
 
-    // Inicialización
-    window.onload = () => {
-      initChart();
-      
-      // Escuchar cambios en Firebase
-      historialRef.on('value', snapshot => {
-        historial = Object.values(snapshot.val() || []);
-        actualizarHistorial();
-        actualizarGrafico();
-        analizarTendencias();
-      });
+/** ==================== UI y lógica de señal ==================== **/
+const el = id => document.getElementById(id);
+const IN = { crash: el("crash"), target: el("target") };
+const OUT = {
+  p2: el("p2"), p5: el("p5"), p10: el("p10"),
+  ma10: el("ma10"), streakLow: el("streakLow"), cool: el("cool"),
+  signalOut: el("signalOut")
+};
 
-      // Configurar precisión inicial
-      document.getElementById('precision').textContent = '0%';
-    };
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+const chips = [2,2.5,3,3.5,4,5,7,10,15,20,50,100];
+const chipsBox = el("chips");
+chips.forEach(v=>{
+  const s=document.createElement("span"); s.className="chip"; s.textContent=v+"x";
+  s.onclick=()=>{ IN.target.value=String(v); highlightChip(v); };
+  chipsBox.appendChild(s);
+});
+function highlightChip(v){
+  [...chipsBox.children].forEach(c=>c.classList.toggle("active",c.textContent===v+"x"));
+}
+
+const ctxSeries = document.getElementById('series').getContext('2d');
+const ctxAcc    = document.getElementById('accChart').getContext('2d');
+const seriesChart = new Chart(ctxSeries,{type:'line',data:{labels:[],datasets:[
+  {label:'Crash',data:[],tension:.2,pointRadius:0,borderWidth:2},
+  {label:'EWMA10',data:[],tension:.2,pointRadius:0,borderWidth:2},
+  {label:'Tendencia',data:[],tension:0,pointRadius:0,borderWidth:2},
+]},options:{responsive:true,plugins:{legend:{display:false}}});
+const accChart = new Chart(ctxAcc,{type:'bar',data:{labels:['2','2.5','3','3.5','4','5','7','10'],datasets:[
+  {label:'Aciertos %',data:new Array(8).fill(0)},
+]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100}}});
+
+function recompute(){
+  const cr = state.crashes;
+  const n10 = lastN(cr,10), E = ewma(n10,0.3);
+  const p2 = lastN(cr,30).filter(v=>v>=2).length/Math.max(1,lastN(cr,30).length);
+  const p5 = lastN(cr,30).filter(v=>v>=5).length/Math.max(1,lastN(cr,30).length);
+  const p10= lastN(cr,30).filter(v=>v>=10).length/Math.max(1,lastN(cr,30).length);
+  OUT.p2.textContent = (p2*100).toFixed(1)+'%';
+  OUT.p5.textContent = (p5*100).toFixed(1)+'%';
+  OUT.p10.textContent= (p10*100).toFixed(1)+'%';
+  OUT.ma10.textContent= n10.length? rnd(mean(n10))+'x' : '–';
+  OUT.streakLow.textContent = streak(cr, v=>v<1.7);
+  OUT.cool.textContent = state.cooldown;
+
+  // gráficos
+  seriesChart.data.labels = cr.map((_,i)=>String(i+1));
+  seriesChart.data.datasets[0].data = cr;
+  seriesChart.data.datasets[1].data = (()=>{ const all = ewma(cr,0.3); return all; })();
+
+  // línea de tendencia (slope sobre EWMA10): verde alcista, rojo bajista
+  const L = seriesChart.data.datasets[1].data;
+  let trend = new Array(L.length).fill(null);
+  let slope=0;
+  if(L.length>=6){ slope = L.at(-1)-L.at(-6); for(let i=0;i<L.length;i++) trend[i]= i>=L.length-6? L[i] : null; }
+  seriesChart.data.datasets[2].data = trend;
+  seriesChart.data.datasets[2].borderColor = slope>=0 ? "#1dd1a1" : "#ff6b6b";
+  seriesChart.update();
+}
+
+function updateAccChart(){
+  const bins=[2,2.5,3,3.5,4,5,7,10];
+  const wins=new Array(bins.length).fill(0);
+  const tot =new Array(bins.length).fill(0);
+  state.bets.forEach(b=>{
+    const i=bins.indexOf(b.target);
+    if(i>=0){ tot[i]++; if(b.result==='win') wins[i]++; }
+  });
+  const pct = tot.map((t,i)=> t? Math.round(100*wins[i]/t):0);
+  accChart.data.datasets[0].data = pct;
+  accChart.update();
+}
+
+function renderAll(){ recompute(); updateAccChart(); renderTable(); persist(); }
+
+function addCrash(v){
+  const x = parseFloat(String(v).replace(',','.')); if(isNaN(x)||x<=0) return;
+  state.crashes.push(x); persist(); pushCrashes();
+  // Si hay apuesta pendiente (última señal) — evaluar resultado y aprender
+  const lastBet = state.bets[state.bets.length-1];
+  if(lastBet && lastBet.index === state.crashes.length-1 && lastBet.pending){
+    lastBet.pending=false;
+    lastBet.crash=x;
+    lastBet.result = x>lastBet.target ? 'win':'loss';
+    // entrenamiento
+    Model.learn(lastN(state.crashes,lastBet.trainWindow), lastBet.target, x);
+  }
+  // disminuir cooldown
+  if(state.cooldown>0) state.cooldown--;
+  renderAll();
+}
+
+function undo(){
+  const removed = state.crashes.pop(); persist(); pushCrashes(); renderAll();
+  const lastBet = state.bets[state.bets.length-1];
+  if(lastBet && lastBet.index>=state.crashes.length){ state.bets.pop(); }
+}
+
+function resetAll(){
+  if(!confirm("¿Borrar todo?")) return;
+  state.crashes=[]; state.bets=[]; state.cooldown=0; state.lastSignalIndex=-1000; persist(); pushCrashes(); renderAll(); updateAccChart();
+}
+
+/** ============= Señal (único multiplicador) con filtros duros ============= **/
+function bestEntry(){
+  const cr = state.crashes;
+  if(cr.length<12) return {ok:false, why:"Necesita ≥12 rondas registradas."};
+
+  // Filtros de riesgo
+  const low8 = lastN(cr,8).filter(v=>v<1.7).length;
+  if(low8 >= state.settings.avoidLowThreshold) return {ok:false, why:`Zona mala: ${low8}/8 <1.70x`};
+  if(state.cooldown>0) return {ok:false, why:`Enfriamiento ${state.cooldown} rondas`};
+
+  // Candidatos y cálculo de EV con penalización a colas
+  const candidates=[2,2.2,2.5,2.8,3,3.5,4,5,7,10];
+  let best=null;
+
+  for(const T of candidates){
+    const p = Model.pTail(cr,T);
+    const EV = p*T - 1;
+    // márgenes mínimos para apostar (evitar falsos positivos)
+    const margin = (T<=2.5? state.settings.margin2 :
+                   T<=4?   state.settings.margin3_4 :
+                   T<=7?   state.settings.margin5 : state.settings.margin10);
+    // filtro de no-apuesta cuando <1/T + margin (breakeven + margen)
+    if(p < 1/T + margin) continue;
+
+    // penalización de riesgo para T altos (más prudencia)
+    const riskPenalty = (T>5? 0.02*(T-5) : 0);
+    const score = EV - riskPenalty;
+    if(!best || score>best.score) best={T, p, EV, score};
+  }
+
+  if(!best) return {ok:false, why:"Sin suficiente ventaja (EV + margen)."};
+  return {ok:true, ...best};
+}
+
+function placeSignal(){
+  const sig = bestEntry();
+  if(!sig.ok){ OUT.signalOut.innerHTML = `<span class="bad">ESPERA</span> – ${sig.why}`; return; }
+
+  const idx = state.crashes.length; // la siguiente ronda
+  const trainWindow = Math.min(60, Math.max(20, state.crashes.length));
+  state.bets.push({ index: idx, target: sig.T, pending:true, crash:null, ev:+sig.EV.toFixed(3) });
+  state.cooldown = state.settings.cooldownRounds; state.lastSignalIndex = idx; persist();
+
+  OUT.signalOut.innerHTML = `<span class="ok">¡ENTRADA!</span> Objetivo <b>${sig.T.toFixed(2)}x</b> · EV≈${sig.EV.toFixed(3)} · P≥T≈${(sig.p*100).toFixed(1)}%`;
+  if(document.getElementById('beep').checked) beep();
+
+  renderTable(); updateAccChart();
+}
+
+function renderTable(){
+  const tb = document.querySelector("#betsTbl tbody");
+  tb.innerHTML = "";
+  state.bets.forEach((b,i)=>{
+    const tr=document.createElement("tr");
+    const badge = b.pending? `<span class="badge b-blue">pend</span>` :
+      (b.result==='win'? `<span class="badge b-green">win</span>` : `<span class="badge b-red">loss</span>`);
+    tr.innerHTML = `<td>${i+1}</td><td>${b.target}x</td><td>${b.crash??'—'}</td><td>${badge}</td><td>${b.ev}</td>`;
+    tb.appendChild(tr);
+  });
+}
+
+/** ==================== Sonido ==================== **/
+let AudioC = window.AudioContext || window.webkitAudioContext; let ac;
+function beep(){
+  if(!ac) ac = new AudioC();
+  const o=ac.createOscillator(), g=ac.createGain();
+  o.frequency.value=880; o.type="sine";
+  g.gain.value=0.0001; o.connect(g); g.connect(ac.destination);
+  o.start();
+  g.gain.exponentialRampToValueAtTime(0.2, ac.currentTime+0.05);
+  g.gain.exponentialRampToValueAtTime(0.00001, ac.currentTime+0.35);
+  o.stop(ac.currentTime+0.36);
+}
+
+/** ==================== Exportar CSV ==================== **/
+function exportCSV(){
+  let csv = "idx,crash\n";
+  state.crashes.forEach((v,i)=>{ csv+= `${i+1},${v}\n`;});
+  const blob = new Blob([csv],{type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='crashes.csv'; a.click(); URL.revokeObjectURL(url);
+}
+
+/** ==================== Eventos ==================== **/
+document.getElementById("add").onclick = ()=>{ addCrash(IN.crash.value); IN.crash.value=""; IN.crash.focus(); };
+document.getElementById("undo").onclick= undo;
+document.getElementById("reset").onclick= resetAll;
+document.getElementById("signal").onclick= placeSignal;
+document.getElementById("export").onclick= exportCSV;
+
+// Enter para agregar rápido (PC) y abre teclado numérico en móvil por inputmode="decimal"
+IN.crash.addEventListener("keydown", e=>{ if(e.key==="Enter"){ addCrash(IN.crash.value); IN.crash.value=""; }});
+IN.target.addEventListener("keydown", e=>{ if(e.key==="Enter"){ highlightChip(parseFloat(IN.target.value)); }});
+
+// inicio
+renderAll();
+</script>
 </body>
 </html>
