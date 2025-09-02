@@ -1,285 +1,401 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Aviator Learner — Bot Integrado</title>
-<style>
-  :root{--bg:#0f172a;--card:#0b1220;--muted:#94a3b8;--text:#e5e7eb;--accent:#60a5fa;--ok:#22c55e;--bad:#ef4444;}
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,Segoe UI,Inter,Roboto,Arial}
-  .wrap{max-width:1120px;margin:0 auto;padding:20px}
-  h1{margin:0 0 8px;font-size:22px}
-  h2{margin:0 0 8px;font-size:18px}
-  .card{background:var(--card);border:1px solid #1f2937;border-radius:14px;padding:14px;margin-top:12px}
-  textarea,input,button{border-radius:10px;border:1px solid #334155;background:#0b1220;color:var(--text)}
-  textarea{width:100%;min-height:90px;padding:8px}
-  input{padding:8px;width:100%}
-  .btn{padding:8px 12px;background:#111827;border:1px solid #334155;cursor:pointer;border-radius:10px}
-  .btn:hover{border-color:#475569}
-  .muted{color:var(--muted);font-size:13px}
-  .rowflex{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  .signal{font-weight:700} .ok{color:var(--ok)} .no{color:var(--bad)}
-  .small{font-size:12px}
-  .table{width:100%;border-collapse:collapse;font-size:13px}
-  .table td,.table th{border-bottom:1px solid #1f2937;padding:6px 4px;text-align:left}
-  canvas.chart{width:100%;height:280px;background:#0a0f1f;border:1px solid #1f2937;border-radius:12px}
-  /* HUD para TM */
-  .hud{position:fixed;right:10px;top:10px;z-index:2147483647;background:rgba(0,0,0,.65);border:1px solid #334155;border-radius:10px;padding:6px 10px;font:12px/1.35 system-ui,Segoe UI,Inter,Roboto,Arial;color:#e5e7eb;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.35)}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aviator Analyzer Pro - 1Win</title>
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <style>
+    :root {
+      --alcista: #28a745;
+      --bajista: #dc3545;
+      --neutral: #ffc107;
+    }
+    body {
+      background-color: #121212;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding-bottom: 80px;
+    }
+    .card {
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .senal-verde {
+      background: linear-gradient(135deg, #00c853, #009624);
+      animation: pulse 2s infinite;
+    }
+    .senal-roja {
+      background: linear-gradient(135deg, #ff5252, #d50000);
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(0, 200, 83, 0.7); }
+      70% { box-shadow: 0 0 0 15px rgba(0, 200, 83, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(0, 200, 83, 0); }
+    }
+    .grafico-container {
+      height: 200px;
+      margin: 15px 0;
+    }
+    .multiplicador-btn {
+      font-size: 1.2rem;
+      font-weight: bold;
+      padding: 8px 15px;
+      margin: 5px;
+      border-radius: 8px;
+    }
+    .historial-item {
+      padding: 8px 12px;
+      margin: 4px 0;
+      border-radius: 6px;
+      background: #2d2d2d;
+    }
+    .input-crash {
+      font-size: 1.5rem;
+      text-align: center;
+      height: 50px;
+      background: #2d2d2d;
+      color: #fff;
+      border: 2px solid var(--neutral);
+    }
+    .toast {
+      background: #2d2d2d;
+      color: #fff;
+      border-left: 4px solid var(--alcista);
+    }
+  </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>🧪 Aviator Learner <span class="muted" style="border:1px solid #334155;border-radius:999px;padding:2px 8px">educativo · sin autobet</span></h1>
+  <div class="container py-3">
+    <div class="text-center mb-4">
+      <h1 class="display-6 fw-bold">AVIATOR ANALYZER PRO</h1>
+      <p class="text-muted">Sistema Inteligente de Análisis - 1Win</p>
+    </div>
 
-  <div class="card">
-    <h2>Entrada de rondas</h2>
-    <textarea id="ta" placeholder="Pega multiplicadores o espera TM/BC: 1.20 2.47 8.30 145.00 1.10 ..."></textarea>
-    <div class="rowflex" style="margin-top:8px">
-      <button class="btn" id="btnAdd">Añadir</button>
-      <button class="btn" id="btnClear">Limpiar</button>
-      <input id="quick" placeholder="Rápido: 123 => 1.23" style="width:160px">
-      <button class="btn" id="btnQuick">Añadir rápido</button>
-    </div>
-    <div class="muted small" id="lcInfo" style="margin-top:6px">Listo. Si usas Tampermonkey verás “TM/BC recibido: N.nn×”.</div>
-  </div>
-
-  <div class="card">
-    <h2>Modelo online (SGD) + filtros de señal</h2>
-    <div class="rowflex">
-      <label>Target ≥ <input id="inpTarget" type="number" step="0.1" value="3" style="width:90px"></label>
-      <label>Umbral p≥ <input id="inpThresh" type="number" step="0.01" value="0.90" style="width:90px"></label>
-      <label>Hist. mínimo N<input id="inpMinN" type="number" value="30" style="width:90px"></label>
-      <label>Ventana W<input id="inpW" type="number" value="40" style="width:90px"></label>
-      <label>LR α<input id="inpLR" type="number" step="0.001" value="0.02" style="width:90px"></label>
-      <label>L2 λ<input id="inpL2" type="number" step="0.0001" value="0.001" style="width:100px"></label>
-    </div>
-    <div class="rowflex" style="margin-top:6px">
-      <label>Cooldown (rondas) <input id="gateCooldown" type="number" value="8" style="width:90px"></label>
-      <label>W_low <input id="gateWlow" type="number" value="20" style="width:90px"></label>
-      <label>μ_min <input id="gateMuMin" type="number" step="0.01" value="1.30" style="width:90px"></label>
-      <label>K débiles <input id="gateK" type="number" value="8" style="width:90px"></label>
-      <label>Débil &lt; L <input id="gateL" type="number" step="0.01" value="1.30" style="width:90px"></label>
-      <label>Máx débiles M <input id="gateM" type="number" value="3" style="width:90px"></label>
-    </div>
-    <div class="rowflex" style="margin-top:6px">
-      <label>Bloquear si Bajista <input id="gateBlockBear" type="checkbox" checked></label>
-      <label>T (temperatura) <input id="gateT" type="number" step="0.1" value="1.7" style="width:90px"></label>
-      <label>Umbral adaptativo <input id="gateAdaptive" type="checkbox" checked></label>
-      <label>Precisión objetivo <input id="gateTargetAcc" type="number" step="0.01" value="0.75" style="width:90px"></label>
-    </div>
-    <div class="rowflex" style="margin-top:6px">
-      <button class="btn" id="btnReset">Reiniciar modelo</button>
-      <button class="btn" id="btnExportModel">Exportar modelo</button>
-      <label class="btn"><input type="file" id="fileModel" accept=".json" hidden>Importar modelo</label>
-    </div>
-    <div style="margin-top:8px">
-      <div>Prob. estimada próxima ≥ target: <span id="prob" class="signal">—</span></div>
-      <div>Señal: <span id="signal" class="signal no">—</span></div>
-      <div class="muted small">“Señal” ≠ garantía. Úsalo solo como análisis formativo (demo).</div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="rowflex" style="justify-content:space-between;gap:12px">
-      <h2>Gráfica (cap 200×) + Tendencia</h2>
-      <div class="rowflex">
-        <label>Ventana (W) <input id="trW" type="number" value="40" style="width:90px"></label>
-        <label>Umbral pendiente <input id="trEps" type="number" step="0.001" value="0.01" style="width:110px"></label>
-        <button class="btn" id="btnReplot">Recalcular</button>
+    <!-- Entrada Manual -->
+    <div class="card p-3 mb-4">
+      <h5 class="mb-3">Registrar Crash Manual</h5>
+      <div class="input-group mb-3">
+        <input type="number" id="crashInput" class="form-control input-crash" 
+               placeholder="1.00" step="0.01" min="1.00" value="1.00"
+               onfocus="this.select()" inputmode="decimal">
+        <button class="btn btn-primary" id="registrarBtn">Registrar</button>
+      </div>
+      <div class="d-flex justify-content-between">
+        <button class="btn multiplicador-btn" style="background: #4a148c; color: white" onclick="setMultiplicador(2)">2x</button>
+        <button class="btn multiplicador-btn" style="background: #311b92; color: white" onclick="setMultiplicador(3)">3x</button>
+        <button class="btn multiplicador-btn" style="background: #1a237e; color: white" onclick="setMultiplicador(5)">5x</button>
+        <button class="btn multiplicador-btn" style="background: #0d47a1; color: white" onclick="setMultiplicador(10)">10x</button>
       </div>
     </div>
-    <canvas id="chart" class="chart" width="1080" height="280"></canvas>
+
+    <!-- Señal de Entrada -->
+    <div class="card p-3 mb-4" id="senalContainer">
+      <h5 class="mb-3">Señal Inteligente</h5>
+      <div class="alert text-center p-4" id="senalText">
+        <h3>Analizando tendencias...</h3>
+        <p class="mb-0">Esperando datos suficientes (mínimo 8 rondas)</p>
+      </div>
+      <div class="d-flex justify-content-between mt-3">
+        <div>
+          <small class="text-muted">Última señal hace:</small>
+          <div id="tiempoEspera">0 rondas</div>
+        </div>
+        <div>
+          <small class="text-muted">Precisión actual:</small>
+          <div id="precision">0%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gráfico de Tendencias -->
+    <div class="card p-3 mb-4">
+      <h5 class="mb-3">Análisis de Tendencias</h5>
+      <div class="grafico-container">
+        <canvas id="tendenciaChart"></canvas>
+      </div>
+      <div class="d-flex justify-content-around mt-2">
+        <div class="text-center">
+          <div id="prob2x" class="fw-bold" style="color: var(--alcista)">0%</div>
+          <small>≥ 2x</small>
+        </div>
+        <div class="text-center">
+          <div id="prob5x" class="fw-bold" style="color: var(--neutral)">0%</div>
+          <small>≥ 5x</small>
+        </div>
+        <div class="text-center">
+          <div id="prob10x" class="fw-bold" style="color: var(--bajista)">0%</div>
+          <small>≥ 10x</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="card p-3 mb-4">
+      <h5 class="mb-3">Estadísticas en Tiempo Real</h5>
+      <div class="row text-center">
+        <div class="col-6 border-end">
+          <h6 id="promedioMovil">0.00x</h6>
+          <small>Promedio (últimas 10)</small>
+        </div>
+        <div class="col-6">
+          <h6 id="maximoReciente">0.00x</h6>
+          <small>Máximo reciente</small>
+        </div>
+      </div>
+      <div class="mt-3">
+        <div class="progress" style="height: 20px;">
+          <div id="barraTendencia" class="progress-bar" role="progressbar" style="width: 0%"></div>
+        </div>
+        <div class="d-flex justify-content-between mt-1">
+          <small>Bajista</small>
+          <small>Alcista</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Historial -->
+    <div class="card p-3">
+      <h5 class="mb-3">Historial Reciente</h5>
+      <div id="historialList" style="max-height: 200px; overflow-y: auto;">
+        <!-- Los elementos se generarán dinámicamente -->
+      </div>
+    </div>
   </div>
 
-  <div class="card">
-    <h2>Estadísticas</h2>
-    <table class="table small">
-      <tr><th>N (rondas)</th><td id="stN">0</td></tr>
-      <tr><th>Media</th><td id="stMean">0.00×</td></tr>
-      <tr><th>Mediana</th><td id="stMed">0.00×</td></tr>
-      <tr><th>P(≥3×)</th><td id="stP3">0.0%</td></tr>
-      <tr><th>P(≥5×)</th><td id="stP5">0.0%</td></tr>
-      <tr><th>Máx</th><td id="stMax">0.00×</td></tr>
-      <tr><th>Tendencia</th><td id="stTrend">—</td></tr>
-    </table>
+  <!-- Toast de Notificación -->
+  <div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-header">
+        <strong class="me-auto">Aviator Analyzer</strong>
+        <small>Ahora</small>
+        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+      <div class="toast-body">
+        ¡Señal de entrada detectada!
+      </div>
+    </div>
   </div>
 
-  <div class="card">
-    <h2>Señales</h2>
-    <table class="table small">
-      <tr><th>Pendiente abierta</th><td id="sgPending">No</td></tr>
-      <tr><th>Total señales</th><td id="sgTotal">0</td></tr>
-      <tr><th>Ganadas</th><td id="sgWins">0</td></tr>
-      <tr><th>Perdidas</th><td id="sgLoss">0</td></tr>
-      <tr><th>Precisión</th><td id="sgAcc">0.0%</td></tr>
-    </table>
-  </div>
+  <script>
+    // Configuración de Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
+      authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
+      projectId: "aviator-analyzer-b29a7",
+      storageBucket: "aviator-analyzer-b29a7.firebasestorage.app",
+      databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.europe-west1.firebasedatabase.app",
+      messagingSenderId: "575063626276",
+      appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1"
+    };
 
-  <div class="card"><p class="muted small">Herramienta educativa. No interactúa con el sitio ni garantiza resultados.</p></div>
-</div>
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const historialRef = db.ref('historial');
+    const senalesRef = db.ref('senales');
 
-<div id="tmHud" class="hud" style="display:none"></div>
+    // Variables globales
+    let historial = [];
+    let ultimaSenal = 0;
+    let precision = { ganadas: 0, totales: 0 };
+    let tendenciaChart = null;
+    let beepSound = new Audio('data:audio/wav;base64,UklGRiQDAABXQVZFZm10IBAAAAABAAEAiBUAAIgVAAABAAgAZGF0YQADAACBhYqFbF1fdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivrJBhRkFfdJivr......<think>);
 
-<script>
-// ========= Utilidades =========
-const $ = (id)=>document.getElementById(id);
-const setText=(id,val)=>{const el=$(id); if(el) el.textContent=val;};
-const median=a=>{if(!a.length)return 0;const s=[...a].sort((x,y)=>x-y),m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2;}
-const last=(a,k)=>a.slice(Math.max(0,a.length-k));
-const logc=(...args)=>console.log('%c[Aviator Bridge]', 'color:#60a5fa', ...args);
+    // Inicializar gráfico
+    function initChart() {
+      const ctx = document.getElementById('tendenciaChart').getContext('2d');
+      tendenciaChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [{
+            label: 'Crash History',
+            data: [],
+            borderColor: '#00c853',
+            backgroundColor: 'rgba(0, 200, 83, 0.1)',
+            borderWidth: 2,
+            pointRadius: 0,
+            fill: true,
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: { color: 'rgba(255,255,255,0.1)' },
+              ticks: { color: '#bbb' }
+            },
+            x: {
+              grid: { display: false },
+              ticks: { color: '#bbb' }
+            }
+          }
+        }
+      });
+    }
 
-// ========= Datos globales =========
-let DATA=[], MODEL=null, SIGNAL_PENDING=false, SG_TOTAL=0, SG_WINS=0, SG_LOSS=0, LAST_SIGNAL_INDEX=-999999;
-
-// ========= Modelo SGD (logística online) =========
-class OnlineLogReg{
-  constructor(d,lr=0.02,l2=0.001){this.w=new Array(d).fill(0);this.lr=lr;this.l2=l2;this.prevX=null;this.prevP=null;}
-  static sg(z){return 1/(1+Math.exp(-Math.max(-50,Math.min(50,z))))}
-  predict(x){let z=0;for(let i=0;i<this.w.length;i++)z+=this.w[i]*x[i];return OnlineLogReg.sg(z)}
-  stepPrepare(x){const p=this.predict(x);this.prevX=x.slice();this.prevP=p;return p;}
-  update(y){if(!this.prevX||this.prevP==null)return;const x=this.prevX,p=this.prevP;const g=p-y;for(let i=0;i<this.w.length;i++){const grad=g*x[i]+this.l2*this.w[i];this.w[i]-=this.lr*grad;}this.prevX=null;this.prevP=null;}
-}
-
-function featuresFrom(history,W,target){
-  const H=last(history,Math.max(1,Math.floor(W))); const n=H.length; if(n===0) return new Array(15).fill(0);
-  const caps=H.map(v=>Math.min(v,50)), logs=caps.map(v=>Math.log(1+v));
-  const mean=caps.reduce((a,b)=>a+b,0)/n, meanLog=logs.reduce((a,b)=>a+b,0)/n, med=median(caps);
-  const std=Math.sqrt((caps.reduce((a,b)=>a+(b-mean)**2,0)/n)||0);
-  const p3=caps.filter(v=>v>=3).length/n, p5=caps.filter(v=>v>=5).length/n;
-  let up=0,down=0; for(let i=caps.length-1;i>=0;i--){ if(caps[i]>=target){up++; if(down)break;} else{down++; if(up)break;} }
-  const L=last(caps,5); while(L.length<5)L.unshift(0);
-  let sinceHi=0; for(let i=caps.length-1;i>=0;i--){ if(caps[i]>=target) break; sinceHi++; }
-  return [1,mean,med,std,meanLog,p3,p5,up,down,sinceHi,...L];
-}
-
-function ensureModel(){const lr=G('inpLR',0.02),l2=G('inpL2',0.001); if(!MODEL) MODEL=new OnlineLogReg(15,lr,l2); MODEL.lr=lr; MODEL.l2=l2;}
-const G=(id,def)=>{const el=$(id); const v=parseFloat(String(el?.value??'').replace(',','.')); return Number.isFinite(v)?v:def;}
-const GB=(id)=>!!($(id)&&$(id).checked);
-
-// ========= Render =========
-function renderStats(){
-  const n=DATA.length;if(!n){['stN','stMean','stMed','stP3','stP5','stMax','stTrend'].forEach(id=>setText(id, id==='stN'?0:'0.00×')); setText('stTrend','—'); return;}
-  const mean=DATA.reduce((a,b)=>a+b,0)/n;
-  setText('stN',n);
-  setText('stMean',mean.toFixed(2)+'×');
-  setText('stMed',median(DATA).toFixed(2)+'×');
-  setText('stMax',Math.max(...DATA).toFixed(2)+'×');
-  setText('stP3',(DATA.filter(x=>x>=3).length/n*100).toFixed(1)+'%');
-  setText('stP5',(DATA.filter(x=>x>=5).length/n*100).toFixed(1)+'%');
-
-  const trW=Math.max(2,Math.floor(G('trW',40))), trEps=G('trEps',0.01);
-  const arr=DATA.map(v=>Math.min(v,50)); const w=Math.min(trW,arr.length);
-  let trend='—'; if(w>=2){ const slice=arr.slice(arr.length-w); const xMean=(w-1)/2,yMean=slice.reduce((a,b)=>a+b,0)/w; let num=0,den=0; for(let i=0;i<w;i++){const dx=i-xMean; num+=dx*(slice[i]-yMean); den+=dx*dx;} const slope=den?num/den:0; trend=slope>trEps?'Alcista':(slope<-trEps?'Bajista':'Lateral'); }
-  setText('stTrend',trend);
-}
-
-function drawChart(){
-  const c=$('chart'), ctx=c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height);
-  if(!DATA.length){ ctx.fillStyle='#64748b'; ctx.fillText('Carga datos para ver la serie',10,20); return; }
-  const cap=200,s=DATA.map((v,i)=>({i:i+1,m:Math.min(v,cap)})); const pad=30,w=c.width-pad*2,h=c.height-pad*2,max=cap,min=0;
-  ctx.strokeStyle='#13203a'; ctx.beginPath(); ctx.moveTo(pad,c.height-pad); ctx.lineTo(pad,pad); ctx.lineTo(c.width-pad,pad); ctx.stroke();
-  ctx.strokeStyle='#cbd5e1'; ctx.beginPath();
-  for(let i=0;i<s.length;i++){ const x=pad+(i/(s.length-1))*w; const y=c.height-pad-((s[i].m-min)/(max-min))*h; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);} ctx.stroke();
-  const wlen=Math.min(Math.max(2,Math.floor(G('trW',40))),s.length);
-  if(wlen>=2){ const arr=s.slice(s.length-wlen).map(o=>o.m); const xMean=(wlen-1)/2,yMean=arr.reduce((a,b)=>a+b,0)/wlen; let num=0,den=0; for(let i=0;i<wlen;i++){const dx=i-xMean; num+=dx*(arr[i]-yMean); den+=dx*dx;} const b=den?num/den:0,a=yMean-b*xMean; ctx.strokeStyle='#60a5fa'; ctx.beginPath(); for(let i=0;i<wlen;i++){ const xi=s.length-wlen+i; const x=pad+(xi/(s.length-1))*w; const yVal=a+b*i; const y=c.height-pad-((yVal-min)/(max-min))*h; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);} ctx.stroke(); }
-  const target=G('inpTarget',3); const yT=c.height-pad-((target-min)/(max-min))*h; ctx.setLineDash([5,5]); ctx.strokeStyle='#3b82f6'; ctx.beginPath(); ctx.moveTo(pad,yT); ctx.lineTo(c.width-pad,yT); ctx.stroke(); ctx.setLineDash([]);
-}
-
-function updateSignalCountersOnNewValue(v){
-  const target=G('inpTarget',3);
-  if(SIGNAL_PENDING){ if(v>=target) SG_WINS++; else SG_LOSS++; SIGNAL_PENDING=false; }
-  SG_TOTAL=SG_WINS+SG_LOSS; const acc=SG_TOTAL?(SG_WINS/SG_TOTAL*100).toFixed(1)+'%':'0.0%';
-  setText('sgPending', SIGNAL_PENDING?'Sí':'No'); setText('sgTotal', SG_TOTAL); setText('sgWins', SG_WINS); setText('sgLoss', SG_LOSS); setText('sgAcc', acc);
-}
-
-function updatePredictionUI(pRaw){
-  const thBase=G('inpThresh',0.9), T=Math.max(0.5,G('gateT',1.0));
-  const logit=p=>Math.log(Math.max(1e-9,p)/Math.max(1e-9,1-p));
-  const p=(pRaw==null)?null:(1/(1+Math.exp(-logit(pRaw)/T)));
-  if(p==null){ setText('prob','—'); const s=$('signal'); if(s){ s.textContent='—'; s.className='signal no'; } setText('sgPending', SIGNAL_PENDING?'Sí':'No'); return; }
-  setText('prob',p.toFixed(3));
-
-  const cooldown=Math.max(0,Math.floor(G('gateCooldown',0))), idx=DATA.length, cooldownOk=(idx-LAST_SIGNAL_INDEX)>=cooldown;
-  const Wlow=Math.max(1,Math.floor(G('gateWlow',20))), muMin=G('gateMuMin',1.30), mu=(DATA.length>=Wlow?DATA.slice(-Wlow).reduce((a,b)=>a+b,0)/Wlow:null), meanOk=(mu!==null && mu>=muMin);
-  const K=Math.max(1,Math.floor(G('gateK',8))), L=G('gateL',1.30), M=Math.max(0,Math.floor(G('gateM',3))), weakOk=(DATA.slice(-K).filter(v=>v<L).length)<=M;
-
-  const trW=Math.max(2,Math.floor(G('trW',40))), trEps=G('trEps',0.01);
-  let trendOk=true; const arr=DATA.map(v=>Math.min(v,50)); const w=Math.min(trW,arr.length); if(w>=2){ const slice=arr.slice(arr.length-w); const xMean=(w-1)/2,yMean=slice.reduce((a,b)=>a+b,0)/w; let num=0,den=0; for(let i=0;i<w;i++){const dx=i-xMean; num+=dx*(slice[i]-yMean); den+=dx*dx;} const slope=den?num/den:0; if(GB('gateBlockBear')) trendOk = !(slope<-trEps); }
-
-  let th=thBase;
-  if(GB('gateAdaptive')){ const targetAcc=G('gateTargetAcc',0.65); const acc=SG_TOTAL?(SG_WINS/SG_TOTAL):0; if(acc<targetAcc) th=Math.min(0.99,thBase+0.05); else if(acc>targetAcc+0.10) th=Math.max(0.50,thBase-0.02); }
-
-  const passProb=p>=th, allOk=passProb && cooldownOk && meanOk && weakOk && trendOk;
-  const sigEl=$('signal');
-  if(allOk){ if(sigEl){ sigEl.textContent=`SEÑAL (p≥${th.toFixed(2)})`; sigEl.className='signal ok'; } SIGNAL_PENDING=true; LAST_SIGNAL_INDEX=idx; }
-  else{ if(sigEl){ sigEl.textContent='No señal'; sigEl.className='signal no'; } }
-  setText('sgPending', SIGNAL_PENDING?'Sí':'No');
-}
-
-function maybePredictNext(){
-  ensureModel(); const target=G('inpTarget',3), W=Math.max(5,Math.floor(G('inpW',40))), minN=Math.max(5,Math.floor(G('inpMinN',30)));
-  let p=null; if(DATA.length>=Math.max(5,minN)){ const x=featuresFrom(DATA,W,target); p=MODEL.stepPrepare(x); } updatePredictionUI(p);
-}
-
-// ========= API pública para añadir una ronda =========
-window.onNewRound = function(val){
-  const target=G('inpTarget',3);
-  if(MODEL&&MODEL.prevX){ const y=(val>=target)?1:0; MODEL.update(y); }
-  updateSignalCountersOnNewValue(val);
-  DATA.push(val);
-  renderStats(); drawChart(); maybePredictNext();
-  const ta=$('ta'); if(ta){ ta.value=(ta.value.trim()?ta.value.trim()+' ':'')+val.toFixed(2); }
-  setText('lcInfo','TM/BC recibido: '+val.toFixed(2)+'×');
-};
-
-// ========= Botones =========
-$('btnAdd').onclick=()=>{ const v=($('ta').value||'').split(/[\s,;]+/).map(t=>t.trim()).filter(Boolean).map(x=>parseFloat(String(x).replace(',','.'))).filter(x=>x>0); v.forEach(window.onNewRound); $('ta').value=''; };
-$('btnClear').onclick=()=>{ DATA=[]; SIGNAL_PENDING=false; SG_TOTAL=SG_WINS=SG_LOSS=0; if(MODEL){ MODEL.prevX=null; MODEL.prevP=null; } renderStats(); drawChart(); updatePredictionUI(null); setText('sgPending','No'); setText('sgTotal','0'); setText('sgWins','0'); setText('sgLoss','0'); setText('sgAcc','0.0%'); setText('lcInfo','Listo.'); };
-$('btnQuick').onclick=()=>{ const s=String($('quick').value||'').trim(); let v=null; if(s && !s.includes('.') && /^\d{2,4}$/.test(s)){ if(s.length===2)v=s[0]+'.'+s[1]; else if(s.length===3)v=s[0]+'.'+s.slice(1); else v=s.slice(0,2)+'.'+s.slice(2);} else v=s; const x=parseFloat(String(v).replace(',','.')); if(Number.isFinite(x)&&x>0){ window.onNewRound(x); $('quick').value=''; } };
-$('btnReset').onclick=()=>{ MODEL=null; ensureModel(); MODEL.prevX=null; MODEL.prevP=null; maybePredictNext(); };
-
-// ========= Inicialización UI =========
-ensureModel(); renderStats(); drawChart(); updatePredictionUI(null);
-
-// ========= HUD discreto =========
-(function(){
-  const hud=$('tmHud'); let timer=null;
-  window.showHud=(msg)=>{ hud.style.display='block'; hud.textContent=msg; clearTimeout(timer); timer=setTimeout(()=>hud.style.display='none',1800); };
-})();
-
-// ========= Receptor Tampermonkey / BroadcastChannel =========
-(function(){
-  // postMessage (ventana)
-  window.addEventListener('message', (ev) => {
-    const data = ev && ev.data || {};
-    if (data.type !== 'aviator:round') return;
-    const raw = (data.value ?? '').toString();
-    const v = parseFloat(raw);
-    logc('recibido via postMessage:', raw);
-    if (isFinite(v) && v>=1){ showHud(`TM: ${v.toFixed(2)}×`); window.onNewRound(v); }
-    else logc('postMessage inválido:', data);
-  }, false);
-
-  // BroadcastChannel (opcional)
-  try{
-    const bc = new BroadcastChannel('aviator-bridge');
-    bc.addEventListener('message', (ev)=>{
-      const data = ev && ev.data || {};
-      if (data.type !== 'aviator:round') return;
-      const raw = (data.value ?? '').toString();
-      const v = parseFloat(raw);
-      logc('recibido via BroadcastChannel:', raw);
-      if (isFinite(v) && v>=1){ showHud(`BC: ${v.toFixed(2)}×`); window.onNewRound(v); }
-      else logc('Broadcast inválido:', data);
+    // Registrar crash manual
+    document.getElementById('registrarBtn').addEventListener('click', () => {
+      const valor = parseFloat(document.getElementById('crashInput').value);
+      if (valor >= 1.00) {
+        historialRef.push(valor);
+        document.getElementById('crashInput').value = '1.00';
+      }
     });
-    logc('listener BC listo');
-  }catch(e){
-    logc('BroadcastChannel no disponible:', e?.message||e);
-  }
 
-  logc('listener postMessage listo');
-})();
-</script>
+    // Configurar teclado numérico para móvil
+    document.getElementById('crashInput').addEventListener('focus', () => {
+      document.getElementById('crashInput').inputMode = 'decimal';
+      document.getElementById('crashInput').pattern = '[0-9]*[.,]?[0-9]*';
+    });
+
+    // Función para establecer multiplicador rápido
+    function setMultiplicador(valor) {
+      document.getElementById('crashInput').value = valor;
+      document.getElementById('crashInput').focus();
+    }
+
+    // Analizar tendencias y generar señal
+    function analizarTendencias() {
+      if (historial.length < 8) return;
+
+      const ultimas10 = historial.slice(-10);
+      const promedio = ultimas10.reduce((a, b) => a + b, 0) / ultimas10.length;
+      const rondasDesdeSenal = historial.length - ultimaSenal;
+
+      // Calcular probabilidades
+      const prob2x = (ultimas10.filter(x => x >= 2).length / ultimas10.length * 100).toFixed(1);
+      const prob5x = (ultimas10.filter(x => x >= 5).length / ultimas10.length * 100).toFixed(1);
+      const prob10x = (ultimas10.filter(x => x >= 10).length / ultimas10.length * 100).toFixed(1);
+
+      // Actualizar interfaz
+      document.getElementById('prob2x').textContent = `${prob2x}%`;
+      document.getElementById('prob5x').textContent = `${prob5x}%`;
+      document.getElementById('prob10x').textContent = `${prob10x}%`;
+      document.getElementById('promedioMovil').textContent = `${promedio.toFixed(2)}x`;
+      document.getElementById('maximoReciente').textContent = `${Math.max(...ultimas10).toFixed(2)}x`;
+
+      // Calcular tendencia (0-100%)
+      const tendencia = Math.min(100, Math.max(0, (promedio - 1) * 10));
+      document.getElementById('barraTendencia').style.width = `${tendencia}%`;
+      document.getElementById('barraTendencia').style.backgroundColor = 
+        tendencia > 50 ? 'var(--alcista)' : 'var(--bajista)';
+
+      // Generar señal inteligente (mínimo 8 rondas entre señales)
+      if (rondasDesdeSenal >= 8) {
+        let recomendacion = '';
+        let multiplicador = 0;
+        let clase = '';
+
+        // Lógica de decisión mejorada
+        if (prob2x > 70 && promedio > 2.5) {
+          multiplicador = 2.8;
+          recomendacion = `¡ENTRADA EN ${multiplicador}x!`;
+          clase = 'senal-verde';
+        } 
+        else if (prob5x > 40 && promedio > 4) {
+          multiplicador = 4.5;
+          recomendacion = `¡ENTRADA EN ${multiplicador}x!`;
+          clase = 'senal-verde';
+        }
+        else if (prob10x > 25) {
+          multiplicador = 9;
+          recomendacion = `¡ENTRADA EN ${multiplicador}x!`;
+          clase = 'senal-verde';
+        }
+        else {
+          recomendacion = 'Espera - Condiciones no óptimas';
+          clase = 'senal-roja';
+        }
+
+        // Actualizar señal
+        if (clase === 'senal-verde') {
+          document.getElementById('senalText').innerHTML = `
+            <h3>${recomendacion}</h3>
+            <p class="mb-0">Probabilidad estimada: ${prob2x > 70 ? 'Alta' : 'Media'} | Últimas 10 rondas</p>
+          `;
+          document.getElementById('senalText').className = 'alert text-center p-4 ' + clase;
+          
+          // Notificación con sonido
+          try { beepSound.play(); } catch (e) {}
+          
+          const toast = new bootstrap.Toast(document.getElementById('liveToast'));
+          toast.show();
+          
+          ultimaSenal = historial.length;
+        }
+      }
+
+      // Actualizar contador de espera
+      document.getElementById('tiempoEspera').textContent = 
+        `${Math.max(0, 8 - (historial.length - ultimaSenal))} rondas`;
+    }
+
+    // Actualizar historial en interfaz
+    function actualizarHistorial() {
+      const contenedor = document.getElementById('historialList');
+      contenedor.innerHTML = '';
+      
+      [...historial].reverse().slice(0, 15).forEach(valor => {
+        const item = document.createElement('div');
+        item.className = 'historial-item d-flex justify-content-between';
+        item.innerHTML = `
+          <span>Crash: <strong>${valor.toFixed(2)}x</strong></span>
+          <span class="${valor >= 2 ? 'text-success' : 'text-danger'}">
+            ${valor >= 2 ? '↑' : '↓'}
+          </span>
+        `;
+        contenedor.appendChild(item);
+      });
+    }
+
+    // Actualizar gráfico
+    function actualizarGrafico() {
+      if (!tendenciaChart) return;
+      
+      const datos = historial.slice(-20);
+      tendenciaChart.data.labels = Array.from({length: datos.length}, (_, i) => i + 1);
+      tendenciaChart.data.datasets[0].data = datos;
+      
+      // Color dinámico según tendencia
+      const promedioReciente = datos.reduce((a, b) => a + b, 0) / datos.length;
+      tendenciaChart.data.datasets[0].borderColor = 
+        promedioReciente > 3 ? 'var(--alcista)' : 'var(--bajista)';
+      
+      tendenciaChart.update();
+    }
+
+    // Inicialización
+    window.onload = () => {
+      initChart();
+      
+      // Escuchar cambios en Firebase
+      historialRef.on('value', snapshot => {
+        historial = Object.values(snapshot.val() || {});
+        actualizarHistorial();
+        actualizarGrafico();
+        analizarTendencias();
+      });
+
+      // Configurar precisión inicial
+      document.getElementById('precision').textContent = '0%';
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
