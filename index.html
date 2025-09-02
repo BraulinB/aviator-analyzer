@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Aviator Analyzer – Gocho (v3)</title>
+<title>Aviator Analyzer – Gocho (v4)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -27,7 +27,7 @@
   button.ghost{background:#0d1017}
   .chip{padding:6px 10px;border-radius:999px;border:1px solid #33405f;cursor:pointer;font-weight:600}
   .chip.active{border-color:var(--accent);box-shadow:0 0 0 2px rgba(91,156,255,.2) inset}
-  .stat{min-width:110px}
+  .stat{min-width:120px}
   .stat .v{font-weight:700}
   .muted{color:var(--muted)}
   .ok{color:var(--green)} .bad{color:var(--red)} .hl{color:var(--amber)}
@@ -74,9 +74,9 @@
       <div class="row" style="margin-top:6px;gap:14px">
         <label class="row" style="gap:6px"><input type="checkbox" id="auto" checked /> Auto‑señal</label>
         <label class="row" style="gap:6px">
-          Conf. mín.:
-          <input id="conf" type="range" min="70" max="95" value="90" />
-          <input id="confNum" type="number" min="70" max="95" value="90" style="width:64px" />
+          Conf. mín. (Wilson):
+          <input id="conf" type="range" min="70" max="95" value="85" />
+          <input id="confNum" type="number" min="70" max="95" value="85" style="width:64px" />
           <span class="muted">%</span>
         </label>
         <label class="row" style="gap:6px">CoolDown: <input id="cd" type="number" min="0" max="30" value="8" style="width:64px" /></label>
@@ -84,6 +84,8 @@
 
       <div class="row" style="margin-top:10px;flex-wrap:wrap">
         <div class="stat">Rondas: <span id="rounds" class="v">0</span></div>
+        <div class="stat">Señales: <span id="signalsTop" class="v">0</span></div>
+        <div class="stat">Dryness: <span id="dry" class="v">0</span></div>
         <div class="stat">P(≥2x): <span id="p2" class="v">–</span></div>
         <div class="stat">P(≥5x): <span id="p5" class="v">–</span></div>
         <div class="stat">P(≥10x): <span id="p10" class="v">–</span></div>
@@ -104,12 +106,12 @@
       <details style="margin-top:10px">
         <summary><b>📥 Cargar historial (pega ~60)</b></summary>
         <div class="row" style="margin-top:8px">
-          <textarea id="bulk" rows="4" style="width:100%" placeholder="Ej: 1.53x 1.11x 1.65x 5.39x 190.42x ... (separados por espacio o coma)"></textarea>
+          <textarea id="bulk" rows="4" style="width:100%" placeholder="Ej: 1.53x 1.11x 1.65x 5.39x 190.42x ... (espacios o comas)"></textarea>
           <div class="row">
             <button type="button" id="bulkLoad" class="primary">Cargar (últimas 60)</button>
             <button type="button" id="bulkInvert" class="ghost">Invertir orden pegado</button>
           </div>
-          <div class="note">Acepta 1.23x / 1,23x. Si pegaste de vieja→nueva, usa “Invertir”.</div>
+          <div class="note">Acepta 1.23x / 1,23x. Si pegaste viejo→nuevo, usa “Invertir”.</div>
         </div>
       </details>
     </div>
@@ -145,7 +147,7 @@
 
 <script>
 /* ===== Helpers ===== */
-function arrAt(a, i){ return (i<0)? a[a.length+i] : a[i]; }
+function clamp(x,a,b){ return Math.max(a,Math.min(b,x)); }
 const mean = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : 0;
 const ewma = (arr, alpha=0.3) => { if(!arr.length) return []; let s = arr[0]; return arr.map(v => (s = alpha*v + (1-alpha)*s)); };
 const lastN = (a,n)=> a.slice(-n);
@@ -154,20 +156,12 @@ const since = (arr, pred) => { for(let i=arr.length-1;i>=0;i--){ if(pred(arr[i])
 const rnd = x => Math.round(x*100)/100;
 
 /* ===== Parser robusto ===== */
-function parseCrashStr(s){
-  if(!s) return NaN;
-  return parseFloat(String(s).replace(/[xX]/g,'').replace(',','.'));
-}
+function parseCrashStr(s){ if(!s) return NaN; return parseFloat(String(s).replace(/[xX]/g,'').replace(',','.')); }
 function parseBulk(text){
   if(!text) return [];
-  // Remueve todo excepto números, x, coma, punto y espacios
   const cleaned = text.replace(/[^\dxX.,\s-]/g,' ');
   const parts = cleaned.split(/[\s,]+/).filter(Boolean);
-  const out=[];
-  for(const p of parts){
-    const v = parseCrashStr(p);
-    if(!isNaN(v) && v>0) out.push(+v.toFixed(2));
-  }
+  const out=[]; for(const p of parts){ const v = parseCrashStr(p); if(!isNaN(v)&&v>0) out.push(+v.toFixed(2)); }
   return out;
 }
 
@@ -183,10 +177,8 @@ const firebaseConfig = {
   // databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com"
 };
 let app, db, auth, uid=null, online=false;
-try{
-  app = firebase.initializeApp(firebaseConfig);
-  auth = firebase.auth(); db = firebase.database();
-  auth.signInAnonymously().then(cred=>{ uid=cred.user.uid; online=true; attachRealtime(); }).catch(()=>{});
+try{ app=firebase.initializeApp(firebaseConfig); auth=firebase.auth(); db=firebase.database();
+  auth.signInAnonymously().then(cred=>{uid=cred.user.uid; online=true; attachRealtime();}).catch(()=>{});
 }catch(e){}
 
 /* ===== Estado ===== */
@@ -197,13 +189,14 @@ const state = {
   model: LS("model") || { w2:[], w5:[], gamma:2.0 },
   cooldown: LS("cooldown") || 0,
   lastSignalIndex: LS("lastSignalIndex") || -1000,
-  baseLoad: LS("baseLoad") || 0, // cuántas rondas venían en la carga inicial
+  baseLoad: LS("baseLoad") || 0,
+  dry: LS("dry") || 0, // rondas sin señal
   settings: LS("settings") || {
-    margin2:0.03, margin3_4:0.05, margin5:0.08, margin10:0.10,
-    avoidLowThreshold:4, cooldownRounds:8, minConfidence:0.90
+    margin2:0.03, margin3_4:0.04, margin5:0.06, margin10:0.08,
+    avoidLowHard:6, avoidLowSoft:5, cooldownRounds:8, minConfidence:0.85
   }
 };
-function persist(){ LS("crashes",state.crashes); LS("bets",state.bets); LS("model",state.model); LS("cooldown",state.cooldown); LS("lastSignalIndex",state.lastSignalIndex); LS("baseLoad",state.baseLoad); LS("settings",state.settings); }
+function persist(){ LS("crashes",state.crashes); LS("bets",state.bets); LS("model",state.model); LS("cooldown",state.cooldown); LS("lastSignalIndex",state.lastSignalIndex); LS("baseLoad",state.baseLoad); LS("dry",state.dry); LS("settings",state.settings); }
 
 /* ===== Modelo ===== */
 const Model = {
@@ -226,42 +219,35 @@ const Model = {
     return [1, l, m5||0, m10||0, low8||0, lowStreak||0, since5, since10, slope||0, pct2in10||0];
   },
   tails(cr){
-    const f = this.features(cr);
-    const p2m = this.predict(this.w2,f);
-    const p5m = this.predict(this.w5,f);
-    const n30 = Math.max(1,lastN(cr,30).length);
-    const cnt = T=> lastN(cr,30).filter(v=>v>=T).length/n30;
-    const p2e = cnt(2), p5e = cnt(5), p10e = cnt(10);
-    const p2 = 0.5*p2m + 0.5*p2e;
-    const p5 = 0.5*p5m + 0.5*p5e;
-    const p10= 0.6*p10e + 0.4*Math.max(0,Math.min(1,p5e/3));
-    return {p2, p5, p10};
+    const f=this.features(cr);
+    const p2m=this.predict(this.w2,f), p5m=this.predict(this.w5,f);
+    const n30=Math.max(1,lastN(cr,30).length);
+    const cnt=T=> lastN(cr,30).filter(v=>v>=T).length/n30;
+    const p2e=cnt(2), p5e=cnt(5), p10e=cnt(10);
+    const p2=0.5*p2m+0.5*p2e, p5=0.5*p5m+0.5*p5e, p10=0.6*p10e+0.4*Math.max(0,Math.min(1,p5e/3));
+    return {p2,p5,p10};
   },
   pTail(cr,T){
-    const {p2,p5,p10} = this.tails(lastN(cr,30));
+    const {p2,p5,p10}=this.tails(lastN(cr,30));
     if(T<=2) return p2;
     if(T<=5){ if(p2<=0||p5<=0) return 0; const t=(T-2)/3; return Math.exp(Math.log(p2)+t*(Math.log(p5)-Math.log(p2))); }
-    if(T<=10){ if(p5>0 && p10>0){ const t=(T-5)/5; return Math.exp(Math.log(p5)+t*(Math.log(p10)-Math.log(p5))); }
+    if(T<=10){ if(p5>0&&p10>0){ const t=(T-5)/5; return Math.exp(Math.log(p5)+t*(Math.log(p10)-Math.log(p5))); }
                if(p5>0) return p5*Math.pow(T/5,-this.gamma); return 0; }
     return (p10>0? p10*Math.pow(T/10,-this.gamma):0);
   },
   learn(cr,T,crash){
-    const f=this.features(cr);
-    const y2 = crash>2?1:0; this.update(this.w2,f,y2);
-    const y5 = crash>5?1:0; this.update(this.w5,f,y5);
-    const tail = lastN(cr,120).filter(v=>v>=5);
-    if(tail.length>=6){
-      const xm=5; let s=0; for(let i=0;i<tail.length;i++) s+= Math.log(tail[i]/xm);
-      const k = tail.length; this.gamma = Math.max(1.05, 1 + k/Math.max(1e-6,s));
-    }
-    state.model = { w2:this.w2, w5:this.w5, gamma:this.gamma }; persist(); pushModel();
+    const f=this.features(cr), y2=crash>2?1:0, y5=crash>5?1:0;
+    this.update(this.w2,f,y2); this.update(this.w5,f,y5);
+    const tail=lastN(cr,120).filter(v=>v>=5);
+    if(tail.length>=6){ const xm=5; let s=0; for(let i=0;i<tail.length;i++) s+=Math.log(tail[i]/xm); const k=tail.length; this.gamma=Math.max(1.05,1+k/Math.max(1e-6,s)); }
+    state.model={w2:this.w2,w5:this.w5,gamma:this.gamma}; persist(); pushModel();
   }
 };
 
 /* ===== Sync ===== */
 function attachRealtime(){
   if(!online||!uid) return;
-  const base = db.ref(`users/${uid}`);
+  const base=db.ref(`users/${uid}`);
   base.child("crashes").on("value",snap=>{
     const val=snap.val(); if(!val) return;
     const arr=Object.values(val).sort((a,b)=>a.i-b.i).map(o=>o.v);
@@ -275,201 +261,196 @@ function pushCrashes(){ if(!online||!uid) return; const map={}; state.crashes.fo
 function pushModel(){ if(!online||!uid) return; db.ref(`users/${uid}/model`).set({ w2:Model.w2, w5:Model.w5, gamma:Model.gamma }); }
 
 /* ===== UI refs ===== */
-const el = id => document.getElementById(id);
-const IN = { crash: el("crash"), target: el("target"), conf: el("conf"), confNum: el("confNum"), cd: el("cd"), auto: el("auto") };
-const OUT = {
-  rounds: el("rounds"), p2: el("p2"), p5: el("p5"), p10: el("p10"),
-  ma10: el("ma10"), streakLow: el("streakLow"), cool: el("cool"),
-  signalOut: el("signalOut"), pills: el("pills"),
-  signals: el("signals"), wins: el("wins"), losses: el("losses"), wr: el("wr")
+const el=id=>document.getElementById(id);
+const IN={ crash:el("crash"), target:el("target"), conf:el("conf"), confNum:el("confNum"), cd:el("cd"), auto:el("auto") };
+const OUT={
+  rounds:el("rounds"), p2:el("p2"), p5:el("p5"), p10:el("p10"),
+  ma10:el("ma10"), streakLow:el("streakLow"), cool:el("cool"),
+  signalOut:el("signalOut"), pills:el("pills"),
+  signalsTop:el("signalsTop"), signals:el("signals"),
+  wins:el("wins"), losses:el("losses"), wr:el("wr"), dry:el("dry")
 };
-
-IN.conf.value = Math.round(state.settings.minConfidence*100);
-IN.confNum.value = Math.round(state.settings.minConfidence*100);
-IN.cd.value = state.settings.cooldownRounds;
+IN.conf.value=Math.round(state.settings.minConfidence*100); IN.confNum.value=Math.round(state.settings.minConfidence*100); IN.cd.value=state.settings.cooldownRounds;
 
 /* ===== Charts ===== */
-const seriesChart = new Chart(document.getElementById('series').getContext('2d'),{
+const seriesChart=new Chart(document.getElementById('series').getContext('2d'),{
   type:'line',data:{labels:[],datasets:[
     {label:'Crash',data:[],tension:.2,pointRadius:0,borderWidth:2},
     {label:'EWMA',data:[],tension:.2,pointRadius:0,borderWidth:2},
     {label:'Tendencia',data:[],tension:0,pointRadius:0,borderWidth:2},
   ]},options:{responsive:true,plugins:{legend:{display:false}}}
 });
-const accChart = new Chart(document.getElementById('accChart').getContext('2d'),{
+const accChart=new Chart(document.getElementById('accChart').getContext('2d'),{
   type:'bar',data:{labels:['2','2.5','3','3.5','4','5','7','10'],datasets:[{label:'Aciertos %',data:new Array(8).fill(0)}]},
   options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100}}}
 });
 
 /* ===== Render ===== */
-function pillsRender(){
-  const cr = state.crashes.slice().reverse();
-  OUT.pills.innerHTML="";
-  cr.slice(0,60).forEach(v=>{
-    const sp=document.createElement("span"); sp.className="pill"; sp.textContent=v+"x"; OUT.pills.appendChild(sp);
-  });
-}
+function pillsRender(){ const cr=state.crashes.slice().reverse(); OUT.pills.innerHTML=""; cr.slice(0,60).forEach(v=>{ const sp=document.createElement("span"); sp.className="pill"; sp.textContent=v+"x"; OUT.pills.appendChild(sp); }); }
 function recompute(){
-  const cr = state.crashes;
-  const n10 = lastN(cr,10);
-  const p2 = lastN(cr,30).filter(v=>v>=2).length/Math.max(1,lastN(cr,30).length);
-  const p5 = lastN(cr,30).filter(v=>v>=5).length/Math.max(1,lastN(cr,30).length);
-  const p10= lastN(cr,30).filter(v=>v>=10).length/Math.max(1,lastN(cr,30).length);
-  OUT.rounds.textContent = state.baseLoad ? `${cr.length} (base ${state.baseLoad})` : `${cr.length}`;
-  OUT.p2.textContent = (p2*100).toFixed(1)+'%';
-  OUT.p5.textContent = (p5*100).toFixed(1)+'%';
-  OUT.p10.textContent= (p10*100).toFixed(1)+'%';
+  const cr=state.crashes, n10=lastN(cr,10);
+  const p2=lastN(cr,30).filter(v=>v>=2).length/Math.max(1,lastN(cr,30).length);
+  const p5=lastN(cr,30).filter(v=>v>=5).length/Math.max(1,lastN(cr,30).length);
+  const p10=lastN(cr,30).filter(v=>v>=10).length/Math.max(1,lastN(cr,30).length);
+  OUT.rounds.textContent= state.baseLoad ? `${cr.length} (base ${state.baseLoad})` : `${cr.length}`;
+  OUT.signalsTop.textContent=state.bets.length; OUT.dry.textContent=state.dry;
+  OUT.p2.textContent=(p2*100).toFixed(1)+'%'; OUT.p5.textContent=(p5*100).toFixed(1)+'%'; OUT.p10.textContent=(p10*100).toFixed(1)+'%';
   OUT.ma10.textContent= n10.length? rnd(mean(n10))+'x' : '–';
-  OUT.streakLow.textContent = streak(cr, v=>v<1.7);
-  OUT.cool.textContent = state.cooldown;
+  OUT.streakLow.textContent=streak(cr,v=>v<1.7); OUT.cool.textContent=state.cooldown;
 
-  seriesChart.data.labels = cr.map((_,i)=>String(i+1));
-  seriesChart.data.datasets[0].data = cr;
-  const E = ewma(cr,0.3); seriesChart.data.datasets[1].data = E;
-  let trend = new Array(E.length).fill(null), slope=0;
-  if(E.length>=6){ slope = E[E.length-1]-E[E.length-6]; for(let i=E.length-6;i<E.length;i++) if(i>=0) trend[i]=E[i]; }
-  seriesChart.data.datasets[2].data = trend;
-  seriesChart.data.datasets[2].borderColor = slope>=0 ? "#1dd1a1" : "#ff6b6b";
-  seriesChart.update();
+  seriesChart.data.labels=cr.map((_,i)=>String(i+1));
+  seriesChart.data.datasets[0].data=cr;
+  const E=ewma(cr,0.3); seriesChart.data.datasets[1].data=E;
+  let trend=new Array(E.length).fill(null), slope=0; if(E.length>=6){ slope=E[E.length-1]-E[E.length-6]; for(let i=Math.max(0,E.length-6); i<E.length; i++) trend[i]=E[i]; }
+  seriesChart.data.datasets[2].data=trend; seriesChart.data.datasets[2].borderColor=slope>=0?"#1dd1a1":"#ff6b6b"; seriesChart.update();
 
-  const wins = state.bets.filter(b=>!b.pending && b.result==='win').length;
-  const losses = state.bets.filter(b=>!b.pending && b.result==='loss').length;
-  OUT.signals.textContent = state.bets.length;
-  OUT.wins.textContent = wins; OUT.losses.textContent = losses;
-  OUT.wr.textContent = (wins+losses)? Math.round(100*wins/(wins+losses))+"%" : "0%";
+  const wins=state.bets.filter(b=>!b.pending && b.result==='win').length;
+  const losses=state.bets.filter(b=>!b.pending && b.result==='loss').length;
+  OUT.signals.textContent=state.bets.length; OUT.wins.textContent=wins; OUT.losses.textContent=losses;
+  OUT.wr.textContent=(wins+losses)? Math.round(100*wins/(wins+losses))+"%" : "0%";
 }
 function updateAccChart(){
-  const bins=[2,2.5,3,3.5,4,5,7,10];
-  const wins=new Array(bins.length).fill(0);
-  const tot =new Array(bins.length).fill(0);
-  state.bets.forEach(b=>{
-    const i=bins.indexOf(b.target);
-    if(i>=0){ tot[i]++; if(b.result==='win') wins[i]++; }
-  });
-  const pct = tot.map((t,i)=> t? Math.round(100*wins[i]/t):0);
-  accChart.data.datasets[0].data = pct;
-  accChart.update();
+  const bins=[2,2.5,3,3.5,4,5,7,10], wins=new Array(bins.length).fill(0), tot=new Array(bins.length).fill(0);
+  state.bets.forEach(b=>{ const i=bins.indexOf(b.target); if(i>=0){ tot[i]++; if(b.result==='win') wins[i]++; }});
+  const pct=tot.map((t,i)=> t? Math.round(100*wins[i]/t):0); accChart.data.datasets[0].data=pct; accChart.update();
 }
 function renderTable(){
-  const tb = document.querySelector("#betsTbl tbody"); tb.innerHTML="";
-  state.bets.forEach((b,i)=>{
-    const badge = b.pending? `<span class="badge b-blue">pend</span>` :
-      (b.result==='win'? `<span class="badge b-green">win</span>` : `<span class="badge b-red">loss</span>`);
-    const tr=document.createElement("tr");
-    tr.innerHTML = `<td>${i+1}</td><td>${b.target}x</td><td>${b.crash??'—'}</td><td>${badge}</td><td>${b.ev}</td>`;
-    tb.appendChild(tr);
-  });
+  const tb=document.querySelector("#betsTbl tbody"); tb.innerHTML="";
+  state.bets.forEach((b,i)=>{ const badge=b.pending? `<span class="badge b-blue">pend</span>` : (b.result==='win'? `<span class="badge b-green">win</span>` : `<span class="badge b-red">loss</span>`); const tr=document.createElement("tr"); tr.innerHTML=`<td>${i+1}</td><td>${b.target}x</td><td>${b.crash??'—'}</td><td>${badge}</td><td>${b.ev}</td>`; tb.appendChild(tr); });
 }
 function renderAll(){ recompute(); updateAccChart(); renderTable(); pillsRender(); persist(); }
 
-/* ===== Señal automática ===== */
-function bestEntry(){
-  const cr = state.crashes;
-  if(cr.length<12) return {ok:false, why:"Necesita ≥12 rondas registradas."};
+/* ===== Probabilidad y confianza ===== */
+// z para intervalo de Wilson (aprox. unilateral)
+function zFor(confPct){ // 70..95
+  const pts=[[70,0.524],[75,0.674],[80,0.842],[85,1.036],[87,1.126],[90,1.282],[92,1.405],[95,1.645]];
+  for(let i=0;i<pts.length-1;i++){ const [x1,z1]=pts[i], [x2,z2]=pts[i+1]; if(confPct===x1) return z1; if(confPct>x1 && confPct<x2){ const t=(confPct-x1)/(x2-x1); return z1+t*(z2-z1); } }
+  return pts[pts.length-1][1];
+}
+function wilsonLower(p,n,z){ if(n<=0) return 0; const denom=1+z*z/n; const center=p+z*z/(2*n); const rad=z*Math.sqrt((p*(1-p)+z*z/(4*n))/n); return Math.max(0,(center-rad)/denom); }
 
-  const low8 = lastN(cr,8).filter(v=>v<1.7).length;
-  if(low8 >= state.settings.avoidLowThreshold) return {ok:false, why:`Zona mala: ${low8}/8 <1.70x`};
+/* ===== Señal automática (v4) ===== */
+function bestEntry(){
+  const cr=state.crashes; const N=cr.length; if(N<12) return {ok:false, why:"Necesita ≥12 rondas."};
+
+  const recent=lastN(cr,60); const n=recent.length;
+  const E=ewma(lastN(cr,10),0.3); const slope=(E.length>=6)? E[E.length-1]-E[E.length-6]:0;
+  const low8=lastN(cr,8).filter(v=>v<1.7).length;
+
+  // Zona mala dinámica
+  if(low8 >= state.settings.avoidLowHard) return {ok:false, why:`Zona mala: ${low8}/8 <1.70x (bloqueo)`};
+  if(low8 >= state.settings.avoidLowSoft && slope <= 0) return {ok:false, why:`Zona mala: ${low8}/8 <1.70x (espera)`};
+
   if(state.cooldown>0) return {ok:false, why:`Enfriamiento ${state.cooldown} rondas`};
 
-  const candidates=[2,2.2,2.5,2.8,3,3.5,4,5,7,10];
+  const confPct = Math.round(state.settings.minConfidence*100);
+  const z = zFor(confPct);
+
+  const candidates=[2,2.2,2.5,2.8,3,3.2,3.5,4,5,7];
   let best=null;
-  for(let k=0;k<candidates.length;k++){
-    const T = candidates[k];
-    const p = Model.pTail(cr,T);
-    const EV = p*T - 1;
+
+  for(const T of candidates){
+    const pModel = Model.pTail(cr,T);                 // estimación híbrida
+    const w = recent.filter(v=>v>=T).length;
+    const pEmp = w/n;                                 // empírica 60
+    const p = 0.6*pModel + 0.4*pEmp;                  // mezcla conservadora
+
+    // Wilson LCL con n=60 sobre p mezclada (aprox.)
+    const L = wilsonLower(p, n, z);
+
+    // umbral de equilibrio + margen (relajación por sequía)
+    const base = 1/T;
     const margin = (T<=2.5? state.settings.margin2 :
                    T<=4?   state.settings.margin3_4 :
                    T<=7?   state.settings.margin5 : state.settings.margin10);
-    const minProb = Math.max(1/T + margin, state.settings.minConfidence);
-    if(p < minProb) continue;
+
+    const relax = Math.min(0.02, state.dry*0.0004);   // máx 0.02 tras sequía larga
+    const need = base + margin - relax;
+
+    if(L < need) continue;                            // no pasa confianza
+
+    const EV = p*T - 1;                               // valor esperado
     const riskPenalty = (T>5? 0.02*(T-5) : 0);
-    const score = (EV - riskPenalty) + (p - minProb);
-    if(!best || score>best.score) best={T, p, EV, score};
+    const confGap = Math.max(0, L - need);
+    const score = EV + 0.7*confGap - riskPenalty + (slope>0? 0.01:0) + (relax>0? 0.005:0);
+
+    if(!best || score>best.score) best={T,p,EV,score,L,need};
   }
-  if(!best) return {ok:false, why:"Sin ventaja ni confianza suficiente."};
+
+  if(!best) return {ok:false, why:`Sin ventaja al ${confPct}% (LCL < breakeven+margen)`};
   return {ok:true, ...best};
 }
+
 function placeSignal(sig){
   if(!sig){ sig=bestEntry(); }
   if(!sig.ok){ OUT.signalOut.innerHTML = `<span class="bad">ESPERA</span> – ${sig.why}`; return; }
-  const idx = state.crashes.length; // la siguiente ronda
-  const trainWindow = Math.min(60, Math.max(20, state.crashes.length));
-  state.bets.push({ index: idx, target: +sig.T.toFixed(2), pending:true, crash:null, ev:+sig.EV.toFixed(3), trainWindow });
-  state.cooldown = state.settings.cooldownRounds; state.lastSignalIndex = idx; persist();
+  const idx=state.crashes.length; const trainWindow=Math.min(60, Math.max(20, state.crashes.length));
+  state.bets.push({ index:idx, target:+sig.T.toFixed(2), pending:true, crash:null, ev:+sig.EV.toFixed(3), trainWindow });
+  state.cooldown=state.settings.cooldownRounds; state.lastSignalIndex=idx; state.dry=0; persist();
 
-  OUT.signalOut.innerHTML = `<span class="ok">¡ENTRADA!</span> Objetivo <b>${(+sig.T).toFixed(2)}x</b> · EV≈${sig.EV.toFixed(3)} · P≥T≈${(sig.p*100).toFixed(1)}%`;
+  OUT.signalOut.innerHTML = `<span class="ok">¡ENTRADA!</span> Objetivo <b>${(+sig.T).toFixed(2)}x</b> · EV≈${sig.EV.toFixed(3)} · LCL≥${sig.need.toFixed(3)} (al ${Math.round(state.settings.minConfidence*100)}%)`;
   if(document.getElementById('beep').checked) beep();
-  renderTable(); updateAccChart();
+  renderTable(); updateAccChart(); recompute();
 }
 function maybeEmitAutoSignal(){ if(!document.getElementById('auto').checked) return; const sig=bestEntry(); if(sig.ok) placeSignal(sig); else OUT.signalOut.innerHTML=`Sin señal – ${sig.why}`; }
 
 /* ===== CRUD rondas ===== */
 function addCrash(v){
-  const x = parseCrashStr(v); if(isNaN(x)||x<=0) return;
+  const x=parseCrashStr(v); if(isNaN(x)||x<=0) return;
   state.crashes.push(+x.toFixed(2));
-  const lastBet = state.bets[state.bets.length-1];
-  if(lastBet && lastBet.index === state.crashes.length-1 && lastBet.pending){
-    lastBet.pending=false;
-    lastBet.crash=x;
-    lastBet.result = x>lastBet.target ? 'win':'loss';
+
+  const lastBet=state.bets[state.bets.length-1];
+  if(lastBet && lastBet.index===state.crashes.length-1 && lastBet.pending){
+    lastBet.pending=false; lastBet.crash=x; lastBet.result = x>lastBet.target ? 'win':'loss';
     Model.learn(lastN(state.crashes,lastBet.trainWindow), lastBet.target, x);
   }
   if(state.cooldown>0) state.cooldown--;
+  state.dry++; // aumenta sequía si no hubo señal; se resetea al emitir
   renderAll(); pushCrashes();
   maybeEmitAutoSignal();
 }
 function undo(){
-  state.crashes.pop(); const lastBet = state.bets[state.bets.length-1];
+  state.crashes.pop();
+  const lastBet=state.bets[state.bets.length-1];
   if(lastBet && lastBet.index>=state.crashes.length){ state.bets.pop(); }
   renderAll(); pushCrashes();
 }
 function resetAll(){
   if(!confirm("¿Borrar todo?")) return;
-  state.crashes=[]; state.bets=[]; state.cooldown=0; state.lastSignalIndex=-1000; state.baseLoad=0;
+  state.crashes=[]; state.bets=[]; state.cooldown=0; state.lastSignalIndex=-1000; state.baseLoad=0; state.dry=0;
   renderAll(); pushCrashes();
 }
 
 /* ===== Sonido ===== */
-let AudioC = window.AudioContext || window.webkitAudioContext; let ac;
-function beep(){ try{ if(!ac) ac = new AudioC(); const o=ac.createOscillator(), g=ac.createGain(); o.frequency.value=880; o.type="sine"; g.gain.value=0.0001; o.connect(g); g.connect(ac.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.2, ac.currentTime+0.05); g.gain.exponentialRampToValueAtTime(0.00001, ac.currentTime+0.35); o.stop(ac.currentTime+0.36);}catch(e){} }
+let AudioC=window.AudioContext||window.webkitAudioContext; let ac;
+function beep(){ try{ if(!ac) ac=new AudioC(); const o=ac.createOscillator(), g=ac.createGain(); o.frequency.value=880; o.type="sine"; g.gain.value=0.0001; o.connect(g); g.connect(ac.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.2, ac.currentTime+0.05); g.gain.exponentialRampToValueAtTime(0.00001, ac.currentTime+0.35); o.stop(ac.currentTime+0.36);}catch(e){} }
 
 /* ===== Export ===== */
-function exportCSV(){
-  let csv = "idx,crash\n"; state.crashes.forEach((v,i)=>{ csv+= `${i+1},${v}\n`;});
-  const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
-  const a=document.createElement('a'); a.href=url; a.download='crashes.csv'; a.click(); URL.revokeObjectURL(url);
-}
+function exportCSV(){ let csv="idx,crash\n"; state.crashes.forEach((v,i)=>{ csv+= `${i+1},${v}\n`;}); const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='crashes.csv'; a.click(); URL.revokeObjectURL(url); }
 
 /* ===== Eventos ===== */
-document.getElementById("addForm").addEventListener("submit", e=>{
-  e.preventDefault(); addCrash(IN.crash.value); IN.crash.value=""; IN.crash.focus();
-});
+document.getElementById("addForm").addEventListener("submit", e=>{ e.preventDefault(); addCrash(IN.crash.value); IN.crash.value=""; IN.crash.focus(); });
 IN.crash.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); addCrash(IN.crash.value); IN.crash.value=""; }});
-document.getElementById("undo").onclick= undo;
-document.getElementById("reset").onclick= resetAll;
-document.getElementById("export").onclick= exportCSV;
+document.getElementById("undo").onclick=undo; document.getElementById("reset").onclick=resetAll; document.getElementById("export").onclick=exportCSV;
 
 const chips=[2,2.5,3,3.5,4,5,7,10,15,20,50,100], chipsBox=document.getElementById("chips");
 chips.forEach(v=>{ const s=document.createElement("span"); s.className="chip"; s.textContent=v+"x"; s.onclick=()=>{ IN.target.value=String(v); highlightChip(v); }; chipsBox.appendChild(s); });
 function highlightChip(v){ [...chipsBox.children].forEach(c=>c.classList.toggle("active",c.textContent===v+"x")); }
 
-IN.conf.addEventListener("input", ()=>{ IN.confNum.value=IN.conf.value; state.settings.minConfidence = (+IN.conf.value)/100; persist(); });
-IN.confNum.addEventListener("change", ()=>{ let v=clamp(parseInt(IN.confNum.value||"90",10),70,95); IN.conf.value=v; state.settings.minConfidence=v/100; IN.confNum.value=v; persist(); });
-IN.cd.addEventListener("change", ()=>{ state.settings.cooldownRounds = Math.max(0, parseInt(IN.cd.value||"8",10)); persist(); });
+IN.conf.addEventListener("input", ()=>{ IN.confNum.value=IN.conf.value; state.settings.minConfidence=(+IN.conf.value)/100; persist(); });
+IN.confNum.addEventListener("change", ()=>{ let v=clamp(parseInt(IN.confNum.value||"85",10),70,95); IN.conf.value=v; state.settings.minConfidence=v/100; IN.confNum.value=v; persist(); });
+IN.cd.addEventListener("change", ()=>{ state.settings.cooldownRounds=Math.max(0, parseInt(IN.cd.value||"8",10)); persist(); });
 
-document.getElementById("bulkLoad").onclick = ()=>{
-  const raw = document.getElementById("bulk").value;
-  const nums = parseBulk(raw);
-  if(nums.length===0){ alert("No se detectaron números. Asegúrate de pegar formato 1.23x o 1,23x."); return; }
-  const take = nums.slice(-60); // últimas 60
-  state.crashes = take; state.bets=[]; state.cooldown=0; state.lastSignalIndex=-1000; state.baseLoad = take.length;
+document.getElementById("bulkLoad").onclick=()=>{
+  const raw=document.getElementById("bulk").value; const nums=parseBulk(raw);
+  if(nums.length===0){ alert("No se detectaron números. Usa formato 1.23x o 1,23x."); return; }
+  const take=nums.slice(-60);
+  state.crashes=take; state.bets=[]; state.cooldown=0; state.lastSignalIndex=-1000; state.baseLoad=take.length; state.dry=0;
   renderAll(); pushCrashes();
-  OUT.signalOut.innerHTML = `Historial cargado: ${take.length} rondas. Analizando…`;
-  maybeEmitAutoSignal(); // evaluar para la próxima
+  OUT.signalOut.innerHTML=`Historial cargado: ${take.length} rondas. Analizando…`;
+  maybeEmitAutoSignal();
 };
-document.getElementById("bulkInvert").onclick = ()=>{
-  const t=document.getElementById("bulk"); const arr = t.value.split(/[\s,]+/).filter(Boolean).reverse(); t.value = arr.join(" ");
-};
+document.getElementById("bulkInvert").onclick=()=>{ const t=document.getElementById("bulk"); const arr=t.value.split(/[\s,]+/).filter(Boolean).reverse(); t.value=arr.join(" "); };
 
 /* inicio */
 renderAll();
