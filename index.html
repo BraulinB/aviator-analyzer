@@ -9,8 +9,8 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js"></script>
   <style>
     :root {
       --primary: #0d47a1;
@@ -248,23 +248,20 @@
       authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
       projectId: "aviator-analyzer-b29a7",
       storageBucket: "aviator-analyzer-b29a7.firebasestorage.app",
-      databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.europe-west1.firebasedatabase.app",
       messagingSenderId: "575063626276",
       appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1"
     };
 
     // Inicializar Firebase
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    const historialRef = db.ref('historial');
-    const senalesRef = db.ref('senales');
+    const app = firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const historialRef = database.ref('historial');
 
     // Variables globales
     let historial = [];
     let ultimaSenal = 0;
     let precision = { ganadas: 0, totales: 0 };
     let tendenciaChart = null;
-    let beepSound = new Audio('audio/beep.mp3'); // Reemplaza con tu archivo real
     let multiplicadorSeleccionado = 2; // Valor predeterminado
 
     // Inicializar gráfico
@@ -330,6 +327,7 @@
       botones.forEach(btn => btn.classList.remove('active'));
       document.querySelector(`[onclick="seleccionarMultiplicador(${multiplicador})"]`).classList.add('active');
       multiplicadorSeleccionado = multiplicador;
+      analizarTendencias(); // Forzar actualización
     }
 
     // Analizar tendencias y generar señal
@@ -386,11 +384,9 @@
           document.getElementById('senalTexto').innerHTML = recomendacion;
           document.getElementById('senalSubtexto').innerHTML = 
             `Probabilidad estimada: ${prob2x > 70 ? 'Alta' : 'Media'} | Últimas 10 rondas`;
-          document.getElementById('senalCard').className = 'senal-card ' + clase;
+          document.querySelector('.senal-card').classList.add(clase);
           
-          // Notificación con sonido
-          try { beepSound.play(); } catch (e) {}
-          
+          // Notificación
           const toast = new bootstrap.Toast(document.getElementById('liveToast'));
           toast.show();
           
@@ -398,7 +394,7 @@
         } else {
           document.getElementById('senalTexto').innerHTML = 'Analizando tendencias...';
           document.getElementById('senalSubtexto').innerHTML = 'Esperando condiciones óptimas';
-          document.getElementById('senalCard').className = 'senal-card';
+          document.querySelector('.senal-card').classList.remove('senal-verde', 'senal-roja');
         }
       }
 
@@ -446,7 +442,7 @@
       initChart();
       
       // Escuchar cambios en Firebase
-      historialRef.on('value', snapshot => {
+      historialRef.on('value', (snapshot) => {
         historial = Object.values(snapshot.val() || []);
         actualizarHistorial();
         actualizarGrafico();
