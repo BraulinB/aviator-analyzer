@@ -8,9 +8,9 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js"></script>
+  <!-- Firebase SDK Legacy -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
   <style>
     :root {
       --primary: #0d47a1;
@@ -253,7 +253,7 @@
     };
 
     // Inicializar Firebase
-    const app = firebase.initializeApp(firebaseConfig);
+    firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
     const historialRef = database.ref('historial');
 
@@ -263,6 +263,15 @@
     let precision = { ganadas: 0, totales: 0 };
     let tendenciaChart = null;
     let multiplicadorSeleccionado = 2; // Valor predeterminado
+
+    // Función para seleccionar multiplicador
+    function seleccionarMultiplicador(multiplicador) {
+      const botones = document.querySelectorAll('.multiplicador-group button');
+      botones.forEach(btn => btn.classList.remove('active'));
+      document.querySelector(`[onclick="seleccionarMultiplicador(${multiplicador})"]`).classList.add('active');
+      multiplicadorSeleccionado = multiplicador;
+      analizarTendencias(); // Forzar actualización
+    }
 
     // Inicializar gráfico
     function initChart() {
@@ -274,7 +283,7 @@
           datasets: [{
             label: 'Crash History',
             data: [],
-            borderColor: var(--success),
+            borderColor: getComputedStyle(document.documentElement).getPropertyValue('--success'),
             backgroundColor: 'rgba(0, 200, 83, 0.1)',
             borderWidth: 2,
             pointRadius: 0,
@@ -321,15 +330,6 @@
       document.getElementById('crashInput').value = '';
     });
 
-    // Seleccionar multiplicador
-    function seleccionarMultiplicador(multiplicador) {
-      const botones = document.querySelectorAll('.multiplicador-group button');
-      botones.forEach(btn => btn.classList.remove('active'));
-      document.querySelector(`[onclick="seleccionarMultiplicador(${multiplicador})"]`).classList.add('active');
-      multiplicadorSeleccionado = multiplicador;
-      analizarTendencias(); // Forzar actualización
-    }
-
     // Analizar tendencias y generar señal
     function analizarTendencias() {
       if (historial.length < 8) return;
@@ -354,7 +354,7 @@
       const tendencia = Math.min(100, Math.max(0, (promedio - 1) * 10));
       document.getElementById('barraTendencia').style.width = `${tendencia}%`;
       document.getElementById('barraTendencia').style.backgroundColor = 
-        tendencia > 50 ? 'var(--success)' : 'var(--danger)';
+        tendencia > 50 ? getComputedStyle(document.documentElement).getPropertyValue('--success') : getComputedStyle(document.documentElement).getPropertyValue('--danger');
 
       // Generar señal inteligente (mínimo 8 rondas entre señales)
       if (rondasDesdeSenal >= 8) {
@@ -432,7 +432,7 @@
       // Color dinámico según tendencia
       const promedioReciente = datos.reduce((a, b) => a + b, 0) / datos.length;
       tendenciaChart.data.datasets[0].borderColor = 
-        promedioReciente > 3 ? 'var(--success)' : 'var(--danger)';
+        promedioReciente > 3 ? getComputedStyle(document.documentElement).getPropertyValue('--success') : getComputedStyle(document.documentElement).getPropertyValue('--danger');
       
       tendenciaChart.update();
     }
