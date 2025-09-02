@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Aviator Analyzer – Gocho (v4)</title>
+<title>Aviator Analyzer – Gocho (v5)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -41,6 +41,8 @@
   .note{font-size:12px;color:#9aa3ba;margin-top:6px}
   .pills{display:flex;flex-wrap:wrap;gap:6px;max-height:120px;overflow:auto;margin-top:6px}
   .pill{background:#0d1017;border:1px solid #2c3450;border-radius:999px;padding:4px 8px;font-weight:700}
+  .mode{padding:6px 10px;border-radius:999px;border:1px solid #33405f;cursor:pointer;font-weight:700}
+  .mode.active{border-color:var(--green)}
   @media (max-width:960px){.grid{grid-template-columns:1fr}}
 </style>
 </head>
@@ -72,6 +74,13 @@
       </form>
 
       <div class="row" style="margin-top:6px;gap:14px">
+        <div class="row" id="modes">
+          <span class="muted">Modo:</span>
+          <span class="mode" data-mode="agresivo">Agresivo</span>
+          <span class="mode active" data-mode="normal">Normal</span>
+          <span class="mode" data-mode="conservador">Conservador</span>
+        </div>
+
         <label class="row" style="gap:6px"><input type="checkbox" id="auto" checked /> Auto‑señal</label>
         <label class="row" style="gap:6px">
           Conf. mín. (Wilson):
@@ -82,9 +91,27 @@
         <label class="row" style="gap:6px">CoolDown: <input id="cd" type="number" min="0" max="30" value="8" style="width:64px" /></label>
       </div>
 
+      <div class="row" style="margin-top:6px;gap:14px">
+        <label class="row" style="gap:6px">Meta señales: <input id="sigLimit" type="number" min="1" max="50" value="5" style="width:72px" /></label>
+        <label class="row" style="gap:6px">Banca inicial: <input id="bankroll" type="number" min="1" step="0.01" value="100" style="width:96px" /></label>
+        <label class="row" style="gap:6px">
+          Stake:
+          <select id="stakeMode">
+            <option value="fixed">Fijo</option>
+            <option value="pct">% banca</option>
+          </select>
+          <input id="stakeValue" type="number" min="0.1" step="0.1" value="1" style="width:72px" />
+          <span id="stakeUnit" class="muted">$</span>
+        </label>
+        <button type="button" id="startSess" class="primary">Iniciar sesión</button>
+        <button type="button" id="endSess" class="ghost" disabled>Cerrar sesión</button>
+        <span id="sessStatus" class="muted">Sesión inactiva</span>
+      </div>
+
       <div class="row" style="margin-top:10px;flex-wrap:wrap">
         <div class="stat">Rondas: <span id="rounds" class="v">0</span></div>
         <div class="stat">Señales: <span id="signalsTop" class="v">0</span></div>
+        <div class="stat">Límite: <span id="limitTop" class="v">–</span></div>
         <div class="stat">Dryness: <span id="dry" class="v">0</span></div>
         <div class="stat">P(≥2x): <span id="p2" class="v">–</span></div>
         <div class="stat">P(≥5x): <span id="p5" class="v">–</span></div>
@@ -123,7 +150,7 @@
 
       <h3 style="margin:12px 0 6px 0">Apuestas registradas</h3>
       <table id="betsTbl">
-        <thead><tr><th>#</th><th>Objetivo</th><th>Crash</th><th>Resultado</th><th>EV est.</th></tr></thead>
+        <thead><tr><th>#</th><th>Objetivo</th><th>Stake</th><th>Crash</th><th>Resultado</th><th>P/L</th><th>EV est.</th></tr></thead>
         <tbody></tbody>
       </table>
 
@@ -136,6 +163,21 @@
 
       <div class="note">Ganada si crash &gt; objetivo. Igual o menor = pérdida (tu regla).</div>
     </div>
+  </div>
+
+  <!-- Finanzas -->
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 8px 0">Finanzas de la sesión</h3>
+    <div class="row" style="gap:16px">
+      <div class="stat">Balance: <span id="bal" class="v">$0.00</span></div>
+      <div class="stat">Total apostado: <span id="staked" class="v">$0.00</span></div>
+      <div class="stat">Ganancia neta: <span id="profit" class="v">$0.00</span></div>
+      <div class="stat">ROI: <span id="roi" class="v">0%</span></div>
+      <div class="stat">Máx. drawdown: <span id="dd" class="v">0%</span></div>
+      <div class="stat">Señales usadas: <span id="sigUsed" class="v">0/–</span></div>
+    </div>
+    <div style="margin-top:10px"><canvas id="equity"></canvas></div>
+    <div class="note">Stake fijo = valor en $. Stake % banca = porcentaje de tu balance al momento de la señal. P/L simulado: +stake*(T-1) si gana, −stake si pierde.</div>
   </div>
 </div>
 
@@ -154,6 +196,7 @@ const lastN = (a,n)=> a.slice(-n);
 const streak = (arr, pred) => { let c=0; for(let i=arr.length-1;i>=0;i--){ if(pred(arr[i])) c++; else break; } return c; };
 const since = (arr, pred) => { for(let i=arr.length-1;i>=0;i--){ if(pred(arr[i])) return arr.length-1-i; } return arr.length; };
 const rnd = x => Math.round(x*100)/100;
+function fmt(n){ return (isNaN(n)?0:n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
 /* ===== Parser robusto ===== */
 function parseCrashStr(s){ if(!s) return NaN; return parseFloat(String(s).replace(/[xX]/g,'').replace(',','.')); }
@@ -190,13 +233,22 @@ const state = {
   cooldown: LS("cooldown") || 0,
   lastSignalIndex: LS("lastSignalIndex") || -1000,
   baseLoad: LS("baseLoad") || 0,
-  dry: LS("dry") || 0, // rondas sin señal
+  dry: LS("dry") || 0,
+  mode: LS("mode") || "normal",
+  session: LS("session") || null,               // sesión activa o null
+  sessions: LS("sessions") || [],               // historial de sesiones
   settings: LS("settings") || {
     margin2:0.03, margin3_4:0.04, margin5:0.06, margin10:0.08,
-    avoidLowHard:6, avoidLowSoft:5, cooldownRounds:8, minConfidence:0.85
+    avoidLowHard:6, avoidLowSoft:5, cooldownRounds:8, minConfidence:0.85,
+    relaxMax:0.02
   }
 };
-function persist(){ LS("crashes",state.crashes); LS("bets",state.bets); LS("model",state.model); LS("cooldown",state.cooldown); LS("lastSignalIndex",state.lastSignalIndex); LS("baseLoad",state.baseLoad); LS("dry",state.dry); LS("settings",state.settings); }
+function persist(){
+  LS("crashes",state.crashes); LS("bets",state.bets); LS("model",state.model);
+  LS("cooldown",state.cooldown); LS("lastSignalIndex",state.lastSignalIndex);
+  LS("baseLoad",state.baseLoad); LS("dry",state.dry); LS("mode",state.mode);
+  LS("session",state.session); LS("sessions",state.sessions); LS("settings",state.settings);
+}
 
 /* ===== Modelo ===== */
 const Model = {
@@ -262,13 +314,16 @@ function pushModel(){ if(!online||!uid) return; db.ref(`users/${uid}/model`).set
 
 /* ===== UI refs ===== */
 const el=id=>document.getElementById(id);
-const IN={ crash:el("crash"), target:el("target"), conf:el("conf"), confNum:el("confNum"), cd:el("cd"), auto:el("auto") };
+const IN={ crash:el("crash"), target:el("target"), conf:el("conf"), confNum:el("confNum"), cd:el("cd"), auto:el("auto"),
+           sigLimit:el("sigLimit"), bankroll:el("bankroll"), stakeMode:el("stakeMode"), stakeValue:el("stakeValue") };
 const OUT={
   rounds:el("rounds"), p2:el("p2"), p5:el("p5"), p10:el("p10"),
   ma10:el("ma10"), streakLow:el("streakLow"), cool:el("cool"),
   signalOut:el("signalOut"), pills:el("pills"),
-  signalsTop:el("signalsTop"), signals:el("signals"),
-  wins:el("wins"), losses:el("losses"), wr:el("wr"), dry:el("dry")
+  signalsTop:el("signalsTop"), limitTop:el("limitTop"),
+  signals:el("signals"), wins:el("wins"), losses:el("losses"), wr:el("wr"), dry:el("dry"),
+  bal:el("bal"), staked:el("staked"), profit:el("profit"), roi:el("roi"), dd:el("dd"), sigUsed:el("sigUsed"),
+  sessStatus:el("sessStatus"), startSess:el("startSess"), endSess:el("endSess"), stakeUnit:el("stakeUnit")
 };
 IN.conf.value=Math.round(state.settings.minConfidence*100); IN.confNum.value=Math.round(state.settings.minConfidence*100); IN.cd.value=state.settings.cooldownRounds;
 
@@ -284,6 +339,10 @@ const accChart=new Chart(document.getElementById('accChart').getContext('2d'),{
   type:'bar',data:{labels:['2','2.5','3','3.5','4','5','7','10'],datasets:[{label:'Aciertos %',data:new Array(8).fill(0)}]},
   options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100}}}
 });
+const equityChart=new Chart(document.getElementById('equity').getContext('2d'),{
+  type:'line',data:{labels:[],datasets:[{label:'Equity',data:[],tension:.1,pointRadius:0,borderWidth:2}]},
+  options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:false}}}
+});
 
 /* ===== Render ===== */
 function pillsRender(){ const cr=state.crashes.slice().reverse(); OUT.pills.innerHTML=""; cr.slice(0,60).forEach(v=>{ const sp=document.createElement("span"); sp.className="pill"; sp.textContent=v+"x"; OUT.pills.appendChild(sp); }); }
@@ -293,7 +352,8 @@ function recompute(){
   const p5=lastN(cr,30).filter(v=>v>=5).length/Math.max(1,lastN(cr,30).length);
   const p10=lastN(cr,30).filter(v=>v>=10).length/Math.max(1,lastN(cr,30).length);
   OUT.rounds.textContent= state.baseLoad ? `${cr.length} (base ${state.baseLoad})` : `${cr.length}`;
-  OUT.signalsTop.textContent=state.bets.length; OUT.dry.textContent=state.dry;
+  OUT.signalsTop.textContent=state.bets.length; OUT.limitTop.textContent = state.session && state.session.active ? state.session.signalLimit : "–";
+  OUT.dry.textContent=state.dry;
   OUT.p2.textContent=(p2*100).toFixed(1)+'%'; OUT.p5.textContent=(p5*100).toFixed(1)+'%'; OUT.p10.textContent=(p10*100).toFixed(1)+'%';
   OUT.ma10.textContent= n10.length? rnd(mean(n10))+'x' : '–';
   OUT.streakLow.textContent=streak(cr,v=>v<1.7); OUT.cool.textContent=state.cooldown;
@@ -316,83 +376,150 @@ function updateAccChart(){
 }
 function renderTable(){
   const tb=document.querySelector("#betsTbl tbody"); tb.innerHTML="";
-  state.bets.forEach((b,i)=>{ const badge=b.pending? `<span class="badge b-blue">pend</span>` : (b.result==='win'? `<span class="badge b-green">win</span>` : `<span class="badge b-red">loss</span>`); const tr=document.createElement("tr"); tr.innerHTML=`<td>${i+1}</td><td>${b.target}x</td><td>${b.crash??'—'}</td><td>${badge}</td><td>${b.ev}</td>`; tb.appendChild(tr); });
+  state.bets.forEach((b,i)=>{
+    const badge=b.pending? `<span class="badge b-blue">pend</span>` : (b.result==='win'? `<span class="badge b-green">win</span>` : `<span class="badge b-red">loss</span>`);
+    const plTxt = b.pending? '—' : ( (b.pl>=0? '+$':'-$') + fmt(Math.abs(b.pl)) );
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${i+1}</td><td>${b.target}x</td><td>${b.stake? '$'+fmt(b.stake):'—'}</td><td>${b.crash??'—'}</td><td>${badge}</td><td>${plTxt}</td><td>${b.ev}</td>`;
+    tb.appendChild(tr);
+  });
 }
-function renderAll(){ recompute(); updateAccChart(); renderTable(); pillsRender(); persist(); }
+function renderFinance(){
+  const s=state.session;
+  if(!s || !s.active){
+    OUT.bal.textContent='$0.00'; OUT.staked.textContent='$0.00';
+    OUT.profit.textContent='$0.00'; OUT.roi.textContent='0%'; OUT.dd.textContent='0%'; OUT.sigUsed.textContent='0/–';
+    equityChart.data.labels=[]; equityChart.data.datasets[0].data=[]; equityChart.update();
+    OUT.sessStatus.textContent='Sesión inactiva'; OUT.endSess.disabled=true; OUT.startSess.disabled=false;
+    return;
+  }
+  OUT.sessStatus.textContent='Sesión ACTIVA';
+  OUT.endSess.disabled=false; OUT.startSess.disabled=true;
+
+  OUT.bal.textContent = '$'+fmt(s.balance);
+  OUT.staked.textContent = '$'+fmt(s.totalStaked);
+  OUT.profit.textContent = '$'+fmt(s.profit);
+  const roi = s.totalStaked>0 ? (100*s.profit/s.totalStaked) : 0;
+  OUT.roi.textContent = (isFinite(roi)? roi.toFixed(1):0)+'%';
+  OUT.dd.textContent = (s.maxDD*100).toFixed(1)+'%';
+  OUT.sigUsed.textContent = `${s.signalsUsed}/${s.signalLimit}`;
+
+  equityChart.data.labels = s.equity.map((_,i)=>String(i));
+  equityChart.data.datasets[0].data = s.equity;
+  equityChart.update();
+}
+function renderAll(){ recompute(); updateAccChart(); renderTable(); pillsRender(); renderFinance(); persist(); }
 
 /* ===== Probabilidad y confianza ===== */
-// z para intervalo de Wilson (aprox. unilateral)
-function zFor(confPct){ // 70..95
+function zFor(confPct){
   const pts=[[70,0.524],[75,0.674],[80,0.842],[85,1.036],[87,1.126],[90,1.282],[92,1.405],[95,1.645]];
   for(let i=0;i<pts.length-1;i++){ const [x1,z1]=pts[i], [x2,z2]=pts[i+1]; if(confPct===x1) return z1; if(confPct>x1 && confPct<x2){ const t=(confPct-x1)/(x2-x1); return z1+t*(z2-z1); } }
   return pts[pts.length-1][1];
 }
 function wilsonLower(p,n,z){ if(n<=0) return 0; const denom=1+z*z/n; const center=p+z*z/(2*n); const rad=z*Math.sqrt((p*(1-p)+z*z/(4*n))/n); return Math.max(0,(center-rad)/denom); }
 
-/* ===== Señal automática (v4) ===== */
+/* ===== Señal automática (con modo + meta de señales) ===== */
 function bestEntry(){
   const cr=state.crashes; const N=cr.length; if(N<12) return {ok:false, why:"Necesita ≥12 rondas."};
+  // límite por sesión
+  if(state.session && state.session.active && state.session.signalsUsed >= state.session.signalLimit){
+    return {ok:false, why:"Meta de señales alcanzada. Cierra o inicia nueva sesión."};
+  }
 
   const recent=lastN(cr,60); const n=recent.length;
   const E=ewma(lastN(cr,10),0.3); const slope=(E.length>=6)? E[E.length-1]-E[E.length-6]:0;
   const low8=lastN(cr,8).filter(v=>v<1.7).length;
 
-  // Zona mala dinámica
   if(low8 >= state.settings.avoidLowHard) return {ok:false, why:`Zona mala: ${low8}/8 <1.70x (bloqueo)`};
   if(low8 >= state.settings.avoidLowSoft && slope <= 0) return {ok:false, why:`Zona mala: ${low8}/8 <1.70x (espera)`};
 
   if(state.cooldown>0) return {ok:false, why:`Enfriamiento ${state.cooldown} rondas`};
 
-  const confPct = Math.round(state.settings.minConfidence*100);
-  const z = zFor(confPct);
-
+  const confPct = Math.round(state.settings.minConfidence*100), z = zFor(confPct);
   const candidates=[2,2.2,2.5,2.8,3,3.2,3.5,4,5,7];
   let best=null;
 
   for(const T of candidates){
-    const pModel = Model.pTail(cr,T);                 // estimación híbrida
+    const pModel = Model.pTail(cr,T);
     const w = recent.filter(v=>v>=T).length;
-    const pEmp = w/n;                                 // empírica 60
-    const p = 0.6*pModel + 0.4*pEmp;                  // mezcla conservadora
+    const pEmp = w/n;
+    const p = 0.6*pModel + 0.4*pEmp;
 
-    // Wilson LCL con n=60 sobre p mezclada (aprox.)
     const L = wilsonLower(p, n, z);
 
-    // umbral de equilibrio + margen (relajación por sequía)
     const base = 1/T;
     const margin = (T<=2.5? state.settings.margin2 :
                    T<=4?   state.settings.margin3_4 :
                    T<=7?   state.settings.margin5 : state.settings.margin10);
-
-    const relax = Math.min(0.02, state.dry*0.0004);   // máx 0.02 tras sequía larga
+    const relax = Math.min(state.settings.relaxMax, state.dry*0.0004);
     const need = base + margin - relax;
 
-    if(L < need) continue;                            // no pasa confianza
+    if(L < need) continue;
 
-    const EV = p*T - 1;                               // valor esperado
+    const EV = p*T - 1;
     const riskPenalty = (T>5? 0.02*(T-5) : 0);
     const confGap = Math.max(0, L - need);
     const score = EV + 0.7*confGap - riskPenalty + (slope>0? 0.01:0) + (relax>0? 0.005:0);
 
     if(!best || score>best.score) best={T,p,EV,score,L,need};
   }
-
   if(!best) return {ok:false, why:`Sin ventaja al ${confPct}% (LCL < breakeven+margen)`};
   return {ok:true, ...best};
+}
+
+function stakeForNext(){
+  const s=state.session;
+  if(!s || !s.active) return 0;
+  if(s.stakeMode==='fixed') return +(+s.stakeValue).toFixed(2);
+  const stake = s.balance * (s.stakeValue/100);
+  return +stake.toFixed(2);
 }
 
 function placeSignal(sig){
   if(!sig){ sig=bestEntry(); }
   if(!sig.ok){ OUT.signalOut.innerHTML = `<span class="bad">ESPERA</span> – ${sig.why}`; return; }
-  const idx=state.crashes.length; const trainWindow=Math.min(60, Math.max(20, state.crashes.length));
-  state.bets.push({ index:idx, target:+sig.T.toFixed(2), pending:true, crash:null, ev:+sig.EV.toFixed(3), trainWindow });
-  state.cooldown=state.settings.cooldownRounds; state.lastSignalIndex=idx; state.dry=0; persist();
 
-  OUT.signalOut.innerHTML = `<span class="ok">¡ENTRADA!</span> Objetivo <b>${(+sig.T).toFixed(2)}x</b> · EV≈${sig.EV.toFixed(3)} · LCL≥${sig.need.toFixed(3)} (al ${Math.round(state.settings.minConfidence*100)}%)`;
+  // límite por sesión
+  if(state.session && state.session.active && state.session.signalsUsed >= state.session.signalLimit){
+    OUT.signalOut.innerHTML = `<span class="bad">ESPERA</span> – Meta de señales alcanzada.`;
+    return;
+  }
+
+  const idx=state.crashes.length; const trainWindow=Math.min(60, Math.max(20, state.crashes.length));
+  const stake = stakeForNext();
+
+  state.bets.push({ index:idx, target:+sig.T.toFixed(2), stake:stake, pending:true, crash:null, ev:+sig.EV.toFixed(3), trainWindow });
+  state.cooldown=state.settings.cooldownRounds; state.lastSignalIndex=idx; state.dry=0;
+
+  if(state.session && state.session.active){ state.session.signalsUsed++; }
+
+  persist();
+  OUT.signalOut.innerHTML = `<span class="ok">¡ENTRADA!</span> Objetivo <b>${(+sig.T).toFixed(2)}x</b> · Stake ${stake? '$'+fmt(stake):'—'} · EV≈${sig.EV.toFixed(3)} · LCL≥${sig.need.toFixed(3)} (al ${Math.round(state.settings.minConfidence*100)}%)`;
   if(document.getElementById('beep').checked) beep();
-  renderTable(); updateAccChart(); recompute();
+  renderTable(); updateAccChart(); recompute(); renderFinance();
 }
 function maybeEmitAutoSignal(){ if(!document.getElementById('auto').checked) return; const sig=bestEntry(); if(sig.ok) placeSignal(sig); else OUT.signalOut.innerHTML=`Sin señal – ${sig.why}`; }
+
+/* ===== Finanzas de sesión ===== */
+function updateFinanceOnSettle(bet){
+  const s=state.session; if(!s || !s.active) return;
+  const stake = bet.stake||0;
+  const pl = (bet.result==='win') ? stake*(bet.target-1) : -stake;
+  bet.pl = +pl.toFixed(2);
+
+  s.totalStaked = +(s.totalStaked + stake).toFixed(2);
+  s.profit = +(s.profit + pl).toFixed(2);
+  s.balance = +(s.balance + pl).toFixed(2);
+
+  // equity y drawdown
+  if(!s.equity || !s.equity.length){ s.equity=[s.bankroll0]; }
+  s.equity.push(s.balance);
+  const peak = Math.max.apply(null,s.equity);
+  const dd = (peak>0)? (peak - s.balance)/peak : 0;
+  s.maxDD = Math.max(s.maxDD||0, dd);
+
+  renderFinance(); persist();
+}
 
 /* ===== CRUD rondas ===== */
 function addCrash(v){
@@ -403,9 +530,10 @@ function addCrash(v){
   if(lastBet && lastBet.index===state.crashes.length-1 && lastBet.pending){
     lastBet.pending=false; lastBet.crash=x; lastBet.result = x>lastBet.target ? 'win':'loss';
     Model.learn(lastN(state.crashes,lastBet.trainWindow), lastBet.target, x);
+    updateFinanceOnSettle(lastBet);
   }
   if(state.cooldown>0) state.cooldown--;
-  state.dry++; // aumenta sequía si no hubo señal; se resetea al emitir
+  state.dry++;
   renderAll(); pushCrashes();
   maybeEmitAutoSignal();
 }
@@ -417,8 +545,61 @@ function undo(){
 }
 function resetAll(){
   if(!confirm("¿Borrar todo?")) return;
-  state.crashes=[]; state.bets=[]; state.cooldown=0; state.lastSignalIndex=-1000; state.baseLoad=0; state.dry=0;
+  state.crashes=[]; state.bets=[]; state.cooldown=0; state.lastSignalIndex=-1000;
+  state.baseLoad=0; state.dry=0;
   renderAll(); pushCrashes();
+}
+
+/* ===== Modo ===== */
+function applyMode(m){
+  state.mode=m;
+  if(m==='agresivo'){
+    state.settings.minConfidence=0.80;
+    state.settings.margin2=0.02; state.settings.margin3_4=0.03; state.settings.margin5=0.05; state.settings.margin10=0.07;
+    state.settings.cooldownRounds=6; state.settings.avoidLowHard=6; state.settings.avoidLowSoft=5; state.settings.relaxMax=0.03;
+  }else if(m==='conservador'){
+    state.settings.minConfidence=0.90;
+    state.settings.margin2=0.04; state.settings.margin3_4=0.06; state.settings.margin5=0.08; state.settings.margin10=0.10;
+    state.settings.cooldownRounds=10; state.settings.avoidLowHard=5; state.settings.avoidLowSoft=4; state.settings.relaxMax=0.015;
+  }else{ // normal
+    state.settings.minConfidence=0.85;
+    state.settings.margin2=0.03; state.settings.margin3_4=0.04; state.settings.margin5=0.06; state.settings.margin10=0.08;
+    state.settings.cooldownRounds=8; state.settings.avoidLowHard=6; state.settings.avoidLowSoft=5; state.settings.relaxMax=0.02;
+  }
+  IN.conf.value = Math.round(state.settings.minConfidence*100);
+  IN.confNum.value = Math.round(state.settings.minConfidence*100);
+  IN.cd.value = state.settings.cooldownRounds;
+  // UI
+  document.querySelectorAll('#modes .mode').forEach(x=>x.classList.toggle('active', x.dataset.mode===m));
+  persist(); recompute();
+}
+
+/* ===== Sesiones ===== */
+function startSession(){
+  const limit = Math.max(1, parseInt(IN.sigLimit.value||"5",10));
+  const bk = Math.max(1, parseFloat(IN.bankroll.value||"100"));
+  const smode = IN.stakeMode.value;
+  const sval = Math.max(0.1, parseFloat(IN.stakeValue.value||"1"));
+
+  state.session = {
+    active:true, startedAt: Date.now(),
+    bankroll0:+bk.toFixed(2), balance:+bk.toFixed(2),
+    stakeMode:smode, stakeValue:sval,
+    totalStaked:0, profit:0, maxDD:0, equity:[+bk.toFixed(2)],
+    signalsUsed:0, signalLimit:limit, trades:[]
+  };
+  OUT.sessStatus.textContent='Sesión ACTIVA';
+  OUT.endSess.disabled=false; OUT.startSess.disabled=true;
+  OUT.limitTop.textContent=limit;
+  renderFinance(); persist();
+}
+function endSession(){
+  if(!state.session || !state.session.active) return;
+  state.session.active=false; state.session.endedAt=Date.now();
+  state.sessions.push(state.session); // guarda histórico
+  persist();
+  OUT.sessStatus.textContent='Sesión inactiva'; OUT.endSess.disabled=true; OUT.startSess.disabled=false;
+  renderFinance();
 }
 
 /* ===== Sonido ===== */
@@ -452,7 +633,21 @@ document.getElementById("bulkLoad").onclick=()=>{
 };
 document.getElementById("bulkInvert").onclick=()=>{ const t=document.getElementById("bulk"); const arr=t.value.split(/[\s,]+/).filter(Boolean).reverse(); t.value=arr.join(" "); };
 
+// modos
+document.querySelectorAll('#modes .mode').forEach(x=> x.onclick=()=>applyMode(x.dataset.mode));
+
+// stake selector
+IN.stakeMode.addEventListener("change", ()=>{
+  OUT.stakeUnit.textContent = IN.stakeMode.value==='pct' ? '%' : '$';
+});
+
+// sesión
+OUT.startSess.onclick = startSession;
+OUT.endSess.onclick = endSession;
+
 /* inicio */
+applyMode(state.mode);
+if(state.session && state.session.active){ OUT.limitTop.textContent=state.session.signalLimit; }
 renderAll();
 </script>
 </body>
