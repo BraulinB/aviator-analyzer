@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Aviator Analyzer – Gocho (v2)</title>
+<title>Aviator Analyzer – Gocho (v3)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -27,7 +27,7 @@
   button.ghost{background:#0d1017}
   .chip{padding:6px 10px;border-radius:999px;border:1px solid #33405f;cursor:pointer;font-weight:600}
   .chip.active{border-color:var(--accent);box-shadow:0 0 0 2px rgba(91,156,255,.2) inset}
-  .stat{min-width:85px}
+  .stat{min-width:110px}
   .stat .v{font-weight:700}
   .muted{color:var(--muted)}
   .ok{color:var(--green)} .bad{color:var(--red)} .hl{color:var(--amber)}
@@ -39,7 +39,7 @@
   .b-red{background:rgba(255,107,107,.15);color:var(--red)}
   .b-blue{background:rgba(91,156,255,.15);color:var(--accent)}
   .note{font-size:12px;color:#9aa3ba;margin-top:6px}
-  .pills{display:flex;flex-wrap:wrap;gap:6px;max-height:90px;overflow:auto;margin-top:6px}
+  .pills{display:flex;flex-wrap:wrap;gap:6px;max-height:120px;overflow:auto;margin-top:6px}
   .pill{background:#0d1017;border:1px solid #2c3450;border-radius:999px;padding:4px 8px;font-weight:700}
   @media (max-width:960px){.grid{grid-template-columns:1fr}}
 </style>
@@ -55,11 +55,11 @@
 
 <div class="wrap">
   <div class="grid">
-    <!-- IZQUIERDA: captura + controles -->
+    <!-- Panel izquierdo -->
     <div class="card">
       <form id="addForm" class="row" style="justify-content:space-between" autocomplete="off">
         <div class="row">
-          <input id="crash" type="text" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]+" placeholder="Nuevo crash" autofocus />
+          <input id="crash" type="text" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]+([xX])?" placeholder="Nuevo crash (ej. 1.23x)" autofocus />
           <button type="submit" class="primary">Agregar (⏎)</button>
           <button type="button" id="undo" class="ghost">Deshacer</button>
           <button type="button" id="reset" class="ghost">Reset</button>
@@ -71,13 +71,19 @@
         </div>
       </form>
 
-      <div class="row" style="margin-top:6px">
+      <div class="row" style="margin-top:6px;gap:14px">
         <label class="row" style="gap:6px"><input type="checkbox" id="auto" checked /> Auto‑señal</label>
-        <label class="row" style="gap:6px">Conf. mín.: <input id="conf" type="range" min="50" max="95" value="90" /><span id="confVal" class="hl">90%</span></label>
+        <label class="row" style="gap:6px">
+          Conf. mín.:
+          <input id="conf" type="range" min="70" max="95" value="90" />
+          <input id="confNum" type="number" min="70" max="95" value="90" style="width:64px" />
+          <span class="muted">%</span>
+        </label>
         <label class="row" style="gap:6px">CoolDown: <input id="cd" type="number" min="0" max="30" value="8" style="width:64px" /></label>
       </div>
 
       <div class="row" style="margin-top:10px;flex-wrap:wrap">
+        <div class="stat">Rondas: <span id="rounds" class="v">0</span></div>
         <div class="stat">P(≥2x): <span id="p2" class="v">–</span></div>
         <div class="stat">P(≥5x): <span id="p5" class="v">–</span></div>
         <div class="stat">P(≥10x): <span id="p10" class="v">–</span></div>
@@ -91,23 +97,24 @@
       <div style="margin-top:10px"><canvas id="series"></canvas></div>
 
       <div style="margin-top:8px">
-        <div class="muted">Últimas rondas (nueva → a la izquierda / arriba)</div>
+        <div class="muted">Últimas rondas (más reciente primero)</div>
         <div id="pills" class="pills"></div>
       </div>
 
       <details style="margin-top:10px">
-        <summary><b>📥 Cargar historial (pega hasta 60+ valores)</b></summary>
+        <summary><b>📥 Cargar historial (pega ~60)</b></summary>
         <div class="row" style="margin-top:8px">
-          <textarea id="bulk" rows="4" style="width:100%" placeholder="Ej: 1.23, 2.7 3.01 1.05, ... (separados por espacio o coma)"></textarea>
+          <textarea id="bulk" rows="4" style="width:100%" placeholder="Ej: 1.53x 1.11x 1.65x 5.39x 190.42x ... (separados por espacio o coma)"></textarea>
           <div class="row">
-            <button type="button" id="bulkLoad" class="primary">Cargar (toma últimas 60)</button>
-            <button type="button" id="bulkInvert" class="ghost">Invertir orden pegue</button>
+            <button type="button" id="bulkLoad" class="primary">Cargar (últimas 60)</button>
+            <button type="button" id="bulkInvert" class="ghost">Invertir orden pegado</button>
           </div>
+          <div class="note">Acepta 1.23x / 1,23x. Si pegaste de vieja→nueva, usa “Invertir”.</div>
         </div>
       </details>
     </div>
 
-    <!-- DERECHA: exactitud y apuestas -->
+    <!-- Panel derecho -->
     <div class="card">
       <h3 style="margin:0 0 6px 0">Aciertos por rango</h3>
       <canvas id="accChart"></canvas>
@@ -119,34 +126,52 @@
       </table>
 
       <div class="row" style="margin-top:8px">
+        <div class="stat">Señales: <span id="signals" class="v">0</span></div>
         <div class="stat">Ganadas: <span id="wins" class="v">0</span></div>
         <div class="stat">Perdidas: <span id="losses" class="v">0</span></div>
         <div class="stat">Win‑Rate: <span id="wr" class="v">0%</span></div>
       </div>
 
-      <div class="note">Se cuenta ganada si crash &gt; objetivo. Igual o menor se cuenta como pérdida (tu regla).</div>
+      <div class="note">Ganada si crash &gt; objetivo. Igual o menor = pérdida (tu regla).</div>
     </div>
   </div>
 </div>
 
-<!-- Librerías -->
+<!-- Libs -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
 <script>
-/** ==================== Helpers de compatibilidad ==================== **/
-function arrAt(a, i){ return (i<0)? a[a.length+i] : a[i]; } // evita .at()
+/* ===== Helpers ===== */
+function arrAt(a, i){ return (i<0)? a[a.length+i] : a[i]; }
 const mean = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : 0;
 const ewma = (arr, alpha=0.3) => { if(!arr.length) return []; let s = arr[0]; return arr.map(v => (s = alpha*v + (1-alpha)*s)); };
 const lastN = (a,n)=> a.slice(-n);
 const streak = (arr, pred) => { let c=0; for(let i=arr.length-1;i>=0;i--){ if(pred(arr[i])) c++; else break; } return c; };
 const since = (arr, pred) => { for(let i=arr.length-1;i>=0;i--){ if(pred(arr[i])) return arr.length-1-i; } return arr.length; };
-const clamp = (x,a,b)=>Math.max(a,Math.min(b,x));
 const rnd = x => Math.round(x*100)/100;
 
-/** ==================== Firebase ==================== **/
+/* ===== Parser robusto ===== */
+function parseCrashStr(s){
+  if(!s) return NaN;
+  return parseFloat(String(s).replace(/[xX]/g,'').replace(',','.'));
+}
+function parseBulk(text){
+  if(!text) return [];
+  // Remueve todo excepto números, x, coma, punto y espacios
+  const cleaned = text.replace(/[^\dxX.,\s-]/g,' ');
+  const parts = cleaned.split(/[\s,]+/).filter(Boolean);
+  const out=[];
+  for(const p of parts){
+    const v = parseCrashStr(p);
+    if(!isNaN(v) && v>0) out.push(+v.toFixed(2));
+  }
+  return out;
+}
+
+/* ===== Firebase (opcional) ===== */
 const firebaseConfig = {
   apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
   authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
@@ -154,20 +179,17 @@ const firebaseConfig = {
   storageBucket: "aviator-analyzer-b29a7.firebasestorage.app",
   messagingSenderId: "575063626276",
   appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
-  measurementId: "G-325QCBSQMH",
-  // ⚠️ Si quieres sync en tiempo real, agrega tu databaseURL real:
+  measurementId: "G-325QCBSQMH"
   // databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com"
 };
-let app, db, auth, uid = null, online = false;
-try {
+let app, db, auth, uid=null, online=false;
+try{
   app = firebase.initializeApp(firebaseConfig);
-  auth = firebase.auth();
-  db = firebase.database();
-  auth.signInAnonymously().then(cred => { uid = cred.user.uid; online = true; attachRealtime(); })
-    .catch(()=>{ console.warn("Firebase auth failed. Modo local."); });
-} catch(e) { console.warn("Firebase init failed. Modo local.", e); }
+  auth = firebase.auth(); db = firebase.database();
+  auth.signInAnonymously().then(cred=>{ uid=cred.user.uid; online=true; attachRealtime(); }).catch(()=>{});
+}catch(e){}
 
-/** ==================== Estado ==================== **/
+/* ===== Estado ===== */
 const LS = (k,v)=> v===undefined ? JSON.parse(localStorage.getItem(k)||"null") : localStorage.setItem(k,JSON.stringify(v));
 const state = {
   crashes: LS("crashes") || [],
@@ -175,15 +197,15 @@ const state = {
   model: LS("model") || { w2:[], w5:[], gamma:2.0 },
   cooldown: LS("cooldown") || 0,
   lastSignalIndex: LS("lastSignalIndex") || -1000,
+  baseLoad: LS("baseLoad") || 0, // cuántas rondas venían en la carga inicial
   settings: LS("settings") || {
     margin2:0.03, margin3_4:0.05, margin5:0.08, margin10:0.10,
     avoidLowThreshold:4, cooldownRounds:8, minConfidence:0.90
   }
 };
-persist();
-function persist(){ LS("crashes",state.crashes); LS("bets",state.bets); LS("model",state.model); LS("cooldown",state.cooldown); LS("lastSignalIndex",state.lastSignalIndex); LS("settings", state.settings); }
+function persist(){ LS("crashes",state.crashes); LS("bets",state.bets); LS("model",state.model); LS("cooldown",state.cooldown); LS("lastSignalIndex",state.lastSignalIndex); LS("baseLoad",state.baseLoad); LS("settings",state.settings); }
 
-/** ==================== Modelo ==================== **/
+/* ===== Modelo ===== */
 const Model = {
   F:10, lr:0.05,
   w2: state.model.w2.length?state.model.w2:new Array(10).fill(0),
@@ -193,7 +215,6 @@ const Model = {
   dot(w,f){ let s=0; for(let i=0;i<w.length;i++) s+= w[i]*f[i]; return s; },
   predict(w,f){ return this.sigmoid(this.dot(w,f)); },
   update(w,f,y){ const p=this.predict(w,f); for(let i=0;i<w.length;i++) w[i]+= this.lr*(y-p)*f[i]; },
-
   features(cr){
     const N = cr.length; const l = cr[N-1] ?? 1.0;
     const m5 = mean(lastN(cr,5)), m10 = mean(lastN(cr,10));
@@ -204,46 +225,28 @@ const Model = {
     const pct2in10 = lastN(cr,10).filter(v=>v>=2).length/10;
     return [1, l, m5||0, m10||0, low8||0, lowStreak||0, since5, since10, slope||0, pct2in10||0];
   },
-
-  empirical(cr, T){
-    const win = cr.filter(v=>v>=T).length;
-    return cr.length? win/cr.length : 0;
-  },
-
   tails(cr){
     const f = this.features(cr);
     const p2m = this.predict(this.w2,f);
     const p5m = this.predict(this.w5,f);
     const n30 = Math.max(1,lastN(cr,30).length);
-    const win30 = T=> lastN(cr,30).filter(v=>v>=T).length/n30;
-    const p2e = win30(2), p5e = win30(5), p10e = win30(10);
+    const cnt = T=> lastN(cr,30).filter(v=>v>=T).length/n30;
+    const p2e = cnt(2), p5e = cnt(5), p10e = cnt(10);
     const p2 = 0.5*p2m + 0.5*p2e;
     const p5 = 0.5*p5m + 0.5*p5e;
     const p10= 0.6*p10e + 0.4*Math.max(0,Math.min(1,p5e/3));
     return {p2, p5, p10};
   },
-
-  pTail(cr, T){
+  pTail(cr,T){
     const {p2,p5,p10} = this.tails(lastN(cr,30));
     if(T<=2) return p2;
-    if(T<=5){
-      if(p2<=0 || p5<=0) return 0;
-      const t = (T-2)/3; // log-interp
-      return Math.exp(Math.log(p2) + t*(Math.log(p5)-Math.log(p2)));
-    }
-    if(T<=10){
-      if(p5>0 && p10>0){
-        const t = (T-5)/5;
-        return Math.exp(Math.log(p5) + t*(Math.log(p10)-Math.log(p5)));
-      }
-      if(p5>0) return p5*Math.pow(T/5,-this.gamma);
-      return 0;
-    }
+    if(T<=5){ if(p2<=0||p5<=0) return 0; const t=(T-2)/3; return Math.exp(Math.log(p2)+t*(Math.log(p5)-Math.log(p2))); }
+    if(T<=10){ if(p5>0 && p10>0){ const t=(T-5)/5; return Math.exp(Math.log(p5)+t*(Math.log(p10)-Math.log(p5))); }
+               if(p5>0) return p5*Math.pow(T/5,-this.gamma); return 0; }
     return (p10>0? p10*Math.pow(T/10,-this.gamma):0);
   },
-
-  learn(cr, T, crash){
-    const f = this.features(cr);
+  learn(cr,T,crash){
+    const f=this.features(cr);
     const y2 = crash>2?1:0; this.update(this.w2,f,y2);
     const y5 = crash>5?1:0; this.update(this.w5,f,y5);
     const tail = lastN(cr,120).filter(v=>v>=5);
@@ -255,14 +258,14 @@ const Model = {
   }
 };
 
-/** ==================== Realtime sync ==================== **/
+/* ===== Sync ===== */
 function attachRealtime(){
   if(!online||!uid) return;
   const base = db.ref(`users/${uid}`);
   base.child("crashes").on("value",snap=>{
-    const val = snap.val(); if(!val) return;
-    const arr = Object.values(val).sort((a,b)=>a.i-b.i).map(o=>o.v);
-    if(arr.length>state.crashes.length){ state.crashes = arr; renderAll(); persist(); }
+    const val=snap.val(); if(!val) return;
+    const arr=Object.values(val).sort((a,b)=>a.i-b.i).map(o=>o.v);
+    if(arr.length>state.crashes.length){ state.crashes=arr; renderAll(); persist(); }
   });
   base.child("model").on("value",snap=>{
     const m=snap.val(); if(m){ state.model=m; Model.w2=m.w2; Model.w5=m.w5; Model.gamma=m.gamma; }
@@ -271,54 +274,48 @@ function attachRealtime(){
 function pushCrashes(){ if(!online||!uid) return; const map={}; state.crashes.forEach((v,i)=> map[i]={i,v}); db.ref(`users/${uid}/crashes`).set(map); }
 function pushModel(){ if(!online||!uid) return; db.ref(`users/${uid}/model`).set({ w2:Model.w2, w5:Model.w5, gamma:Model.gamma }); }
 
-/** ==================== UI ==================== **/
+/* ===== UI refs ===== */
 const el = id => document.getElementById(id);
-const IN = { crash: el("crash"), target: el("target"), conf: el("conf"), cd: el("cd"), auto: el("auto") };
+const IN = { crash: el("crash"), target: el("target"), conf: el("conf"), confNum: el("confNum"), cd: el("cd"), auto: el("auto") };
 const OUT = {
-  p2: el("p2"), p5: el("p5"), p10: el("p10"),
+  rounds: el("rounds"), p2: el("p2"), p5: el("p5"), p10: el("p10"),
   ma10: el("ma10"), streakLow: el("streakLow"), cool: el("cool"),
   signalOut: el("signalOut"), pills: el("pills"),
-  wins: el("wins"), losses: el("losses"), wr: el("wr")
+  signals: el("signals"), wins: el("wins"), losses: el("losses"), wr: el("wr")
 };
-el("confVal").textContent = Math.round(state.settings.minConfidence*100)+"%";
+
 IN.conf.value = Math.round(state.settings.minConfidence*100);
+IN.confNum.value = Math.round(state.settings.minConfidence*100);
 IN.cd.value = state.settings.cooldownRounds;
 
-const chips = [2,2.5,3,3.5,4,5,7,10,15,20,50,100];
-const chipsBox = el("chips");
-chips.forEach(v=>{
-  const s=document.createElement("span"); s.className="chip"; s.textContent=v+"x";
-  s.onclick=()=>{ IN.target.value=String(v); highlightChip(v); };
-  chipsBox.appendChild(s);
+/* ===== Charts ===== */
+const seriesChart = new Chart(document.getElementById('series').getContext('2d'),{
+  type:'line',data:{labels:[],datasets:[
+    {label:'Crash',data:[],tension:.2,pointRadius:0,borderWidth:2},
+    {label:'EWMA',data:[],tension:.2,pointRadius:0,borderWidth:2},
+    {label:'Tendencia',data:[],tension:0,pointRadius:0,borderWidth:2},
+  ]},options:{responsive:true,plugins:{legend:{display:false}}}
 });
-function highlightChip(v){ [...chipsBox.children].forEach(c=>c.classList.toggle("active",c.textContent===v+"x")); }
+const accChart = new Chart(document.getElementById('accChart').getContext('2d'),{
+  type:'bar',data:{labels:['2','2.5','3','3.5','4','5','7','10'],datasets:[{label:'Aciertos %',data:new Array(8).fill(0)}]},
+  options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100}}}
+});
 
-const ctxSeries = document.getElementById('series').getContext('2d');
-const ctxAcc    = document.getElementById('accChart').getContext('2d');
-const seriesChart = new Chart(ctxSeries,{type:'line',data:{labels:[],datasets:[
-  {label:'Crash',data:[],tension:.2,pointRadius:0,borderWidth:2},
-  {label:'EWMA',data:[],tension:.2,pointRadius:0,borderWidth:2},
-  {label:'Tendencia',data:[],tension:0,pointRadius:0,borderWidth:2},
-]},options:{responsive:true,plugins:{legend:{display:false}}});
-const accChart = new Chart(ctxAcc,{type:'bar',data:{labels:['2','2.5','3','3.5','4','5','7','10'],datasets:[
-  {label:'Aciertos %',data:new Array(8).fill(0)},
-]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100}}});
-
+/* ===== Render ===== */
 function pillsRender(){
-  // más reciente arriba/izquierda
   const cr = state.crashes.slice().reverse();
   OUT.pills.innerHTML="";
   cr.slice(0,60).forEach(v=>{
     const sp=document.createElement("span"); sp.className="pill"; sp.textContent=v+"x"; OUT.pills.appendChild(sp);
   });
 }
-
 function recompute(){
   const cr = state.crashes;
   const n10 = lastN(cr,10);
   const p2 = lastN(cr,30).filter(v=>v>=2).length/Math.max(1,lastN(cr,30).length);
   const p5 = lastN(cr,30).filter(v=>v>=5).length/Math.max(1,lastN(cr,30).length);
   const p10= lastN(cr,30).filter(v=>v>=10).length/Math.max(1,lastN(cr,30).length);
+  OUT.rounds.textContent = state.baseLoad ? `${cr.length} (base ${state.baseLoad})` : `${cr.length}`;
   OUT.p2.textContent = (p2*100).toFixed(1)+'%';
   OUT.p5.textContent = (p5*100).toFixed(1)+'%';
   OUT.p10.textContent= (p10*100).toFixed(1)+'%';
@@ -326,24 +323,21 @@ function recompute(){
   OUT.streakLow.textContent = streak(cr, v=>v<1.7);
   OUT.cool.textContent = state.cooldown;
 
-  // gráficos
   seriesChart.data.labels = cr.map((_,i)=>String(i+1));
   seriesChart.data.datasets[0].data = cr;
-  const E = ewma(cr,0.3);
-  seriesChart.data.datasets[1].data = E;
+  const E = ewma(cr,0.3); seriesChart.data.datasets[1].data = E;
   let trend = new Array(E.length).fill(null), slope=0;
   if(E.length>=6){ slope = E[E.length-1]-E[E.length-6]; for(let i=E.length-6;i<E.length;i++) if(i>=0) trend[i]=E[i]; }
   seriesChart.data.datasets[2].data = trend;
   seriesChart.data.datasets[2].borderColor = slope>=0 ? "#1dd1a1" : "#ff6b6b";
   seriesChart.update();
 
-  // resumen apuestas
   const wins = state.bets.filter(b=>!b.pending && b.result==='win').length;
   const losses = state.bets.filter(b=>!b.pending && b.result==='loss').length;
+  OUT.signals.textContent = state.bets.length;
   OUT.wins.textContent = wins; OUT.losses.textContent = losses;
   OUT.wr.textContent = (wins+losses)? Math.round(100*wins/(wins+losses))+"%" : "0%";
 }
-
 function updateAccChart(){
   const bins=[2,2.5,3,3.5,4,5,7,10];
   const wins=new Array(bins.length).fill(0);
@@ -356,57 +350,48 @@ function updateAccChart(){
   accChart.data.datasets[0].data = pct;
   accChart.update();
 }
-
 function renderTable(){
   const tb = document.querySelector("#betsTbl tbody"); tb.innerHTML="";
   state.bets.forEach((b,i)=>{
-    const tr=document.createElement("tr");
     const badge = b.pending? `<span class="badge b-blue">pend</span>` :
       (b.result==='win'? `<span class="badge b-green">win</span>` : `<span class="badge b-red">loss</span>`);
+    const tr=document.createElement("tr");
     tr.innerHTML = `<td>${i+1}</td><td>${b.target}x</td><td>${b.crash??'—'}</td><td>${badge}</td><td>${b.ev}</td>`;
     tb.appendChild(tr);
   });
 }
-
 function renderAll(){ recompute(); updateAccChart(); renderTable(); pillsRender(); persist(); }
 
-/** ============= Señal automática con filtros y confianza ============= **/
+/* ===== Señal automática ===== */
 function bestEntry(){
   const cr = state.crashes;
   if(cr.length<12) return {ok:false, why:"Necesita ≥12 rondas registradas."};
 
-  // Filtros de riesgo
   const low8 = lastN(cr,8).filter(v=>v<1.7).length;
   if(low8 >= state.settings.avoidLowThreshold) return {ok:false, why:`Zona mala: ${low8}/8 <1.70x`};
   if(state.cooldown>0) return {ok:false, why:`Enfriamiento ${state.cooldown} rondas`};
 
   const candidates=[2,2.2,2.5,2.8,3,3.5,4,5,7,10];
   let best=null;
-
-  for(var k=0;k<candidates.length;k++){
+  for(let k=0;k<candidates.length;k++){
     const T = candidates[k];
-    const p = Model.pTail(cr,T);             // estimado ≥T
-    const EV = p*T - 1;                      // valor esperado con payout T:1
+    const p = Model.pTail(cr,T);
+    const EV = p*T - 1;
     const margin = (T<=2.5? state.settings.margin2 :
                    T<=4?   state.settings.margin3_4 :
                    T<=7?   state.settings.margin5 : state.settings.margin10);
-    const minProb = Math.max(1/T + margin, state.settings.minConfidence); // umbral fuerte
-
+    const minProb = Math.max(1/T + margin, state.settings.minConfidence);
     if(p < minProb) continue;
-
     const riskPenalty = (T>5? 0.02*(T-5) : 0);
-    const score = (EV - riskPenalty) + (p - minProb); // prioriza ventaja y gap de confianza
+    const score = (EV - riskPenalty) + (p - minProb);
     if(!best || score>best.score) best={T, p, EV, score};
   }
-
   if(!best) return {ok:false, why:"Sin ventaja ni confianza suficiente."};
   return {ok:true, ...best};
 }
-
 function placeSignal(sig){
-  if(!sig){ sig = bestEntry(); }
+  if(!sig){ sig=bestEntry(); }
   if(!sig.ok){ OUT.signalOut.innerHTML = `<span class="bad">ESPERA</span> – ${sig.why}`; return; }
-
   const idx = state.crashes.length; // la siguiente ronda
   const trainWindow = Math.min(60, Math.max(20, state.crashes.length));
   state.bets.push({ index: idx, target: +sig.T.toFixed(2), pending:true, crash:null, ev:+sig.EV.toFixed(3), trainWindow });
@@ -414,21 +399,14 @@ function placeSignal(sig){
 
   OUT.signalOut.innerHTML = `<span class="ok">¡ENTRADA!</span> Objetivo <b>${(+sig.T).toFixed(2)}x</b> · EV≈${sig.EV.toFixed(3)} · P≥T≈${(sig.p*100).toFixed(1)}%`;
   if(document.getElementById('beep').checked) beep();
-
   renderTable(); updateAccChart();
 }
+function maybeEmitAutoSignal(){ if(!document.getElementById('auto').checked) return; const sig=bestEntry(); if(sig.ok) placeSignal(sig); else OUT.signalOut.innerHTML=`Sin señal – ${sig.why}`; }
 
-function maybeEmitAutoSignal(){
-  if(!document.getElementById('auto').checked) return;
-  const sig = bestEntry(); if(sig.ok) placeSignal(sig); else OUT.signalOut.innerHTML = `Sin señal – ${sig.why}`;
-}
-
-/** ==================== CRUD de rondas ==================== **/
+/* ===== CRUD rondas ===== */
 function addCrash(v){
-  const x = parseFloat(String(v).replace(',','.')); if(isNaN(x)||x<=0) return;
-  state.crashes.push(+x.toFixed(2)); persist(); pushCrashes();
-
-  // si hay apuesta pendiente que corresponde a esta ronda → cierra y entrena
+  const x = parseCrashStr(v); if(isNaN(x)||x<=0) return;
+  state.crashes.push(+x.toFixed(2));
   const lastBet = state.bets[state.bets.length-1];
   if(lastBet && lastBet.index === state.crashes.length-1 && lastBet.pending){
     lastBet.pending=false;
@@ -436,84 +414,64 @@ function addCrash(v){
     lastBet.result = x>lastBet.target ? 'win':'loss';
     Model.learn(lastN(state.crashes,lastBet.trainWindow), lastBet.target, x);
   }
-
   if(state.cooldown>0) state.cooldown--;
-  renderAll();
-  // auto-señal (si procede) justo después de registrar el crash
+  renderAll(); pushCrashes();
   maybeEmitAutoSignal();
 }
-
 function undo(){
-  const removed = state.crashes.pop(); persist(); pushCrashes(); renderAll();
-  const lastBet = state.bets[state.bets.length-1];
-  if(lastBet && lastBet.index>=state.crashes.length){ state.bets.pop(); renderAll(); }
+  state.crashes.pop(); const lastBet = state.bets[state.bets.length-1];
+  if(lastBet && lastBet.index>=state.crashes.length){ state.bets.pop(); }
+  renderAll(); pushCrashes();
 }
-
 function resetAll(){
   if(!confirm("¿Borrar todo?")) return;
-  state.crashes=[]; state.bets=[]; state.cooldown=0; state.lastSignalIndex=-1000; persist(); pushCrashes(); renderAll();
+  state.crashes=[]; state.bets=[]; state.cooldown=0; state.lastSignalIndex=-1000; state.baseLoad=0;
+  renderAll(); pushCrashes();
 }
 
-/** ==================== Sonido ==================== **/
+/* ===== Sonido ===== */
 let AudioC = window.AudioContext || window.webkitAudioContext; let ac;
-function beep(){
-  try{
-    if(!ac) ac = new AudioC();
-    const o=ac.createOscillator(), g=ac.createGain();
-    o.frequency.value=880; o.type="sine";
-    g.gain.value=0.0001; o.connect(g); g.connect(ac.destination);
-    o.start();
-    g.gain.exponentialRampToValueAtTime(0.2, ac.currentTime+0.05);
-    g.gain.exponentialRampToValueAtTime(0.00001, ac.currentTime+0.35);
-    o.stop(ac.currentTime+0.36);
-  }catch(e){/*silencio*/}
-}
+function beep(){ try{ if(!ac) ac = new AudioC(); const o=ac.createOscillator(), g=ac.createGain(); o.frequency.value=880; o.type="sine"; g.gain.value=0.0001; o.connect(g); g.connect(ac.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.2, ac.currentTime+0.05); g.gain.exponentialRampToValueAtTime(0.00001, ac.currentTime+0.35); o.stop(ac.currentTime+0.36);}catch(e){} }
 
-/** ==================== Exportar CSV ==================== **/
+/* ===== Export ===== */
 function exportCSV(){
-  let csv = "idx,crash\n";
-  state.crashes.forEach((v,i)=>{ csv+= `${i+1},${v}\n`;});
-  const blob = new Blob([csv],{type:'text/csv'});
-  const url = URL.createObjectURL(blob);
+  let csv = "idx,crash\n"; state.crashes.forEach((v,i)=>{ csv+= `${i+1},${v}\n`;});
+  const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url; a.download='crashes.csv'; a.click(); URL.revokeObjectURL(url);
 }
 
-/** ==================== Eventos ==================== **/
+/* ===== Eventos ===== */
 document.getElementById("addForm").addEventListener("submit", e=>{
   e.preventDefault(); addCrash(IN.crash.value); IN.crash.value=""; IN.crash.focus();
 });
 IN.crash.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); addCrash(IN.crash.value); IN.crash.value=""; }});
-IN.crash.addEventListener("keyup", e=>{ if(e.key==="Enter"){ e.preventDefault(); }});
 document.getElementById("undo").onclick= undo;
 document.getElementById("reset").onclick= resetAll;
 document.getElementById("export").onclick= exportCSV;
-IN.target.addEventListener("keydown", e=>{ if(e.key==="Enter"){ highlightChip(parseFloat(IN.target.value)); }});
 
-IN.conf.addEventListener("input", ()=>{
-  const v = (+IN.conf.value)/100; state.settings.minConfidence=v; persist();
-  document.getElementById("confVal").textContent = Math.round(v*100)+"%";
-});
+const chips=[2,2.5,3,3.5,4,5,7,10,15,20,50,100], chipsBox=document.getElementById("chips");
+chips.forEach(v=>{ const s=document.createElement("span"); s.className="chip"; s.textContent=v+"x"; s.onclick=()=>{ IN.target.value=String(v); highlightChip(v); }; chipsBox.appendChild(s); });
+function highlightChip(v){ [...chipsBox.children].forEach(c=>c.classList.toggle("active",c.textContent===v+"x")); }
+
+IN.conf.addEventListener("input", ()=>{ IN.confNum.value=IN.conf.value; state.settings.minConfidence = (+IN.conf.value)/100; persist(); });
+IN.confNum.addEventListener("change", ()=>{ let v=clamp(parseInt(IN.confNum.value||"90",10),70,95); IN.conf.value=v; state.settings.minConfidence=v/100; IN.confNum.value=v; persist(); });
 IN.cd.addEventListener("change", ()=>{ state.settings.cooldownRounds = Math.max(0, parseInt(IN.cd.value||"8",10)); persist(); });
 
 document.getElementById("bulkLoad").onclick = ()=>{
-  const text = document.getElementById("bulk").value;
-  if(!text.trim()) return;
-  const nums = text.split(/[\s,]+/).map(s=>parseFloat(s.replace(',','.'))).filter(x=>!isNaN(x)&&x>0);
-  if(!nums.length) return;
-  // toma las últimas 60
-  const take = nums.slice(-60);
-  // se consideran como históricas (viejas→nuevas)
-  state.crashes = take.map(x=>+x.toFixed(2));
-  state.bets=[]; state.cooldown=0; state.lastSignalIndex=-1000;
-  persist(); pushCrashes(); renderAll();
-  OUT.signalOut.innerHTML = "Historial cargado. Listo para analizar próximas rondas…";
+  const raw = document.getElementById("bulk").value;
+  const nums = parseBulk(raw);
+  if(nums.length===0){ alert("No se detectaron números. Asegúrate de pegar formato 1.23x o 1,23x."); return; }
+  const take = nums.slice(-60); // últimas 60
+  state.crashes = take; state.bets=[]; state.cooldown=0; state.lastSignalIndex=-1000; state.baseLoad = take.length;
+  renderAll(); pushCrashes();
+  OUT.signalOut.innerHTML = `Historial cargado: ${take.length} rondas. Analizando…`;
+  maybeEmitAutoSignal(); // evaluar para la próxima
 };
 document.getElementById("bulkInvert").onclick = ()=>{
-  const txt = document.getElementById("bulk");
-  const arr = txt.value.split(/[\s,]+/).reverse(); txt.value = arr.join(" ");
+  const t=document.getElementById("bulk"); const arr = t.value.split(/[\s,]+/).filter(Boolean).reverse(); t.value = arr.join(" ");
 };
 
-// inicio
+/* inicio */
 renderAll();
 </script>
 </body>
