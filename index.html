@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Aviator Analyzer – Gocho v5.1.4</title>
+<title>Aviator Analyzer – Gocho v5.1.5</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0f1115;--panel:#171a21;--muted:#8b93a7;--text:#e8ecf1;--accent:#5b9cff;--green:#1dd1a1;--red:#ff6b6b;--amber:#f7b733}
+:root{--bg:#0f1115;--panel:#171a21;--muted:#8b93a7;--text:#e8ecf1;--accent:#5b9cff;--green:#1dd1a1;--red:#ff6b6b}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 Inter,system-ui,-apple-system,Segoe UI,Roboto}
 header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #202636;background:#10131a;position:sticky;top:0;z-index:10}
-header h1{margin:0;font-size:16px;letter-spacing:.3px}
+header h1{margin:0;font-size:16px}
 .wrap{max-width:1180px;margin:18px auto;padding:0 12px}
 .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:14px}
 .card{background:var(--panel);border:1px solid #22283a;border-radius:12px;padding:14px}
@@ -20,22 +20,25 @@ input[type="text"],input[type="number"]{width:120px}input::placeholder{color:#6d
 button{cursor:pointer}.primary{background:linear-gradient(180deg,#2a7bff,#1f5ed8);border:none}.ghost{background:#0d1017}
 .chip{padding:6px 10px;border-radius:999px;border:1px solid #33405f;cursor:pointer;font-weight:600}
 .chip.active{border-color:var(--accent);box-shadow:0 0 0 2px rgba(91,156,255,.2) inset}
-.stat{min-width:120px}.stat .v{font-weight:700}.muted{color:var(--muted)}.ok{color:var(--green)}.bad{color:var(--red)}
+.stat{min-width:120px}.stat .v{font-weight:700}.muted{color:#8b93a7}.ok{color:var(--green)}.bad{color:var(--red)}
 canvas{width:100%;height:260px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px;border-bottom:1px solid #262c3f;text-align:left}
-.badge{font-weight:700;padding:3px 8px;border-radius:6px}.b-green{background:rgba(29,209,161,.15);color:var(--green)}.b-red{background:rgba(255,107,107,.15);color:var(--red)}.b-blue{background:rgba(91,156,255,.15);color:var(--accent)}
+.badge{font-weight:700;padding:3px 8px;border-radius:6px}.b-green{background:rgba(29,209,161,.15);color:var(--green)}.b-red{background:rgba(255,107,107,.15);color:var(--red)}.b-blue{background:rgba(91,156,255,.15);color:#5b9cff}
 .note{font-size:12px;color:#9aa3ba;margin-top:6px}.pills{display:flex;flex-wrap:wrap;gap:6px;max-height:120px;overflow:auto;margin-top:6px}.pill{background:#0d1017;border:1px solid #2c3450;border-radius:999px;padding:4px 8px;font-weight:700}
 .mode{padding:6px 10px;border-radius:999px;border:1px solid #33405f;cursor:pointer;font-weight:700}.mode.active{border-color:var(--green)}
+.banner{position:fixed;left:12px;bottom:12px;background:#10131a;border:1px solid #28314b;color:#dee6ff;padding:8px 10px;border-radius:8px;font:12px/1.3 Inter;z-index:99}
 @media (max-width:960px){.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <header>
-  <h1>🛩️ Aviator Analyzer • <span class="muted">Gocho</span> <span class="muted">v5.1.4</span></h1>
+  <h1>🛩️ Aviator Analyzer • <span class="muted">Gocho</span> <span class="muted">v5.1.5</span></h1>
   <div class="row">
     <label class="row" style="gap:6px"><input type="checkbox" id="beep" checked /><span class="muted">Beep señal</span></label>
     <button id="export" class="ghost">Exportar CSV</button>
   </div>
 </header>
+
+<div id="banner" class="banner" style="display:none"></div>
 
 <div class="wrap">
   <div class="grid">
@@ -167,7 +170,7 @@ canvas{width:100%;height:260px}table{width:100%;border-collapse:collapse;font-si
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
-<!-- ==== Firebase – BOOTSTRAP (auth + db) ==== -->
+<!-- ==== Firebase – BOOTSTRAP ==== -->
 <script>
   const DB_URL = "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com";
   const firebaseConfig = {
@@ -181,7 +184,7 @@ canvas{width:100%;height:260px}table{width:100%;border-collapse:collapse;font-si
     databaseURL: DB_URL
   };
   let app, db, auth, uid=null, authed=false, pendingFeed=null, feedRef=null;
-  const setFeedStatus = msg => { const el=document.getElementById('feedStatus'); if(el) el.textContent=msg; };
+  function setFeedStatus(msg){ const el=document.getElementById('feedStatus'); if(el) el.textContent=msg; }
   try{
     app  = (firebase.apps && firebase.apps.length)? firebase.apps[0] : firebase.initializeApp(firebaseConfig);
     db   = firebase.database();
@@ -192,12 +195,18 @@ canvas{width:100%;height:260px}table{width:100%;border-collapse:collapse;font-si
       setFeedStatus(authed?`Auth OK • UID ${String(uid).slice(0,6)}… • ${url}`:`No autenticado`);
       if(authed && pendingFeed){ attachFeed(pendingFeed); pendingFeed=null; }
     });
-    auth.signInAnonymously().catch(e=> setFeedStatus("Auth anónimo deshabilitado en Firebase"));
-  }catch(e){ console.error("Init Firebase error:",e); }
+    auth.signInAnonymously().catch(()=> setFeedStatus("Auth anónimo deshabilitado en Firebase"));
+  }catch(e){ console.error(e); }
 </script>
 
+<!-- ==== APP ==== -->
 <script>
-/* ========= Utils ========= */
+/* ========= Utilidades y banner ========= */
+const B=document.getElementById('banner');
+function showBanner(t){ if(!B)return; B.textContent=t; B.style.display='block'; setTimeout(()=>B.style.display='none',5000); }
+window.onerror=function(msg,src,line,col,err){ showBanner('⚠️ '+(err?.message||msg)); };
+
+/* ========= Helpers ========= */
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const mean=a=>a.length?a.reduce((s,v)=>s+v,0)/a.length:0;
 const ewma=(arr,a=0.3)=>{if(!arr.length)return[];let s=arr[0];return arr.map(v=>(s=a*v+(1-a)*s));};
@@ -218,7 +227,7 @@ const state={
 };
 const persist=()=>{for(const k of Object.keys(state)) LS(k,state[k]);};
 
-/* ========= Modelo (igual al v5.1.3) ========= */
+/* ========= Modelo ========= */
 const Model={F:10,lr:0.05,w2:state.model.w2.length?state.model.w2:new Array(10).fill(0),w5:state.model.w5.length?state.model.w5:new Array(10).fill(0),gamma:state.model.gamma||2.0,
   sigmoid:z=>1/(1+Math.exp(-z)),dot:(w,f)=>w.reduce((s,wi,i)=>s+wi*f[i],0),predict(w,f){return this.sigmoid(this.dot(w,f));},
   update(w,f,y){const p=this.predict(w,f);for(let i=0;i<w.length;i++)w[i]+=this.lr*(y-p)*f[i];},
@@ -235,6 +244,32 @@ const Model={F:10,lr:0.05,w2:state.model.w2.length?state.model.w2:new Array(10).
     state.model={w2:this.w2,w5:this.w5,gamma:this.gamma};persist();}
 };
 
+/* ========= Charts (seguros) ========= */
+const createChartSafe=(ctx,cfg)=>{ if(window.Chart){ try{ return new Chart(ctx,cfg);}catch(e){console.warn('Chart init err',e);} }
+  // stub
+  return {data:{labels:[],datasets:cfg.data?.datasets||[]}, update(){}, destroy(){}};
+};
+let seriesChart, accChart, equityChart;
+const seriesCfg={type:'line',data:{labels:[],datasets:[
+  {label:'Crash',data:[],tension:.2,pointRadius:0,borderWidth:2},
+  {label:'EWMA',data:[],tension:.2,pointRadius:0,borderWidth:2},
+  {label:'Tendencia',data:[],tension:0,pointRadius:0,borderWidth:2}]},options:{plugins:{legend:{display:false}}}};
+const accCfg={type:'bar',data:{labels:['2','2.5','3','3.5','4','5','7','10'],datasets:[{label:'Aciertos %',data:new Array(8).fill(0)}]},
+  options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100}}}};
+const equityCfg={type:'line',data:{labels:[],datasets:[{label:'Equity',data:[],tension:.1,pointRadius:0,borderWidth:2}]},
+  options:{plugins:{legend:{display:false}}}};
+
+function ensureCharts(){
+  if(!seriesChart) seriesChart=createChartSafe(document.getElementById('series').getContext('2d'),seriesCfg);
+  if(!accChart) accChart=createChartSafe(document.getElementById('accChart').getContext('2d'),accCfg);
+  if(!equityChart) equityChart=createChartSafe(document.getElementById('equity').getContext('2d'),equityCfg);
+  // si eran stubs y Chart ya cargó, re‑crea reales
+  if(window.Chart){
+    const re=(ref,cfg,canvasId)=>{ if(!(ref instanceof Chart)){ try{ ref.destroy?.(); return new Chart(document.getElementById(canvasId).getContext('2d'),cfg);}catch(_){} } return ref; };
+    seriesChart=re(seriesChart,seriesCfg,'series'); accChart=re(accChart,accCfg,'accChart'); equityChart=re(equityChart,equityCfg,'equity');
+  }
+}
+
 /* ========= Feed ========= */
 function attachFeed(id){
   try{ if(feedRef) feedRef.off(); }catch(_){}
@@ -247,8 +282,8 @@ function attachFeed(id){
   },err=> setFeedStatus(`Error: ${err.code||''} ${err.message||err}`));
 }
 function connectFeed(id){
-  if(!db){ alert("Firebase no inicializado."); return; }
-  if(!id){ alert("Ingresa un Feed ID."); return; }
+  if(!db){ showBanner("Firebase no inicializado."); return; }
+  if(!id){ showBanner("Ingresa un Feed ID."); return; }
   state.feedId=id; persist(); document.getElementById('feedId').value=id;
   if(!authed){ pendingFeed=id; setFeedStatus("Esperando autenticación…"); return; }
   attachFeed(id);
@@ -257,7 +292,7 @@ function disconnectFeed(){ try{ if(feedRef) feedRef.off(); }catch(_){}
   feedRef=null; setFeedStatus("Desconectado");
 }
 
-/* ========= UI refs / charts ========= */
+/* ========= UI refs / render ========= */
 const el=id=>document.getElementById(id);
 const IN={crash:el("crash"),target:el("target"),conf:el("conf"),confNum:el("confNum"),cd:el("cd"),auto:el("auto"),
   sigLimit:el("sigLimit"),bankroll:el("bankroll"),stakeMode:el("stakeMode"),stakeValue:el("stakeValue")};
@@ -267,34 +302,25 @@ const OUT={rounds:el("rounds"),p2:el("p2"),p5:el("p5"),p10:el("p10"),ma10:el("ma
   roi:el("roi"),dd:el("dd"),sigUsed:el("sigUsed"),sessStatus:el("sessStatus"),stakeUnit:el("stakeUnit")};
 IN.conf.value=Math.round(state.settings.minConfidence*100); IN.confNum.value=IN.conf.value; IN.cd.value=state.settings.cooldownRounds;
 
-const seriesChart=new Chart(document.getElementById('series').getContext('2d'),{type:'line',data:{labels:[],datasets:[
-  {label:'Crash',data:[],tension:.2,pointRadius:0,borderWidth:2},
-  {label:'EWMA',data:[],tension:.2,pointRadius:0,borderWidth:2},
-  {label:'Tendencia',data:[],tension:0,pointRadius:0,borderWidth:2}]},options:{plugins:{legend:{display:false}}}});
-const accChart=new Chart(document.getElementById('accChart').getContext('2d'),{type:'bar',data:{labels:['2','2.5','3','3.5','4','5','7','10'],datasets:[{label:'Aciertos %',data:new Array(8).fill(0)}]},
-  options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100}}}});
-const equityChart=new Chart(document.getElementById('equity').getContext('2d'),{type:'line',data:{labels:[],datasets:[{label:'Equity',data:[],tension:.1,pointRadius:0,borderWidth:2}]},
-  options:{plugins:{legend:{display:false}}}});
-
-/* ========= Render ========= */
 function pillsRender(){ const cr=state.crashes.slice().reverse(); OUT.pills.innerHTML=""; cr.slice(0,60).forEach(v=>{ const s=document.createElement("span"); s.className="pill"; s.textContent=v+"x"; OUT.pills.appendChild(s); }); }
 function recompute(){
+  ensureCharts();
   const cr=state.crashes,n10=lastN(cr,10),p2=lastN(cr,30).filter(v=>v>=2).length/Math.max(1,lastN(cr,30).length),
         p5=lastN(cr,30).filter(v=>v>=5).length/Math.max(1,lastN(cr,30).length),p10=lastN(cr,30).filter(v=>v>=10).length/Math.max(1,lastN(cr,30).length);
   OUT.rounds.textContent=state.baseLoad?`${cr.length} (base ${state.baseLoad})`:`${cr.length}`; OUT.signalsTop.textContent=state.bets.length; OUT.limitTop.textContent=state.session&&state.session.active?state.session.signalLimit:"–";
   OUT.dry.textContent=state.dry; OUT.p2.textContent=(p2*100).toFixed(1)+'%'; OUT.p5.textContent=(p5*100).toFixed(1)+'%'; OUT.p10.textContent=(p10*100).toFixed(1)+'%';
   OUT.ma10.textContent=n10.length?rnd(mean(n10))+'x':'–'; OUT.streakLow.textContent=streak(cr,v=>v<1.7); OUT.cool.textContent=state.cooldown;
 
-  seriesChart.data.labels=cr.map((_,i)=>String(i+1)); seriesChart.data.datasets[0].data=cr; const E=ewma(cr,0.3); seriesChart.data.datasets[1].data=E;
+  seriesCfg.data.labels=cr.map((_,i)=>String(i+1)); seriesCfg.data.datasets[0].data=cr; const E=ewma(cr,0.3); seriesCfg.data.datasets[1].data=E;
   let trend=new Array(E.length).fill(null), slope=0; if(E.length>=6){ slope=E[E.length-1]-E[E.length-6]; for(let i=Math.max(0,E.length-6); i<E.length; i++) trend[i]=E[i]; }
-  seriesChart.data.datasets[2].data=trend; seriesChart.data.datasets[2].borderColor=slope>=0?"#1dd1a1":"#ff6b6b"; seriesChart.update();
+  seriesCfg.data.datasets[2].data=trend; seriesCfg.data.datasets[2].borderColor=slope>=0?"#1dd1a1":"#ff6b6b"; seriesChart.update?.();
 
   const wins=state.bets.filter(b=>!b.pending && b.result==='win').length, losses=state.bets.filter(b=>!b.pending && b.result==='loss').length;
   OUT.signals.textContent=state.bets.length; OUT.wins.textContent=wins; OUT.losses.textContent=losses; OUT.wr.textContent=(wins+losses)? Math.round(100*wins/(wins+losses))+"%":"0%";
 }
 function updateAccChart(){ const bins=[2,2.5,3,3.5,4,5,7,10], wins=new Array(bins.length).fill(0), tot=new Array(bins.length).fill(0);
   state.bets.forEach(b=>{ const i=bins.indexOf(b.target); if(i>=0){ tot[i]++; if(b.result==='win') wins[i]++; }}); const pct=tot.map((t,i)=>t?Math.round(100*wins[i]/t):0);
-  accChart.data.datasets[0].data=pct; accChart.update();
+  accCfg.data.datasets[0].data=pct; accChart.update?.();
 }
 function renderTable(){ const tb=document.querySelector("#betsTbl tbody"); tb.innerHTML="";
   state.bets.forEach((b,i)=>{ const badge=b.pending?`<span class="badge b-blue">pend</span>`:(b.result==='win'?`<span class="badge b-green">win</span>`:`<span class="badge b-red">loss</span>`);
@@ -304,16 +330,17 @@ function renderTable(){ const tb=document.querySelector("#betsTbl tbody"); tb.in
   });
 }
 function renderFinance(){
+  ensureCharts();
   const s=state.session;
   if(!s||!s.active){
     OUT.bal.textContent='$0.00'; OUT.staked.textContent='$0.00'; OUT.profit.textContent='$0.00'; OUT.roi.textContent='0%'; OUT.dd.textContent='0%'; OUT.sigUsed.textContent='0/–';
-    equityChart.data.labels=[]; equityChart.data.datasets[0].data=[]; equityChart.update();
-    document.getElementById('sessStatus').textContent='Sesión inactiva'; document.getElementById('endSess').disabled=true; document.getElementById('startSess').disabled=false; return;
+    equityCfg.data.labels=[]; equityCfg.data.datasets[0].data=[]; equityChart.update?.();
+    OUT.sessStatus.textContent='Sesión inactiva'; document.getElementById('endSess').disabled=true; document.getElementById('startSess').disabled=false; return;
   }
-  document.getElementById('sessStatus').textContent='Sesión ACTIVA'; document.getElementById('endSess').disabled=false; document.getElementById('startSess').disabled=true;
+  OUT.sessStatus.textContent='Sesión ACTIVA'; document.getElementById('endSess').disabled=false; document.getElementById('startSess').disabled=true;
   OUT.bal.textContent='$'+fmt(s.balance); OUT.staked.textContent='$'+fmt(s.totalStaked); OUT.profit.textContent='$'+fmt(s.profit); const roi=s.totalStaked>0?(100*s.profit/s.totalStaked):0;
   OUT.roi.textContent=(isFinite(roi)?roi.toFixed(1):0)+'%'; OUT.dd.textContent=(s.maxDD*100).toFixed(1)+'%'; OUT.sigUsed.textContent=`${s.signalsUsed}/${s.signalLimit}`;
-  equityChart.data.labels=s.equity.map((_,i)=>String(i)); equityChart.data.datasets[0].data=s.equity; equityChart.update();
+  equityCfg.data.labels=s.equity.map((_,i)=>String(i)); equityCfg.data.datasets[0].data=s.equity; equityChart.update?.();
 }
 const renderAll=()=>{ recompute(); updateAccChart(); renderTable(); pillsRender(); renderFinance(); persist(); };
 
@@ -374,51 +401,58 @@ function addCrash(v){
   if(state.cooldown>0) state.cooldown--; state.dry++; renderAll(); maybeEmitAutoSignal();
 }
 
-/* ========= Eventos UI (robustos) ========= */
+/* ========= Enlaces de UI (robustos) ========= */
 function hookUI(){
+  // agregar por botón y Enter
   document.getElementById("addBtn").onclick=()=>{ addCrash(IN.crash.value); IN.crash.value=""; IN.crash.focus(); };
   document.getElementById("addForm").addEventListener("submit",e=>{ e.preventDefault(); addCrash(IN.crash.value); IN.crash.value=""; IN.crash.focus(); });
   IN.crash.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); addCrash(IN.crash.value); IN.crash.value=""; }});
+
   document.getElementById("undo").onclick=()=>{ state.crashes.pop(); const last=state.bets.at(-1); if(last&&last.index>=state.crashes.length){ state.bets.pop(); } renderAll(); };
   document.getElementById("reset").onclick=()=>{ if(!confirm("¿Borrar todo?"))return; state.crashes=[]; state.bets=[]; state.cooldown=0; state.lastSignalIndex=-1000; state.baseLoad=0; state.dry=0; renderAll(); };
+
   document.getElementById("export").onclick=()=>{ let csv="idx,crash\n"; state.crashes.forEach((v,i)=>csv+=`${i+1},${v}\n`); const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='crashes.csv'; a.click(); URL.revokeObjectURL(url); };
 
-  const chips=[2,2.5,3,3.5,4,5,7,10,15,20,50,100], chipsBox=document.getElementById("chips");
-  chipsBox.innerHTML=""; chips.forEach(v=>{ const s=document.createElement("span"); s.className="chip"; s.textContent=v+"x"; s.onclick=()=>{ IN.target.value=String(v); [...chipsBox.children].forEach(c=>c.classList.toggle('active',c.textContent===v+"x")); }; chipsBox.appendChild(s); });
+  // chips de objetivo
+  const chips=[2,2.5,3,3.5,4,5,7,10,15,20,50,100], box=document.getElementById("chips");
+  box.innerHTML=""; chips.forEach(v=>{ const s=document.createElement("span"); s.className="chip"; s.textContent=v+"x"; s.onclick=()=>{ IN.target.value=String(v); [...box.children].forEach(c=>c.classList.toggle('active',c.textContent===v+"x")); }; box.appendChild(s); });
 
+  // modos
+  document.getElementById("modes").addEventListener("click",e=>{ const m=e.target.closest(".mode"); if(!m)return; applyMode(m.dataset.mode); });
+
+  // sliders/conf
   document.getElementById("conf").addEventListener("input",()=>{ IN.confNum.value=IN.conf.value; state.settings.minConfidence=(+IN.conf.value)/100; persist(); });
   document.getElementById("confNum").addEventListener("change",()=>{ let v=clamp(parseInt(IN.confNum.value||"85",10),70,95); IN.conf.value=v; state.settings.minConfidence=v/100; IN.confNum.value=v; persist(); });
   document.getElementById("cd").addEventListener("change",()=>{ state.settings.cooldownRounds=Math.max(0,parseInt(IN.cd.value||"8",10)); persist(); });
 
-  document.getElementById("bulkLoad").onclick=()=>{ const raw=document.getElementById("bulk").value.trim(); if(!raw){ alert("Pega el historial."); return; }
+  // historial manual
+  document.getElementById("bulkLoad")?.addEventListener("click",()=>{ const raw=document.getElementById("bulk").value.trim(); if(!raw){ alert("Pega el historial."); return; }
     const arr=raw.replace(/[^\dxX.,\s-]/g,' ').split(/[\s,]+/).filter(Boolean).map(t=>parseFloat(String(t).replace(/[xX]/g,'').replace(',','.'))).filter(v=>!isNaN(v)&&v>0).map(v=>+v.toFixed(2));
     if(!arr.length){ alert("No se detectaron números."); return; } const take=arr.slice(-60);
     state.crashes=take; state.bets=[]; state.cooldown=0; state.lastSignalIndex=-1000; state.baseLoad=take.length; state.dry=0; renderAll();
     OUT.signalOut.innerHTML=`Historial cargado: ${take.length} rondas. Analizando…`; maybeEmitAutoSignal();
-  };
-  document.getElementById("bulkInvert").onclick=()=>{ const t=document.getElementById("bulk"); t.value=t.value.split(/[\s,]+/).filter(Boolean).reverse().join(" "); };
+  });
+  document.getElementById("bulkInvert")?.addEventListener("click",()=>{ const t=document.getElementById("bulk"); t.value=t.value.split(/[\s,]+/).filter(Boolean).reverse().join(" "); });
 
+  // feed
   document.getElementById('feedConnect').onclick=()=>connectFeed(document.getElementById('feedId').value.trim());
   document.getElementById('feedDisconnect').onclick=disconnectFeed;
+  document.getElementById('dbgWrite').onclick=async ()=>{ try{ const id=(document.getElementById('feedId').value||'gocho').trim(); const ts=Date.now(); await db.ref(`feeds/${id}/crashes/${ts}`).set({i:ts,v:1.11,ts}); document.getElementById('dbgMsg').textContent="Escribí 1.11x en el feed (prueba)."; }catch(e){ document.getElementById('dbgMsg').textContent="No pude escribir: "+(e?.message||e); } };
+  document.getElementById('dbgClear').onclick=async ()=>{ if(!confirm("¿Seguro que quieres borrar TODAS las rondas del feed?")) return; try{ const id=(document.getElementById('feedId').value||'gocho').trim(); await db.ref(`feeds/${id}/crashes`).remove(); document.getElementById('dbgMsg').textContent="Feed limpiado."; }catch(e){ document.getElementById('dbgMsg').textContent="No pude limpiar: "+(e?.message||e); } };
 
-  document.getElementById('dbgWrite').onclick=async ()=>{
-    try{ const id=(document.getElementById('feedId').value||'gocho').trim(); const ts=Date.now();
-      await db.ref(`feeds/${id}/crashes/${ts}`).set({i:ts,v:1.11,ts}); document.getElementById('dbgMsg').textContent="Escribí 1.11x en el feed (prueba).";
-    }catch(e){ document.getElementById('dbgMsg').textContent="No pude escribir: "+(e?.message||e); }
+  // finanzas
+  document.getElementById("stakeMode").addEventListener("change",()=>{ document.getElementById("stakeUnit").textContent=IN.stakeMode.value==='pct'?'%':'$'; });
+  document.getElementById("startSess").onclick=()=>{ const limit=Math.max(1,parseInt(document.getElementById('sigLimit').value||"5",10)),bk=Math.max(1,parseFloat(document.getElementById('bankroll').value||"100")),sm=document.getElementById('stakeMode').value,sv=Math.max(0.1,parseFloat(document.getElementById('stakeValue').value||"1"));
+    state.session={active:true,startedAt:Date.now(),bankroll0:+bk.toFixed(2),balance:+bk.toFixed(2),stakeMode:sm,stakeValue:sv,totalStaked:0,profit:0,maxDD:0,equity:[+bk.toFixed(2)],signalsUsed:0,signalLimit:limit,trades:[]};
+    document.getElementById('sessStatus').textContent='Sesión ACTIVA'; document.getElementById('endSess').disabled=false; document.getElementById('startSess').disabled=true; document.getElementById('limitTop').textContent=limit; renderFinance(); persist();
   };
-  document.getElementById('dbgClear').onclick=async ()=>{
-    if(!confirm("¿Seguro que quieres borrar TODAS las rondas del feed?")) return;
-    try{ const id=(document.getElementById('feedId').value||'gocho').trim(); await db.ref(`feeds/${id}/crashes`).remove(); document.getElementById('dbgMsg').textContent="Feed limpiado."; }
-    catch(e){ document.getElementById('dbgMsg').textContent="No pude limpiar: "+(e?.message||e); }
-  };
+  document.getElementById("endSess").onclick=()=>{ if(!state.session||!state.session.active)return; state.session.active=false; state.session.endedAt=Date.now(); state.sessions.push(state.session); persist(); document.getElementById('sessStatus').textContent='Sesión inactiva'; document.getElementById('endSess').disabled=true; document.getElementById('startSess').disabled=false; renderFinance(); };
 }
-hookUI();
 
 /* ========= Sonido ========= */
 let AC=window.AudioContext||window.webkitAudioContext,ac; function beep(){ try{ if(!ac) ac=new AC(); const o=ac.createOscillator(), g=ac.createGain(); o.frequency.value=880; o.type="sine"; g.gain.value=0.0001; o.connect(g); g.connect(ac.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.2,ac.currentTime+0.05); g.gain.exponentialRampToValueAtTime(0.00001,ac.currentTime+0.35); o.stop(ac.currentTime+0.36);}catch(e){} }
 
-/* ========= Inicio ========= */
-applyMode(state.mode||"normal"); renderAll(); connectFeed(state.feedId || "gocho");
+/* ========= Inicio seguro ========= */
 function applyMode(m){
   state.mode=m;
   if(m==='agresivo'){ state.settings.minConfidence=0.80; state.settings.margin2=0.02; state.settings.margin3_4=0.03; state.settings.margin5=0.05; state.settings.margin10=0.07; state.settings.cooldownRounds=6; state.settings.avoidLowHard=6; state.settings.avoidLowSoft=5; state.settings.relaxMax=0.03; }
@@ -428,6 +462,24 @@ function applyMode(m){
   document.getElementById("conf").value=Math.round(state.settings.minConfidence*100); document.getElementById("confNum").value=document.getElementById("conf").value; document.getElementById("cd").value=state.settings.cooldownRounds;
   persist(); recompute();
 }
+
+function init(){
+  try{
+    hookUI();
+    applyMode(state.mode||"normal");
+    ensureCharts();
+    renderAll();
+    connectFeed(state.feedId || "gocho");
+  }catch(e){
+    console.error(e); showBanner('Error iniciando UI: '+(e?.message||e));
+  }
+}
+if(document.readyState!=="loading") init();
+else document.addEventListener("DOMContentLoaded",init);
+
+// si Chart cargó después, re‑crear charts reales y re‑pintar
+window.addEventListener("load",()=>{ ensureCharts(); renderAll(); });
+
 </script>
 </body>
 </html>
