@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Aviator Analyzer – Gocho v5.1.3 (debug)</title>
+<title>Aviator Analyzer – Gocho v5.1.4</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -30,7 +30,7 @@ canvas{width:100%;height:260px}table{width:100%;border-collapse:collapse;font-si
 </head>
 <body>
 <header>
-  <h1>🛩️ Aviator Analyzer • <span class="muted">Gocho</span> <span class="muted">v5.1.3</span></h1>
+  <h1>🛩️ Aviator Analyzer • <span class="muted">Gocho</span> <span class="muted">v5.1.4</span></h1>
   <div class="row">
     <label class="row" style="gap:6px"><input type="checkbox" id="beep" checked /><span class="muted">Beep señal</span></label>
     <button id="export" class="ghost">Exportar CSV</button>
@@ -43,8 +43,8 @@ canvas{width:100%;height:260px}table{width:100%;border-collapse:collapse;font-si
     <div class="card">
       <form id="addForm" class="row" style="justify-content:space-between" autocomplete="off">
         <div class="row">
-          <input id="crash" type="text" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]+([xX])?" placeholder="Nuevo crash (ej. 1.23x)" autofocus />
-          <button type="submit" class="primary">Agregar (⏎)</button>
+          <input id="crash" type="text" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]+([xX])?" placeholder="Nuevo crash (ej. 1.23x)" />
+          <button type="button" id="addBtn" class="primary">Agregar (⏎)</button>
           <button type="button" id="undo" class="ghost">Deshacer</button>
           <button type="button" id="reset" class="ghost">Reset</button>
         </div>
@@ -106,19 +106,7 @@ canvas{width:100%;height:260px}table{width:100%;border-collapse:collapse;font-si
         <div id="pills" class="pills"></div>
       </div>
 
-      <details style="margin-top:10px">
-        <summary><b>📥 Cargar historial (pega ~60)</b></summary>
-        <div class="row" style="margin-top:8px">
-          <textarea id="bulk" rows="4" style="width:100%" placeholder="Ej: 1.53x 1.11x 1.65x 5.39x 190.42x ..."></textarea>
-          <div class="row">
-            <button type="button" id="bulkLoad" class="primary">Cargar (últimas 60)</button>
-            <button type="button" id="bulkInvert" class="ghost">Invertir orden pegado</button>
-          </div>
-          <div class="note">Acepta 1.23x / 1,23x. Si pegaste viejo→nuevo, usa “Invertir”.</div>
-        </div>
-      </details>
-
-      <!-- Vincular feed + botones debug -->
+      <!-- Vincular feed + debug -->
       <details style="margin-top:10px" open>
         <summary><b>🔗 Vincular feed</b> (auto: <code>gocho</code>)</summary>
         <div class="row" style="margin-top:8px; gap:8px">
@@ -179,9 +167,8 @@ canvas{width:100%;height:260px}table{width:100%;border-collapse:collapse;font-si
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
-<!-- ==== Firebase – BOOTSTRAP (espera Auth) ==== -->
+<!-- ==== Firebase – BOOTSTRAP (auth + db) ==== -->
 <script>
-  // RTDB fija de tu proyecto
   const DB_URL = "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com";
   const firebaseConfig = {
     apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
@@ -193,30 +180,21 @@ canvas{width:100%;height:260px}table{width:100%;border-collapse:collapse;font-si
     measurementId: "G-325QCBSQMH",
     databaseURL: DB_URL
   };
-
-  let app, db, auth, uid=null, authed=false, pendingFeed=null;
-  function setFeedStatus(msg){ const el=document.getElementById('feedStatus'); if(el) el.textContent=msg; }
-
+  let app, db, auth, uid=null, authed=false, pendingFeed=null, feedRef=null;
+  const setFeedStatus = msg => { const el=document.getElementById('feedStatus'); if(el) el.textContent=msg; };
   try{
     app  = (firebase.apps && firebase.apps.length)? firebase.apps[0] : firebase.initializeApp(firebaseConfig);
-    db   = firebase.database();            // usa databaseURL del config
+    db   = firebase.database();
     auth = firebase.auth();
-
     auth.onAuthStateChanged(user=>{
-      uid = user?.uid || null;
-      authed = !!user;
-      const url = firebase.apps[0]?.options?.databaseURL || "(sin URL)";
-      setFeedStatus(authed? `Auth OK • UID ${String(uid).slice(0,6)}… • ${url}` : `No autenticado`);
+      uid=user?.uid || null; authed=!!user;
+      const url=firebase.apps[0]?.options?.databaseURL||"(sin URL)";
+      setFeedStatus(authed?`Auth OK • UID ${String(uid).slice(0,6)}… • ${url}`:`No autenticado`);
       if(authed && pendingFeed){ attachFeed(pendingFeed); pendingFeed=null; }
     });
-
-    auth.signInAnonymously().catch(e=>{
-      console.warn("Auth anónimo falló:", e?.message||e);
-      setFeedStatus("Auth anónimo deshabilitado (habilítalo en Firebase)");
-    });
-  }catch(e){ console.error("Init Firebase error:", e); }
+    auth.signInAnonymously().catch(e=> setFeedStatus("Auth anónimo deshabilitado en Firebase"));
+  }catch(e){ console.error("Init Firebase error:",e); }
 </script>
-<!-- ==== /Firebase ==== -->
 
 <script>
 /* ========= Utils ========= */
@@ -240,7 +218,7 @@ const state={
 };
 const persist=()=>{for(const k of Object.keys(state)) LS(k,state[k]);};
 
-/* ========= Modelo ========= */
+/* ========= Modelo (igual al v5.1.3) ========= */
 const Model={F:10,lr:0.05,w2:state.model.w2.length?state.model.w2:new Array(10).fill(0),w5:state.model.w5.length?state.model.w5:new Array(10).fill(0),gamma:state.model.gamma||2.0,
   sigmoid:z=>1/(1+Math.exp(-z)),dot:(w,f)=>w.reduce((s,wi,i)=>s+wi*f[i],0),predict(w,f){return this.sigmoid(this.dot(w,f));},
   update(w,f,y){const p=this.predict(w,f);for(let i=0;i<w.length;i++)w[i]+=this.lr*(y-p)*f[i];},
@@ -257,24 +235,19 @@ const Model={F:10,lr:0.05,w2:state.model.w2.length?state.model.w2:new Array(10).
     state.model={w2:this.w2,w5:this.w5,gamma:this.gamma};persist();}
 };
 
-/* ========= Feed (con debug) ========= */
-let feedRef=null;
+/* ========= Feed ========= */
 function attachFeed(id){
   try{ if(feedRef) feedRef.off(); }catch(_){}
   feedRef = db.ref(`feeds/${id}/crashes`);
   setFeedStatus("Conectando…");
   feedRef.on("value",snap=>{
-    const val=snap.val()||{};
-    const arr=Object.values(val).sort((a,b)=>(a.i||a.ts)-(b.i||b.ts)).map(o=>+o.v);
+    const val=snap.val()||{}; const arr=Object.values(val).sort((a,b)=>(a.i||a.ts)-(b.i||b.ts)).map(o=>+o.v);
     state.crashes=arr; state.baseLoad=arr.length; state.dry=0; renderAll();
-    setFeedStatus(`Conectado • ${arr.length} rondas`);
-    maybeEmitAutoSignal();
-  },err=>{
-    setFeedStatus(`Error: ${err.code||''} ${err.message||err}`);
-  });
+    setFeedStatus(`Conectado • ${arr.length} rondas`); maybeEmitAutoSignal();
+  },err=> setFeedStatus(`Error: ${err.code||''} ${err.message||err}`));
 }
 function connectFeed(id){
-  if(!db){ alert("Firebase no inicializado (falta databaseURL)."); return; }
+  if(!db){ alert("Firebase no inicializado."); return; }
   if(!id){ alert("Ingresa un Feed ID."); return; }
   state.feedId=id; persist(); document.getElementById('feedId').value=id;
   if(!authed){ pendingFeed=id; setFeedStatus("Esperando autenticación…"); return; }
@@ -284,15 +257,14 @@ function disconnectFeed(){ try{ if(feedRef) feedRef.off(); }catch(_){}
   feedRef=null; setFeedStatus("Desconectado");
 }
 
-/* ========= UI refs / Charts ========= */
+/* ========= UI refs / charts ========= */
 const el=id=>document.getElementById(id);
 const IN={crash:el("crash"),target:el("target"),conf:el("conf"),confNum:el("confNum"),cd:el("cd"),auto:el("auto"),
-          sigLimit:el("sigLimit"),bankroll:el("bankroll"),stakeMode:el("stakeMode"),stakeValue:el("stakeValue")};
+  sigLimit:el("sigLimit"),bankroll:el("bankroll"),stakeMode:el("stakeMode"),stakeValue:el("stakeValue")};
 const OUT={rounds:el("rounds"),p2:el("p2"),p5:el("p5"),p10:el("p10"),ma10:el("ma10"),streakLow:el("streakLow"),cool:el("cool"),
-          signalOut:el("signalOut"),pills:el("pills"),signalsTop:el("signalsTop"),limitTop:el("limitTop"),
-          signals:el("signals"),wins:el("wins"),losses:el("losses"),wr:el("wr"),dry:el("dry"),
-          bal:el("bal"),staked:el("staked"),profit:el("profit"),roi:el("roi"),dd:el("dd"),sigUsed:el("sigUsed"),
-          sessStatus:el("sessStatus"),stakeUnit:el("stakeUnit")};
+  signalOut:el("signalOut"),pills:el("pills"),signalsTop:el("signalsTop"),limitTop:el("limitTop"),signals:el("signals"),
+  wins:el("wins"),losses:el("losses"),wr:el("wr"),dry:el("dry"),bal:el("bal"),staked:el("staked"),profit:el("profit"),
+  roi:el("roi"),dd:el("dd"),sigUsed:el("sigUsed"),sessStatus:el("sessStatus"),stakeUnit:el("stakeUnit")};
 IN.conf.value=Math.round(state.settings.minConfidence*100); IN.confNum.value=IN.conf.value; IN.cd.value=state.settings.cooldownRounds;
 
 const seriesChart=new Chart(document.getElementById('series').getContext('2d'),{type:'line',data:{labels:[],datasets:[
@@ -402,60 +374,58 @@ function addCrash(v){
   if(state.cooldown>0) state.cooldown--; state.dry++; renderAll(); maybeEmitAutoSignal();
 }
 
-/* ========= Eventos UI ========= */
-document.getElementById("addForm").addEventListener("submit",e=>{e.preventDefault();addCrash(IN.crash.value); IN.crash.value=""; IN.crash.focus();});
-IN.crash.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); addCrash(IN.crash.value); IN.crash.value=""; }});
-document.getElementById("undo").onclick=()=>{ state.crashes.pop(); const last=state.bets.at(-1); if(last&&last.index>=state.crashes.length){ state.bets.pop(); } renderAll(); };
-document.getElementById("reset").onclick=()=>{ if(!confirm("¿Borrar todo?"))return; state.crashes=[]; state.bets=[]; state.cooldown=0; state.lastSignalIndex=-1000; state.baseLoad=0; state.dry=0; renderAll(); };
-document.getElementById("export").onclick=()=>{ let csv="idx,crash\n"; state.crashes.forEach((v,i)=>csv+=`${i+1},${v}\n`); const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='crashes.csv'; a.click(); URL.revokeObjectURL(url); };
+/* ========= Eventos UI (robustos) ========= */
+function hookUI(){
+  document.getElementById("addBtn").onclick=()=>{ addCrash(IN.crash.value); IN.crash.value=""; IN.crash.focus(); };
+  document.getElementById("addForm").addEventListener("submit",e=>{ e.preventDefault(); addCrash(IN.crash.value); IN.crash.value=""; IN.crash.focus(); });
+  IN.crash.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); addCrash(IN.crash.value); IN.crash.value=""; }});
+  document.getElementById("undo").onclick=()=>{ state.crashes.pop(); const last=state.bets.at(-1); if(last&&last.index>=state.crashes.length){ state.bets.pop(); } renderAll(); };
+  document.getElementById("reset").onclick=()=>{ if(!confirm("¿Borrar todo?"))return; state.crashes=[]; state.bets=[]; state.cooldown=0; state.lastSignalIndex=-1000; state.baseLoad=0; state.dry=0; renderAll(); };
+  document.getElementById("export").onclick=()=>{ let csv="idx,crash\n"; state.crashes.forEach((v,i)=>csv+=`${i+1},${v}\n`); const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='crashes.csv'; a.click(); URL.revokeObjectURL(url); };
 
-const chips=[2,2.5,3,3.5,4,5,7,10,15,20,50,100], chipsBox=document.getElementById("chips");
-chips.forEach(v=>{ const s=document.createElement("span"); s.className="chip"; s.textContent=v+"x"; s.onclick=()=>{ IN.target.value=String(v); [...chipsBox.children].forEach(c=>c.classList.toggle('active',c.textContent===v+"x")); }; chipsBox.appendChild(s); });
+  const chips=[2,2.5,3,3.5,4,5,7,10,15,20,50,100], chipsBox=document.getElementById("chips");
+  chipsBox.innerHTML=""; chips.forEach(v=>{ const s=document.createElement("span"); s.className="chip"; s.textContent=v+"x"; s.onclick=()=>{ IN.target.value=String(v); [...chipsBox.children].forEach(c=>c.classList.toggle('active',c.textContent===v+"x")); }; chipsBox.appendChild(s); });
 
-document.getElementById("conf").addEventListener("input",()=>{ document.getElementById("confNum").value=document.getElementById("conf").value; state.settings.minConfidence=(+document.getElementById("conf").value)/100; persist(); });
-document.getElementById("confNum").addEventListener("change",()=>{ let v=clamp(parseInt(document.getElementById("confNum").value||"85",10),70,95); document.getElementById("conf").value=v; state.settings.minConfidence=v/100; document.getElementById("confNum").value=v; persist(); });
-document.getElementById("cd").addEventListener("change",()=>{ state.settings.cooldownRounds=Math.max(0,parseInt(document.getElementById("cd").value||"8",10)); persist(); });
+  document.getElementById("conf").addEventListener("input",()=>{ IN.confNum.value=IN.conf.value; state.settings.minConfidence=(+IN.conf.value)/100; persist(); });
+  document.getElementById("confNum").addEventListener("change",()=>{ let v=clamp(parseInt(IN.confNum.value||"85",10),70,95); IN.conf.value=v; state.settings.minConfidence=v/100; IN.confNum.value=v; persist(); });
+  document.getElementById("cd").addEventListener("change",()=>{ state.settings.cooldownRounds=Math.max(0,parseInt(IN.cd.value||"8",10)); persist(); });
 
-document.getElementById("bulkLoad").onclick=()=>{ const raw=document.getElementById("bulk").value.trim(); if(!raw){ alert("Pega el historial."); return; }
-  const arr=raw.replace(/[^\dxX.,\s-]/g,' ').split(/[\s,]+/).filter(Boolean).map(t=>parseFloat(String(t).replace(/[xX]/g,'').replace(',','.'))).filter(v=>!isNaN(v)&&v>0).map(v=>+v.toFixed(2));
-  if(!arr.length){ alert("No se detectaron números."); return; } const take=arr.slice(-60);
-  state.crashes=take; state.bets=[]; state.cooldown=0; state.lastSignalIndex=-1000; state.baseLoad=take.length; state.dry=0; renderAll();
-  OUT.signalOut.innerHTML=`Historial cargado: ${take.length} rondas. Analizando…`; maybeEmitAutoSignal();
-};
-document.getElementById("bulkInvert").onclick=()=>{ const t=document.getElementById("bulk"); t.value=t.value.split(/[\s,]+/).filter(Boolean).reverse().join(" "); };
+  document.getElementById("bulkLoad").onclick=()=>{ const raw=document.getElementById("bulk").value.trim(); if(!raw){ alert("Pega el historial."); return; }
+    const arr=raw.replace(/[^\dxX.,\s-]/g,' ').split(/[\s,]+/).filter(Boolean).map(t=>parseFloat(String(t).replace(/[xX]/g,'').replace(',','.'))).filter(v=>!isNaN(v)&&v>0).map(v=>+v.toFixed(2));
+    if(!arr.length){ alert("No se detectaron números."); return; } const take=arr.slice(-60);
+    state.crashes=take; state.bets=[]; state.cooldown=0; state.lastSignalIndex=-1000; state.baseLoad=take.length; state.dry=0; renderAll();
+    OUT.signalOut.innerHTML=`Historial cargado: ${take.length} rondas. Analizando…`; maybeEmitAutoSignal();
+  };
+  document.getElementById("bulkInvert").onclick=()=>{ const t=document.getElementById("bulk"); t.value=t.value.split(/[\s,]+/).filter(Boolean).reverse().join(" "); };
 
-document.getElementById('feedConnect').onclick=()=>connectFeed(document.getElementById('feedId').value.trim());
-document.getElementById('feedDisconnect').onclick=disconnectFeed;
+  document.getElementById('feedConnect').onclick=()=>connectFeed(document.getElementById('feedId').value.trim());
+  document.getElementById('feedDisconnect').onclick=disconnectFeed;
 
-// Botones debug
-document.getElementById('dbgWrite').onclick=async ()=>{
-  try{ const id=(document.getElementById('feedId').value||'gocho').trim(); const ts=Date.now();
-    await db.ref(`feeds/${id}/crashes/${ts}`).set({i:ts,v:1.11,ts});
-    document.getElementById('dbgMsg').textContent="Escribí 1.11x en el feed (prueba).";
-  }catch(e){ document.getElementById('dbgMsg').textContent="No pude escribir: "+(e?.message||e); }
-};
-document.getElementById('dbgClear').onclick=async ()=>{
-  if(!confirm("¿Seguro que quieres borrar TODAS las rondas del feed?")) return;
-  try{ const id=(document.getElementById('feedId').value||'gocho').trim(); await db.ref(`feeds/${id}/crashes`).remove();
-    document.getElementById('dbgMsg').textContent="Feed limpiado.";
-  }catch(e){ document.getElementById('dbgMsg').textContent="No pude limpiar: "+(e?.message||e); }
-};
+  document.getElementById('dbgWrite').onclick=async ()=>{
+    try{ const id=(document.getElementById('feedId').value||'gocho').trim(); const ts=Date.now();
+      await db.ref(`feeds/${id}/crashes/${ts}`).set({i:ts,v:1.11,ts}); document.getElementById('dbgMsg').textContent="Escribí 1.11x en el feed (prueba).";
+    }catch(e){ document.getElementById('dbgMsg').textContent="No pude escribir: "+(e?.message||e); }
+  };
+  document.getElementById('dbgClear').onclick=async ()=>{
+    if(!confirm("¿Seguro que quieres borrar TODAS las rondas del feed?")) return;
+    try{ const id=(document.getElementById('feedId').value||'gocho').trim(); await db.ref(`feeds/${id}/crashes`).remove(); document.getElementById('dbgMsg').textContent="Feed limpiado."; }
+    catch(e){ document.getElementById('dbgMsg').textContent="No pude limpiar: "+(e?.message||e); }
+  };
+}
+hookUI();
 
 /* ========= Sonido ========= */
 let AC=window.AudioContext||window.webkitAudioContext,ac; function beep(){ try{ if(!ac) ac=new AC(); const o=ac.createOscillator(), g=ac.createGain(); o.frequency.value=880; o.type="sine"; g.gain.value=0.0001; o.connect(g); g.connect(ac.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.2,ac.currentTime+0.05); g.gain.exponentialRampToValueAtTime(0.00001,ac.currentTime+0.35); o.stop(ac.currentTime+0.36);}catch(e){} }
 
 /* ========= Inicio ========= */
-applyMode(state.mode||"normal"); renderAll();
-// auto‑conectar feed por defecto; si aún no hay auth, se encola y conecta al loguear
-connectFeed(state.feedId || "gocho");
-
+applyMode(state.mode||"normal"); renderAll(); connectFeed(state.feedId || "gocho");
 function applyMode(m){
   state.mode=m;
   if(m==='agresivo'){ state.settings.minConfidence=0.80; state.settings.margin2=0.02; state.settings.margin3_4=0.03; state.settings.margin5=0.05; state.settings.margin10=0.07; state.settings.cooldownRounds=6; state.settings.avoidLowHard=6; state.settings.avoidLowSoft=5; state.settings.relaxMax=0.03; }
   else if(m==='conservador'){ state.settings.minConfidence=0.90; state.settings.margin2=0.04; state.settings.margin3_4=0.06; state.settings.margin5=0.08; state.settings.margin10=0.10; state.settings.cooldownRounds=10; state.settings.avoidLowHard=5; state.settings.avoidLowSoft=4; state.settings.relaxMax=0.015; }
   else { state.settings.minConfidence=0.85; state.settings.margin2=0.03; state.settings.margin3_4=0.04; state.settings.margin5=0.06; state.settings.margin10=0.08; state.settings.cooldownRounds=8; state.settings.avoidLowHard=6; state.settings.avoidLowSoft=5; state.settings.relaxMax=0.02; }
-  document.getElementById("conf").value=Math.round(state.settings.minConfidence*100); document.getElementById("confNum").value=document.getElementById("conf").value; document.getElementById("cd").value=state.settings.cooldownRounds;
   document.querySelectorAll('#modes .mode').forEach(x=>x.classList.toggle('active',x.dataset.mode===m));
+  document.getElementById("conf").value=Math.round(state.settings.minConfidence*100); document.getElementById("confNum").value=document.getElementById("conf").value; document.getElementById("cd").value=state.settings.cooldownRounds;
   persist(); recompute();
 }
 </script>
