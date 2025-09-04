@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v6.3.0</title>
+<title>Aviator Analyzer • Gocho v6.3.1</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
   :root{
@@ -40,7 +40,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v6.3.0</span></h1>
+  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v6.3.1</span></h1>
 
   <div class="card">
     <div class="row">
@@ -185,7 +185,6 @@ let pendings = [], bets = [], signalsCount = 0, cooldownLeft = 0, historyChart =
 
 const model = { priors: { "2": [10,10], "2.5":[8,10], "3":[6,10], "5":[3,9], "10":[1.5,8.5] } };
 
-// RE-CALIBRADO: Valores por defecto para la estrategia "Sniper 3x"
 const ui = {
   selTarget: 3.0, mode: "agresivo", autoSignal: true, minConf: 65, cooldown: 3, beep: true, winN: 80,
   volatility: { threshold: 2.5, confBonus: 15 },
@@ -209,7 +208,7 @@ function drynessSince5x(){ let d=0; for(let i=rounds.length-1;i>=0;i--){if(round
 function detectMomentum(){ const{window,hits}=ui.momentum; if(rounds.length<window)return false; return rounds.slice(-window).filter(r=>r>=2.0).length>=hits; }
 function detectPreFlightPattern() { const {window,blues}=ui.preflight; if(rounds.length<window)return false; const recent=rounds.slice(-window); const blueCount=recent.filter(r=>r<1.5).length; const purpleCount=recent.filter(r=>r>=2.0).length; return blueCount>=blues && purpleCount>=1; }
 
-/*** ===== LÓGICA DE SEÑALES (v6.3.0) ===== ***/
+/*** ===== LÓGICA DE SEÑALES (v6.3.1) ===== ***/
 function gatesPass(target){
   let pTarget = probGE(target), minP = ui.minConf/100, reasonDetails = [];
   const dryRounds = drynessSince5x();
@@ -219,7 +218,7 @@ function gatesPass(target){
   if (detectMomentum()) { minP -= ui.momentum.confBonus / 100; reasonDetails.push(`-${ui.momentum.confBonus}% Req RACHA`); }
   if (detectPreFlightPattern()) { minP -= ui.preflight.confBonus / 100; reasonDetails.push(`-${ui.preflight.confBonus}% Req PRE-VUELO`); }
   const finalReason = reasonDetails.length > 0 ? ` [${reasonDetails.join(' ')}]` : '';
-  if (pTarget < minP) return { pass: false, reason: `Conf. baja: ${fmtPct(pTarget)} (req ${fmtPct(minP)})${finalReason}` };
+  if (pTarget < minP) return { pass: false, reason: `Conf. baja: ${fmtPct(pTarget)} (req ${fmtPct(pTarget > minP ? pTarget : minP)})${finalReason}` };
   const bad = countBad170(rounds,8);
   if (bad>=7) return {pass:false,reason:"Zona mala (racha < 1.70x)"};
   if (cooldownLeft>0) return {pass:false,reason:`En Cooldown (${cooldownLeft}r)`};
@@ -238,11 +237,12 @@ function emitSignal(target){
   setTimeout(()=>sig.style.display="none", 3500); beep(880,140,0.04);
 }
 
-/*** ===== GESTIÓN DE RONDAS Y DATOS (CONEXIÓN ESTABLE v6.3.0) ===== ***/
+/*** ===== GESTIÓN DE RONDAS Y DATOS (CONEXIÓN ESTABLE v6.3.1) ===== ***/
 function processValue(rawValue) {
+  // [FIX DEFINITIVO] Procesa cualquier formato numérico de forma robusta.
   if (rawValue === null || rawValue === undefined) return null;
-  let strValue = String(rawValue).replace(/,/g, '');
-  const cleanedValue = strValue.replace(/[^\d.]/g, '');
+  const strValue = String(rawValue).replace(/,/g, ''); // 1. Elimina comas explícitamente.
+  const cleanedValue = strValue.replace(/[^\d.]/g, ''); // 2. Elimina todo lo que no sea dígito o punto.
   if (cleanedValue === '') return null;
   const v = Number(cleanedValue);
   return (v >= 1 && !isNaN(v)) ? v : null;
@@ -260,21 +260,27 @@ function connectFeed(){
   auth.signInAnonymously().then(()=>{
     const refBase = db.ref(`feeds/${FEED_ID}/crashes`).orderByKey().limitToLast(800);
     refBase.once("value", snap=>{
-      const data = snap.val()||{};
-      rounds = [];
-      Object.values(data).forEach(entry => {
-        const v = processValue(entry.v || entry);
-        if (v !== null) rounds.push(v);
-      });
-      lastShown = [...rounds].reverse(); baseCount = rounds.length;
-      renderStats(); updateChart();
-      const refNew = db.ref(`feeds/${FEED_ID}/crashes`).orderByKey().startAt(String(Date.now()));
-      sub = refNew.on("child_added", s=>{
-        const d = s.val(); if (!d) return;
-        const v = processValue(d.v || d);
-        if (v !== null) onNewCrash(v);
-      });
-      connected = true;
+      try { // [FIX CRÍTICO] Bloque try-catch para garantizar la carga.
+        const data = snap.val()||{};
+        rounds = [];
+        Object.values(data).forEach(entry => {
+          const v = processValue(entry.v || entry);
+          if (v !== null) rounds.push(v);
+        });
+        lastShown = [...rounds].reverse(); baseCount = rounds.length;
+        renderStats(); updateChart(); maybeSignal(); // Llama a maybeSignal tras la carga inicial.
+        
+        const refNew = db.ref(`feeds/${FEED_ID}/crashes`).orderByKey().startAfter(snap.lastKey);
+        sub = refNew.on("child_added", s=>{
+          const d = s.val(); if (!d) return;
+          const v = processValue(d.v || d);
+          if (v !== null) onNewCrash(v);
+        });
+        connected = true;
+      } catch (error) {
+        console.error("Error crítico durante la carga inicial de datos:", error);
+        document.getElementById("statusFeedback").textContent = "Error al cargar datos. Revise la consola.";
+      }
     });
   });
 }
@@ -298,7 +304,6 @@ document.getElementById("modeChips").addEventListener("click",e=>{ const el=e.ta
 ["dryThreshold","dryBonus"].forEach(id=>document.getElementById(id).addEventListener("change", e => ui.dryness[id.includes("Threshold")?"threshold":"probBonus"]=Number(e.target.value)));
 ["momWindow","momHits","momBonus"].forEach(id=>document.getElementById(id).addEventListener("change", e => ui.momentum[id.replace("mom",'').toLowerCase()]=Number(e.target.value)));
 ["pfWindow","pfBlues","pfBonus"].forEach(id=>document.getElementById(id).addEventListener("change", e => ui.preflight[id.replace("pf",'').toLowerCase()]=Number(e.target.value)));
-["thr10","thr20","thr50","thr100"].forEach(id=>{ document.getElementById(id).addEventListener("change",e=>{ ui.radar[id] = Number(e.target.value); }); });
 document.getElementById("connectBtn").addEventListener("click", connectFeed); document.getElementById("disconnectBtn").addEventListener("click", disconnectFeed);
 document.getElementById("startBtn").addEventListener("click", ()=>{ signalsCount=0; cooldownLeft=0; bets=[]; pendings=[]; renderBets(); renderStats(); beep(660,90,0.03); });
 document.getElementById("stopBtn").addEventListener("click", ()=>{ bets=[]; pendings=[]; signalsCount=0; cooldownLeft=0; renderBets(); renderStats(); });
