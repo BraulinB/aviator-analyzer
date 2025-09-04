@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v6.1.0</title>
+<title>Aviator Analyzer • Gocho v6.2.0</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
   :root{
@@ -46,7 +46,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v6.1.0</span></h1>
+  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v6.2.0</span></h1>
 
   <div class="card">
     <div class="row">
@@ -74,8 +74,8 @@
 
       <div class="row" style="margin-left:auto">
         <span class="muted">Conf. mín.:</span>
-        <input id="minConf" type="range" min="50" max="95" value="75"/>
-        <span id="minConfVal">75%</span>
+        <input id="minConf" type="range" min="50" max="95" value="70"/>
+        <span id="minConfVal">70%</span>
         <span class="muted" style="margin-left:8px">CoolDown:</span>
         <input id="cooldown" type="number" min="0" max="50" value="4"/>
       </div>
@@ -152,17 +152,22 @@
     <h3 style="margin:0 0 10px 0">Controles de Lógica Avanzada</h3>
     <div class="row">
       <label>Ventana de análisis (rondas): <input id="winN" type="number" value="90" min="20" max="500"/></label>
-      <span class="muted" style="margin-left:10px">(Más bajo = más reactivo, más alto = más estable)</span>
     </div>
     <div class="row" style="margin-top:8px">
       <span class="muted">Bonus por Volatilidad:</span>
-      <label>Si Volatilidad > <input id="volThreshold" type="number" value="3.0" min="1" max="10" step="0.1"/>,</label>
+      <label>Si Volatilidad > <input id="volThreshold" type="number" value="2.5" min="1" max="10" step="0.1"/>,</label>
       <label>reducir Conf. Mín. en <input id="volBonus" type="number" value="10" min="0" max="25"/>%</label>
     </div>
     <div class="row" style="margin-top:8px">
       <span class="muted">Bonus por Sequía:</span>
-      <label>Si > <input id="dryThreshold" type="number" value="40" min="10" max="100"/> rondas sin 5x,</label>
-      <label>añadir a la Prob. un <input id="dryBonus" type="number" value="10" min="0" max="25"/>%</label>
+      <label>Si > <input id="dryThreshold" type="number" value="35" min="10" max="100"/> rondas sin 5x,</label>
+      <label>añadir a la Prob. un <input id="dryBonus" type="number" value="15" min="0" max="25"/>%</label>
+    </div>
+    <!-- NUEVO: Bonus por Racha -->
+    <div class="row" style="margin-top:8px">
+      <span class="muted">Bonus por Racha (>2x):</span>
+      <label>Si <input id="momHits" type="number" value="5" min="2" max="10"/> de las últimas <input id="momWindow" type="number" value="7" min="3" max="15"/> rondas son >2x,</label>
+      <label>reducir Conf. Mín. en <input id="momBonus" type="number" value="15" min="0" max="30"/>%</label>
     </div>
     <div class="row" style="margin-top:8px">
       <span class="muted">Radar altos:</span>
@@ -206,11 +211,7 @@ let rounds = [];
 let lastShown = [];
 let sub = null;
 let baseCount = 0;
-
-let pendings = [];
-let bets = [];
-let signalsCount = 0;
-let cooldownLeft = 0;
+let pendings = [], bets = [], signalsCount = 0, cooldownLeft = 0;
 let historyChart = null;
 
 const model = {
@@ -223,12 +224,14 @@ const ui = {
   selTarget: 3.0,
   mode: "agresivo",
   autoSignal: true,
-  minConf: 75,
+  minConf: 70,
   cooldown: 4,
   beep: true,
   winN: 90,
-  volatility: { threshold: 3.0, confBonus: 10 },
-  dryness: { threshold: 40, probBonus: 10 },
+  volatility: { threshold: 2.5, confBonus: 10 },
+  dryness: { threshold: 35, probBonus: 15 },
+  // NUEVO: Heurística de Momentum
+  momentum: { window: 7, hits: 5, confBonus: 15 },
   radar: {thr10:8,thr20:4,thr50:1.5,thr100:0.6}
 };
 
@@ -245,7 +248,7 @@ function stdDev(arr) {
   return Math.sqrt(variance);
 }
 
-/*** ====== AUDIO (beep verde / beep rosa) ====== ***/
+/*** ====== AUDIO ====== ***/
 let audioCtx=null;
 function beep(freq=880, ms=120, gain=0.03){
   if(!ui.beep) return;
@@ -262,7 +265,7 @@ function beep(freq=880, ms=120, gain=0.03){
 }
 function beepPink(){ beep(520,160,0.035); setTimeout(()=>beep(980,80,0.03),100); }
 
-/*** ===== BAYES + MÉTRICAS ===== ***/
+/*** ===== MÉTRICAS Y HEURÍSTICAS ===== ***/
 function probGE(k){
   const v = rounds.slice(-ui.winN);
   const s = v.filter(x=>x>=k).length;
@@ -286,34 +289,19 @@ function countBad170(arr, window=8){
   const L = arr.slice(-window);
   return L.filter(x=>x<1.70).length;
 }
-function inBonusZone(){
-  const w = rounds.slice(-14);
-  if(w.length<14) return false;
-  const p2  = w.filter(x=>x>=2).length / w.length;
-  const has5= w.some(x=>x>=5);
-  const sl  = slopeMA(rounds,10);
-  return (p2>=0.60 && has5 && sl>=0);
-}
 function drynessSince5x(){
-  let d=0;
-  for(let i=rounds.length-1;i>=0;i--){
-    if(rounds[i]>=5) break; else d++;
-  }
-  return d;
+  let d=0; for(let i=rounds.length-1;i>=0;i--){ if(rounds[i]>=5) break; else d++; } return d;
+}
+// NUEVO: Detección de Racha / Momentum
+function detectMomentum() {
+  const { window, hits } = ui.momentum;
+  if (rounds.length < window) return false;
+  const recentRounds = rounds.slice(-window);
+  const hitCount = recentRounds.filter(r => r >= 2.0).length;
+  return hitCount >= hits;
 }
 
-/*** ===== RADAR HIGH-X ===== ***/
-function radarHighX(){
-  let p10=probGE(10), p20=probGE(20), p50=probGE(50), p100=probGE(100);
-  const bonus = inBonusZone()? 1.15 : 1.0;
-  const dry   = clamp(drynessSince5x()/60, 0, 0.4);
-  p10*= bonus*(1+dry); p20*= bonus*(1+dry); p50*= bonus*(1+dry); p100*= bonus*(1+dry);
-  const hit10 = (p10*100) >= ui.radar.thr10, hit20 = (p20*100) >= ui.radar.thr20;
-  const hit50 = (p50*100) >= ui.radar.thr50, hit100= (p100*100) >= ui.radar.thr100;
-  return {hit10,hit20,hit50,hit100, p:{p10,p20,p50,p100}};
-}
-
-/*** ===== LÓGICA DE SEÑALES ===== ***/
+/*** ===== LÓGICA DE SEÑALES (v6.2.0) ===== ***/
 function gatesPass(target){
   let pTarget = probGE(target);
   let minP = ui.minConf/100;
@@ -329,6 +317,12 @@ function gatesPass(target){
   if (currentVolatility > ui.volatility.threshold) {
     minP -= ui.volatility.confBonus / 100;
     reasonDetails.push(`Bonus Volat. -${ui.volatility.confBonus}% Req.`);
+  }
+
+  // NUEVO: Aplicación del Bonus por Momentum
+  if (detectMomentum()) {
+    minP -= ui.momentum.confBonus / 100;
+    reasonDetails.push(`BONUS RACHA -${ui.momentum.confBonus}% Req.`);
   }
   
   const finalReason = reasonDetails.length > 0 ? ` [${reasonDetails.join(', ')}]` : '';
@@ -353,11 +347,8 @@ function maybeSignal(){
   if(rounds.length<20) { feedbackEl.textContent = "Analizando (pocas rondas)..."; return; }
   const hi = radarHighX();
   const hiEl = document.getElementById("hiFlag");
-  if(hi.hit10 || hi.hit20 || hi.hit50 || hi.hit100){
-    hiEl.style.display="inline-block";
-    hiEl.textContent = `Radar ALTO: ${(hi.hit100?"≥100x":hi.hit50?"≥50x":hi.hit20?"≥20x":"≥10x")} posible`;
-    beepPink();
-  }else{ hiEl.style.display="none"; }
+  if(hi.hit10||hi.hit20||hi.hit50||hi.hit100){ hiEl.style.display="inline-block"; hiEl.textContent = `Radar ALTO: ${(hi.hit100?"≥100x":hi.hit50?"≥50x":hi.hit20?"≥20x":"≥10x")} posible`; beepPink(); }
+  else{ hiEl.style.display="none"; }
   if(!ui.autoSignal) { feedbackEl.textContent = "Auto-Señal desactivada."; return; }
   let target = ui.selTarget;
   const { pass, reason } = gatesPass(target);
@@ -375,8 +366,15 @@ function emitSignal(target){
   setTimeout(()=>sig.style.display="none", 3500);
   beep(880,140,0.04);
 }
+function radarHighX(){
+  let p10=probGE(10), p20=probGE(20), p50=probGE(50), p100=probGE(100);
+  const bonus = inBonusZone()? 1.15 : 1.0; const dry = clamp(drynessSince5x()/60, 0, 0.4);
+  p10*= bonus*(1+dry); p20*= bonus*(1+dry); p50*= bonus*(1+dry); p100*= bonus*(1+dry);
+  const hit10=(p10*100)>=ui.radar.thr10, hit20=(p20*100)>=ui.radar.thr20, hit50=(p50*100)>=ui.radar.thr50, hit100=(p100*100)>=ui.radar.thr100;
+  return {hit10,hit20,hit50,hit100, p:{p10,p20,p50,p100}};
+}
 
-/*** ===== ASIGNACIÓN DE CRASH A SEÑALES ===== ***/
+/*** ===== GESTIÓN DE RONDAS Y DATOS ===== ***/
 function onNewCrash(v){
   rounds.push(v);
   if(rounds.length>2000) rounds.shift();
@@ -391,51 +389,6 @@ function onNewCrash(v){
   if(lastShown.length>100) lastShown.pop();
   renderStats(); updateChart(); maybeSignal();
 }
-
-/*** ===== RENDER Y GRÁFICA ===== ***/
-function renderStats(){
-  const p2=probGE(2),p25=probGE(2.5),p3=probGE(3),p5=probGE(5),p10=probGE(10);
-  const ma10 = movingAverage(rounds,10);
-  const vol = stdDev(rounds.slice(-20));
-  document.getElementById("rounds").textContent = `${rounds.length} (base ${baseCount})`;
-  document.getElementById("p2").textContent = fmtPct(p2);
-  document.getElementById("p25").textContent = fmtPct(p25);
-  document.getElementById("p3").textContent = fmtPct(p3);
-  document.getElementById("p5").textContent = fmtPct(p5);
-  document.getElementById("p10").textContent = fmtPct(p10);
-  document.getElementById("ma10").textContent= isNaN(ma10)?"–":(ma10.toFixed(2)+"x");
-  document.getElementById("volatility").textContent = vol.toFixed(2);
-  document.getElementById("cdLeft").textContent = cooldownLeft;
-  document.getElementById("signals").textContent= signalsCount;
-  const cont=document.getElementById("lastRounds"); cont.innerHTML="";
-  lastShown.slice(0,60).forEach(x=>{ const d=document.createElement("span"); d.className="pill neu"; d.textContent=x.toFixed(2)+"x"; cont.appendChild(d); });
-}
-function renderBets(){
-  const tb=document.getElementById("betsTbody"); tb.innerHTML="";
-  bets.concat(pendings).forEach((b,idx)=>{
-    const tr=document.createElement("tr");
-    const st = b.state==="win"?"win": b.state==="lose"?"lose":"pend";
-    tr.innerHTML = `<td>${idx+1}</td><td>${b.target}x</td><td>$${b.stake.toFixed?b.stake.toFixed(2):b.stake}</td><td>${b.crash? b.crash.toFixed(2)+"x":"—"}</td><td>${st}</td><td>${b.pl||"—"}</td>`;
-    tb.appendChild(tr);
-  });
-}
-function initChart(){
-  const ctx = document.getElementById('historyChart').getContext('2d');
-  historyChart = new Chart(ctx, { type: 'line', data: { labels: [], datasets: [{ label: 'Crash', data: [], borderColor: 'rgba(138, 180, 255, 0.6)', backgroundColor: 'rgba(138, 180, 255, 0.1)', borderWidth: 1.5, pointRadius: 1, tension: 0.1 },{ label: 'MA(10)', data: [], borderColor: 'rgba(230, 126, 34, 0.8)', borderWidth: 2, pointRadius: 0, tension: 0.2 }] }, options: { scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { grid: { color: 'rgba(255,255,255,0.05)' } } } } });
-}
-function updateChart() {
-  if (!historyChart) return;
-  const dataSlice = rounds.slice(-100);
-  const labels = Array.from({length: dataSlice.length}, (_, i) => i + 1);
-  const ma10Data = [];
-  for (let i = 0; i < dataSlice.length; i++) { ma10Data.push(movingAverage(dataSlice.slice(0, i + 1), 10)); }
-  historyChart.data.labels = labels;
-  historyChart.data.datasets[0].data = dataSlice;
-  historyChart.data.datasets[1].data = ma10Data;
-  historyChart.update('none');
-}
-
-/*** ===== CONEXIÓN FEED (CORRECCIÓN DEFINITIVA) ===== ***/
 function connectFeed(){
   if(connected) return;
   FEED_ID = document.getElementById("feedId").value.trim() || "gocho";
@@ -449,14 +402,14 @@ function connectFeed(){
       keys.forEach(k=>{
         let rawValue = String(data[k].v || data[k]);
         const v = Number(rawValue.replace(/[^\d.]/g, '')); // Limpieza robusta
-        if(v>=1) onNewCrash(v);
+        if(v>=1 && !isNaN(v)) onNewCrash(v);
       });
       const refNew = db.ref(`feeds/${FEED_ID}/crashes`).orderByKey().startAt(String((Date.now()-1)));
       sub = refNew.on("child_added", s=>{
         const d=s.val();
         let rawValue = String(d.v || d);
         const v = Number(rawValue.replace(/[^\d.]/g, '')); // Limpieza robusta
-        if(v>=1) onNewCrash(v);
+        if(v>=1 && !isNaN(v)) onNewCrash(v);
       });
       connected = true;
       renderStats();
@@ -470,27 +423,56 @@ function disconnectFeed(){
   sub=null; connected=false;
 }
 
-/*** ===== BACKUP / RESTORE MODELO ===== ***/
+/*** ===== RENDER Y GRÁFICA ===== ***/
+function renderStats(){
+  const p2=probGE(2),p25=probGE(2.5),p3=probGE(3),p5=probGE(5),p10=probGE(10);
+  const ma10 = movingAverage(rounds,10); const vol = stdDev(rounds.slice(-20));
+  document.getElementById("rounds").textContent = `${rounds.length} (base ${baseCount})`;
+  document.getElementById("p2").textContent = fmtPct(p2); document.getElementById("p25").textContent = fmtPct(p25);
+  document.getElementById("p3").textContent = fmtPct(p3); document.getElementById("p5").textContent = fmtPct(p5);
+  document.getElementById("p10").textContent = fmtPct(p10);
+  document.getElementById("ma10").textContent= isNaN(ma10)?"–":(ma10.toFixed(2)+"x");
+  document.getElementById("volatility").textContent = vol.toFixed(2);
+  document.getElementById("cdLeft").textContent = cooldownLeft; document.getElementById("signals").textContent= signalsCount;
+  const cont=document.getElementById("lastRounds"); cont.innerHTML="";
+  lastShown.slice(0,60).forEach(x=>{ const d=document.createElement("span"); d.className="pill neu"; d.textContent=x.toFixed(2)+"x"; cont.appendChild(d); });
+}
+function renderBets(){
+  const tb=document.getElementById("betsTbody"); tb.innerHTML="";
+  bets.concat(pendings).forEach((b,idx)=>{
+    const tr=document.createElement("tr"); const st=b.state==="win"?"win":b.state==="lose"?"lose":"pend";
+    tr.innerHTML = `<td>${idx+1}</td><td>${b.target}x</td><td>$1.00</td><td>${b.crash?b.crash.toFixed(2)+"x":"—"}</td><td>${st}</td><td>${b.pl||"—"}</td>`;
+    tb.appendChild(tr);
+  });
+}
+function initChart(){
+  const ctx = document.getElementById('historyChart').getContext('2d');
+  historyChart = new Chart(ctx, { type: 'line', data: { labels: [], datasets: [{ label: 'Crash', data: [], borderColor: 'rgba(138, 180, 255, 0.6)', backgroundColor: 'rgba(138, 180, 255, 0.1)', borderWidth: 1.5, pointRadius: 1, tension: 0.1 },{ label: 'MA(10)', data: [], borderColor: 'rgba(230, 126, 34, 0.8)', borderWidth: 2, pointRadius: 0, tension: 0.2 }] }, options: { scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { grid: { color: 'rgba(255,255,255,0.05)' } } } } });
+}
+function updateChart() {
+  if (!historyChart) return;
+  const dataSlice = rounds.slice(-100);
+  const labels = Array.from({length: dataSlice.length}, (_, i) => i + 1);
+  const ma10Data = [];
+  for (let i = 0; i < dataSlice.length; i++) { ma10Data.push(movingAverage(dataSlice.slice(0, i + 1), 10)); }
+  historyChart.data.labels = labels; historyChart.data.datasets[0].data = dataSlice;
+  historyChart.data.datasets[1].data = ma10Data; historyChart.update('none');
+}
+
+/*** ===== GESTIÓN DE ESTADO Y UI BINDINGS ===== ***/
 function saveModel(){ const obj = {model, ui}; auth.currentUser? Promise.resolve():auth.signInAnonymously(); return db.ref(`feeds/${FEED_ID}/state/model_v1`).set(obj); }
 function loadModel(){ return db.ref(`feeds/${FEED_ID}/state/model_v1`).once("value").then(s=>{ const v=s.val(); if(!v) return; if(v.model) Object.assign(model, v.model); if(v.ui){ Object.assign(ui, v.ui); applyUIFromState(); } }); }
-
-/*** ===== UI BINDINGS ===== ***/
 function applyUIFromState(){
   document.querySelectorAll("#objChips .chip").forEach(el=>{ el.classList.toggle("on", Number(el.dataset.v)==ui.selTarget); });
   document.querySelectorAll("#modeChips .chip").forEach(el=>{ el.classList.toggle("on", el.dataset.m===ui.mode); });
-  document.getElementById("minConf").value = ui.minConf;
-  document.getElementById("minConfVal").textContent = ui.minConf+"%";
-  document.getElementById("cooldown").value = ui.cooldown;
-  document.getElementById("beepToggle").checked = ui.beep;
+  document.getElementById("minConf").value = ui.minConf; document.getElementById("minConfVal").textContent = ui.minConf+"%";
+  document.getElementById("cooldown").value = ui.cooldown; document.getElementById("beepToggle").checked = ui.beep;
   document.getElementById("winN").value = ui.winN;
-  document.getElementById("volThreshold").value = ui.volatility.threshold;
-  document.getElementById("volBonus").value = ui.volatility.confBonus;
-  document.getElementById("dryThreshold").value = ui.dryness.threshold;
-  document.getElementById("dryBonus").value = ui.dryness.probBonus;
-  document.getElementById("thr10").value = ui.radar.thr10;
-  document.getElementById("thr20").value = ui.radar.thr20;
-  document.getElementById("thr50").value = ui.radar.thr50;
-  document.getElementById("thr100").value= ui.radar.thr100;
+  document.getElementById("volThreshold").value = ui.volatility.threshold; document.getElementById("volBonus").value = ui.volatility.confBonus;
+  document.getElementById("dryThreshold").value = ui.dryness.threshold; document.getElementById("dryBonus").value = ui.dryness.probBonus;
+  document.getElementById("momWindow").value = ui.momentum.window; document.getElementById("momHits").value = ui.momentum.hits; document.getElementById("momBonus").value = ui.momentum.confBonus;
+  document.getElementById("thr10").value = ui.radar.thr10; document.getElementById("thr20").value = ui.radar.thr20;
+  document.getElementById("thr50").value = ui.radar.thr50; document.getElementById("thr100").value= ui.radar.thr100;
 }
 document.getElementById("objChips").addEventListener("click",e=>{ const el=e.target.closest(".chip"); if(!el) return; document.querySelectorAll("#objChips .chip").forEach(x=>x.classList.remove("on")); el.classList.add("on"); ui.selTarget = Number(el.dataset.v); });
 document.getElementById("modeChips").addEventListener("click",e=>{ const el=e.target.closest(".chip"); if(!el) return; document.querySelectorAll("#modeChips .chip").forEach(x=>x.classList.remove("on")); el.classList.add("on"); ui.mode = el.dataset.m; });
@@ -503,6 +485,9 @@ document.getElementById("volThreshold").addEventListener("change",e=> ui.volatil
 document.getElementById("volBonus").addEventListener("change",e=> ui.volatility.confBonus = Number(e.target.value));
 document.getElementById("dryThreshold").addEventListener("change",e=> ui.dryness.threshold = Number(e.target.value));
 document.getElementById("dryBonus").addEventListener("change",e=> ui.dryness.probBonus = Number(e.target.value));
+document.getElementById("momWindow").addEventListener("change",e=> ui.momentum.window = Number(e.target.value));
+document.getElementById("momHits").addEventListener("change",e=> ui.momentum.hits = Number(e.target.value));
+document.getElementById("momBonus").addEventListener("change",e=> ui.momentum.confBonus = Number(e.target.value));
 ["thr10","thr20","thr50","thr100"].forEach(id=>{ document.getElementById(id).addEventListener("change",e=>{ ui.radar[id] = Number(e.target.value); }); });
 document.getElementById("connectBtn").addEventListener("click", connectFeed);
 document.getElementById("disconnectBtn").addEventListener("click", disconnectFeed);
