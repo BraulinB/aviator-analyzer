@@ -454,7 +454,7 @@ function renderBets(){
   });
 }
 
-/*** ===== CONEXIÓN FEED ===== ***/
+/*** ===== CONEXIÓN FEED (CORREGIDO) ===== ***/
 function connectFeed(){
   if(connected) return;
   FEED_ID = document.getElementById("feedId").value.trim() || "gocho";
@@ -467,12 +467,23 @@ function connectFeed(){
       baseCount = keys.length;
       rounds = []; lastShown = [];
       keys.forEach(k=>{
-        const v = Number(data[k].v||data[k]); if(v>=1) onNewCrash(v); // procesa también base
+        let rawValue = data[k].v || data[k];
+        if (typeof rawValue === 'string') {
+          rawValue = rawValue.replace(/,/g, ''); // Elimina las comas (separador de miles)
+        }
+        const v = Number(rawValue);
+        if(v>=1) onNewCrash(v);
       });
       // Suscripción a nuevas
       const refNew = db.ref(`feeds/${FEED_ID}/crashes`).orderByKey().startAt(String((Date.now()-1)));
       sub = refNew.on("child_added", s=>{
-        const d=s.val(); const v=Number(d.v||d); if(v>=1) onNewCrash(v);
+        const d=s.val();
+        let rawValue = d.v || d;
+        if (typeof rawValue === 'string') {
+          rawValue = rawValue.replace(/,/g, ''); // Elimina las comas (separador de miles)
+        }
+        const v = Number(rawValue);
+        if(v>=1) onNewCrash(v);
       });
       connected = true;
       renderStats();
