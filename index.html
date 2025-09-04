@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v5.2.0</title>
+<title>Aviator Analyzer • Gocho v6.0.0</title>
+<!-- NUEVO: Librería para la gráfica -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
   :root{
     --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5;
@@ -45,7 +47,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v5.2.0</span></h1>
+  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v6.0.0</span></h1>
 
   <div class="card">
     <div class="row">
@@ -107,13 +109,14 @@
       <div class="box">P(≥5x): <b id="p5">0%</b></div>
       <div class="box">P(≥10x): <b id="p10">0%</b></div>
       <div class="box">MA10: <b id="ma10">–</b></div>
-      <div class="box">Racha &lt;1.70: <b id="badRun">0</b></div>
+      <div class="box">Volatilidad (20r): <b id="volatility">0</b></div>
       <div class="box">CoolDown: <b id="cdLeft">0</b></div>
       <div class="box">Señales: <b id="signals">0</b></div>
     </div>
 
     <div class="row" style="margin-top:10px;gap:8px">
-      <span id="zoneFlag" class="flag">Sin señal</span>
+      <!-- NUEVO: Feedback de Decisión -->
+      <span id="statusFeedback" class="flag">Esperando datos...</span>
       <span id="hiFlag"   class="flag pink" style="display:none">Radar ALTO listo…</span>
       <span id="lastSignal" class="flag ok" style="display:none">Señal emitida</span>
     </div>
@@ -122,6 +125,12 @@
       <div class="muted" style="margin-bottom:6px">Últimas rondas (más reciente primero)</div>
       <div id="lastRounds"></div>
     </div>
+  </div>
+
+  <!-- NUEVO: Tarjeta para la Gráfica -->
+  <div class="card">
+    <h3 style="margin:0 0 10px 0">Historial Gráfico (Últimas 100 Rondas)</h3>
+    <canvas id="historyChart"></canvas>
   </div>
 
   <div class="card">
@@ -142,10 +151,22 @@
     </table>
   </div>
 
+  <!-- NUEVO: Controles Avanzados -->
   <div class="card">
-    <h3 style="margin:0 0 10px 0">Opcionales</h3>
+    <h3 style="margin:0 0 10px 0">Controles de Lógica Avanzada</h3>
     <div class="row">
-      <label><input id="modeEV" type="checkbox"> Modo Pro (EV): elegir 2x/2.5x/3x automáticamente si EV &gt; 0</label>
+      <label>Ventana de análisis (rondas): <input id="winN" type="number" value="120" min="20" max="500"/></label>
+      <span class="muted" style="margin-left:10px">(Más bajo = más reactivo, más alto = más estable)</span>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <span class="muted">Bonus por Volatilidad:</span>
+      <label>Si Volatilidad > <input id="volThreshold" type="number" value="3.0" min="1" max="10" step="0.1"/>,</label>
+      <label>reducir Conf. Mín. en <input id="volBonus" type="number" value="5" min="0" max="20"/>%</label>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <span class="muted">Bonus por Sequía:</span>
+      <label>Si > <input id="dryThreshold" type="number" value="40" min="10" max="100"/> rondas sin 5x,</label>
+      <label>añadir a la Prob. un <input id="dryBonus" type="number" value="5" min="0" max="20"/>%</label>
     </div>
     <div class="row" style="margin-top:8px">
       <span class="muted">Radar altos:</span>
@@ -153,12 +174,11 @@
       <label> ≥20x <input id="thr20" type="number" value="4" min="1" max="50"/>%</label>
       <label> ≥50x <input id="thr50" type="number" value="1.5" min="0.1" max="20" step="0.1"/>%</label>
       <label> ≥100x <input id="thr100" type="number" value="0.6" min="0.05" max="10" step="0.05"/>%</label>
-      <span class="muted"> (solo alerta rosa; no cambia tu objetivo)</span>
     </div>
   </div>
 
   <div class="card muted" style="font-size:12px">
-    Uso educativo/análisis. No garantiza resultados. “Ganada” = crash &gt; objetivo (igual o menor = pérdida), según tu regla.
+    Uso educativo/análisis. No garantiza resultados. “Ganada” = crash > objetivo (igual o menor = pérdida), según tu regla.
   </div>
 </div>
 
@@ -186,25 +206,23 @@ const auth= firebase.auth();
 /*** ====== ESTADO UI/MODELO ====== ***/
 let FEED_ID = "gocho";
 let connected = false;
-let rounds = [];           // lista completa (valor reciente al final)
-let lastShown = [];        // para el “Últimas rondas”
-let sub = null;            // suscripción child_added
+let rounds = [];
+let lastShown = [];
+let sub = null;
 let baseCount = 0;
 
-let pendings = [];         // [{id, target, stake, ts}]
-let bets = [];             // historial visible
+let pendings = [];
+let bets = [];
 let signalsCount = 0;
 let cooldownLeft = 0;
+let historyChart = null; // NUEVO: Variable para la gráfica
 
 const model = {
-  // priors bayesianos por umbral
   priors: { "2": [10,10], "2.5":[8,10], "3":[6,10], "5":[3,9], "10":[1.5,8.5] },
-  // ventana base para probabilidades (adaptativa simple)
-  winN: 120,
-  // pesos/flags internos (se pueden ajustar con backup/restore)
   wSlope: 0.6, wBonus: 0.4, wDry: -0.3
 };
 
+// NUEVO: UI extendida con controles de lógica
 const ui = {
   selTarget: 2.0,
   mode: "normal",
@@ -212,7 +230,9 @@ const ui = {
   minConf: 80,
   cooldown: 8,
   beep: true,
-  modeEV: false,
+  winN: 120,
+  volatility: { threshold: 3.0, confBonus: 5 },
+  dryness: { threshold: 40, probBonus: 5 },
   radar: {thr10:8,thr20:4,thr50:1.5,thr100:0.6}
 };
 
@@ -220,6 +240,15 @@ const ui = {
 function fmtPct(x){ return (x*100).toFixed(1) + "%"; }
 function clamp(v,min,max){ return v<min?min:(v>max?max:v); }
 function now(){ return Date.now(); }
+
+// NUEVO: Función para calcular Desviación Estándar (Volatilidad)
+function stdDev(arr) {
+  if (arr.length < 2) return 0;
+  const n = arr.length;
+  const mean = arr.reduce((a, b) => a + b) / n;
+  const variance = arr.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1);
+  return Math.sqrt(variance);
+}
 
 /*** ====== AUDIO (beep verde / beep rosa) ====== ***/
 let audioCtx=null;
@@ -240,7 +269,7 @@ function beepPink(){ beep(520,160,0.035); setTimeout(()=>beep(980,80,0.03),100);
 
 /*** ===== BAYES + MÉTRICAS ===== ***/
 function probGE(k){
-  const v = rounds.slice(-model.winN);
+  const v = rounds.slice(-ui.winN); // MODIFICADO: Usa la ventana dinámica de la UI
   const s = v.filter(x=>x>=k).length;
   const n = v.length;
   const [a,b] = model.priors[String(k)] || [2,2];
@@ -253,7 +282,6 @@ function movingAverage(arr, n){
   return sum/L;
 }
 function slopeMA(arr, n){
-  // pendiente simple: MA(n) actual – MA(n) anterior
   if(arr.length < n+1) return 0;
   const nowMA = movingAverage(arr, n);
   const prevMA = movingAverage(arr.slice(0,-1), n);
@@ -264,7 +292,6 @@ function countBad170(arr, window=8){
   return L.filter(x=>x<1.70).length;
 }
 function inBonusZone(){
-  // heurística: últimas 14 rondas con >=60% >=2x y >=1 pico >=5x y pendiente positiva
   const w = rounds.slice(-14);
   if(w.length<14) return false;
   const p2  = w.filter(x=>x>=2).length / w.length;
@@ -280,33 +307,11 @@ function drynessSince5x(){
   return d;
 }
 
-/*** ===== EV (opcional) ===== ***/
-function expectedValueForTarget(k){
-  // EV estimado al estilo: Pr(win)*1 - Pr(lose)*1 (neutral, stake fijo = 1)
-  // regla de decisión real de banca no se implementa aquí; esto es selector simple
-  const p = { "2":probGE(2), "2.5":probGE(2.5), "3":probGE(3) }[String(k)] || 0;
-  const q = 1-p;
-  // Para crash > k : “ganada”; crash <= k : “perdida”.
-  // Sin multiplicar por “pago neto” porque tu staking es disciplinado por objetivo.
-  return p - q;
-}
-function bestTargetEV(){
-  const cand=[2,2.5,3];
-  let best=cand[0], bestEV=-999;
-  for(const k of cand){
-    const ev=expectedValueForTarget(k);
-    if(ev>bestEV){ bestEV=ev; best=k; }
-  }
-  return {target:best, ev:bestEV};
-}
-
 /*** ===== RADAR HIGH-X ===== ***/
 function radarHighX(){
-  // probas con suavizado y ligero sesgo por bonus/dryness
   let p10=probGE(10), p20=probGE(20), p50=probGE(50), p100=probGE(100);
-  // bonus sube un poco, sequía también sube por "regreso a media"
   const bonus = inBonusZone()? 1.15 : 1.0;
-  const dry   = clamp(drynessSince5x()/60, 0, 0.4); // hasta +40%
+  const dry   = clamp(drynessSince5x()/60, 0, 0.4);
   p10*= bonus*(1+dry); p20*= bonus*(1+dry); p50*= bonus*(1+dry); p100*= bonus*(1+dry);
 
   const hit10 = (p10*100) >= ui.radar.thr10;
@@ -316,30 +321,53 @@ function radarHighX(){
   return {hit10,hit20,hit50,hit100, p:{p10,p20,p50,p100}};
 }
 
-/*** ===== SEÑALES ===== ***/
+/*** ===== LÓGICA DE SEÑALES (MUY MEJORADA) ===== ***/
 function gatesPass(target){
-  const pTarget = probGE(target);
-  const minP = ui.minConf/100;
+  let pTarget = probGE(target);
+  let minP = ui.minConf/100;
 
+  // NUEVO: Bonus por Sequía
+  const dryRounds = drynessSince5x();
+  let dryBonusActive = false;
+  if (dryRounds > ui.dryness.threshold) {
+    pTarget += ui.dryness.probBonus / 100;
+    dryBonusActive = true;
+  }
+
+  // NUEVO: Bonus por Volatilidad
+  const currentVolatility = stdDev(rounds.slice(-20));
+  let volBonusActive = false;
+  if (currentVolatility > ui.volatility.threshold) {
+    minP -= ui.volatility.confBonus / 100;
+    volBonusActive = true;
+  }
+  
+  if (pTarget < minP) {
+    let reason = `Confianza baja: ${fmtPct(pTarget)} (necesita ${fmtPct(minP)})`;
+    if (volBonusActive) reason += ` [Bonus Volat. activo]`;
+    if (dryBonusActive) reason += ` [Bonus Sequía activo]`;
+    return { pass: false, reason };
+  }
+  
   const slope = slopeMA(rounds,10);
+  if (ui.mode === "conservador" && slope < 0.00) return { pass: false, reason: `Tendencia bajista: ${slope.toFixed(2)}` };
+  if (ui.mode === "normal" && slope < -0.02) return { pass: false, reason: `Tendencia bajista: ${slope.toFixed(2)}` };
+
   const bad = countBad170(rounds,8);
+  if (bad >= 7) return { pass: false, reason: "Zona mala detectada (racha < 1.70x)" };
+  
+  if (cooldownLeft > 0) return { pass: false, reason: `En Cooldown (${cooldownLeft} rondas)` };
 
-  // puertas por modo
-  let slopeOK=true;
-  if(ui.mode==="conservador") slopeOK = slope >= 0.00;
-  if(ui.mode==="normal")      slopeOK = slope >= -0.02;
-  if(ui.mode==="agresivo")    slopeOK = true;
-
-  const bonusOK = true; // ya lo usamos como modificador, no como bloqueo
-  const notBadZone = !(bad>=7); // si 7/8 <1.70 bloquea
-
-  return (pTarget>=minP) && slopeOK && notBadZone && bonusOK && (cooldownLeft<=0);
+  return { pass: true, reason: "Todos los criterios OK" };
 }
 
 function maybeSignal(){
-  if(rounds.length<12) return;
+  const feedbackEl = document.getElementById("statusFeedback");
+  if(rounds.length<20) {
+    feedbackEl.textContent = "Analizando (pocas rondas)...";
+    return;
+  }
 
-  // Radar alto (solo alerta, no cambia objetivo)
   const hi = radarHighX();
   const hiEl = document.getElementById("hiFlag");
   if(hi.hit10 || hi.hit20 || hi.hit50 || hi.hit100){
@@ -350,22 +378,23 @@ function maybeSignal(){
     hiEl.style.display="none";
   }
 
-  if(!ui.autoSignal) return;
-
-  // Objetivo: fijo por UI, salvo que actives Modo EV
-  let target = ui.selTarget;
-  if(ui.modeEV){
-    const {target:t} = bestTargetEV();
-    target = t;
+  if(!ui.autoSignal) {
+    feedbackEl.textContent = "Auto-Señal desactivada.";
+    return;
   }
 
-  if(gatesPass(target)){
+  let target = ui.selTarget;
+  const { pass, reason } = gatesPass(target);
+  
+  feedbackEl.textContent = `Estado: ${reason}`;
+  feedbackEl.className = pass ? 'flag ok' : 'flag';
+
+  if(pass){
     emitSignal(target);
   }
 }
 
 function emitSignal(target){
-  // crea una apuesta pendiente con el target seleccionado
   const id = "S"+now();
   pendings.push({id, target, stake:1, ts:now(), state:"pend"});
 
@@ -383,13 +412,11 @@ function onNewCrash(v){
   rounds.push(v);
   if(rounds.length>2000) rounds.shift();
 
-  // cooldown
   if(cooldownLeft>0) cooldownLeft--;
 
-  // asigna crash a la apuesta más antigua pendiente
   if(pendings.length){
     const bet = pendings.shift();
-    const win = (v > bet.target); // tu regla: igual o menor = pérdida
+    const win = (v > bet.target);
     bet.crash = v;
     bet.state = win?"win":"lose";
     bet.pl = win? "+1" : "−1";
@@ -397,18 +424,18 @@ function onNewCrash(v){
     renderBets();
   }
 
-  // UI de últimas rondas
   lastShown.unshift(v);
-  if(lastShown.length>60) lastShown.pop();
+  if(lastShown.length>100) lastShown.pop();
   renderStats();
+  updateChart(); // NUEVO
   maybeSignal();
 }
 
-/*** ===== RENDER ===== ***/
+/*** ===== RENDER Y GRÁFICA ===== ***/
 function renderStats(){
   const p2=probGE(2), p25=probGE(2.5), p3=probGE(3), p5=probGE(5), p10=probGE(10);
   const ma10 = movingAverage(rounds,10);
-  const bad = countBad170(rounds,8);
+  const vol = stdDev(rounds.slice(-20));
 
   document.getElementById("rounds").textContent = `${rounds.length} (base ${baseCount})`;
   document.getElementById("p2").textContent  = fmtPct(p2);
@@ -417,41 +444,74 @@ function renderStats(){
   document.getElementById("p5").textContent  = fmtPct(p5);
   document.getElementById("p10").textContent = fmtPct(p10);
   document.getElementById("ma10").textContent= isNaN(ma10)?"–":(ma10.toFixed(2)+"x");
-  document.getElementById("badRun").textContent = bad;
+  document.getElementById("volatility").textContent = vol.toFixed(2);
   document.getElementById("cdLeft").textContent = cooldownLeft;
   document.getElementById("signals").textContent= signalsCount;
-
-  const zone = document.getElementById("zoneFlag");
-  if(bad>=7) { zone.className="flag bad"; zone.textContent="Zona mala: bloqueo <1.70"; }
-  else if(inBonusZone()) { zone.className="flag ok"; zone.textContent="Bonus zone (tendencia alcista)"; }
-  else { zone.className="flag"; zone.textContent="Sin señal"; }
-
-  // últimas rondas
+  
   const cont=document.getElementById("lastRounds");
   cont.innerHTML="";
-  lastShown.forEach(x=>{
+  lastShown.slice(0,60).forEach(x=>{
     const d=document.createElement("span");
     d.className="pill neu";
     d.textContent = x.toFixed(2)+"x";
     cont.appendChild(d);
   });
 }
-
 function renderBets(){
   const tb=document.getElementById("betsTbody");
   tb.innerHTML="";
   bets.concat(pendings).forEach((b,idx)=>{
     const tr=document.createElement("tr");
     const st = b.state==="win"?"win": b.state==="lose"?"lose":"pend";
-    tr.innerHTML = `
-      <td>${idx+1}</td>
-      <td>${b.target}x</td>
-      <td>$${b.stake.toFixed?b.stake.toFixed(2):b.stake}</td>
-      <td>${b.crash? b.crash.toFixed(2)+"x":"—"}</td>
-      <td>${st}</td>
-      <td>${b.pl||"—"}</td>`;
+    tr.innerHTML = `<td>${idx+1}</td><td>${b.target}x</td><td>$${b.stake.toFixed?b.stake.toFixed(2):b.stake}</td><td>${b.crash? b.crash.toFixed(2)+"x":"—"}</td><td>${st}</td><td>${b.pl||"—"}</td>`;
     tb.appendChild(tr);
   });
+}
+// NUEVO: Funciones de la Gráfica
+function initChart(){
+  const ctx = document.getElementById('historyChart').getContext('2d');
+  historyChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'Crash',
+        data: [],
+        borderColor: 'rgba(138, 180, 255, 0.6)',
+        backgroundColor: 'rgba(138, 180, 255, 0.1)',
+        borderWidth: 1.5,
+        pointRadius: 1,
+        tension: 0.1
+      },{
+        label: 'MA(10)',
+        data: [],
+        borderColor: 'rgba(230, 126, 34, 0.8)',
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.2
+      }]
+    },
+    options: {
+      scales: {
+        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+        x: { grid: { color: 'rgba(255,255,255,0.05)' } }
+      }
+    }
+  });
+}
+function updateChart() {
+  if (!historyChart) return;
+  const dataSlice = rounds.slice(-100);
+  const labels = Array.from({length: dataSlice.length}, (_, i) => i + 1);
+  const ma10Data = [];
+  for (let i = 0; i < dataSlice.length; i++) {
+    ma10Data.push(movingAverage(dataSlice.slice(0, i + 1), 10));
+  }
+  
+  historyChart.data.labels = labels;
+  historyChart.data.datasets[0].data = dataSlice;
+  historyChart.data.datasets[1].data = ma10Data;
+  historyChart.update('none');
 }
 
 /*** ===== CONEXIÓN FEED (CORREGIDO) ===== ***/
@@ -459,7 +519,6 @@ function connectFeed(){
   if(connected) return;
   FEED_ID = document.getElementById("feedId").value.trim() || "gocho";
   auth.signInAnonymously().then(()=>{
-    // Carga base (últimas 800) y luego escucha child_added para nuevas
     const refBase = db.ref(`feeds/${FEED_ID}/crashes`).orderByKey().limitToLast(800);
     refBase.once("value", snap=>{
       const data = snap.val()||{};
@@ -468,20 +527,15 @@ function connectFeed(){
       rounds = []; lastShown = [];
       keys.forEach(k=>{
         let rawValue = data[k].v || data[k];
-        if (typeof rawValue === 'string') {
-          rawValue = rawValue.replace(/,/g, ''); // Elimina las comas (separador de miles)
-        }
+        if (typeof rawValue === 'string') { rawValue = rawValue.replace(/,/g, ''); }
         const v = Number(rawValue);
         if(v>=1) onNewCrash(v);
       });
-      // Suscripción a nuevas
       const refNew = db.ref(`feeds/${FEED_ID}/crashes`).orderByKey().startAt(String((Date.now()-1)));
       sub = refNew.on("child_added", s=>{
         const d=s.val();
         let rawValue = d.v || d;
-        if (typeof rawValue === 'string') {
-          rawValue = rawValue.replace(/,/g, ''); // Elimina las comas (separador de miles)
-        }
+        if (typeof rawValue === 'string') { rawValue = rawValue.replace(/,/g, ''); }
         const v = Number(rawValue);
         if(v>=1) onNewCrash(v);
       });
@@ -499,7 +553,7 @@ function disconnectFeed(){
 
 /*** ===== BACKUP / RESTORE MODELO ===== ***/
 function saveModel(){
-  const obj = {model, ui:{minConf:ui.minConf, cooldown:ui.cooldown, mode:ui.mode}};
+  const obj = {model, ui}; // MODIFICADO: Guarda toda la UI
   auth.currentUser? Promise.resolve():auth.signInAnonymously();
   return db.ref(`feeds/${FEED_ID}/state/model_v1`).set(obj);
 }
@@ -507,105 +561,59 @@ function loadModel(){
   return db.ref(`feeds/${FEED_ID}/state/model_v1`).once("value").then(s=>{
     const v=s.val(); if(!v) return;
     if(v.model) Object.assign(model, v.model);
-    if(v.ui){
-      ui.minConf = v.ui.minConf ?? ui.minConf;
-      ui.cooldown= v.ui.cooldown ?? ui.cooldown;
-      ui.mode    = v.ui.mode ?? ui.mode;
-      applyUIFromState();
-    }
+    if(v.ui){ Object.assign(ui, v.ui); applyUIFromState(); } // MODIFICADO
   });
 }
 
-/*** ===== UI BINDINGS ===== ***/
+/*** ===== UI BINDINGS (EXTENDIDO) ===== ***/
 function applyUIFromState(){
-  // objetivo chips
-  document.querySelectorAll("#objChips .chip").forEach(el=>{
-    el.classList.toggle("on", Number(el.dataset.v)==ui.selTarget);
-  });
-  // modo chips
-  document.querySelectorAll("#modeChips .chip").forEach(el=>{
-    el.classList.toggle("on", el.dataset.m===ui.mode);
-  });
+  document.querySelectorAll("#objChips .chip").forEach(el=>{ el.classList.toggle("on", Number(el.dataset.v)==ui.selTarget); });
+  document.querySelectorAll("#modeChips .chip").forEach(el=>{ el.classList.toggle("on", el.dataset.m===ui.mode); });
   document.getElementById("minConf").value = ui.minConf;
   document.getElementById("minConfVal").textContent = ui.minConf+"%";
   document.getElementById("cooldown").value = ui.cooldown;
   document.getElementById("beepToggle").checked = ui.beep;
-  document.getElementById("modeEV").checked = ui.modeEV;
+  // NUEVO: Bindings para controles avanzados
+  document.getElementById("winN").value = ui.winN;
+  document.getElementById("volThreshold").value = ui.volatility.threshold;
+  document.getElementById("volBonus").value = ui.volatility.confBonus;
+  document.getElementById("dryThreshold").value = ui.dryness.threshold;
+  document.getElementById("dryBonus").value = ui.dryness.probBonus;
+  // Radar
   document.getElementById("thr10").value = ui.radar.thr10;
   document.getElementById("thr20").value = ui.radar.thr20;
   document.getElementById("thr50").value = ui.radar.thr50;
   document.getElementById("thr100").value= ui.radar.thr100;
 }
-
-document.getElementById("objChips").addEventListener("click",e=>{
-  const el=e.target.closest(".chip"); if(!el) return;
-  document.querySelectorAll("#objChips .chip").forEach(x=>x.classList.remove("on"));
-  el.classList.add("on");
-  ui.selTarget = Number(el.dataset.v);
-});
-
-document.getElementById("modeChips").addEventListener("click",e=>{
-  const el=e.target.closest(".chip"); if(!el) return;
-  document.querySelectorAll("#modeChips .chip").forEach(x=>x.classList.remove("on"));
-  el.classList.add("on");
-  ui.mode = el.dataset.m;
-});
-
+document.getElementById("objChips").addEventListener("click",e=>{ const el=e.target.closest(".chip"); if(!el) return; document.querySelectorAll("#objChips .chip").forEach(x=>x.classList.remove("on")); el.classList.add("on"); ui.selTarget = Number(el.dataset.v); });
+document.getElementById("modeChips").addEventListener("click",e=>{ const el=e.target.closest(".chip"); if(!el) return; document.querySelectorAll("#modeChips .chip").forEach(x=>x.classList.remove("on")); el.classList.add("on"); ui.mode = el.dataset.m; });
 document.getElementById("autoSignal").addEventListener("change",e=> ui.autoSignal=e.target.checked);
-document.getElementById("minConf").addEventListener("input",e=>{
-  ui.minConf = Number(e.target.value); document.getElementById("minConfVal").textContent=ui.minConf+"%";
-});
+document.getElementById("minConf").addEventListener("input",e=>{ ui.minConf = Number(e.target.value); document.getElementById("minConfVal").textContent=ui.minConf+"%"; });
 document.getElementById("cooldown").addEventListener("change",e=> ui.cooldown = Number(e.target.value));
 document.getElementById("beepToggle").addEventListener("change",e=> ui.beep = e.target.checked);
-document.getElementById("modeEV").addEventListener("change",e=> ui.modeEV = e.target.checked);
+// NUEVO: Listeners para controles avanzados
+document.getElementById("winN").addEventListener("change",e=> ui.winN = Number(e.target.value));
+document.getElementById("volThreshold").addEventListener("change",e=> ui.volatility.threshold = Number(e.target.value));
+document.getElementById("volBonus").addEventListener("change",e=> ui.volatility.confBonus = Number(e.target.value));
+document.getElementById("dryThreshold").addEventListener("change",e=> ui.dryness.threshold = Number(e.target.value));
+document.getElementById("dryBonus").addEventListener("change",e=> ui.dryness.probBonus = Number(e.target.value));
 
-["thr10","thr20","thr50","thr100"].forEach(id=>{
-  document.getElementById(id).addEventListener("change",e=>{
-    ui.radar[id.replace("thr","thr")] = Number(e.target.value);
-  });
-});
-
+["thr10","thr20","thr50","thr100"].forEach(id=>{ document.getElementById(id).addEventListener("change",e=>{ ui.radar[id] = Number(e.target.value); }); });
 document.getElementById("connectBtn").addEventListener("click", connectFeed);
 document.getElementById("disconnectBtn").addEventListener("click", disconnectFeed);
-
-document.getElementById("startBtn").addEventListener("click", ()=>{
-  // “iniciar sesión” aquí significa solo preparar audio y reset de sesión
-  signalsCount=0; cooldownLeft=0; bets=[]; pendings=[]; renderBets(); renderStats(); beep(660,90,0.03);
-});
-document.getElementById("stopBtn").addEventListener("click", ()=>{
-  // cierra sesión (no borra historia)
-  bets=[]; pendings=[]; signalsCount=0; cooldownLeft=0; renderBets(); renderStats();
-});
-document.getElementById("resetBtn").addEventListener("click", ()=>{
-  // soft reset del analizador (recalcula desde rounds)
-  bets=[]; pendings=[]; signalsCount=0; cooldownLeft=0; renderBets(); renderStats();
-});
-
-document.getElementById("hardResetBtn").addEventListener("click", ()=>{
-  // wipe del modelo local (NO borra tu feed)
-  localStorage.clear();
-  // restablece defaults
-  ui.selTarget=2.0; ui.mode="normal"; ui.autoSignal=true; ui.minConf=80; ui.cooldown=8; ui.beep=true; ui.modeEV=false;
-  ui.radar={thr10:8,thr20:4,thr50:1.5,thr100:0.6};
-  applyUIFromState();
-});
-
+document.getElementById("startBtn").addEventListener("click", ()=>{ signalsCount=0; cooldownLeft=0; bets=[]; pendings=[]; renderBets(); renderStats(); beep(660,90,0.03); });
+document.getElementById("stopBtn").addEventListener("click", ()=>{ bets=[]; pendings=[]; signalsCount=0; cooldownLeft=0; renderBets(); renderStats(); });
+document.getElementById("resetBtn").addEventListener("click", ()=>{ bets=[]; pendings=[]; signalsCount=0; cooldownLeft=0; renderBets(); renderStats(); });
+document.getElementById("hardResetBtn").addEventListener("click", ()=>{ localStorage.clear(); location.reload(); });
 document.getElementById("saveModelBtn").addEventListener("click", ()=>{ saveModel(); });
 document.getElementById("loadModelBtn").addEventListener("click", ()=>{ loadModel().then(()=>renderStats()); });
+document.getElementById("autoBackup").addEventListener("change",e=>{ if(e.target.checked) saveModel(); });
 
-document.getElementById("autoBackup").addEventListener("change",e=>{
-  const on=e.target.checked;
-  if(on){ saveModel(); }
-});
-
-// carga estado UI guardado local (si existiera)
+// carga estado UI y arranca la app
 (function bootstrap(){
-  try{
-    const st = JSON.parse(localStorage.getItem("gocho_ui_state")||"{}");
-    Object.assign(ui, st);
-  }catch(_){}
+  try{ const st = JSON.parse(localStorage.getItem("gocho_ui_state")||"{}"); Object.assign(ui, st); }catch(_){}
   applyUIFromState();
-  // guarda periódicamente UI
+  initChart(); // NUEVO: Inicializa la gráfica
   setInterval(()=>{ localStorage.setItem("gocho_ui_state", JSON.stringify(ui)); }, 2000);
 })();
 </script>
