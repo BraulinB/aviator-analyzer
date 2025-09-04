@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v6.5.0</title>
+<title>Aviator Analyzer • Gocho v6.6.0</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
   :root{
@@ -44,204 +44,101 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v6.5.0</span></h1>
+  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v6.6.0</span></h1>
 
   <div class="card">
     <div class="row">
-      <div class="row">
-        <span class="muted">Objetivo</span>
-        <div id="objChips" class="row">
-          <div data-v="2" class="chip">2x</div><div data-v="2.5" class="chip">2.5x</div><div data-v="3" class="chip on">3x</div>
-          <div data-v="3.5" class="chip">3.5x</div><div data-v="4" class="chip">4x</div><div data-v="5" class="chip">5x</div>
-        </div>
-      </div>
-      <div class="row" style="margin-left:8px">
-        <span class="muted">Modo:</span>
-        <div id="modeChips" class="row">
-          <div data-m="agresivo" class="chip on">Agresivo</div><div data-m="normal" class="chip">Normal</div><div data-m="conservador" class="chip">Conservador</div>
-        </div>
-        <label style="margin-left:8px"><input id="autoSignal" type="checkbox" checked> Auto‑señal</label>
-      </div>
-      <div class="row" style="margin-left:auto">
-        <span class="muted">Conf. mín.:</span>
-        <input id="minConf" type="range" min="50" max="95" value="68"/>
-        <span id="minConfVal">68%</span>
-        <span class="muted" style="margin-left:8px">CoolDown:</span>
-        <input id="cooldown" type="number" min="0" max="50" value="3"/>
-      </div>
+      <div class="row"><span class="muted">Objetivo</span><div id="objChips" class="row"><div data-v="2" class="chip">2x</div><div data-v="2.5" class="chip">2.5x</div><div data-v="3" class="chip on">3x</div><div data-v="3.5" class="chip">3.5x</div><div data-v="4" class="chip">4x</div><div data-v="5" class="chip">5x</div></div></div>
+      <div class="row" style="margin-left:8px"><span class="muted">Modo:</span><div id="modeChips" class="row"><div data-m="agresivo" class="chip on">Agresivo</div><div data-m="normal" class="chip">Normal</div><div data-m="conservador" class="chip">Conservador</div></div><label style="margin-left:8px"><input id="autoSignal" type="checkbox" checked> Auto‑señal</label></div>
+      <div class="row" style="margin-left:auto"><span class="muted">Conf. mín.:</span><input id="minConf" type="range" min="50" max="95" value="62"/><span id="minConfVal">62%</span><span class="muted" style="margin-left:8px">CoolDown:</span><input id="cooldown" type="number" min="0" max="50" value="3"/></div>
     </div>
-    <div class="row" style="margin-top:10px">
-      <button id="startBtn" class="btn ok">Iniciar sesión</button><button id="stopBtn" class="btn">Cerrar sesión</button><button id="resetBtn" class="btn">Reset</button>
-      <div class="row" style="margin-left:10px"><label><input id="beepToggle" type="checkbox" checked> Beep señal</label></div>
-      <div class="row" style="margin-left:auto">
-        <span class="muted">Feed:</span><input id="feedId" type="text" value="gocho"/><button id="connectBtn" class="btn">Conectar feed</button><button id="disconnectBtn" class="btn">Desconectar</button>
-      </div>
-    </div>
+    <div class="row" style="margin-top:10px"><button id="startBtn" class="btn ok">Iniciar sesión</button><button id="stopBtn" class="btn">Cerrar sesión</button><button id="resetBtn" class="btn">Reset</button><div class="row" style="margin-left:10px"><label><input id="beepToggle" type="checkbox" checked> Beep señal</label></div><div class="row" style="margin-left:auto"><span class="muted">Feed:</span><input id="feedId" type="text" value="gocho"/><button id="connectBtn" class="btn">Conectar feed</button><button id="disconnectBtn" class="btn">Desconectar</button></div></div>
   </div>
 
   <div class="card">
-    <div class="kpi">
-      <div class="box">Rondas: <b id="rounds">0</b> <span class="muted">(base)</span></div>
-      <div class="box">P(≥3x): <b id="p3">0%</b></div><div class="box">P(≥5x): <b id="p5">0%</b></div><div class="box">P(≥10x): <b id="p10">0%</b></div>
-      <div class="box">MA10: <b id="ma10">–</b></div><div class="box">Volatilidad (20r): <b id="volatility">0</b></div>
-      <div class="box">CoolDown: <b id="cdLeft">0</b></div><div class="box">Señales: <b id="signals">0</b></div>
-    </div>
-    <div class="row" style="margin-top:10px;gap:8px">
-      <span id="statusFeedback" class="flag">Esperando datos...</span>
-      <span id="lastSignal" class="flag ok" style="display:none">Señal emitida</span>
-    </div>
-    <div style="margin-top:12px">
-      <div class="muted" style="margin-bottom:6px">Últimas rondas (más reciente primero)</div>
-      <div id="lastRounds"></div>
-    </div>
+    <div class="kpi"><div class="box">Rondas: <b id="rounds">0</b> <span class="muted">(base)</span></div><div class="box">P(≥3x): <b id="p3">0%</b></div><div class="box">P(≥5x): <b id="p5">0%</b></div><div class="box">P(≥10x): <b id="p10">0%</b></div><div class="box">MA10: <b id="ma10">–</b></div><div class="box">Volatilidad (20r): <b id="volatility">0</b></div><div class="box">CoolDown: <b id="cdLeft">0</b></div><div class="box">Señales: <b id="signals">0</b></div></div>
+    <div class="row" style="margin-top:10px;gap:8px"><span id="statusFeedback" class="flag">Esperando datos...</span><span id="lastSignal" class="flag ok" style="display:none">Señal emitida</span></div>
+    <div style="margin-top:12px"><div class="muted" style="margin-bottom:6px">Últimas rondas (más reciente primero)</div><div id="lastRounds"></div></div>
   </div>
 
   <div class="card"><h3 style="margin:0 0 10px 0">Historial Gráfico (Últimas 100 Rondas)</h3><canvas id="historyChart"></canvas></div>
 
   <div class="card">
-    <div class="row">
-      <h3 style="margin:0">Apuestas registradas</h3>
-      <div class="row" style="margin-left:auto;gap:6px">
-        <button id="hardResetBtn" class="btn bad" title="Borra solo el modelo local (no la historia del feed)">Hard reset</button>
-        <label><input id="autoBackup" type="checkbox"/> Auto‑backup</label>
-        <button id="saveModelBtn" class="btn">Guardar</button><button id="loadModelBtn" class="btn">Restaurar</button>
-      </div>
-    </div>
-    <table class="table" style="margin-top:8px">
-      <thead> <tr><th>#</th><th>Objetivo</th><th>Stake</th><th>Crash</th><th>Resultado</th><th>P/L</th></tr> </thead>
-      <tbody id="betsTbody"></tbody>
-    </table>
+    <div class="row"><h3 style="margin:0">Apuestas registradas</h3><div class="row" style="margin-left:auto;gap:6px"><button id="hardResetBtn" class="btn bad" title="Borra solo el modelo local (no la historia del feed)">Hard reset</button><label><input id="autoBackup" type="checkbox"/> Auto‑backup</label><button id="saveModelBtn" class="btn">Guardar</button><button id="loadModelBtn" class="btn">Restaurar</button></div></div>
+    <table class="table" style="margin-top:8px"><thead> <tr><th>#</th><th>Objetivo</th><th>Stake</th><th>Crash</th><th>Resultado</th><th>P/L</th></tr> </thead><tbody id="betsTbody"></tbody></table>
   </div>
 
   <div class="card">
-    <h3 style="margin:0 0 10px 0">Controles de Lógica "Táctica"</h3>
+    <h3 style="margin:0 0 10px 0">Controles de Lógica "Cazador"</h3>
     <div class="row"><label>Ventana de análisis (rondas): <input id="winN" type="number" value="80" min="20" max="500"/></label></div>
-    <div class="row" style="margin-top:8px">
-      <span class="muted">Bonus por Volatilidad:</span>
-      <label>Si Volatilidad > <input id="volThreshold" type="number" value="2.5" min="1" max="10" step="0.1"/>,</label>
-      <label>reducir Conf. Mín. en <input id="volBonus" type="number" value="15" min="0" max="30"/>%</label>
-    </div>
-    <div class="row" style="margin-top:8px">
-      <span class="muted">Bonus por Sequía (>5x):</span>
-      <label>Si > <input id="dryThreshold" type="number" value="30" min="10" max="100"/> rondas,</label>
-      <label>añadir a la Prob. un <input id="dryBonus" type="number" value="20" min="0" max="30"/>%</label>
-    </div>
-    <div class="row" style="margin-top:8px; background:rgba(230, 126, 34,0.05); padding:6px; border-radius:6px">
-      <span class="muted">Modo Caza (Racha >2x):</span>
-      <label>Si <input id="momHits" type="number" value="4" min="2" max="10"/> de las últimas <input id="momWindow" type="number" value="7" min="3" max="15"/> rondas,</label>
-      <label style="color:var(--warn)">reducir Conf. Mín. en <input id="momBonus" type="number" value="25" min="0" max="50"/>%</label>
-    </div>
-    <div class="row" style="margin-top:8px; background:rgba(138,180,255,0.05); padding:6px; border-radius:6px">
-      <span class="muted">Patrón Pre-Vuelo:</span>
-      <label>Si <input id="pfBlues" type="number" value="6" min="3" max="10"/> de las últimas <input id="pfWindow" type="number" value="12" min="5" max="20"/> son &lt;1.5x Y 1 es &gt;2x,</label>
-      <label style="color:var(--brand)">reducir Conf. Mín. en <input id="pfBonus" type="number" value="20" min="0" max="50"/>%</label>
-    </div>
+    <div class="row" style="margin-top:8px"><span class="muted">Bonus por Sequía (>5x):</span><label>Si > <input id="dryThreshold" type="number" value="30" min="10" max="100"/> rondas,</label><label>añadir a la Prob. un <input id="dryBonus" type="number" value="20" min="0" max="30"/>%</label></div>
+    <div class="row" style="margin-top:8px"><span class="muted">Bonus por Racha (>2x):</span><label>Si <input id="momHits" type="number" value="4" min="2" max="10"/> de las últimas <input id="momWindow" type="number" value="7" min="3" max="15"/> rondas,</label><label>reducir Conf. Mín. en <input id="momBonus" type="number" value="25" min="0" max="40"/>%</label></div>
+    <div class="row" style="margin-top:8px; background:rgba(138,180,255,0.05); padding:6px; border-radius:6px"><span class="muted">Patrón Pre-Vuelo:</span><label>Si <input id="pfBlues" type="number" value="6" min="3" max="10"/> de las últimas <input id="pfWindow" type="number" value="12" min="5" max="20"/> son &lt;1.5x Y 1 es &gt;2x,</label><label style="color:var(--brand)">reducir Conf. Mín. en <input id="pfBonus" type="number" value="20" min="0" max="50"/>%</label></div>
+    <div class="row" style="margin-top:8px; background:rgba(231,76,60,0.08); padding:6px; border-radius:6px"><span class="muted">Modo Cazador Extremo:</span><label>Si Volat. > <input id="hyperVol" type="number" value="20" min="10" max="50"/> Y hay >50x en las últimas <input id="hyperWin" type="number" value="30" min="10" max="100"/>r,</label><label style="color:var(--bad); font-weight: bold">reducir Conf. Mín. en <input id="hyperBonus" type="number" value="30" min="0" max="50"/>%</label></div>
   </div>
 
   <div class="card muted" style="font-size:12px">Uso educativo/análisis. No garantiza resultados. Ganada = crash > objetivo.</div>
 </div>
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script>
 /*** ===== CONFIG FIREBASE ===== ***/
-const firebaseConfig = {
-  apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs", authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
-  projectId: "aviator-analyzer-b29a7", storageBucket: "aviator-analyzer-b29a7.firebasestorage.app",
-  messagingSenderId: "575063626276", appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
-  measurementId: "G-325QCBSQMH", databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com"
-};
+const firebaseConfig = { apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs", authDomain: "aviator-analyzer-b29a7.firebaseapp.com", projectId: "aviator-analyzer-b29a7", storageBucket: "aviator-analyzer-b29a7.firebasestorage.app", messagingSenderId: "575063626276", appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1", measurementId: "G-325QCBSQMH", databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com" };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database(), auth = firebase.auth();
 
 /*** ====== ESTADO UI/MODELO ====== ***/
 let FEED_ID = "gocho", connected = false, rounds = [], lastShown = [], sub = null, baseCount = 0;
 let pendings = [], bets = [], signalsCount = 0, cooldownLeft = 0, historyChart = null;
-
 const model = { priors: { "2": [10,10], "2.5":[8,10], "3":[6,10], "5":[3,9], "10":[1.5,8.5] } };
-
 const ui = {
-  selTarget: 3.0, mode: "agresivo", autoSignal: true, minConf: 68, cooldown: 3, beep: true, winN: 80,
-  volatility: { threshold: 2.5, confBonus: 15 },
+  selTarget: 3.0, mode: "agresivo", autoSignal: true, minConf: 62, cooldown: 3, beep: true, winN: 80,
   dryness: { threshold: 30, probBonus: 20 },
   momentum: { window: 7, hits: 4, confBonus: 25 },
   preflight: { window: 12, blues: 6, confBonus: 20 },
+  hyper: { vol: 20, win: 30, confBonus: 30 }
 };
 
 /*** ====== UTIL Y AUDIO ====== ***/
 function fmtPct(x){ return (x*100).toFixed(1) + "%"; }
 function stdDev(arr) { if(arr.length<2)return 0; const n=arr.length,mean=arr.reduce((a,b)=>a+b)/n; return Math.sqrt(arr.reduce((a,b)=>a+(b-mean)**2,0)/(n-1)); }
 let audioCtx=null; function beep(freq=880,ms=120,gain=0.03){ if(!ui.beep)return; try{ if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)(); const o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.type="sine"; o.frequency.value=freq; g.gain.value=gain; o.connect(g); g.connect(audioCtx.destination); o.start(); setTimeout(()=>{o.stop();},ms); }catch(_){} }
-function beepPink(){ beep(520,160,0.035); setTimeout(()=>beep(980,80,0.03),100); }
 
 /*** ===== MÉTRICAS Y HEURÍSTICAS ===== ***/
 function probGE(k){ const v=rounds.slice(-ui.winN),s=v.filter(x=>x>=k).length,n=v.length,[a,b]=model.priors[String(k)]||[2,2]; return (s+a)/(n+a+b); }
 function movingAverage(arr,n){ const L=Math.min(arr.length,n); if(!L)return NaN; let sum=0; for(let i=arr.length-L;i<arr.length;i++)sum+=arr[i]; return sum/L; }
-function exponentialMovingAverage(data, period) {
-    if (data.length < period) return Array(data.length).fill(null);
-    const multiplier = 2 / (period + 1);
-    let emaArray = [];
-    let sma = data.slice(0, period).reduce((a, b) => a + b, 0) / period;
-    emaArray.push(sma);
-    for (let i = period; i < data.length; i++) {
-        let ema = (data[i] - emaArray[emaArray.length - 1]) * multiplier + emaArray[emaArray.length - 1];
-        emaArray.push(ema);
-    }
-    return Array(period - 1).fill(null).concat(emaArray);
-}
+function exponentialMovingAverage(data, period) { if (data.length < period) return Array(data.length).fill(null); const multiplier = 2 / (period + 1); let emaArray = []; let sma = data.slice(0, period).reduce((a, b) => a + b, 0) / period; emaArray.push(sma); for (let i = period; i < data.length; i++) { let ema = (data[i] - emaArray[emaArray.length - 1]) * multiplier + emaArray[emaArray.length - 1]; emaArray.push(ema); } return Array(period - 1).fill(null).concat(emaArray); }
 function countBad170(arr,window=8){ return arr.slice(-window).filter(x=>x<1.70).length; }
 function drynessSince5x(){ let d=0; for(let i=rounds.length-1;i>=0;i--){if(rounds[i]>=5)break;else d++;} return d; }
 function detectMomentum(){ const{window,hits}=ui.momentum; if(rounds.length<window)return false; return rounds.slice(-window).filter(r=>r>=2.0).length>=hits; }
 function detectPreFlightPattern() { const {window,blues}=ui.preflight; if(rounds.length<window)return false; const recent=rounds.slice(-window); const blueCount=recent.filter(r=>r<1.5).length; const purpleCount=recent.filter(r=>r>=2.0).length; return blueCount>=blues && purpleCount>=1; }
+function detectHyperMode(vol) { const {win, vol: volThr} = ui.hyper; if (rounds.length < win || vol < volThr) return false; return rounds.slice(-win).some(r => r >= 50); }
 
-/*** ===== LÓGICA DE SEÑALES (v6.5.0) ===== ***/
+/*** ===== LÓGICA DE SEÑALES (v6.6.0) ===== ***/
 function gatesPass(target){
   let pTarget = probGE(target), minP = ui.minConf/100, reasonDetails = [];
-  const dryRounds = drynessSince5x();
-  if (dryRounds > ui.dryness.threshold) { pTarget += ui.dryness.probBonus / 100; reasonDetails.push(`+${ui.dryness.probBonus}% Sequía`); }
   const currentVolatility = stdDev(rounds.slice(-20));
-  if (currentVolatility > ui.volatility.threshold) { minP -= ui.volatility.confBonus / 100; reasonDetails.push(`-${ui.volatility.confBonus}% Req Volat.`); }
-  if (detectPreFlightPattern()) { minP -= ui.preflight.confBonus / 100; reasonDetails.push(`-${ui.preflight.confBonus}% Req PRE-VUELO`); }
-  if (detectMomentum()) { minP -= ui.momentum.confBonus / 100; reasonDetails.push(`<span style="color:var(--warn)">[MODO CAZA ACTIVO -${ui.momentum.confBonus}% Req]</span>`); }
+  if (detectHyperMode(currentVolatility)) { minP -= ui.hyper.confBonus / 100; reasonDetails.push(`<span style="color:var(--bad); font-weight:bold;">[CAZADOR EXTREMO -${ui.hyper.confBonus}% Req]</span>`); }
+  else {
+      if (drynessSince5x() > ui.dryness.threshold) { pTarget += ui.dryness.probBonus / 100; reasonDetails.push(`+${ui.dryness.probBonus}% Sequía`); }
+      if (detectMomentum()) { minP -= ui.momentum.confBonus / 100; reasonDetails.push(`-${ui.momentum.confBonus}% Req RACHA`); }
+      if (detectPreFlightPattern()) { minP -= ui.preflight.confBonus / 100; reasonDetails.push(`-${ui.preflight.confBonus}% Req PRE-VUELO`); }
+  }
   const finalReason = reasonDetails.length > 0 ? ` ${reasonDetails.join(' ')}` : '';
   if (pTarget < minP) return { pass: false, reason: `Conf. baja: ${fmtPct(pTarget)} (req ${fmtPct(pTarget > minP ? pTarget : minP)})${finalReason}` };
-  const bad = countBad170(rounds,8);
-  if (bad>=7) return {pass:false,reason:"Zona mala (racha < 1.70x)"};
+  if (countBad170(rounds,8)>=7) return {pass:false,reason:"Zona mala (racha < 1.70x)"};
   if (cooldownLeft>0) return {pass:false,reason:`En Cooldown (${cooldownLeft}r)`};
   return { pass: true, reason: `Criterios OK para ${target}x${finalReason}` };
 }
-function maybeSignal(){
-  const feedbackEl=document.getElementById("statusFeedback"); if(rounds.length<20){feedbackEl.textContent="Analizando...";return;}
-  const { pass, reason } = gatesPass(ui.selTarget);
-  feedbackEl.innerHTML = `Estado: ${reason}`; feedbackEl.className = pass ? 'flag ok' : 'flag';
-  if(pass) emitSignal(ui.selTarget);
-}
-function emitSignal(target){
-  pendings.push({id:"S"+Date.now(), target, stake:1, ts:Date.now(), state:"pend"});
-  signalsCount++; cooldownLeft = ui.cooldown; renderBets();
-  const sig=document.getElementById("lastSignal"); sig.style.display="inline-block"; sig.textContent=`Señal: ${target}x`;
-  setTimeout(()=>sig.style.display="none", 3500); beep(880,140,0.04);
-}
+function maybeSignal(){ const feedbackEl=document.getElementById("statusFeedback"); if(rounds.length<20){feedbackEl.textContent="Analizando...";return;} const { pass, reason } = gatesPass(ui.selTarget); feedbackEl.innerHTML = `Estado: ${reason}`; feedbackEl.className = pass ? 'flag ok' : 'flag'; if(pass) emitSignal(ui.selTarget); }
+function emitSignal(target){ pendings.push({id:"S"+Date.now(), target, stake:1, ts:Date.now(), state:"pend"}); signalsCount++; cooldownLeft = ui.cooldown; renderBets(); const sig=document.getElementById("lastSignal"); sig.style.display="inline-block"; sig.textContent=`Señal: ${target}x`; setTimeout(()=>sig.style.display="none", 3500); beep(880,140,0.04); }
 
-/*** ===== GESTIÓN DE RONDAS Y DATOS (CONEXIÓN ESTABLE v6.5.0) ===== ***/
-function processValue(rawValue) {
-  if (rawValue === null || rawValue === undefined) return null;
-  const strValue = String(rawValue).replace(/,/g, '');
-  const cleanedValue = strValue.replace(/[^\d.]/g, '');
-  if (cleanedValue === '') return null;
-  const v = Number(cleanedValue);
-  return (v >= 1 && !isNaN(v)) ? v : null;
-}
-function onNewCrash(v){
-  rounds.push(v); if(rounds.length>2000)rounds.shift();
-  if(cooldownLeft>0)cooldownLeft--;
-  if(pendings.length){ const bet=pendings.shift(); const win=(v>bet.target); bet.crash=v; bet.state=win?"win":"lose"; bet.pl=win?"+1":"−1"; bets.push(bet); renderBets(); }
-  lastShown.unshift(v); if(lastShown.length>100)lastShown.pop();
-  renderStats(); updateChart(); maybeSignal();
-}
+/*** ===== GESTIÓN DE RONDAS Y DATOS (CONEXIÓN ESTABLE v6.6.0) ===== ***/
+function processValue(rawValue) { if (rawValue === null || rawValue === undefined) return null; const strValue = String(rawValue).replace(/,/g, ''); const cleanedValue = strValue.replace(/[^\d.]/g, ''); if (cleanedValue === '') return null; const v = Number(cleanedValue); return (v >= 1 && !isNaN(v)) ? v : null; }
+function onNewCrash(v){ rounds.push(v); if(rounds.length>2000)rounds.shift(); if(cooldownLeft>0)cooldownLeft--; if(pendings.length){ const bet=pendings.shift(); const win=(v>bet.target); bet.crash=v; bet.state=win?"win":"lose"; bet.pl=win?"+1":"−1"; bets.push(bet); renderBets(); } lastShown.unshift(v); if(lastShown.length>100)lastShown.pop(); renderStats(); updateChart(); maybeSignal(); }
 function connectFeed(){
   if(connected)return;
   FEED_ID = document.getElementById("feedId").value.trim() || "gocho";
@@ -254,35 +151,17 @@ function connectFeed(){
       try {
         const data = snap.val()||{};
         rounds = [];
-        Object.values(data).forEach(entry => {
-          const v = processValue(entry && (entry.v || entry));
-          if (v !== null) rounds.push(v);
-        });
+        const keys = Object.keys(data);
+        keys.forEach(key => { const entry = data[key]; const v = processValue(entry && (entry.v || entry)); if (v !== null) rounds.push(v); });
         lastShown = [...rounds].reverse(); baseCount = rounds.length;
         renderStats(); updateChart();
-        
-        const lastKey = snap.key && Object.keys(data).length > 0 ? Object.keys(data).pop() : String(Date.now());
+        const lastKey = keys.length > 0 ? keys[keys.length - 1] : String(Date.now());
         const refNew = db.ref(`feeds/${FEED_ID}/crashes`).orderByKey().startAfter(lastKey);
-        
-        sub = refNew.on("child_added", s=>{
-          const d = s.val(); if (!d) return;
-          const v = processValue(d.v || d);
-          if (v !== null) onNewCrash(v);
-        }, error => {
-          console.error("Error en la suscripción de Firebase:", error);
-          feedbackEl.textContent = "Error de suscripción. Revise la consola.";
-        });
-        connected = true;
-        maybeSignal();
-      } catch (error) {
-        console.error("Error crítico durante la carga inicial de datos:", error);
-        feedbackEl.textContent = "Error al cargar datos. Revise la consola.";
-      }
+        sub = refNew.on("child_added", s=>{ const d = s.val(); if (!d) return; const v = processValue(d.v || d); if (v !== null) onNewCrash(v); }, error => { console.error("Error en suscripción Firebase:", error); feedbackEl.textContent = "Error de suscripción."; });
+        connected = true; maybeSignal();
+      } catch (error) { console.error("Error crítico en carga inicial:", error); feedbackEl.textContent = "Error al cargar datos. Revise consola."; }
     });
-  }).catch(error => {
-    console.error("Error de autenticación con Firebase:", error);
-    feedbackEl.textContent = "Error de autenticación. Revise la configuración.";
-  });
+  }).catch(error => { console.error("Error de autenticación Firebase:", error); feedbackEl.textContent = "Error de autenticación."; });
 }
 function disconnectFeed(){ if(!connected)return; const refNew=db.ref(`feeds/${FEED_ID}/crashes`); if(sub)refNew.off("child_added",sub); sub=null; connected=false; document.getElementById("statusFeedback").textContent = "Desconectado.";}
 
@@ -295,15 +174,15 @@ function updateChart(){ if(!historyChart)return; const dataSlice=rounds.slice(-1
 /*** ===== GESTIÓN DE ESTADO Y UI BINDINGS ===== ***/
 function saveModel(){ const obj={model,ui}; auth.currentUser?Promise.resolve():auth.signInAnonymously(); return db.ref(`feeds/${FEED_ID}/state/model_v1`).set(obj); }
 function loadModel(){ return db.ref(`feeds/${FEED_ID}/state/model_v1`).once("value").then(s=>{ const v=s.val(); if(!v)return; if(v.model)Object.assign(model,v.model); if(v.ui){Object.assign(ui,v.ui); applyUIFromState(); } }); }
-function applyUIFromState(){ document.querySelectorAll("#objChips .chip").forEach(el=>{el.classList.toggle("on",Number(el.dataset.v)==ui.selTarget);}); document.querySelectorAll("#modeChips .chip").forEach(el=>{el.classList.toggle("on",el.dataset.m===ui.mode);}); document.getElementById("minConf").value=ui.minConf; document.getElementById("minConfVal").textContent=ui.minConf+"%"; document.getElementById("cooldown").value=ui.cooldown; document.getElementById("beepToggle").checked=ui.beep; document.getElementById("winN").value=ui.winN; document.getElementById("volThreshold").value=ui.volatility.threshold; document.getElementById("volBonus").value=ui.volatility.confBonus; document.getElementById("dryThreshold").value=ui.dryness.threshold; document.getElementById("dryBonus").value=ui.dryness.probBonus; document.getElementById("momWindow").value=ui.momentum.window; document.getElementById("momHits").value=ui.momentum.hits; document.getElementById("momBonus").value=ui.momentum.confBonus; document.getElementById("pfWindow").value=ui.preflight.window; document.getElementById("pfBlues").value=ui.preflight.blues; document.getElementById("pfBonus").value=ui.preflight.confBonus; }
+function applyUIFromState(){ document.querySelectorAll("#objChips .chip").forEach(el=>{el.classList.toggle("on",Number(el.dataset.v)==ui.selTarget);}); document.querySelectorAll("#modeChips .chip").forEach(el=>{el.classList.toggle("on",el.dataset.m===ui.mode);}); document.getElementById("minConf").value=ui.minConf; document.getElementById("minConfVal").textContent=ui.minConf+"%"; document.getElementById("cooldown").value=ui.cooldown; document.getElementById("beepToggle").checked=ui.beep; document.getElementById("winN").value=ui.winN; document.getElementById("dryThreshold").value=ui.dryness.threshold; document.getElementById("dryBonus").value=ui.dryness.probBonus; document.getElementById("momWindow").value=ui.momentum.window; document.getElementById("momHits").value=ui.momentum.hits; document.getElementById("momBonus").value=ui.momentum.confBonus; document.getElementById("pfWindow").value=ui.preflight.window; document.getElementById("pfBlues").value=ui.preflight.blues; document.getElementById("pfBonus").value=ui.preflight.confBonus; document.getElementById("hyperVol").value=ui.hyper.vol; document.getElementById("hyperWin").value=ui.hyper.win; document.getElementById("hyperBonus").value=ui.hyper.confBonus; }
 document.getElementById("objChips").addEventListener("click",e=>{ const el=e.target.closest(".chip"); if(!el)return; document.querySelectorAll("#objChips .chip").forEach(x=>x.classList.remove("on")); el.classList.add("on"); ui.selTarget=Number(el.dataset.v); });
 document.getElementById("modeChips").addEventListener("click",e=>{ const el=e.target.closest(".chip"); if(!el)return; document.querySelectorAll("#modeChips .chip").forEach(x=>x.classList.remove("on")); el.classList.add("on"); ui.mode=el.dataset.m; });
 ["autoSignal","beepToggle"].forEach(id=>document.getElementById(id).addEventListener("change", e => ui[id.replace("Toggle",'')] = e.target.checked));
 ["minConf","cooldown","winN"].forEach(id=>document.getElementById(id).addEventListener("input", e => { ui[id]=Number(e.target.value); if(id==="minConf")document.getElementById("minConfVal").textContent=ui.minConf+"%"; }));
-["volThreshold","volBonus"].forEach(id=>document.getElementById(id).addEventListener("change", e => ui.volatility[id.includes("Threshold")?"threshold":"confBonus"]=Number(e.target.value)));
 ["dryThreshold","dryBonus"].forEach(id=>document.getElementById(id).addEventListener("change", e => ui.dryness[id.includes("Threshold")?"threshold":"probBonus"]=Number(e.target.value)));
 ["momWindow","momHits","momBonus"].forEach(id=>document.getElementById(id).addEventListener("change", e => ui.momentum[id.replace("mom",'').toLowerCase().replace('s','')] = Number(e.target.value)));
 ["pfWindow","pfBlues","pfBonus"].forEach(id=>document.getElementById(id).addEventListener("change", e => ui.preflight[id.replace("pf",'').toLowerCase().replace('s','')] = Number(e.target.value)));
+["hyperVol","hyperWin","hyperBonus"].forEach(id=>document.getElementById(id).addEventListener("change", e => ui.hyper[id.replace("hyper",'').toLowerCase().replace('s','')] = Number(e.target.value)));
 document.getElementById("connectBtn").addEventListener("click", connectFeed); document.getElementById("disconnectBtn").addEventListener("click", disconnectFeed);
 document.getElementById("startBtn").addEventListener("click", ()=>{ signalsCount=0; cooldownLeft=0; bets=[]; pendings=[]; renderBets(); renderStats(); beep(660,90,0.03); });
 document.getElementById("stopBtn").addEventListener("click", ()=>{ bets=[]; pendings=[]; signalsCount=0; cooldownLeft=0; renderBets(); renderStats(); });
