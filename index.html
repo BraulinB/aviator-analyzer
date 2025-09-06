@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v7.3.1 (Sesión120 + Rosas exactas)</title>
+<title>Aviator Analyzer • Gocho v7.3.2 (Sesión120 + Rosas exactas)</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5;
@@ -29,8 +29,6 @@
   input[type="text"]{width:140px;background:#0f121a;color:var(--text);border:1px solid #2a3144;border-radius:6px;padding:6px}
   input[type="range"]{width:180px}
   .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#1f2432;margin:2px}
-  .pill.win{background:rgba(46,204,113,.15);color:#7ff5b0;border:1px solid rgba(46,204,113,.4)}
-  .pill.lose{background:rgba(231,76,60,.12);color:#ff9b9b;border:1px solid rgba(231,76,60,.35)}
   .pill.neu{background:#1c2130}
   .pill.pink{background:rgba(255,90,195,.14);color:#ffb2e3;border:1px solid rgba(255,90,195,.32)}
   .table{width:100%;border-collapse:collapse;font-size:13px}
@@ -54,7 +52,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v7.3.1</span>
+  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v7.3.2</span>
     <span id="statusFeedback" class="muted" style="margin-left:8px;font-weight:400"></span>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
   </h1>
@@ -187,13 +185,9 @@
   </div>
 
   <div class="card">
-    <div class="row">
-      <h3 style="margin:0">Apuestas registradas</h3>
-    </div>
+    <div class="row"><h3 style="margin:0">Apuestas registradas</h3></div>
     <table class="table" style="margin-top:8px">
-      <thead>
-        <tr><th>#</th><th>Objetivo</th><th>Stake</th><th>Crash</th><th>Resultado</th><th>P/L</th></tr>
-      </thead>
+      <thead><tr><th>#</th><th>Objetivo</th><th>Stake</th><th>Crash</th><th>Resultado</th><th>P/L</th></tr></thead>
       <tbody id="betsTbody"></tbody>
     </table>
     <div class="row" style="margin-top:10px;gap:6px">
@@ -205,7 +199,7 @@
   </div>
 
   <div class="card muted" style="font-size:12px">
-    Uso educativo/análisis. No garantiza resultados. “Ganada” = crash &gt; objetivo (igual o menor = pérdida), según tu regla.
+    Uso educativo/análisis. No garantiza resultados. “Ganada” = crash &gt; objetivo (igual o menor = pérdida).
   </div>
 </div>
 
@@ -230,11 +224,12 @@ firebase.initializeApp(firebaseConfig);
 const db  = firebase.database();
 const auth= firebase.auth();
 
-/*** ====== ESTADO ====== ***/
+/*** ===== ESTADO ===== ***/
 let FEED_ID = "gocho";
 let connected = false;
-let loadingBase = false;      // ← evita señales durante la carga del historial
-let rounds = [];              // valores (reciente al final)
+let loadingBase = false;
+
+let rounds = [];              // números (reciente al final)
 let roundsMeta = [];          // {v, ts}
 let lastShown = [];
 let baseCount = 0;
@@ -244,39 +239,27 @@ let bets = [];
 let signalsCount = 0;
 let cooldownLeft = 0;
 
-// Rosas, episodios, horas
-let roses = [];               // [{idx,v,ts}]
-let roseIntervals = [];       // [{from,to,gap}]
-let bonusEpisodes = [];       // [{startTs,endTs,startIdx,endIdx,durationRounds,peak:{roses,purples,blues}}]
-let bonusActive = null;
+// Rosas/episodios
+let roses=[]; let roseIntervals=[];
+let bonusEpisodes=[]; let bonusActive=null;
 let hourCounts = Array.from({length:24},()=>0);
 
 const model = {
-  priors: { "2": [10,10], "2.5":[8,10], "3":[6,10], "5":[3,9], "10":[1.5,8.5] },
+  priors: { "2":[10,10], "2.5":[8,10], "3":[6,10], "5":[3,9], "10":[1.5,8.5] },
   winN: 120
 };
-
 const ui = {
-  selTarget: 2.0,
-  mode: "normal",
-  autoSignal: true,
-  minConf: 80,
-  cooldown: 8,
-  beep: true,
-  modeEV: false,
+  selTarget: 2.0, mode: "normal", autoSignal: true, minConf: 80, cooldown: 8, beep: true, modeEV: false,
   radar: {thr10:8,thr20:4,thr50:1.5,thr100:0.6},
-  // Sesión 120 → 3x
-  mode120: false,
-  conf3x: 42, // %
-  // Episodios 60r
+  mode120: false, conf3x: 42,
   bonusThr: {minRoses:6, minPurples:12, maxBlues:22}
 };
 
 /*** ===== UTIL ===== */
-function fmtPct(x){ return (x*100).toFixed(1) + "%"; }
-function clamp(v,min,max){ return v<min?min:(v>max?max:v); }
-function now(){ return Date.now(); }
-function HHmm(ts){ const d=new Date(ts); return d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
+const fmtPct=x=>(x*100).toFixed(1)+"%";
+const clamp=(v,min,max)=>v<min?min:(v>max?max:v);
+const now=()=>Date.now();
+const HHmm=ts=>new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
 
 /*** ===== AUDIO ===== */
 let audioCtx=null;
@@ -284,251 +267,112 @@ function beep(freq=880, ms=120, gain=0.03){
   if(!ui.beep) return;
   try{
     if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    o.type="sine"; o.frequency.value=freq;
-    g.gain.value=gain;
-    o.connect(g); g.connect(audioCtx.destination);
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type="sine"; o.frequency.value=freq; g.gain.value=gain; o.connect(g); g.connect(audioCtx.destination);
     o.start(); setTimeout(()=>{o.stop();}, ms);
   }catch(_){}
 }
-function beepPink(){ beep(520,160,0.035); setTimeout(()=>beep(980,80,0.03),100); }
+const beepPink=()=>{beep(520,160,0.035); setTimeout(()=>beep(980,80,0.03),100);};
 
-/*** ===== BAYES + MÉTRICAS ===== */
+/*** ===== MÉTRICAS ===== */
 function probGE(k){
-  const v = rounds.slice(-model.winN);
-  const s = v.filter(x=>x>=k).length;
-  const n = v.length;
-  const [a,b] = model.priors[String(k)] || [2,2];
-  return (s+a)/(n+a+b);
+  const v=rounds.slice(-model.winN), s=v.filter(x=>x>=k).length, n=v.length;
+  const [a,b]=model.priors[String(k)]||[2,2]; return (s+a)/(n+a+b);
 }
-function movingAverage(arr, n){
-  const L = Math.min(arr.length, n);
-  if(!L) return NaN;
-  let sum=0; for(let i=arr.length-L;i<arr.length;i++) sum+=arr[i];
-  return sum/L;
-}
-function slopeMA(arr, n){
-  if(arr.length < n+1) return 0;
-  const nowMA = movingAverage(arr, n);
-  const prevMA = movingAverage(arr.slice(0,-1), n);
-  return nowMA - prevMA;
-}
-function countBad170(arr, window=8){
-  const L = arr.slice(-window);
-  return L.filter(x=>x<1.70).length;
-}
-function inBonusZone(){
-  const w = rounds.slice(-14);
-  if(w.length<14) return false;
-  const p2  = w.filter(x=>x>=2).length / w.length;
-  const has5= w.some(x=>x>=5);
-  const sl  = slopeMA(rounds,10);
-  return (p2>=0.60 && has5 && sl>=0);
-}
-function drynessSince5x(){
-  let d=0; for(let i=rounds.length-1;i>=0;i--){ if(rounds[i]>=5) break; else d++; }
-  return d;
-}
+function movingAverage(arr,n){const L=Math.min(arr.length,n); if(!L) return NaN; let s=0; for(let i=arr.length-L;i<arr.length;i++) s+=arr[i]; return s/L;}
+function slopeMA(arr,n){ if(arr.length<n+1) return 0; const nowMA=movingAverage(arr,n), prevMA=movingAverage(arr.slice(0,-1),n); return nowMA-prevMA; }
+function countBad170(arr,w=8){ return arr.slice(-w).filter(x=>x<1.70).length; }
+function inBonusZone(){ const w=rounds.slice(-14); if(w.length<14) return false; const p2=w.filter(x=>x>=2).length/w.length; const has5=w.some(x=>x>=5); const sl=slopeMA(rounds,10); return (p2>=0.60 && has5 && sl>=0); }
+function drynessSince5x(){ let d=0; for(let i=rounds.length-1;i>=0;i--){ if(rounds[i]>=5) break; else d++; } return d; }
 
-/*** ===== EV (opcional) ===== */
-function expectedValueForTarget(k){
-  const p = { "2":probGE(2), "2.5":probGE(2.5), "3":probGE(3) }[String(k)] || 0;
-  return p - (1-p);
-}
-function bestTargetEV(){
-  const cand=[2,2.5,3]; let best=cand[0], bestEV=-999;
-  for(const k of cand){ const ev=expectedValueForTarget(k); if(ev>bestEV){ bestEV=ev; best=k; } }
-  return {target:best, ev:bestEV};
-}
+/*** ===== EV opcional ===== */
+const expectedValueForTarget=k=>{const p={ "2":probGE(2), "2.5":probGE(2.5), "3":probGE(3) }[String(k)]||0; return p-(1-p);}
+function bestTargetEV(){const c=[2,2.5,3]; let b=c[0],e=-999; for(const k of c){const ev=expectedValueForTarget(k); if(ev>e){e=ev;b=k;}} return {target:b,ev:e};}
 
 /*** ===== RADAR HIGH-X ===== */
 function radarHighX(){
   let p10=probGE(10), p20=probGE(20), p50=probGE(50), p100=probGE(100);
-  const bonus = inBonusZone()? 1.15 : 1.0;
-  const dry   = clamp(drynessSince5x()/60, 0, 0.4);
-  p10*= bonus*(1+dry); p20*= bonus*(1+dry); p50*= bonus*(1+dry); p100*= bonus*(1+dry);
-  const hit10=(p10*100)>=ui.radar.thr10, hit20=(p20*100)>=ui.radar.thr20;
-  const hit50=(p50*100)>=ui.radar.thr50, hit100=(p100*100)>=ui.radar.thr100;
-  return {hit10,hit20,hit50,hit100, p:{p10,p20,p50,p100}};
+  const bonus=inBonusZone()?1.15:1.0, dry=clamp(drynessSince5x()/60,0,0.4);
+  p10*=bonus*(1+dry); p20*=bonus*(1+dry); p50*=bonus*(1+dry); p100*=bonus*(1+dry);
+  return {hit10:(p10*100)>=ui.radar.thr10, hit20:(p20*100)>=ui.radar.thr20, hit50:(p50*100)>=ui.radar.thr50, hit100:(p100*100)>=ui.radar.thr100};
 }
 
 /*** ===== SEÑALES ===== */
 function gatesPass(target){
-  const pTarget = probGE(target);
-  const minP = ui.minConf/100;
-  const slope = slopeMA(rounds,10);
-  const bad = countBad170(rounds,8);
-  let slopeOK=true;
-  if(ui.mode==="conservador") slopeOK = slope >= 0.00;
-  if(ui.mode==="normal")      slopeOK = slope >= -0.02;
-  const notBadZone = !(bad>=7);
-  return (pTarget>=minP) && slopeOK && notBadZone && (cooldownLeft<=0);
+  const p=probGE(target), minP=ui.minConf/100, sl=slopeMA(rounds,10), bad=countBad170(rounds,8);
+  let slopeOK=true; if(ui.mode==="conservador") slopeOK=(sl>=0); if(ui.mode==="normal") slopeOK=(sl>=-0.02);
+  return (p>=minP)&&slopeOK&&(bad<7)&&(cooldownLeft<=0);
 }
 function emitSignal(target){
-  const id = "S"+now();
-  pendings.push({id, target, stake:1, ts:now(), state:"pend"});
-  signalsCount++; cooldownLeft = ui.cooldown;
-  renderBets();
-  const sig = document.getElementById("lastSignal");
-  sig.style.display="inline-block"; sig.textContent = `Señal: ${target}x`;
-  setTimeout(()=>sig.style.display="none", 3500);
-  beep(880,140,0.04);
+  const id="S"+now(); pendings.push({id,target,stake:1,ts:now(),state:"pend"}); signalsCount++; cooldownLeft=ui.cooldown;
+  renderBets(); const sig=document.getElementById("lastSignal"); sig.style.display="inline-block"; sig.textContent=`Señal: ${target}x`; setTimeout(()=>sig.style.display="none",3500); beep(880,140,0.04);
 }
 
 /*** ===== Sesión 120 → 3x ===== */
-const session120 = {active:false, remaining:0, signaled:false, startIdx:null};
-function startSession120(){
-  session120.active=true; session120.remaining=120; session120.signaled=false;
-  session120.startIdx=rounds.length;
-  document.getElementById("sess120Flag").style.display="inline-block";
-  updateSess120Flag();
-}
-function stopSession120(){
-  session120.active=false; session120.remaining=0; session120.signaled=false; session120.startIdx=null;
-  document.getElementById("sess120Flag").style.display="none";
-}
-function tickSession120(){
-  if(!session120.active) return;
-  session120.remaining = Math.max(0, 120 - (rounds.length - session120.startIdx));
-  if(session120.remaining===0){ stopSession120(); }
-  updateSess120Flag();
-}
-function updateSess120Flag(){
-  const el = document.getElementById("sess120Flag"); if(!el) return;
-  el.textContent = `Sesión 120→3x • quedan ${session120.remaining} r • P(≥3x)=${fmtPct(probGE(3))}`;
-}
+const session120={active:false,remaining:0,signaled:false,startIdx:null};
+function startSession120(){ session120.active=true; session120.remaining=120; session120.signaled=false; session120.startIdx=rounds.length; document.getElementById("sess120Flag").style.display="inline-block"; updateSess120Flag(); }
+function stopSession120(){ session120.active=false; session120.remaining=0; session120.signaled=false; session120.startIdx=null; document.getElementById("sess120Flag").style.display="none"; }
+function tickSession120(){ if(!session120.active) return; session120.remaining=Math.max(0,120-(rounds.length-session120.startIdx)); if(session120.remaining===0) stopSession120(); updateSess120Flag(); }
+function updateSess120Flag(){ const el=document.getElementById("sess120Flag"); if(!el) return; el.textContent=`Sesión 120→3x • quedan ${session120.remaining} r • P(≥3x)=${fmtPct(probGE(3))}`; }
 
-/*** ===== Rosas / Episodios / Reloj ===== */
-function onRose(v, ts){
-  const idx = rounds.length-1;
-  const item = {idx, v, ts};
-  roses.push(item);
-  if(roses.length>=2){
-    const prev = roses[roses.length-2];
-    const gap = item.idx - prev.idx;
-    roseIntervals.push({from:prev, to:item, gap});
-    if(roseIntervals.length>30) roseIntervals.shift();
-  }
-  document.getElementById("roseCountLbl").textContent = roses.length;
-  renderRoseHistory();
+/*** ===== Rosas / Episodios ===== */
+function onRose(v,ts){
+  const idx=rounds.length-1, item={idx,v,ts}; roses.push(item);
+  if(roses.length>=2){ const prev=roses[roses.length-2]; const gap=item.idx-prev.idx; roseIntervals.push({from:prev,to:item,gap}); if(roseIntervals.length>30) roseIntervals.shift(); }
+  document.getElementById("roseCountLbl").textContent=roses.length; renderRoseHistory();
 }
 function renderRoseHistory(){
-  const cont = document.getElementById("roseHistory"); cont.innerHTML = "";
-  const items = roseIntervals.slice(-30).reverse();
-  if(!items.length){
-    const d=document.createElement("div"); d.className="muted";
-    d.textContent="Aún no hay enlaces entre rosas (≥10x)."; cont.appendChild(d); return;
-  }
+  const cont=document.getElementById("roseHistory"); cont.innerHTML="";
+  const items=roseIntervals.slice(-30).reverse();
+  if(!items.length){ const d=document.createElement("div"); d.className="muted"; d.textContent="Aún no hay enlaces entre rosas (≥10x)."; cont.appendChild(d); return; }
   items.forEach(it=>{
     const row=document.createElement("div"); row.className="rose-item";
-    row.innerHTML = `
-      <span class="pill pink">${it.from.v.toFixed(2)}x</span>
-      <small>${HHmm(it.from.ts)}</small>
-      <span class="muted">→</span>
-      <span class="pill pink">${it.to.v.toFixed(2)}x</span>
-      <small>${HHmm(it.to.ts)}</small>
-      <span class="muted">en</span>
-      <b>${it.gap}</b> <span class="muted">rondas</span>`;
+    row.innerHTML=`<span class="pill pink">${it.from.v.toFixed(2)}x</span><small>${HHmm(it.from.ts)}</small><span class="muted">→</span><span class="pill pink">${it.to.v.toFixed(2)}x</span><small>${HHmm(it.to.ts)}</small><span class="muted">en</span><b>${it.gap}</b><span class="muted">rondas</span>`;
     cont.appendChild(row);
   });
 }
 function updateEpisodeCounters(){
-  if(roundsMeta.length<60) {
-    document.getElementById("episodeLive").textContent = `Ventana 60r • rosas:0 moradas:0 azules:0`;
-    return;
-  }
-  const win = roundsMeta.slice(-60);
-  let cR=0,cM=0,cA=0;
-  for(const {v} of win){
-    if(v>=10) cR++;
-    else if(v>=5 && v<10) cM++;
-    else if(v<2) cA++;
-  }
-  const meets = (cR>=ui.bonusThr.minRoses) && (cM>=ui.bonusThr.minPurples) && (cA<=ui.bonusThr.maxBlues);
-  const liveEl = document.getElementById("episodeLive");
-  liveEl.textContent = `Ventana 60r • rosas:${cR} moradas:${cM} azules:${cA}${meets?' — EN ZONA —':''}`;
-  liveEl.className = meets ? "flag pink" : "flag";
-
+  if(roundsMeta.length<60){ document.getElementById("episodeLive").textContent=`Ventana 60r • rosas:0 moradas:0 azules:0`; return; }
+  const win=roundsMeta.slice(-60); let cR=0,cM=0,cA=0;
+  for(const {v} of win){ if(v>=10) cR++; else if(v>=5 && v<10) cM++; else if(v<2) cA++; }
+  const meets=(cR>=ui.bonusThr.minRoses)&&(cM>=ui.bonusThr.minPurples)&&(cA<=ui.bonusThr.maxBlues);
+  const el=document.getElementById("episodeLive"); el.textContent=`Ventana 60r • rosas:${cR} moradas:${cM} azules:${cA}${meets?' — EN ZONA —':''}`; el.className=meets?"flag pink":"flag";
   if(meets){
-    if(!bonusActive){
-      bonusActive = {startIdx: roundsMeta.length-60, startTs: win[0].ts, peak:{roses:cR,purples:cM,blues:cA}};
-    }else{
-      bonusActive.peak.roses = Math.max(bonusActive.peak.roses, cR);
-      bonusActive.peak.purples = Math.max(bonusActive.peak.purples, cM);
-      bonusActive.peak.blues  = Math.min(bonusActive.peak.blues, cA);
-    }
+    if(!bonusActive){ bonusActive={startIdx:roundsMeta.length-60,startTs:win[0].ts,peak:{roses:cR,purples:cM,blues:cA}}; }
+    else{ bonusActive.peak.roses=Math.max(bonusActive.peak.roses,cR); bonusActive.peak.purples=Math.max(bonusActive.peak.purples,cM); bonusActive.peak.blues=Math.min(bonusActive.peak.blues,cA); }
   }else if(bonusActive){
-    bonusActive.endTs = roundsMeta[roundsMeta.length-1].ts;
-    bonusActive.endIdx = roundsMeta.length-1;
-    bonusActive.durationRounds = bonusActive.endIdx - bonusActive.startIdx + 1;
+    bonusActive.endTs=roundsMeta[roundsMeta.length-1].ts; bonusActive.endIdx=roundsMeta.length-1; bonusActive.durationRounds=bonusActive.endIdx-bonusActive.startIdx+1;
     bonusEpisodes.push(bonusActive); if(bonusEpisodes.length>20) bonusEpisodes.shift();
-
-    // contar horas tocadas
-    const seen = new Set();
-    for(let t=bonusActive.startTs; t<=bonusActive.endTs; t+=15*60*1000){
-      seen.add(new Date(t).getHours());
-    }
-    seen.forEach(h=>hourCounts[h]++);
-    bonusActive = null;
-    renderEpisodes(); renderHourCounts();
+    const seen=new Set(); for(let t=bonusActive.startTs; t<=bonusActive.endTs; t+=15*60*1000){ seen.add(new Date(t).getHours()); } seen.forEach(h=>hourCounts[h]++);
+    bonusActive=null; renderEpisodes(); renderHourCounts();
   }
 }
 function renderEpisodes(){
-  const list = document.getElementById("episodesList"); list.innerHTML = "";
-  if(!bonusEpisodes.length){
-    const d=document.createElement("div"); d.className="muted";
-    d.textContent="Sin episodios detectados todavía."; list.appendChild(d); return;
-  }
+  const list=document.getElementById("episodesList"); list.innerHTML="";
+  if(!bonusEpisodes.length){ const d=document.createElement("div"); d.className="muted"; d.textContent="Sin episodios detectados todavía."; list.appendChild(d); return; }
   bonusEpisodes.slice(-12).reverse().forEach(ep=>{
-    const el=document.createElement("div");
-    el.className="episode";
-    el.innerHTML = `<b>${HHmm(ep.startTs)} → ${HHmm(ep.endTs)}</b> • pico: rosas=${ep.peak.roses} moradas=${ep.peak.purples} azules=${ep.peak.blues} • ~${ep.durationRounds} rondas`;
+    const el=document.createElement("div"); el.className="episode";
+    el.innerHTML=`<b>${HHmm(ep.startTs)} → ${HHmm(ep.endTs)}</b> • pico: rosas=${ep.peak.roses} moradas=${ep.peak.purples} azules=${ep.peak.blues} • ~${ep.durationRounds} rondas`;
     list.appendChild(el);
   });
 }
 function renderHourCounts(){
-  const tb = document.getElementById("hourTableBody"); tb.innerHTML="";
-  for(let h=0; h<24; h++){
-    const tr=document.createElement("tr");
-    tr.innerHTML = `<td>${String(h).padStart(2,'0')}:00</td><td>${hourCounts[h]}</td>`;
-    tb.appendChild(tr);
-  }
+  const tb=document.getElementById("hourTableBody"); tb.innerHTML="";
+  for(let h=0;h<24;h++){ const tr=document.createElement("tr"); tr.innerHTML=`<td>${String(h).padStart(2,'0')}:00</td><td>${hourCounts[h]}</td>`; tb.appendChild(tr); }
 }
 
-/*** ===== Motor de señales ===== */
-function maybeSignalNormal(){
-  if(rounds.length<12) return;
-  let target = ui.selTarget;
-  if(ui.modeEV){ const {target:t} = bestTargetEV(); target = t; }
-  if(gatesPass(target)){ emitSignal(target); }
-}
+/*** ===== LÓGICA DE SEÑALES ===== */
+function maybeSignalNormal(){ if(rounds.length<12) return; let target=ui.selTarget; if(ui.modeEV){ const {target:t}=bestTargetEV(); target=t;} if(gatesPass(target)) emitSignal(target); }
 function session120Logic(){
   tickSession120();
-
-  // Radar alto (alerta)
-  const hi = radarHighX();
-  const hiEl = document.getElementById("hiFlag");
-  if(hi.hit10 || hi.hit20 || hi.hit50 || hi.hit100){
-    hiEl.style.display="inline-block";
-    hiEl.textContent = `Radar ALTO: ${(hi.hit100?"≥100x":hi.hit50?"≥50x":hi.hit20?"≥20x":"≥10x")} posible`;
-    beepPink();
-  }else{ hiEl.style.display="none"; }
-
+  const hi=radarHighX(), hiEl=document.getElementById("hiFlag");
+  if(hi.hit10||hi.hit20||hi.hit50||hi.hit100){ hiEl.style.display="inline-block"; hiEl.textContent=`Radar ALTO: ${(hi.hit100?"≥100x":hi.hit50?"≥50x":hi.hit20?"≥20x":"≥10x")} posible`; beepPink(); }
+  else hiEl.style.display="none";
   if(!ui.autoSignal) return;
-
   if(ui.mode120 && session120.active && !session120.signaled){
-    const conf = probGE(3);
-    const slope = slopeMA(rounds,10);
-    const bad   = countBad170(rounds,8);
-    const bonus = inBonusZone();
-    const minConf3 = ui.conf3x/100;
-    const pass = (conf>=minConf3) && bonus && (slope>=-0.005) && (bad<6) && (cooldownLeft<=0);
-    if(pass){
-      emitSignal(3);
-      session120.signaled = true;
-      updateSess120Flag();
-    }
+    const conf=probGE(3), sl=slopeMA(rounds,10), bad=countBad170(rounds,8), bonus=inBonusZone(), minConf3=ui.conf3x/100;
+    const pass=(conf>=minConf3)&&bonus&&(sl>=-0.005)&&(bad<6)&&(cooldownLeft<=0);
+    if(pass){ emitSignal(3); session120.signaled=true; updateSess120Flag(); }
     return;
   }
   if(!ui.mode120){ maybeSignalNormal(); }
@@ -536,264 +380,168 @@ function session120Logic(){
 
 /*** ===== RENDER ===== */
 function renderStats(){
-  const p2=probGE(2), p25=probGE(2.5), p3=probGE(3), p5=probGE(5), p10=probGE(10);
-  const ma10 = movingAverage(rounds,10);
-  const bad = countBad170(rounds,8);
-  document.getElementById("rounds").textContent = `${rounds.length} (base ${baseCount})`;
-  document.getElementById("p2").textContent  = fmtPct(p2);
-  document.getElementById("p25").textContent = fmtPct(p25);
-  document.getElementById("p3").textContent  = fmtPct(p3);
-  document.getElementById("p5").textContent  = fmtPct(p5);
-  document.getElementById("p10").textContent = fmtPct(p10);
-  document.getElementById("ma10").textContent= isNaN(ma10)?"–":(ma10.toFixed(2)+"x");
-  document.getElementById("badRun").textContent = bad;
-  document.getElementById("cdLeft").textContent = cooldownLeft;
-  document.getElementById("signals").textContent= signalsCount;
-
-  const zone = document.getElementById("zoneFlag");
+  const p2=probGE(2),p25=probGE(2.5),p3=probGE(3),p5=probGE(5),p10=probGE(10), ma10=movingAverage(rounds,10), bad=countBad170(rounds,8);
+  document.getElementById("rounds").textContent=`${rounds.length} (base ${baseCount})`;
+  document.getElementById("p2").textContent=fmtPct(p2); document.getElementById("p25").textContent=fmtPct(p25); document.getElementById("p3").textContent=fmtPct(p3);
+  document.getElementById("p5").textContent=fmtPct(p5); document.getElementById("p10").textContent=fmtPct(p10);
+  document.getElementById("ma10").textContent=isNaN(ma10)?"–":(ma10.toFixed(2)+"x");
+  document.getElementById("badRun").textContent=bad; document.getElementById("cdLeft").textContent=cooldownLeft; document.getElementById("signals").textContent=signalsCount;
+  const zone=document.getElementById("zoneFlag");
   if(bad>=7) { zone.className="flag bad"; zone.textContent="Zona mala: bloqueo <1.70"; }
   else if(inBonusZone()) { zone.className="flag ok"; zone.textContent="Bonus zone (tendencia alcista)"; }
   else { zone.className="flag"; zone.textContent="Sin señal"; }
-
-  const cont=document.getElementById("lastRounds"); cont.innerHTML="";
-  lastShown.forEach(x=>{ const d=document.createElement("span"); d.className="pill neu"; d.textContent = x.toFixed(2)+"x"; cont.appendChild(d); });
+  const cont=document.getElementById("lastRounds"); cont.innerHTML=""; lastShown.forEach(x=>{ const d=document.createElement("span"); d.className="pill neu"; d.textContent=x.toFixed(2)+"x"; cont.appendChild(d); });
 }
 function renderBets(){
   const tb=document.getElementById("betsTbody"); tb.innerHTML="";
-  bets.concat(pendings).forEach((b,idx)=>{
-    const st = b.state==="win"?"win": b.state==="lose"?"lose":"pend";
-    const tr=document.createElement("tr");
-    tr.innerHTML = `<td>${idx+1}</td><td>${b.target}x</td><td>$${b.stake.toFixed?b.stake.toFixed(2):b.stake}</td><td>${b.crash? b.crash.toFixed(2)+"x":"—"}</td><td>${st}</td><td>${b.pl||"—"}</td>`;
-    tb.appendChild(tr);
-  });
+  bets.concat(pendings).forEach((b,idx)=>{ const st=b.state==="win"?"win":b.state==="lose"?"lose":"pend";
+    const tr=document.createElement("tr"); tr.innerHTML=`<td>${idx+1}</td><td>${b.target}x</td><td>$${b.stake.toFixed?b.stake.toFixed(2):b.stake}</td><td>${b.crash?b.crash.toFixed(2)+"x":"—"}</td><td>${st}</td><td>${b.pl||"—"}</td>`; tb.appendChild(tr); });
 }
 
-/*** ===== CONEXIÓN FEED (reparada) ===== */
-function processValue(rawValue) {
-  if (rawValue === null || rawValue === undefined) return null;
-  const strValue = String(rawValue).replace(/,/g, '');
-  const cleanedValue = strValue.replace(/[^\d.]/g, '');
-  if (cleanedValue === '') return null;
-  const v = Number(cleanedValue);
-  return (v >= 1 && !isNaN(v)) ? v : null;
-}
-let liveRef = null, liveCb = null, lastSeenKey = null;
+/*** ===== CONEXIÓN FEED (blindada) ===== */
+function processValue(raw){ if(raw===null||raw===undefined) return null; const s=String(raw).replace(/,/g,''); const c=s.replace(/[^\d.]/g,''); if(c==='') return null; const v=Number(c); return (v>=1&&!isNaN(v))?v:null; }
 
-function connectFeed(){
+let liveRef=null, liveCb=null, lastSeenKey=null, lastSeenTs=null;
+
+async function connectFeed(){
   if(connected) return;
-  FEED_ID = (document.getElementById("feedId").value || "gocho").trim();
-  const feedbackEl = document.getElementById("statusFeedback");
-  const refPath = `feeds/${FEED_ID}/crashes`;
+  FEED_ID=(document.getElementById("feedId").value||"gocho").trim();
+  const feedbackEl=document.getElementById("statusFeedback");
+  const refPath=`feeds/${FEED_ID}/crashes`;
+  feedbackEl&&(feedbackEl.textContent=`Conectando a ${refPath}…`);
 
-  feedbackEl && (feedbackEl.textContent = `Conectando a ${refPath}…`);
+  try{ await auth.signInAnonymously(); }
+  catch(e){ console.warn("[auth] anónimo no habilitado, sigo sin auth:", e?.message||e); }
 
-  // auth anónima (no bloquea si falla)
-  auth.signInAnonymously().catch(e=>{
-    console.warn("[auth] Anónimo no habilitado, sigo sin auth:", e?.message||e);
-  }).finally(()=>{
+  const ref=db.ref(refPath);
+  loadingBase=true; feedbackEl&&(feedbackEl.textContent="Cargando historial…");
 
-    const ref = db.ref(refPath);
-    loadingBase = true;
+  // intentamos por ts y por key (el primero que devuelva algo útil)
+  let snap=null, method="key";
+  try{
+    const s1=await ref.orderByChild("ts").limitToLast(800).once("value");
+    if(s1 && s1.val() && Object.keys(s1.val()).length){ snap=s1; method="ts"; }
+  }catch(e){ console.warn("[rtdb] orderByChild(ts) falló:", e?.message||e); }
+  if(!snap){
+    try{ snap=await ref.orderByKey().limitToLast(800).once("value"); method="key"; }
+    catch(e){ console.error("[rtdb] orderByKey falló:", e?.message||e); }
+  }
+  if(!snap || !snap.val()){ feedbackEl&&(feedbackEl.textContent="Sin datos en el feed."); loadingBase=false; return; }
 
-    // 1) Cargar historial
-    feedbackEl && (feedbackEl.textContent = "Cargando historial…");
-    ref.orderByKey().limitToLast(800).once("value").then(snap=>{
-      const data = snap.val() || {};
-      const keys = Object.keys(data).sort();
-      baseCount = keys.length;
+  const data=snap.val(), keys=Object.keys(data).sort();
+  baseCount=keys.length;
 
-      // limpiar buffers
-      rounds=[]; roundsMeta=[]; lastShown=[]; roses=[]; roseIntervals=[]; bonusEpisodes=[]; bonusActive=null;
+  // limpiar buffers
+  rounds=[]; roundsMeta=[]; lastShown=[]; roses=[]; roseIntervals=[]; bonusEpisodes=[]; bonusActive=null;
 
-      keys.forEach(k=>{
-        const node = data[k];
-        const v  = processValue(node?.v ?? node);
-        const ts = Number(node?.ts ?? k) || now();
-        if(v !== null) onNewCrash(v, ts, /*isBase*/true);
-      });
-
-      lastSeenKey = keys[keys.length-1] || null;
-      loadingBase = false;
-
-      // 2) Suscripción en vivo (compatible con pushIds y timestamps)
-      liveRef = ref.orderByKey().startAt(lastSeenKey || "");
-      liveCb = function(s){
-        const key = s.key;
-        if(lastSeenKey && key <= lastSeenKey) return; // evitar duplicado inicial
-        lastSeenKey = key;
-
-        const d  = s.val();
-        const v  = processValue(d?.v ?? d);
-        const ts = Number(d?.ts ?? key) || now();
-        if(v !== null) onNewCrash(v, ts, /*isBase*/false);
-      };
-      liveRef.on("child_added", liveCb);
-
-      connected = true;
-      feedbackEl && (feedbackEl.textContent = "Conectado.");
-      renderStats(); renderRoseHistory(); renderEpisodes(); renderHourCounts();
-    }).catch(err=>{
-      console.error("[firebase] Error al leer base:", err);
-      feedbackEl && (feedbackEl.textContent = "Error al leer datos (ver consola).");
-      loadingBase = false;
-    });
-
+  keys.forEach(k=>{
+    const node=data[k]; const v=processValue(node?.v ?? node); const ts=Number(node?.ts ?? k) || now();
+    if(v!==null) onNewCrash(v, ts, /*isBase*/true);
   });
+
+  lastSeenKey=keys[keys.length-1]||null;
+  lastSeenTs = (()=>{ const n=data[lastSeenKey]; const t=Number(n?.ts ?? lastSeenKey); return isFinite(t)?t:now(); })();
+
+  loadingBase=false;
+
+  // Suscripción en vivo (si hay ts lo usamos; si no, por key)
+  if(method==="ts"){
+    liveRef=ref.orderByChild("ts").startAt(lastSeenTs);
+    liveCb=function(s){
+      const key=s.key, d=s.val(); const v=processValue(d?.v ?? d); const ts=Number(d?.ts ?? key) || now();
+      // skip duplicado inicial
+      if(lastSeenTs && ts<=lastSeenTs && key===lastSeenKey) return;
+      lastSeenKey=key; lastSeenTs=ts;
+      if(v!==null) onNewCrash(v, ts, /*isBase*/false);
+    };
+  }else{
+    liveRef=ref.orderByKey().startAt(lastSeenKey||"");
+    liveCb=function(s){
+      const key=s.key, d=s.val(); if(lastSeenKey && key<=lastSeenKey) return; lastSeenKey=key;
+      const v=processValue(d?.v ?? d); const ts=Number(d?.ts ?? key) || now();
+      if(v!==null) onNewCrash(v, ts, /*isBase*/false);
+    };
+  }
+  liveRef.on("child_added", liveCb);
+
+  connected=true; feedbackEl&&(feedbackEl.textContent="Conectado.");
+  renderStats(); renderRoseHistory(); renderEpisodes(); renderHourCounts();
 }
 
 function disconnectFeed(){
   if(!connected) return;
   if(liveRef && liveCb) liveRef.off("child_added", liveCb);
-  liveRef = null; liveCb = null; lastSeenKey = null;
-  connected = false;
-  const feedbackEl = document.getElementById("statusFeedback");
-  feedbackEl && (feedbackEl.textContent = "Desconectado.");
+  liveRef=null; liveCb=null; lastSeenKey=null; lastSeenTs=null; connected=false;
+  const feedbackEl=document.getElementById("statusFeedback"); feedbackEl&&(feedbackEl.textContent="Desconectado.");
 }
 
 /*** ===== BACKUP / RESTORE ===== */
 function saveModel(){
-  const obj = {model, ui:{
-    minConf:ui.minConf, cooldown:ui.cooldown, mode:ui.mode,
-    mode120:ui.mode120, conf3x:ui.conf3x, bonusThr:ui.bonusThr,
-    radar:ui.radar
-  }};
-  auth.currentUser? Promise.resolve():auth.signInAnonymously();
-  return db.ref(`feeds/${FEED_ID}/state/model_v1`).set(obj);
+  const obj={model, ui:{minConf:ui.minConf, cooldown:ui.cooldown, mode:ui.mode, mode120:ui.mode120, conf3x:ui.conf3x, bonusThr:ui.bonusThr, radar:ui.radar}};
+  auth.currentUser?Promise.resolve():auth.signInAnonymously(); return db.ref(`feeds/${FEED_ID}/state/model_v1`).set(obj);
 }
 function loadModel(){
   return db.ref(`feeds/${FEED_ID}/state/model_v1`).once("value").then(s=>{
     const v=s.val(); if(!v) return;
-    if(v.model) Object.assign(model, v.model);
-    if(v.ui){
-      ui.minConf = v.ui.minConf ?? ui.minConf;
-      ui.cooldown= v.ui.cooldown ?? ui.cooldown;
-      ui.mode     = v.ui.mode ?? ui.mode;
-      ui.mode120  = v.ui.mode120 ?? ui.mode120;
-      ui.conf3x   = v.ui.conf3x ?? ui.conf3x;
-      if(v.ui.bonusThr) Object.assign(ui.bonusThr, v.ui.bonusThr);
-      if(v.ui.radar)    Object.assign(ui.radar, v.ui.radar);
-      applyUIFromState();
-    }
+    if(v.model) Object.assign(model,v.model);
+    if(v.ui){ ui.minConf=v.ui.minConf??ui.minConf; ui.cooldown=v.ui.cooldown??ui.cooldown; ui.mode=v.ui.mode??ui.mode; ui.mode120=v.ui.mode120??ui.mode120; ui.conf3x=v.ui.conf3x??ui.conf3x; if(v.ui.bonusThr) Object.assign(ui.bonusThr,v.ui.bonusThr); if(v.ui.radar) Object.assign(ui.radar,v.ui.radar); applyUIFromState(); }
   });
 }
 
-/*** ===== UI BINDINGS ===== */
+/*** ===== UI ===== */
 function applyUIFromState(){
-  document.querySelectorAll("#objChips .chip").forEach(el=>{ el.classList.toggle("on", Number(el.dataset.v)==ui.selTarget); });
-  document.querySelectorAll("#modeChips .chip").forEach(el=>{ el.classList.toggle("on", el.dataset.m===ui.mode); });
-  document.getElementById("minConf").value = ui.minConf;
-  document.getElementById("minConfVal").textContent = ui.minConf+"%";
-  document.getElementById("cooldown").value = ui.cooldown;
-  document.getElementById("beepToggle").checked = ui.beep;
-  document.getElementById("modeEV").checked = ui.modeEV;
-  document.getElementById("thr10").value = ui.radar.thr10;
-  document.getElementById("thr20").value = ui.radar.thr20;
-  document.getElementById("thr50").value = ui.radar.thr50;
-  document.getElementById("thr100").value= ui.radar.thr100;
-
-  // Sesión 120
-  document.getElementById("mode120").checked = ui.mode120;
-  document.getElementById("conf3x").value = ui.conf3x;
-
-  // Episodios 60r
-  document.getElementById("thrRosas60").value = ui.bonusThr.minRoses;
-  document.getElementById("thrMoradas60").value = ui.bonusThr.minPurples;
-  document.getElementById("thrAzules60").value = ui.bonusThr.maxBlues;
+  document.querySelectorAll("#objChips .chip").forEach(el=>el.classList.toggle("on", Number(el.dataset.v)==ui.selTarget));
+  document.querySelectorAll("#modeChips .chip").forEach(el=>el.classList.toggle("on", el.dataset.m===ui.mode));
+  document.getElementById("minConf").value=ui.minConf; document.getElementById("minConfVal").textContent=ui.minConf+"%";
+  document.getElementById("cooldown").value=ui.cooldown; document.getElementById("beepToggle").checked=ui.beep; document.getElementById("modeEV").checked=ui.modeEV;
+  document.getElementById("thr10").value=ui.radar.thr10; document.getElementById("thr20").value=ui.radar.thr20; document.getElementById("thr50").value=ui.radar.thr50; document.getElementById("thr100").value=ui.radar.thr100;
+  document.getElementById("mode120").checked=ui.mode120; document.getElementById("conf3x").value=ui.conf3x;
+  document.getElementById("thrRosas60").value=ui.bonusThr.minRoses; document.getElementById("thrMoradas60").value=ui.bonusThr.minPurples; document.getElementById("thrAzules60").value=ui.bonusThr.maxBlues;
 }
-document.getElementById("objChips").addEventListener("click",e=>{
-  const el=e.target.closest(".chip"); if(!el) return;
-  document.querySelectorAll("#objChips .chip").forEach(x=>x.classList.remove("on"));
-  el.classList.add("on"); ui.selTarget = Number(el.dataset.v);
-});
-document.getElementById("modeChips").addEventListener("click",e=>{
-  const el=e.target.closest(".chip"); if(!el) return;
-  document.querySelectorAll("#modeChips .chip").forEach(x=>x.classList.remove("on"));
-  el.classList.add("on"); ui.mode = el.dataset.m;
-});
+document.getElementById("objChips").addEventListener("click",e=>{const el=e.target.closest(".chip"); if(!el) return; document.querySelectorAll("#objChips .chip").forEach(x=>x.classList.remove("on")); el.classList.add("on"); ui.selTarget=Number(el.dataset.v);});
+document.getElementById("modeChips").addEventListener("click",e=>{const el=e.target.closest(".chip"); if(!el) return; document.querySelectorAll("#modeChips .chip").forEach(x=>x.classList.remove("on")); el.classList.add("on"); ui.mode=el.dataset.m;});
 document.getElementById("autoSignal").addEventListener("change",e=> ui.autoSignal=e.target.checked);
-document.getElementById("minConf").addEventListener("input",e=>{ ui.minConf = Number(e.target.value); document.getElementById("minConfVal").textContent=ui.minConf+"%"; });
-document.getElementById("cooldown").addEventListener("change",e=> ui.cooldown = Number(e.target.value));
-document.getElementById("beepToggle").addEventListener("change",e=> ui.beep = e.target.checked);
-document.getElementById("modeEV").addEventListener("change",e=> ui.modeEV = e.target.checked);
-["thr10","thr20","thr50","thr100"].forEach(id=>{
-  document.getElementById(id).addEventListener("change",e=>{
-    ui.radar[id] = Number(e.target.value);
-  });
-});
-
-// Sesión 120
-document.getElementById("mode120").addEventListener("change",e=>{
-  ui.mode120 = e.target.checked;
-  if(!ui.mode120) stopSession120();
-});
-document.getElementById("conf3x").addEventListener("change",e=>{
-  ui.conf3x = Number(e.target.value);
-});
-
-// Episodios 60r
-document.getElementById("thrRosas60").addEventListener("change",e=>{
-  ui.bonusThr.minRoses = Number(e.target.value);
-});
-document.getElementById("thrMoradas60").addEventListener("change",e=>{
-  ui.bonusThr.minPurples = Number(e.target.value);
-});
-document.getElementById("thrAzules60").addEventListener("change",e=>{
-  ui.bonusThr.maxBlues = Number(e.target.value);
-});
-
+document.getElementById("minConf").addEventListener("input",e=>{ui.minConf=Number(e.target.value); document.getElementById("minConfVal").textContent=ui.minConf+"%";});
+document.getElementById("cooldown").addEventListener("change",e=> ui.cooldown=Number(e.target.value));
+document.getElementById("beepToggle").addEventListener("change",e=> ui.beep=e.target.checked);
+document.getElementById("modeEV").addEventListener("change",e=> ui.modeEV=e.target.checked);
+["thr10","thr20","thr50","thr100"].forEach(id=>{document.getElementById(id).addEventListener("change",e=>{ui.radar[id]=Number(e.target.value);});});
+document.getElementById("mode120").addEventListener("change",e=>{ui.mode120=e.target.checked; if(!ui.mode120) stopSession120();});
+document.getElementById("conf3x").addEventListener("change",e=> ui.conf3x=Number(e.target.value));
+document.getElementById("thrRosas60").addEventListener("change",e=> ui.bonusThr.minRoses=Number(e.target.value));
+document.getElementById("thrMoradas60").addEventListener("change",e=> ui.bonusThr.minPurples=Number(e.target.value));
+document.getElementById("thrAzules60").addEventListener("change",e=> ui.bonusThr.maxBlues=Number(e.target.value));
 document.getElementById("connectBtn").addEventListener("click", connectFeed);
 document.getElementById("disconnectBtn").addEventListener("click", disconnectFeed);
-document.getElementById("startBtn").addEventListener("click", ()=>{
-  signalsCount=0; cooldownLeft=0; bets=[]; pendings=[]; renderBets(); renderStats(); beep(660,90,0.03);
-  if(ui.mode120) startSession120();
-});
-document.getElementById("stopBtn").addEventListener("click", ()=>{
-  bets=[]; pendings=[]; signalsCount=0; cooldownLeft=0; renderBets(); renderStats(); stopSession120();
-});
-document.getElementById("resetBtn").addEventListener("click", ()=>{
-  bets=[]; pendings=[]; signalsCount=0; cooldownLeft=0; renderBets(); renderStats(); stopSession120();
-});
+document.getElementById("startBtn").addEventListener("click", ()=>{signalsCount=0; cooldownLeft=0; bets=[]; pendings=[]; renderBets(); renderStats(); beep(660,90,0.03); if(ui.mode120) startSession120();});
+document.getElementById("stopBtn").addEventListener("click", ()=>{bets=[]; pendings=[]; signalsCount=0; cooldownLeft=0; renderBets(); renderStats(); stopSession120();});
+document.getElementById("resetBtn").addEventListener("click", ()=>{bets=[]; pendings=[]; signalsCount=0; cooldownLeft=0; renderBets(); renderStats(); stopSession120();});
 document.getElementById("hardResetBtn").addEventListener("click", ()=>{ localStorage.clear(); location.reload(); });
 document.getElementById("saveModelBtn").addEventListener("click", ()=>{ saveModel(); });
 document.getElementById("loadModelBtn").addEventListener("click", ()=>{ loadModel().then(()=>renderStats()); });
-document.getElementById("autoBackup").addEventListener("change", e=>{
-  if(e.target.checked){ saveModel(); }
-});
+document.getElementById("autoBackup").addEventListener("change", e=>{ if(e.target.checked){ saveModel(); }});
 
-/*** ===== onNewCrash (soporta histórico vs vivo) ===== */
+/*** ===== onNewCrash ===== */
 function onNewCrash(v, ts, isBase=false){
-  rounds.push(v);
-  roundsMeta.push({v, ts});
-  if(rounds.length>2000){ rounds.shift(); roundsMeta.shift(); }
+  rounds.push(v); roundsMeta.push({v,ts}); if(rounds.length>2000){ rounds.shift(); roundsMeta.shift(); }
   if(!isBase && cooldownLeft>0) cooldownLeft--;
-
-  // Rosas
   if(v>=10) onRose(v, ts);
-
-  // Asignar apuesta pendiente SOLO en vivo
-  if(!isBase && pendings.length){
-    const bet = pendings.shift();
-    const win = (v > bet.target);
-    bet.crash = v; bet.state = win?"win":"lose"; bet.pl = win? "+1" : "−1";
-    bets.push(bet); renderBets();
-  }
-
+  if(!isBase && pendings.length){ const bet=pendings.shift(); const win=(v>bet.target); bet.crash=v; bet.state=win?"win":"lose"; bet.pl=win?"+1":"−1"; bets.push(bet); renderBets(); }
   lastShown.unshift(v); if(lastShown.length>60) lastShown.pop();
-  renderStats();
-  updateEpisodeCounters();
-
-  // Señales sólo en vivo
+  renderStats(); updateEpisodeCounters();
   if(!isBase) session120Logic();
 }
 
 /*** ===== Reloj ===== */
-setInterval(()=>{ document.getElementById("clockNow").textContent = new Date().toLocaleTimeString(); }, 1000);
+setInterval(()=>{ document.getElementById("clockNow").textContent=new Date().toLocaleTimeString(); }, 1000);
 
-/*** ===== Arranque ===== */
+/*** ===== Bootstrap ===== */
 (function bootstrap(){
-  try{ const st = JSON.parse(localStorage.getItem("gocho_ui_state")||"{}"); Object.assign(ui, st); }catch(_){}
+  try{ const st=JSON.parse(localStorage.getItem("gocho_ui_state")||"{}"); Object.assign(ui,st); }catch(_){}
   applyUIFromState();
-  setInterval(()=>{ localStorage.setItem("gocho_ui_state", JSON.stringify(ui)); }, 2000);
+  setInterval(()=>localStorage.setItem("gocho_ui_state", JSON.stringify(ui)), 2000);
+  // AUTOCONEXIÓN AL CARGAR
+  connectFeed();
 })();
 </script>
 </body>
