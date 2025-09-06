@@ -191,15 +191,17 @@ function connectFeed(){
       try {
         rounds = []; pinkRounds = []; hotZones = []; lastProcessedKey = null;
         let tempLastKey = null;
-        snap.forEach(childSnap => {
-          const entry = childSnap.val();
-          const v = processValue(entry && (entry.v || entry));
-          if (v !== null) {
-            rounds.push(v);
-            if (v >= 10) pinkRounds.push({ v, idx: rounds.length - 1, ts: parseInt(childSnap.key) });
-          }
-          tempLastKey = childSnap.key;
-        });
+        if (snap.exists()) {
+            snap.forEach(childSnap => {
+              const entry = childSnap.val();
+              const v = processValue(entry && (entry.v || entry));
+              if (v !== null) {
+                rounds.push(v);
+                if (v >= 10) pinkRounds.push({ v, idx: rounds.length - 1, ts: parseInt(childSnap.key) });
+              }
+              tempLastKey = childSnap.key;
+            });
+        }
         lastShown = [...rounds].reverse(); baseCount = rounds.length;
         lastProcessedKey = tempLastKey;
         renderStats(); updateChart();
