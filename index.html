@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v7.3.0 (Sesión120 + Rosas exactas)</title>
+<title>Aviator Analyzer • Gocho v7.3.1 (Sesión120 + Rosas exactas)</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5;
@@ -43,7 +43,6 @@
   .flag.warn{background:rgba(230,126,34,.12);color:#ffbf7a}
   .flag.pink{background:rgba(255,90,195,.14);color:#ffb2e3;border:1px solid rgba(255,90,195,.32)}
   .flag.info{background:#1f2432;color:#cbd5e1;border:1px dashed #2a3144}
-  /* === NUEVO: estilos rosas / episodios / reloj === */
   .rose-item{display:flex;gap:8px;align-items:center;padding:6px 8px;border:1px solid #22283a;border-radius:8px;margin:5px 0;background:#0f121a}
   .rose-item small{color:var(--muted)}
   .episodes{display:flex;flex-direction:column;gap:6px}
@@ -55,7 +54,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v7.3.0</span>
+  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v7.3.1</span>
     <span id="statusFeedback" class="muted" style="margin-left:8px;font-weight:400"></span>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
   </h1>
@@ -123,7 +122,6 @@
       <div class="box">Racha &lt;1.70: <b id="badRun">0</b></div>
       <div class="box">CoolDown: <b id="cdLeft">0</b></div>
       <div class="box">Señales: <b id="signals">0</b></div>
-      <!-- === NUEVO: contador de rosas -->
       <div class="box">Rosas (≥10x): <b id="roseCountLbl">0</b></div>
     </div>
 
@@ -131,7 +129,6 @@
       <span id="zoneFlag" class="flag">Sin señal</span>
       <span id="hiFlag"   class="flag pink" style="display:none">Radar ALTO listo…</span>
       <span id="lastSignal" class="flag ok" style="display:none">Señal emitida</span>
-      <!-- === NUEVO: estado sesión 120 -->
       <span id="sess120Flag" class="flag info" style="display:none">Sesión 120 → 3x</span>
     </div>
 
@@ -141,17 +138,17 @@
     </div>
   </div>
 
-  <!-- === NUEVO: Estrategia Sesión 120 → 3x === -->
+  <!-- Sesión 120 → 3x -->
   <div class="card">
     <h3 style="margin:0 0 8px 0">Sesión 120 → solo entrada ≥3x</h3>
     <div class="row">
       <label><input id="mode120" type="checkbox"> Activar “Sesión 120→3x”</label>
       <label> Conf. 3x (EV/Bayes) <input id="conf3x" type="number" value="42" min="10" max="95"/>%</label>
-      <span class="muted">Lanza como máximo una señal por sesión de 120 rondas.</span>
+      <span class="muted">Máximo 1 señal por sesión de 120 rondas.</span>
     </div>
   </div>
 
-  <!-- === NUEVO: Área de Rosas: intervalos exactos === -->
+  <!-- Área de Rosas: intervalos exactos -->
   <div class="card">
     <div class="row">
       <h3 style="margin:0">Rosas (≥10x): intervalos exactos entre rosas</h3>
@@ -160,7 +157,7 @@
     <div id="roseHistory" style="margin-top:8px"></div>
   </div>
 
-  <!-- === NUEVO: Reloj + Episodios Bonus 60r por hora === -->
+  <!-- Reloj + Episodios bonus 60r -->
   <div class="card">
     <div class="row">
       <h3 style="margin:0">Reloj &amp; Zonas “bonus 60r” por hora</h3>
@@ -176,11 +173,11 @@
     </div>
     <div class="row" style="margin-top:10px">
       <div class="grow">
-        <div class="muted" style="margin-bottom:6px">Episodios detectados (con hora inicio → fin)</div>
+        <div class="muted" style="margin-bottom:6px">Episodios detectados (hora inicio → fin)</div>
         <div id="episodesList" class="episodes"></div>
       </div>
       <div class="grow">
-        <div class="muted" style="margin-bottom:6px">Conteo por hora del día (frecuencia de episodios)</div>
+        <div class="muted" style="margin-bottom:6px">Conteo por hora del día</div>
         <table class="hours-grid">
           <thead><tr><th>Hora</th><th>Episodios</th></tr></thead>
           <tbody id="hourTableBody"></tbody>
@@ -192,12 +189,6 @@
   <div class="card">
     <div class="row">
       <h3 style="margin:0">Apuestas registradas</h3>
-      <div class="row" style="margin-left:auto;gap:6px">
-        <button id="hardResetBtn" class="btn bad" title="Borra solo el modelo local (no la historia del feed)">Hard reset modelo (local)</button>
-        <label><input id="autoBackup" type="checkbox"/> Auto‑backup modelo</label>
-        <button id="saveModelBtn" class="btn">Guardar modelo</button>
-        <button id="loadModelBtn" class="btn">Restaurar modelo</button>
-      </div>
     </div>
     <table class="table" style="margin-top:8px">
       <thead>
@@ -205,6 +196,12 @@
       </thead>
       <tbody id="betsTbody"></tbody>
     </table>
+    <div class="row" style="margin-top:10px;gap:6px">
+      <button id="hardResetBtn" class="btn bad" title="Borra solo el modelo local (no la historia del feed)">Hard reset modelo (local)</button>
+      <label><input id="autoBackup" type="checkbox"/> Auto‑backup modelo</label>
+      <button id="saveModelBtn" class="btn">Guardar modelo</button>
+      <button id="loadModelBtn" class="btn">Restaurar modelo</button>
+    </div>
   </div>
 
   <div class="card muted" style="font-size:12px">
@@ -218,12 +215,12 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script>
-/*** ===== CONFIG FIREBASE (TU PROYECTO) ===== ***/
+/*** ===== CONFIG FIREBASE ===== ***/
 const firebaseConfig = {
   apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
   authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
   projectId: "aviator-analyzer-b29a7",
-  storageBucket: "aviator-analyzer-b29a7.firebasestorage.app",
+  storageBucket: "aviator-analyzer-b29a7.appspot.com",
   messagingSenderId: "575063626276",
   appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
   measurementId: "G-325QCBSQMH",
@@ -233,32 +230,30 @@ firebase.initializeApp(firebaseConfig);
 const db  = firebase.database();
 const auth= firebase.auth();
 
-/*** ====== ESTADO UI/MODELO ====== ***/
+/*** ====== ESTADO ====== ***/
 let FEED_ID = "gocho";
 let connected = false;
-let rounds = [];            // valores puros (reciente al final)
-let roundsMeta = [];        // === NUEVO: {v, ts} en paralelo a rounds
+let loadingBase = false;      // ← evita señales durante la carga del historial
+let rounds = [];              // valores (reciente al final)
+let roundsMeta = [];          // {v, ts}
 let lastShown = [];
-let sub = null;
 let baseCount = 0;
-let lastProcessedKey = null;
 
-let pendings = [];          // [{id, target, stake, ts}]
+let pendings = [];            // [{id, target, stake, ts}]
 let bets = [];
 let signalsCount = 0;
 let cooldownLeft = 0;
 
-// === NUEVO: rosas e intervalos/episodios
-let roses = [];             // [{idx, v, ts}]
-let roseIntervals = [];     // [{from:{...}, to:{...}, gap}]
-let bonusEpisodes = [];     // [{startTs,endTs,startIdx,endIdx,durationRounds,peak:{roses,purples,blues}}]
+// Rosas, episodios, horas
+let roses = [];               // [{idx,v,ts}]
+let roseIntervals = [];       // [{from,to,gap}]
+let bonusEpisodes = [];       // [{startTs,endTs,startIdx,endIdx,durationRounds,peak:{roses,purples,blues}}]
 let bonusActive = null;
 let hourCounts = Array.from({length:24},()=>0);
 
 const model = {
   priors: { "2": [10,10], "2.5":[8,10], "3":[6,10], "5":[3,9], "10":[1.5,8.5] },
-  winN: 120,
-  wSlope: 0.6, wBonus: 0.4, wDry: -0.3
+  winN: 120
 };
 
 const ui = {
@@ -270,20 +265,20 @@ const ui = {
   beep: true,
   modeEV: false,
   radar: {thr10:8,thr20:4,thr50:1.5,thr100:0.6},
-  // === NUEVO: sesión 120 → 3x
+  // Sesión 120 → 3x
   mode120: false,
-  conf3x: 42, // % mínimo bayes/EV para 3x (ajustable)
-  // === NUEVO: episodios 60r
+  conf3x: 42, // %
+  // Episodios 60r
   bonusThr: {minRoses:6, minPurples:12, maxBlues:22}
 };
 
-/*** ====== UTIL ====== ***/
+/*** ===== UTIL ===== */
 function fmtPct(x){ return (x*100).toFixed(1) + "%"; }
 function clamp(v,min,max){ return v<min?min:(v>max?max:v); }
 function now(){ return Date.now(); }
 function HHmm(ts){ const d=new Date(ts); return d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
 
-/*** ====== AUDIO ====== ***/
+/*** ===== AUDIO ===== */
 let audioCtx=null;
 function beep(freq=880, ms=120, gain=0.03){
   if(!ui.beep) return;
@@ -294,13 +289,12 @@ function beep(freq=880, ms=120, gain=0.03){
     o.type="sine"; o.frequency.value=freq;
     g.gain.value=gain;
     o.connect(g); g.connect(audioCtx.destination);
-    o.start();
-    setTimeout(()=>{o.stop();}, ms);
+    o.start(); setTimeout(()=>{o.stop();}, ms);
   }catch(_){}
 }
 function beepPink(){ beep(520,160,0.035); setTimeout(()=>beep(980,80,0.03),100); }
 
-/*** ===== BAYES + MÉTRICAS ===== ***/
+/*** ===== BAYES + MÉTRICAS ===== */
 function probGE(k){
   const v = rounds.slice(-model.winN);
   const s = v.filter(x=>x>=k).length;
@@ -333,41 +327,33 @@ function inBonusZone(){
   return (p2>=0.60 && has5 && sl>=0);
 }
 function drynessSince5x(){
-  let d=0;
-  for(let i=rounds.length-1;i>=0;i--){
-    if(rounds[i]>=5) break; else d++;
-  }
+  let d=0; for(let i=rounds.length-1;i>=0;i--){ if(rounds[i]>=5) break; else d++; }
   return d;
 }
 
-/*** ===== EV (opcional) ===== ***/
+/*** ===== EV (opcional) ===== */
 function expectedValueForTarget(k){
   const p = { "2":probGE(2), "2.5":probGE(2.5), "3":probGE(3) }[String(k)] || 0;
-  const q = 1-p;
-  return p - q;
+  return p - (1-p);
 }
 function bestTargetEV(){
-  const cand=[2,2.5,3];
-  let best=cand[0], bestEV=-999;
-  for(const k of cand){
-    const ev=expectedValueForTarget(k);
-    if(ev>bestEV){ bestEV=ev; best=k; }
-  }
+  const cand=[2,2.5,3]; let best=cand[0], bestEV=-999;
+  for(const k of cand){ const ev=expectedValueForTarget(k); if(ev>bestEV){ bestEV=ev; best=k; } }
   return {target:best, ev:bestEV};
 }
 
-/*** ===== RADAR HIGH-X ===== ***/
+/*** ===== RADAR HIGH-X ===== */
 function radarHighX(){
   let p10=probGE(10), p20=probGE(20), p50=probGE(50), p100=probGE(100);
   const bonus = inBonusZone()? 1.15 : 1.0;
-  const dry   = clamp(drynessSince5x()/60, 0, 0.4); 
+  const dry   = clamp(drynessSince5x()/60, 0, 0.4);
   p10*= bonus*(1+dry); p20*= bonus*(1+dry); p50*= bonus*(1+dry); p100*= bonus*(1+dry);
-  const hit10 = (p10*100) >= ui.radar.thr10, hit20 = (p20*100) >= ui.radar.thr20;
-  const hit50 = (p50*100) >= ui.radar.thr50, hit100= (p100*100) >= ui.radar.thr100;
+  const hit10=(p10*100)>=ui.radar.thr10, hit20=(p20*100)>=ui.radar.thr20;
+  const hit50=(p50*100)>=ui.radar.thr50, hit100=(p100*100)>=ui.radar.thr100;
   return {hit10,hit20,hit50,hit100, p:{p10,p20,p50,p100}};
 }
 
-/*** ===== SEÑALES (general) ===== ***/
+/*** ===== SEÑALES ===== */
 function gatesPass(target){
   const pTarget = probGE(target);
   const minP = ui.minConf/100;
@@ -379,22 +365,27 @@ function gatesPass(target){
   const notBadZone = !(bad>=7);
   return (pTarget>=minP) && slopeOK && notBadZone && (cooldownLeft<=0);
 }
+function emitSignal(target){
+  const id = "S"+now();
+  pendings.push({id, target, stake:1, ts:now(), state:"pend"});
+  signalsCount++; cooldownLeft = ui.cooldown;
+  renderBets();
+  const sig = document.getElementById("lastSignal");
+  sig.style.display="inline-block"; sig.textContent = `Señal: ${target}x`;
+  setTimeout(()=>sig.style.display="none", 3500);
+  beep(880,140,0.04);
+}
 
-/*** ===== NUEVO: Sesión 120 → 3x ===== */
+/*** ===== Sesión 120 → 3x ===== */
 const session120 = {active:false, remaining:0, signaled:false, startIdx:null};
 function startSession120(){
-  session120.active=true;
-  session120.remaining=120;
-  session120.signaled=false;
+  session120.active=true; session120.remaining=120; session120.signaled=false;
   session120.startIdx=rounds.length;
   document.getElementById("sess120Flag").style.display="inline-block";
   updateSess120Flag();
 }
 function stopSession120(){
-  session120.active=false;
-  session120.remaining=0;
-  session120.signaled=false;
-  session120.startIdx=null;
+  session120.active=false; session120.remaining=0; session120.signaled=false; session120.startIdx=null;
   document.getElementById("sess120Flag").style.display="none";
 }
 function tickSession120(){
@@ -404,20 +395,18 @@ function tickSession120(){
   updateSess120Flag();
 }
 function updateSess120Flag(){
-  const el = document.getElementById("sess120Flag");
-  if(!el) return;
-  const p3 = probGE(3);
-  el.textContent = `Sesión 120→3x • quedan ${session120.remaining} r • P(≥3x)=${fmtPct(p3)}`; 
+  const el = document.getElementById("sess120Flag"); if(!el) return;
+  el.textContent = `Sesión 120→3x • quedan ${session120.remaining} r • P(≥3x)=${fmtPct(probGE(3))}`;
 }
 
-/*** ===== NUEVO: Rosas / Episodios / Reloj ===== */
+/*** ===== Rosas / Episodios / Reloj ===== */
 function onRose(v, ts){
   const idx = rounds.length-1;
   const item = {idx, v, ts};
   roses.push(item);
   if(roses.length>=2){
     const prev = roses[roses.length-2];
-    const gap = item.idx - prev.idx; // rondas transcurridas entre rosas
+    const gap = item.idx - prev.idx;
     roseIntervals.push({from:prev, to:item, gap});
     if(roseIntervals.length>30) roseIntervals.shift();
   }
@@ -425,17 +414,14 @@ function onRose(v, ts){
   renderRoseHistory();
 }
 function renderRoseHistory(){
-  const cont = document.getElementById("roseHistory");
-  cont.innerHTML = "";
+  const cont = document.getElementById("roseHistory"); cont.innerHTML = "";
   const items = roseIntervals.slice(-30).reverse();
   if(!items.length){
-    const d=document.createElement("div");
-    d.className="muted"; d.textContent="Aún no hay enlaces entre rosas (≥10x).";
-    cont.appendChild(d); return;
+    const d=document.createElement("div"); d.className="muted";
+    d.textContent="Aún no hay enlaces entre rosas (≥10x)."; cont.appendChild(d); return;
   }
-  items.forEach((it,ix)=>{
-    const row = document.createElement("div");
-    row.className = "rose-item";
+  items.forEach(it=>{
+    const row=document.createElement("div"); row.className="rose-item";
     row.innerHTML = `
       <span class="pill pink">${it.from.v.toFixed(2)}x</span>
       <small>${HHmm(it.from.ts)}</small>
@@ -466,11 +452,7 @@ function updateEpisodeCounters(){
 
   if(meets){
     if(!bonusActive){
-      bonusActive = {
-        startIdx: roundsMeta.length-60,
-        startTs: win[0].ts,
-        peak:{roses:cR,purples:cM,blues:cA}
-      };
+      bonusActive = {startIdx: roundsMeta.length-60, startTs: win[0].ts, peak:{roses:cR,purples:cM,blues:cA}};
     }else{
       bonusActive.peak.roses = Math.max(bonusActive.peak.roses, cR);
       bonusActive.peak.purples = Math.max(bonusActive.peak.purples, cM);
@@ -480,27 +462,27 @@ function updateEpisodeCounters(){
     bonusActive.endTs = roundsMeta[roundsMeta.length-1].ts;
     bonusActive.endIdx = roundsMeta.length-1;
     bonusActive.durationRounds = bonusActive.endIdx - bonusActive.startIdx + 1;
-    bonusEpisodes.push(bonusActive);
-    if(bonusEpisodes.length>20) bonusEpisodes.shift();
+    bonusEpisodes.push(bonusActive); if(bonusEpisodes.length>20) bonusEpisodes.shift();
+
     // contar horas tocadas
     const seen = new Set();
-    for(let t=bonusActive.startTs; t<=bonusActive.endTs; t+=15*60*1000){ seen.add(new Date(t).getHours()); }
+    for(let t=bonusActive.startTs; t<=bonusActive.endTs; t+=15*60*1000){
+      seen.add(new Date(t).getHours());
+    }
     seen.forEach(h=>hourCounts[h]++);
     bonusActive = null;
-    renderEpisodes();
-    renderHourCounts();
+    renderEpisodes(); renderHourCounts();
   }
 }
 function renderEpisodes(){
-  const list = document.getElementById("episodesList");
-  list.innerHTML = "";
+  const list = document.getElementById("episodesList"); list.innerHTML = "";
   if(!bonusEpisodes.length){
     const d=document.createElement("div"); d.className="muted";
     d.textContent="Sin episodios detectados todavía."; list.appendChild(d); return;
   }
   bonusEpisodes.slice(-12).reverse().forEach(ep=>{
-    const el = document.createElement("div");
-    el.className = "episode";
+    const el=document.createElement("div");
+    el.className="episode";
     el.innerHTML = `<b>${HHmm(ep.startTs)} → ${HHmm(ep.endTs)}</b> • pico: rosas=${ep.peak.roses} moradas=${ep.peak.purples} azules=${ep.peak.blues} • ~${ep.durationRounds} rondas`;
     list.appendChild(el);
   });
@@ -514,48 +496,45 @@ function renderHourCounts(){
   }
 }
 
-/*** ===== SEÑAL (emisión) ===== ***/
-function emitSignal(target){
-  const id = "S"+now();
-  pendings.push({id, target, stake:1, ts:now(), state:"pend"});
-  signalsCount++; cooldownLeft = ui.cooldown;
-  renderBets();
-  const sig = document.getElementById("lastSignal");
-  sig.style.display="inline-block"; sig.textContent = `Señal: ${target}x`;
-  setTimeout(()=>sig.style.display="none", 3500);
-  beep(880,140,0.04);
+/*** ===== Motor de señales ===== */
+function maybeSignalNormal(){
+  if(rounds.length<12) return;
+  let target = ui.selTarget;
+  if(ui.modeEV){ const {target:t} = bestTargetEV(); target = t; }
+  if(gatesPass(target)){ emitSignal(target); }
 }
+function session120Logic(){
+  tickSession120();
 
-/*** ===== ASIGNACIÓN DE CRASH A SEÑALES ===== ***/
-function onNewCrash(v, ts){ // === MODIFICADO: ahora llega ts
-  rounds.push(v);
-  roundsMeta.push({v, ts: ts||now()});
-  if(rounds.length>2000){ rounds.shift(); roundsMeta.shift(); }
-  if(cooldownLeft>0) cooldownLeft--;
+  // Radar alto (alerta)
+  const hi = radarHighX();
+  const hiEl = document.getElementById("hiFlag");
+  if(hi.hit10 || hi.hit20 || hi.hit50 || hi.hit100){
+    hiEl.style.display="inline-block";
+    hiEl.textContent = `Radar ALTO: ${(hi.hit100?"≥100x":hi.hit50?"≥50x":hi.hit20?"≥20x":"≥10x")} posible`;
+    beepPink();
+  }else{ hiEl.style.display="none"; }
 
-  // rosas
-  if(v>=10) onRose(v, ts||now());
+  if(!ui.autoSignal) return;
 
-  // apuestas pendientes
-  if(pendings.length){
-    const bet = pendings.shift();
-    const win = (v > bet.target);
-    bet.crash = v;
-    bet.state = win?"win":"lose";
-    bet.pl = win? "+1" : "−1";
-    bets.push(bet);
-    renderBets();
+  if(ui.mode120 && session120.active && !session120.signaled){
+    const conf = probGE(3);
+    const slope = slopeMA(rounds,10);
+    const bad   = countBad170(rounds,8);
+    const bonus = inBonusZone();
+    const minConf3 = ui.conf3x/100;
+    const pass = (conf>=minConf3) && bonus && (slope>=-0.005) && (bad<6) && (cooldownLeft<=0);
+    if(pass){
+      emitSignal(3);
+      session120.signaled = true;
+      updateSess120Flag();
+    }
+    return;
   }
-  lastShown.unshift(v);
-  if(lastShown.length>60) lastShown.pop();
-
-  // render & logica
-  renderStats();
-  updateEpisodeCounters();
-  session120Logic(); // === NUEVO
+  if(!ui.mode120){ maybeSignalNormal(); }
 }
 
-/*** ===== RENDER ===== ***/
+/*** ===== RENDER ===== */
 function renderStats(){
   const p2=probGE(2), p25=probGE(2.5), p3=probGE(3), p5=probGE(5), p10=probGE(10);
   const ma10 = movingAverage(rounds,10);
@@ -576,22 +555,20 @@ function renderStats(){
   else if(inBonusZone()) { zone.className="flag ok"; zone.textContent="Bonus zone (tendencia alcista)"; }
   else { zone.className="flag"; zone.textContent="Sin señal"; }
 
-  const cont=document.getElementById("lastRounds");
-  cont.innerHTML="";
+  const cont=document.getElementById("lastRounds"); cont.innerHTML="";
   lastShown.forEach(x=>{ const d=document.createElement("span"); d.className="pill neu"; d.textContent = x.toFixed(2)+"x"; cont.appendChild(d); });
 }
 function renderBets(){
-  const tb=document.getElementById("betsTbody");
-  tb.innerHTML="";
+  const tb=document.getElementById("betsTbody"); tb.innerHTML="";
   bets.concat(pendings).forEach((b,idx)=>{
-    const tr=document.createElement("tr");
     const st = b.state==="win"?"win": b.state==="lose"?"lose":"pend";
+    const tr=document.createElement("tr");
     tr.innerHTML = `<td>${idx+1}</td><td>${b.target}x</td><td>$${b.stake.toFixed?b.stake.toFixed(2):b.stake}</td><td>${b.crash? b.crash.toFixed(2)+"x":"—"}</td><td>${st}</td><td>${b.pl||"—"}</td>`;
     tb.appendChild(tr);
   });
 }
 
-/*** ===== CONEXIÓN FEED (blindada) ===== ***/
+/*** ===== CONEXIÓN FEED (reparada) ===== */
 function processValue(rawValue) {
   if (rawValue === null || rawValue === undefined) return null;
   const strValue = String(rawValue).replace(/,/g, '');
@@ -600,63 +577,85 @@ function processValue(rawValue) {
   const v = Number(cleanedValue);
   return (v >= 1 && !isNaN(v)) ? v : null;
 }
+let liveRef = null, liveCb = null, lastSeenKey = null;
+
 function connectFeed(){
   if(connected) return;
-  FEED_ID = document.getElementById("feedId").value.trim() || "gocho";
+  FEED_ID = (document.getElementById("feedId").value || "gocho").trim();
   const feedbackEl = document.getElementById("statusFeedback");
-  if (feedbackEl) feedbackEl.textContent = "Conectando a Firebase…";
-  auth.signInAnonymously().then(()=>{
-    if (feedbackEl) feedbackEl.textContent = "Cargando historial…";
-    const refBase = db.ref(`feeds/${FEED_ID}/crashes`).orderByKey().limitToLast(800);
-    refBase.once("value", snap=>{
-      try {
-        const data = snap.val()||{};
-        const keys = Object.keys(data).sort();
-        baseCount = keys.length;
-        rounds = []; roundsMeta = []; lastShown = []; roses=[]; roseIntervals=[];
-        keys.forEach(k=>{
-          const node = data[k];
-          const v = processValue(node?.v ?? node);
-          const ts = Number(node?.ts ?? k) || now();
-          if(v !== null) onNewCrash(v, ts);
-        });
-        const refNew = db.ref(`feeds/${FEED_ID}/crashes`).orderByKey().startAt(String(Date.now()));
-        sub = refNew.on("child_added", s=>{
-          if (s.key === lastProcessedKey || !s.key) return;
-          lastProcessedKey = s.key;
-          const d = s.val(); if (!d) return;
-          const v = processValue(d.v ?? d);
-          const ts = Number(d.ts ?? s.key) || now();
-          if (v !== null) onNewCrash(v, ts);
-        });
-        connected = true;
-        if (feedbackEl) feedbackEl.textContent = "Conectado.";
-        renderStats(); renderRoseHistory(); renderEpisodes(); renderHourCounts();
-      } catch (error) {
-        console.error("Error crítico en la carga:", error);
-        if (feedbackEl) feedbackEl.textContent = "Error al cargar datos. Revise consola.";
-      }
+  const refPath = `feeds/${FEED_ID}/crashes`;
+
+  feedbackEl && (feedbackEl.textContent = `Conectando a ${refPath}…`);
+
+  // auth anónima (no bloquea si falla)
+  auth.signInAnonymously().catch(e=>{
+    console.warn("[auth] Anónimo no habilitado, sigo sin auth:", e?.message||e);
+  }).finally(()=>{
+
+    const ref = db.ref(refPath);
+    loadingBase = true;
+
+    // 1) Cargar historial
+    feedbackEl && (feedbackEl.textContent = "Cargando historial…");
+    ref.orderByKey().limitToLast(800).once("value").then(snap=>{
+      const data = snap.val() || {};
+      const keys = Object.keys(data).sort();
+      baseCount = keys.length;
+
+      // limpiar buffers
+      rounds=[]; roundsMeta=[]; lastShown=[]; roses=[]; roseIntervals=[]; bonusEpisodes=[]; bonusActive=null;
+
+      keys.forEach(k=>{
+        const node = data[k];
+        const v  = processValue(node?.v ?? node);
+        const ts = Number(node?.ts ?? k) || now();
+        if(v !== null) onNewCrash(v, ts, /*isBase*/true);
+      });
+
+      lastSeenKey = keys[keys.length-1] || null;
+      loadingBase = false;
+
+      // 2) Suscripción en vivo (compatible con pushIds y timestamps)
+      liveRef = ref.orderByKey().startAt(lastSeenKey || "");
+      liveCb = function(s){
+        const key = s.key;
+        if(lastSeenKey && key <= lastSeenKey) return; // evitar duplicado inicial
+        lastSeenKey = key;
+
+        const d  = s.val();
+        const v  = processValue(d?.v ?? d);
+        const ts = Number(d?.ts ?? key) || now();
+        if(v !== null) onNewCrash(v, ts, /*isBase*/false);
+      };
+      liveRef.on("child_added", liveCb);
+
+      connected = true;
+      feedbackEl && (feedbackEl.textContent = "Conectado.");
+      renderStats(); renderRoseHistory(); renderEpisodes(); renderHourCounts();
+    }).catch(err=>{
+      console.error("[firebase] Error al leer base:", err);
+      feedbackEl && (feedbackEl.textContent = "Error al leer datos (ver consola).");
+      loadingBase = false;
     });
-  }).catch(error => {
-    console.error("Error de autenticación:", error);
-    const feedbackEl = document.getElementById("statusFeedback");
-    if (feedbackEl) feedbackEl.textContent = "Error de autenticación.";
+
   });
 }
+
 function disconnectFeed(){
   if(!connected) return;
-  const refNew = db.ref(`feeds/${FEED_ID}/crashes`);
-  if(sub) refNew.off("child_added", sub);
-  sub=null; connected=false;
-  document.getElementById("statusFeedback").textContent = "Desconectado.";
+  if(liveRef && liveCb) liveRef.off("child_added", liveCb);
+  liveRef = null; liveCb = null; lastSeenKey = null;
+  connected = false;
+  const feedbackEl = document.getElementById("statusFeedback");
+  feedbackEl && (feedbackEl.textContent = "Desconectado.");
 }
 
-/*** ===== BACKUP / RESTORE MODELO ===== ***/
+/*** ===== BACKUP / RESTORE ===== */
 function saveModel(){
   const obj = {model, ui:{
     minConf:ui.minConf, cooldown:ui.cooldown, mode:ui.mode,
-    mode120:ui.mode120, conf3x:ui.conf3x,
-    bonusThr:ui.bonusThr
+    mode120:ui.mode120, conf3x:ui.conf3x, bonusThr:ui.bonusThr,
+    radar:ui.radar
   }};
   auth.currentUser? Promise.resolve():auth.signInAnonymously();
   return db.ref(`feeds/${FEED_ID}/state/model_v1`).set(obj);
@@ -672,12 +671,13 @@ function loadModel(){
       ui.mode120  = v.ui.mode120 ?? ui.mode120;
       ui.conf3x   = v.ui.conf3x ?? ui.conf3x;
       if(v.ui.bonusThr) Object.assign(ui.bonusThr, v.ui.bonusThr);
+      if(v.ui.radar)    Object.assign(ui.radar, v.ui.radar);
       applyUIFromState();
     }
   });
 }
 
-/*** ===== UI BINDINGS ===== ***/
+/*** ===== UI BINDINGS ===== */
 function applyUIFromState(){
   document.querySelectorAll("#objChips .chip").forEach(el=>{ el.classList.toggle("on", Number(el.dataset.v)==ui.selTarget); });
   document.querySelectorAll("#modeChips .chip").forEach(el=>{ el.classList.toggle("on", el.dataset.m===ui.mode); });
@@ -691,11 +691,11 @@ function applyUIFromState(){
   document.getElementById("thr50").value = ui.radar.thr50;
   document.getElementById("thr100").value= ui.radar.thr100;
 
-  // === NUEVO: sesión 120
+  // Sesión 120
   document.getElementById("mode120").checked = ui.mode120;
   document.getElementById("conf3x").value = ui.conf3x;
 
-  // === NUEVO: episodios 60r
+  // Episodios 60r
   document.getElementById("thrRosas60").value = ui.bonusThr.minRoses;
   document.getElementById("thrMoradas60").value = ui.bonusThr.minPurples;
   document.getElementById("thrAzules60").value = ui.bonusThr.maxBlues;
@@ -717,11 +717,11 @@ document.getElementById("beepToggle").addEventListener("change",e=> ui.beep = e.
 document.getElementById("modeEV").addEventListener("change",e=> ui.modeEV = e.target.checked);
 ["thr10","thr20","thr50","thr100"].forEach(id=>{
   document.getElementById(id).addEventListener("change",e=>{
-    ui.radar[id.replace("thr","thr")] = Number(e.target.value);
+    ui.radar[id] = Number(e.target.value);
   });
 });
 
-// === NUEVO: sesión 120
+// Sesión 120
 document.getElementById("mode120").addEventListener("change",e=>{
   ui.mode120 = e.target.checked;
   if(!ui.mode120) stopSession120();
@@ -730,7 +730,7 @@ document.getElementById("conf3x").addEventListener("change",e=>{
   ui.conf3x = Number(e.target.value);
 });
 
-// === NUEVO: episodios 60r
+// Episodios 60r
 document.getElementById("thrRosas60").addEventListener("change",e=>{
   ui.bonusThr.minRoses = Number(e.target.value);
 });
@@ -756,56 +756,38 @@ document.getElementById("resetBtn").addEventListener("click", ()=>{
 document.getElementById("hardResetBtn").addEventListener("click", ()=>{ localStorage.clear(); location.reload(); });
 document.getElementById("saveModelBtn").addEventListener("click", ()=>{ saveModel(); });
 document.getElementById("loadModelBtn").addEventListener("click", ()=>{ loadModel().then(()=>renderStats()); });
-document.getElementById("autoBackup").addEventListener("change",e=>{ if(e.target.checked){ saveModel(); } });
+document.getElementById("autoBackup").addEventListener("change", e=>{
+  if(e.target.checked){ saveModel(); }
+});
 
-/*** ===== NUEVO: lógica de decisión para Sesión 120 → 3x ===== */
-function session120Logic(){
-  tickSession120();
-  // Radar alto (alerta) se mantiene
-  const hi = radarHighX();
-  const hiEl = document.getElementById("hiFlag");
-  if(hi.hit10 || hi.hit20 || hi.hit50 || hi.hit100){
-    hiEl.style.display="inline-block";
-    hiEl.textContent = `Radar ALTO: ${(hi.hit100?"≥100x":hi.hit50?"≥50x":hi.hit20?"≥20x":"≥10x")} posible`;
-    beepPink();
-  }else{ hiEl.style.display="none"; }
+/*** ===== onNewCrash (soporta histórico vs vivo) ===== */
+function onNewCrash(v, ts, isBase=false){
+  rounds.push(v);
+  roundsMeta.push({v, ts});
+  if(rounds.length>2000){ rounds.shift(); roundsMeta.shift(); }
+  if(!isBase && cooldownLeft>0) cooldownLeft--;
 
-  // Si no hay auto-señal global, no se emite nada
-  if(!ui.autoSignal) return;
+  // Rosas
+  if(v>=10) onRose(v, ts);
 
-  // Si el modo 120 está activo, priorizamos esa lógica y permitimos como máximo 1 señal
-  if(ui.mode120 && session120.active && !session120.signaled){
-    const conf = probGE(3);               // confianza para 3x
-    const slope = slopeMA(rounds,10);     // tendencia
-    const bad = countBad170(rounds,8);    // zona mala
-    const bonus = inBonusZone();          // bonus zone reciente
-
-    const minConf3 = ui.conf3x/100;
-    const pass = (conf>=minConf3) && bonus && (slope>=-0.005) && (bad<6) && (cooldownLeft<=0);
-    if(pass){
-      emitSignal(3); // SOLO 3x
-      session120.signaled = true;
-      updateSess120Flag();
-    }
-    return; // no seguimos con el motor normal
+  // Asignar apuesta pendiente SOLO en vivo
+  if(!isBase && pendings.length){
+    const bet = pendings.shift();
+    const win = (v > bet.target);
+    bet.crash = v; bet.state = win?"win":"lose"; bet.pl = win? "+1" : "−1";
+    bets.push(bet); renderBets();
   }
 
-  // Motor normal (si no está el modo 120)
-  maybeSignalNormal();
-}
-function maybeSignalNormal(){
-  if(rounds.length<12) return;
-  // radar alto ya se maneja en session120Logic()
-  if(!ui.autoSignal) return;
-  let target = ui.selTarget;
-  if(ui.modeEV){ const {target:t} = bestTargetEV(); target = t; }
-  if(gatesPass(target)){ emitSignal(target); }
+  lastShown.unshift(v); if(lastShown.length>60) lastShown.pop();
+  renderStats();
+  updateEpisodeCounters();
+
+  // Señales sólo en vivo
+  if(!isBase) session120Logic();
 }
 
-/*** ===== RELOJ en vivo ===== */
-setInterval(()=>{
-  document.getElementById("clockNow").textContent = new Date().toLocaleTimeString();
-}, 1000);
+/*** ===== Reloj ===== */
+setInterval(()=>{ document.getElementById("clockNow").textContent = new Date().toLocaleTimeString(); }, 1000);
 
 /*** ===== Arranque ===== */
 (function bootstrap(){
