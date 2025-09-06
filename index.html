@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v7.1.0</title>
+<title>Aviator Analyzer • Gocho v7.2.0</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
   :root{
@@ -34,6 +34,7 @@
   .kpi .box{background:#0f121a;border:1px solid #22283a;border-radius:10px;padding:10px 12px}
   .flag{padding:4px 8px;border-radius:6px;background:#22283a}
   .flag.ok{background:rgba(46,204,113,.15);color:#7ff5b0} .flag.bad{background:rgba(231,76,60,.12);color:#ff9b9b}
+  .flag.warn{background:rgba(230,126,34,.12);color:#ffbf7a}
   #lastRounds{display:flex;flex-wrap:wrap;gap:4px;}
   .pill{display:inline-block;padding:4px 8px;border-radius:999px;margin:0;border:1px solid transparent}
   .pill.blue{background:var(--blue-pill-bg);color:var(--blue-pill-text);border-color:var(--blue-pill-border);}
@@ -49,10 +50,8 @@
     animation: fadeInOut 10s ease-in-out forwards;
   }
   @keyframes fadeInOut {
-    0% { opacity: 0; transform: translate(-50%, -20px); }
-    10% { opacity: 1; transform: translate(-50%, 0); }
-    90% { opacity: 1; transform: translate(-50%, 0); }
-    100% { opacity: 0; transform: translate(-50%, -20px); }
+    0% { opacity: 0; transform: translate(-50%, -20px); } 10% { opacity: 1; transform: translate(-50%, 0); }
+    90% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, -20px); }
   }
 </style>
 </head>
@@ -60,7 +59,7 @@
 <div id="signal-banner" style="display: none;"></div>
 
 <div class="wrap">
-  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v7.1.0</span> <span id="clock" class="muted" style="margin-left:auto; font-size:14px"></span></h1>
+  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v7.2.0</span> <span id="clock" class="muted" style="margin-left:auto; font-size:14px"></span></h1>
 
   <div class="card">
     <div class="row"><div class="row"><span class="muted">Objetivo</span><div id="objChips" class="row"><div data-v="2" class="chip">2x</div><div data-v="2.5" class="chip">2.5x</div><div data-v="3" class="chip on">3x</div><div data-v="3.5" class="chip">3.5x</div><div data-v="4" class="chip">4x</div><div data-v="5" class="chip">5x</div></div></div><div class="row" style="margin-left:8px"><span class="muted">Modo:</span><div id="modeChips" class="row"><div data-m="agresivo" class="chip on">Agresivo</div><div data-m="normal" class="chip">Normal</div><div data-m="conservador" class="chip">Conservador</div></div><label style="margin-left:8px"><input id="autoSignal" type="checkbox" checked> Auto‑señal</label></div><div class="row" style="margin-left:auto"><span class="muted">Conf. mín.:</span><input id="minConf" type="range" min="50" max="95" value="68"/><span id="minConfVal">68%</span><span class="muted" style="margin-left:8px">CoolDown:</span><input id="cooldown" type="number" min="0" max="50" value="3"/></div></div>
@@ -190,15 +189,20 @@ function connectFeed(){
     const refBase = db.ref(`feeds/${FEED_ID}/crashes`).orderByKey().limitToLast(800);
     refBase.once("value", snap=>{
       try {
-        const data = snap.val()||{};
         rounds = []; pinkRounds = []; hotZones = []; lastProcessedKey = null;
-        const keys = Object.keys(data);
-        keys.forEach((key, index) => {
-          const entry = data[key]; const v = processValue(entry && (entry.v || entry));
-          if (v !== null) { rounds.push(v); if(v >= 10) pinkRounds.push({v, idx: index, ts: parseInt(key)}); }
+        let tempLastKey = null;
+        snap.forEach(childSnap => {
+          const entry = childSnap.val();
+          const v = processValue(entry && (entry.v || entry));
+          if (v !== null) {
+            rounds.push(v);
+            if (v >= 10) pinkRounds.push({ v, idx: rounds.length - 1, ts: parseInt(childSnap.key) });
+          }
+          tempLastKey = childSnap.key;
         });
-        lastShown = [...rounds].reverse(); baseCount = rounds.length;
-        lastProcessedKey = keys.length > 0 ? keys[keys.length - 1] : null;
+        lastShown = [...rounds].reverse();
+        baseCount = rounds.length;
+        lastProcessedKey = tempLastKey;
         renderStats(); updateChart();
         const refNew = lastProcessedKey ? db.ref(`feeds/${FEED_ID}/crashes`).orderByKey().startAfter(lastProcessedKey) : db.ref(`feeds/${FEED_ID}/crashes`).orderByKey().startAt(String(Date.now()));
         sub = refNew.on("child_added", s=>{
