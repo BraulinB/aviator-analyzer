@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v7.3.3</title>
+<title>Aviator Analyzer • Gocho v7.4.0 (Auto 60/120 + Rosa Live)</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5;
@@ -21,6 +21,7 @@
   .btn{background:#2a3042;color:var(--text);border:0;border-radius:8px;padding:8px 12px;cursor:pointer}
   .btn.ok{background:var(--ok);color:#0c0f12;font-weight:700}
   .btn.bad{background:var(--bad)}
+  .btn.pink{background:var(--pink);color:#190818;font-weight:700}
   .muted{color:var(--muted)}
   label{display:inline-flex;gap:6px;align-items:center}
   input[type="number"]{width:72px;background:#0f121a;color:var(--text);border:1px solid #2a3144;border-radius:6px;padding:6px}
@@ -41,16 +42,12 @@
   .flag.info{background:#1f2432;color:#cbd5e1;border:1px dashed #2a3144}
   .rose-item{display:flex;gap:8px;align-items:center;padding:6px 8px;border:1px solid #22283a;border-radius:8px;margin:5px 0;background:#0f121a}
   .rose-item small{color:var(--muted)}
-  .episodes{display:flex;flex-direction:column;gap:6px}
-  .episode{padding:6px 8px;border:1px solid #22283a;border-radius:8px;background:#10131b}
   .clock{font-variant-numeric:tabular-nums}
-  .hours-grid{width:100%;border-collapse:collapse}
-  .hours-grid td,.hours-grid th{padding:6px;border-bottom:1px solid #22283a}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v7.3.3</span>
+  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v7.4.0</span>
     <span id="statusFeedback" class="muted" style="margin-left:8px"></span>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
   </h1>
@@ -60,9 +57,9 @@
       <div class="row">
         <span class="muted">Objetivo</span>
         <div id="objChips" class="row">
-          <div data-v="2"   class="chip on">2x</div>
+          <div data-v="2"   class="chip">2x</div>
           <div data-v="2.5" class="chip">2.5x</div>
-          <div data-v="3"   class="chip">3x</div>
+          <div data-v="3"   class="chip on">3x</div>
           <div data-v="3.5" class="chip">3.5x</div>
           <div data-v="4"   class="chip">4x</div>
           <div data-v="5"   class="chip">5x</div>
@@ -119,28 +116,19 @@
       <div class="box">CoolDown: <b id="cdLeft">0</b></div>
       <div class="box">Señales: <b id="signals">0</b></div>
       <div class="box">Rosas (≥10x): <b id="roseCountLbl">0</b></div>
+      <div class="box">Desde última Rosa: <b id="sinceRose">–</b> <span class="muted">r</span><br><span class="muted">Últ.: <span id="lastRoseLbl">–</span></span></div>
     </div>
 
     <div class="row" style="margin-top:10px;gap:8px">
       <span id="zoneFlag" class="flag">Sin señal</span>
-      <span id="hiFlag"   class="flag pink" style="display:none">Radar ALTO listo…</span>
+      <span id="roseAlert" class="flag pink" style="display:none">Alerta Rosa próxima</span>
       <span id="lastSignal" class="flag ok" style="display:none">Señal emitida</span>
-      <span id="sess120Flag" class="flag info" style="display:none">Sesión 120 → 3x</span>
+      <span id="slotFlag" class="flag info" style="display:none">Ventana 60: 0/60</span>
     </div>
 
     <div style="margin-top:12px">
       <div class="muted" style="margin-bottom:6px">Últimas rondas (más reciente primero)</div>
       <div id="lastRounds"></div>
-    </div>
-  </div>
-
-  <!-- Sesión 120 → 3x -->
-  <div class="card">
-    <h3 style="margin:0 0 8px 0">Sesión 120 → solo entrada ≥3x</h3>
-    <div class="row">
-      <label><input id="mode120" type="checkbox"> Activar “Sesión 120→3x”</label>
-      <label> Conf. 3x (EV/Bayes) <input id="conf3x" type="number" value="42" min="10" max="95"/>%</label>
-      <span class="muted">Máximo 1 señal por sesión de 120 rondas.</span>
     </div>
   </div>
 
@@ -153,55 +141,10 @@
     <div id="roseHistory" style="margin-top:8px"></div>
   </div>
 
-  <!-- Reloj + Episodios bonus 60r -->
-  <div class="card">
-    <div class="row">
-      <h3 style="margin:0">Reloj &amp; Zonas “bonus 60r” por hora</h3>
-      <div class="row" style="margin-left:auto;gap:10px">
-        <span class="muted">Umbrales 60r:</span>
-        <label>Rosas ≥ <input id="thrRosas60" type="number" value="6" min="1" max="60"/></label>
-        <label>Moradas ≥ <input id="thrMoradas60" type="number" value="12" min="0" max="60"/></label>
-        <label>Azules ≤ <input id="thrAzules60" type="number" value="22" min="0" max="60"/></label>
-      </div>
-    </div>
-    <div class="row" style="margin-top:8px">
-      <span id="episodeLive" class="flag">Ventana 60r • rosas:0 moradas:0 azules:0</span>
-    </div>
-    <div class="row" style="margin-top:10px">
-      <div class="grow">
-        <div class="muted" style="margin-bottom:6px">Episodios detectados (hora inicio → fin)</div>
-        <div id="episodesList" class="episodes"></div>
-      </div>
-      <div class="grow">
-        <div class="muted" style="margin-bottom:6px">Conteo por hora del día</div>
-        <table class="hours-grid">
-          <thead><tr><th>Hora</th><th>Episodios</th></tr></thead>
-          <tbody id="hourTableBody"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- OPCIONALES restaurados (para evitar nulls) -->
-  <div class="card">
-    <h3 style="margin:0 0 10px 0">Opcionales</h3>
-    <div class="row">
-      <label><input id="modeEV" type="checkbox"> Modo Pro (EV): elegir 2x/2.5x/3x automáticamente si EV &gt; 0</label>
-    </div>
-    <div class="row" style="margin-top:8px">
-      <span class="muted">Radar altos:</span>
-      <label> ≥10x <input id="thr10" type="number" value="8" min="1" max="50"/>%</label>
-      <label> ≥20x <input id="thr20" type="number" value="4" min="1" max="50"/>%</label>
-      <label> ≥50x <input id="thr50" type="number" value="1.5" min="0.1" max="20" step="0.1"/>%</label>
-      <label> ≥100x <input id="thr100" type="number" value="0.6" min="0.05" max="10" step="0.05"/>%</label>
-      <span class="muted"> (solo alerta rosa; no cambia tu objetivo)</span>
-    </div>
-  </div>
-
   <div class="card">
     <div class="row"><h3 style="margin:0">Apuestas registradas</h3></div>
     <table class="table" style="margin-top:8px">
-      <thead><tr><th>#</th><th>Objetivo</th><th>Stake</th><th>Crash</th><th>Resultado</th><th>P/L</th></tr></thead>
+      <thead><tr><th>#</th><th>Tipo</th><th>Objetivo</th><th>Stake</th><th>Crash</th><th>Resultado</th><th>P/L</th></tr></thead>
       <tbody id="betsTbody"></tbody>
     </table>
     <div class="row" style="margin-top:10px;gap:6px">
@@ -238,10 +181,8 @@ firebase.initializeApp(firebaseConfig);
 const db  = firebase.database();
 const auth= firebase.auth();
 
-/*** ===== HELPERS UI SEGUROS ===== ***/
+/*** ===== HELPERS UI ===== ***/
 const $ = (id)=>document.getElementById(id);
-const setVal=(id,v)=>{ const el=$(id); if(el) el.value=v; };
-const setChk=(id,v)=>{ const el=$(id); if(el) el.checked=v; };
 const on=(id,ev,fn)=>{ const el=$(id); if(el) el.addEventListener(ev,fn); };
 
 /*** ===== ESTADO ===== ***/
@@ -254,25 +195,39 @@ let roundsMeta = [];          // {v, ts}
 let lastShown = [];
 let baseCount = 0;
 
-let pendings = [];            // [{id, target, stake, ts}]
+let pendings = [];            // [{id, target, stake, ts, tag}]
 let bets = [];
 let signalsCount = 0;
 let cooldownLeft = 0;
 
-// Rosas/episodios
-let roses=[]; let roseIntervals=[];
-let bonusEpisodes=[]; let bonusActive=null;
-let hourCounts = Array.from({length:24},()=>0);
+// Rosas
+let roses=[];                 // [{idx,v,ts}]
+let roseIntervals=[];         // [{from,to,gap}]
+let sinceRose = null;         // rondas desde la última Rosa
+let lastRose = null;          // {v, ts}
+
+// Motor automático 60/120
+const pred = {
+  active:false,
+  sessionStartIdx:null,
+  winSize:60,
+  winStartIdx:null,
+  winIndex:0,                 // 1=>P60, 2=>P120, 3=>P180, …
+  winSignaled:false
+};
 
 const model = {
   priors: { "2":[10,10], "2.5":[8,10], "3":[6,10], "5":[3,9], "10":[1.5,8.5] },
   winN: 120
 };
+
 const ui = {
-  selTarget: 2.0, mode: "normal", autoSignal: true, minConf: 80, cooldown: 8, beep: true, modeEV: false,
-  radar: {thr10:8,thr20:4,thr50:1.5,thr100:0.6},
-  mode120: false, conf3x: 42,
-  bonusThr: {minRoses:6, minPurples:12, maxBlues:22}
+  selTarget: 3.0,            // por defecto 3x
+  mode: "normal",
+  autoSignal: true,
+  minConf: 80,
+  cooldown: 8,
+  beep: true
 };
 
 /*** ===== UTIL ===== */
@@ -305,16 +260,37 @@ function countBad170(arr,w=8){ return arr.slice(-w).filter(x=>x<1.70).length; }
 function inBonusZone(){ const w=rounds.slice(-14); if(w.length<14) return false; const p2=w.filter(x=>x>=2).length/w.length; const has5=w.some(x=>x>=5); const sl=slopeMA(rounds,10); return (p2>=0.60 && has5 && sl>=0); }
 function drynessSince5x(){ let d=0; for(let i=rounds.length-1;i>=0;i--){ if(rounds[i]>=5) break; else d++; } return d; }
 
-/*** ===== EV opcional ===== */
-const expectedValueForTarget=k=>{const p={ "2":probGE(2), "2.5":probGE(2.5), "3":probGE(3) }[String(k)]||0; return p-(1-p);}
-function bestTargetEV(){const c=[2,2.5,3]; let b=c[0],e=-999; for(const k of c){const ev=expectedValueForTarget(k); if(ev>e){e=ev;b=k;}} return {target:b,ev:e};}
-
-/*** ===== RADAR HIGH-X ===== */
-function radarHighX(){
-  let p10=probGE(10), p20=probGE(20), p50=probGE(50), p100=probGE(100);
-  const bonus=inBonusZone()?1.15:1.0, dry=clamp(drynessSince5x()/60,0,0.4);
-  p10*=bonus*(1+dry); p20*=bonus*(1+dry); p50*=bonus*(1+dry); p100*=bonus*(1+dry);
-  return {hit10:(p10*100)>=ui.radar.thr10, hit20:(p20*100)>=ui.radar.thr20, hit50:(p50*100)>=ui.radar.thr50, hit100:(p100*100)>=ui.radar.thr100};
+/*** ===== ROSAS: contador vivo + predicción (auto) ===== */
+// Hazard discreto con base en los últimos 30 gaps
+function roseHazardNext(){
+  if(roseIntervals.length<5 || sinceRose==null) return {h:0, eta:null, q75:0};
+  const gaps = roseIntervals.map(x=>x.gap);
+  const maxG = Math.max(...gaps);
+  const freq = new Map();
+  for(const g of gaps) freq.set(g, (freq.get(g)||0)+1);
+  const N = gaps.length;
+  const pdf = []; const cdf = [];
+  let cum=0;
+  for(let t=1;t<=maxG+20;t++){
+    const p = (freq.get(t)||0)/N;
+    pdf[t]=p; cum+=p; cdf[t]=cum;
+  }
+  const hazards = [];
+  for(let t=1;t<=maxG+20;t++){
+    const S = 1-(cdf[t-1]||0); // supervivencia hasta t-1
+    hazards[t] = S>0 ? pdf[t]/S : 0;
+  }
+  // umbral auto: percentil 75 de hazards observados (>0)
+  const hazVals = hazards.filter(x=>x>0);
+  hazVals.sort((a,b)=>a-b);
+  const q75 = hazVals.length? hazVals[Math.floor(0.75*(hazVals.length-1))] : 0.12;
+  const tNext = sinceRose+1;
+  // ETA: próximo t con hazard en top 25% dentro de los próximos 20 pasos
+  let eta=null, bestH=0;
+  for(let t=tNext; t<tNext+20; t++){
+    if(hazards[t]>q75 && hazards[t]>bestH){ bestH=hazards[t]; eta=t-sinceRose; }
+  }
+  return {h:hazards[tNext]||0, eta, q75};
 }
 
 /*** ===== SEÑALES ===== */
@@ -323,79 +299,83 @@ function gatesPass(target){
   let slopeOK=true; if(ui.mode==="conservador") slopeOK=(sl>=0); if(ui.mode==="normal") slopeOK=(sl>=-0.02);
   return (p>=minP)&&slopeOK&&(bad<7)&&(cooldownLeft<=0);
 }
-function emitSignal(target){
-  const id="S"+now(); pendings.push({id,target,stake:1,ts:now(),state:"pend"}); signalsCount++; cooldownLeft=ui.cooldown;
-  renderBets(); const sig=$("lastSignal"); sig.style.display="inline-block"; sig.textContent=`Señal: ${target}x`; setTimeout(()=>sig.style.display="none",3500); beep(880,140,0.04);
+function emitSignal(target, tag="AUTO"){
+  const id="S"+now();
+  pendings.push({id, target, stake:1, ts:now(), state:"pend", tag});
+  signalsCount++; cooldownLeft=ui.cooldown;
+  renderBets();
+  const sig=$("lastSignal");
+  sig.style.display="inline-block"; sig.textContent = `Señal ${tag}: ${target}x`;
+  setTimeout(()=>sig.style.display="none", 3500);
+  beep(880,140,0.04);
 }
 
-/*** ===== Sesión 120 → 3x ===== */
-const session120={active:false,remaining:0,signaled:false,startIdx:null};
-function startSession120(){ session120.active=true; session120.remaining=120; session120.signaled=false; session120.startIdx=rounds.length; $("sess120Flag").style.display="inline-block"; updateSess120Flag(); }
-function stopSession120(){ session120.active=false; session120.remaining=0; session120.signaled=false; session120.startIdx=null; $("sess120Flag").style.display="none"; }
-function tickSession120(){ if(!session120.active) return; session120.remaining=Math.max(0,120-(rounds.length-session120.startIdx)); if(session120.remaining===0) stopSession120(); updateSess120Flag(); }
-function updateSess120Flag(){ const el=$("sess120Flag"); if(!el) return; el.textContent=`Sesión 120→3x • quedan ${session120.remaining} r • P(≥3x)=${fmtPct(probGE(3))}`; }
+/*** ===== MOTOR AUTO 60/120 (sin sliders) ===== */
+function startPredSession(){
+  pred.active=true;
+  pred.sessionStartIdx=rounds.length;
+  pred.winStartIdx=rounds.length;
+  pred.winIndex=1;
+  pred.winSignaled=false;
+  $("slotFlag").style.display="inline-block";
+  updateSlotFlag();
+}
+function stopPredSession(){
+  pred.active=false;
+  $("slotFlag").style.display="none";
+}
+function updateSlotFlag(){
+  if(!pred.active) return;
+  const done = rounds.length - pred.winStartIdx;
+  const total= pred.winSize;
+  $("slotFlag").textContent = `Ventana ${pred.winIndex*60}: ${Math.max(0,done)}/${total}`;
+}
+function scoreEntry(){
+  // mezcla automática de señales sin porcentajes manuales
+  const p3 = probGE(3);                       // 0..1
+  const sl = slopeMA(rounds,10);              // tendencia
+  const bad = countBad170(rounds,8);          // zona mala
+  const bonus = inBonusZone()?1:0;            // 0/1
+  const dry = clamp(drynessSince5x()/60, 0, 1);
+  const haz = roseHazardNext().h;             // 0..1 aprox
 
-/*** ===== Rosas / Episodios ===== */
-function onRose(v,ts){
-  const idx=rounds.length-1, item={idx,v,ts}; roses.push(item);
-  if(roses.length>=2){ const prev=roses[roses.length-2]; const gap=item.idx-prev.idx; roseIntervals.push({from:prev,to:item,gap}); if(roseIntervals.length>30) roseIntervals.shift(); }
-  $("roseCountLbl").textContent=roses.length; renderRoseHistory();
+  // normalizaciones suaves
+  const f_sl  = clamp((sl+0.08)/0.12, 0, 1);
+  const f_bad = 1 - clamp(bad/8, 0, 1);
+
+  // mezcla (ponderación empírica)
+  const score = 0.40*p3 + 0.18*f_sl + 0.16*bonus + 0.14*haz + 0.12*f_bad + 0.10*dry;
+  return score;
 }
-function renderRoseHistory(){
-  const cont=$("roseHistory"); cont.innerHTML="";
-  const items=roseIntervals.slice(-30).reverse();
-  if(!items.length){ const d=document.createElement("div"); d.className="muted"; d.textContent="Aún no hay enlaces entre rosas (≥10x)."; cont.appendChild(d); return; }
-  items.forEach(it=>{
-    const row=document.createElement("div"); row.className="rose-item";
-    row.innerHTML=`<span class="pill pink">${it.from.v.toFixed(2)}x</span><small>${HHmm(it.from.ts)}</small><span class="muted">→</span><span class="pill pink">${it.to.v.toFixed(2)}x</span><small>${HHmm(it.to.ts)}</small><span class="muted">en</span><b>${it.gap}</b><span class="muted">rondas</span>`;
-    cont.appendChild(row);
-  });
-}
-function updateEpisodeCounters(){
-  if(roundsMeta.length<60){ $("episodeLive").textContent=`Ventana 60r • rosas:0 moradas:0 azules:0`; return; }
-  const win=roundsMeta.slice(-60); let cR=0,cM=0,cA=0;
-  for(const {v} of win){ if(v>=10) cR++; else if(v>=5 && v<10) cM++; else if(v<2) cA++; }
-  const meets=(cR>=ui.bonusThr.minRoses)&&(cM>=ui.bonusThr.minPurples)&&(cA<=ui.bonusThr.maxBlues);
-  const el=$("episodeLive"); el.textContent=`Ventana 60r • rosas:${cR} moradas:${cM} azules:${cA}${meets?' — EN ZONA —':''}`; el.className=meets?"flag pink":"flag";
-  if(meets){
-    if(!bonusActive){ bonusActive={startIdx:roundsMeta.length-60,startTs:win[0].ts,peak:{roses:cR,purples:cM,blues:cA}}; }
-    else{ bonusActive.peak.roses=Math.max(bonusActive.peak.roses,cR); bonusActive.peak.purples=Math.max(bonusActive.peak.purples,cM); bonusActive.peak.blues=Math.min(bonusActive.peak.blues,cA); }
-  }else if(bonusActive){
-    bonusActive.endTs=roundsMeta[roundsMeta.length-1].ts; bonusActive.endIdx=roundsMeta.length-1; bonusActive.durationRounds=bonusActive.endIdx-bonusActive.startIdx+1;
-    bonusEpisodes.push(bonusActive); if(bonusEpisodes.length>20) bonusEpisodes.shift();
-    const seen=new Set(); for(let t=bonusActive.startTs; t<=bonusActive.endTs; t+=15*60*1000){ seen.add(new Date(t).getHours()); } seen.forEach(h=>hourCounts[h]++);
-    bonusActive=null; renderEpisodes(); renderHourCounts();
+function tickPredEngine(){
+  if(!pred.active) return;
+  const done = rounds.length - pred.winStartIdx; // 0..60
+  const nearEnd = Math.max(0, Math.min(1, done/pred.winSize)); // 0..1
+
+  // Umbral dinámico: alto al inicio, baja hacia el final para garantizar una señal
+  const threshold = 0.82 - 0.32*nearEnd;   // 0.82 -> 0.50
+
+  if(!pred.winSignaled){
+    const sc = scoreEntry();
+    const ok = (sc >= threshold) && (cooldownLeft<=0) && (countBad170(rounds,8)<7);
+    if(ok){
+      const tag = (pred.winIndex%2===1) ? "P60" : "P120";
+      emitSignal(3, tag);
+      pred.winSignaled=true;
+    }else if(done>=pred.winSize){ // ventana acabó sin señal: forzar 1
+      const tag = (pred.winIndex%2===1) ? "P60" : "P120";
+      emitSignal(3, tag);
+      pred.winSignaled=true;
+    }
   }
-}
-function renderEpisodes(){
-  const list=$("episodesList"); list.innerHTML="";
-  if(!bonusEpisodes.length){ const d=document.createElement("div"); d.className="muted"; d.textContent="Sin episodios detectados todavía."; list.appendChild(d); return; }
-  bonusEpisodes.slice(-12).reverse().forEach(ep=>{
-    const el=document.createElement("div"); el.className="episode";
-    el.innerHTML=`<b>${HHmm(ep.startTs)} → ${HHmm(ep.endTs)}</b> • pico: rosas=${ep.peak.roses} moradas=${ep.peak.purples} azules=${ep.peak.blues} • ~${ep.durationRounds} rondas`;
-    list.appendChild(el);
-  });
-}
-function renderHourCounts(){
-  const tb=$("hourTableBody"); tb.innerHTML="";
-  for(let h=0;h<24;h++){ const tr=document.createElement("tr"); tr.innerHTML=`<td>${String(h).padStart(2,'0')}:00</td><td>${hourCounts[h]}</td>`; tb.appendChild(tr); }
-}
 
-/*** ===== Motor de señales ===== */
-function maybeSignalNormal(){ if(rounds.length<12) return; let target=ui.selTarget; if(ui.modeEV){ const {target:t}=bestTargetEV(); target=t;} if(gatesPass(target)) emitSignal(target); }
-function session120Logic(){
-  tickSession120();
-  const hi=radarHighX(), hiEl=$("hiFlag");
-  if(hi.hit10||hi.hit20||hi.hit50||hi.hit100){ hiEl.style.display="inline-block"; hiEl.textContent=`Radar ALTO: ${(hi.hit100?"≥100x":hi.hit50?"≥50x":hi.hit20?"≥20x":"≥10x")} posible`; beepPink(); }
-  else hiEl.style.display="none";
-  if(!ui.autoSignal) return;
-  if(ui.mode120 && session120.active && !session120.signaled){
-    const conf=probGE(3), sl=slopeMA(rounds,10), bad=countBad170(rounds,8), bonus=inBonusZone(), minConf3=ui.conf3x/100;
-    const pass=(conf>=minConf3)&&bonus&&(sl>=-0.005)&&(bad<6)&&(cooldownLeft<=0);
-    if(pass){ emitSignal(3); session120.signaled=true; updateSess120Flag(); }
-    return;
+  // pasar a la siguiente ventana si terminó
+  if(done>=pred.winSize){
+    pred.winIndex++;
+    pred.winStartIdx = rounds.length;
+    pred.winSignaled = false;
   }
-  if(!ui.mode120){ maybeSignalNormal(); }
+  updateSlotFlag();
 }
 
 /*** ===== RENDER ===== */
@@ -406,21 +386,119 @@ function renderStats(){
   $("p5").textContent=fmtPct(p5); $("p10").textContent=fmtPct(p10);
   $("ma10").textContent=isNaN(ma10)?"–":(ma10.toFixed(2)+"x");
   $("badRun").textContent=bad; $("cdLeft").textContent=cooldownLeft; $("signals").textContent=signalsCount;
+
   const zone=$("zoneFlag");
   if(bad>=7) { zone.className="flag bad"; zone.textContent="Zona mala: bloqueo <1.70"; }
   else if(inBonusZone()) { zone.className="flag ok"; zone.textContent="Bonus zone (tendencia alcista)"; }
   else { zone.className="flag"; zone.textContent="Sin señal"; }
-  const cont=$("lastRounds"); cont.innerHTML=""; lastShown.forEach(x=>{ const d=document.createElement("span"); d.className="pill neu"; d.textContent=x.toFixed(2)+"x"; cont.appendChild(d); });
+
+  $("roseCountLbl").textContent = roses.length;
+  $("sinceRose").textContent = (sinceRose==null?"–":sinceRose);
+  $("lastRoseLbl").textContent = lastRose?(`${lastRose.v.toFixed(2)}x • ${HHmm(lastRose.ts)}`):"–";
+
+  const cont=$("lastRounds"); cont.innerHTML="";
+  lastShown.forEach(x=>{ const d=document.createElement("span"); d.className="pill neu"; d.textContent=x.toFixed(2)+"x"; cont.appendChild(d); });
 }
 function renderBets(){
   const tb=$("betsTbody"); tb.innerHTML="";
-  bets.concat(pendings).forEach((b,idx)=>{ const st=b.state==="win"?"win":b.state==="lose"?"lose":"pend";
-    const tr=document.createElement("tr"); tr.innerHTML=`<td>${idx+1}</td><td>${b.target}x</td><td>$${b.stake.toFixed?b.stake.toFixed(2):b.stake}</td><td>${b.crash?b.crash.toFixed(2)+"x":"—"}</td><td>${st}</td><td>${b.pl||"—"}</td>`; tb.appendChild(tr); });
+  bets.concat(pendings).forEach((b,idx)=>{
+    const st = b.state==="win"?"win": b.state==="lose"?"lose":"pend";
+    const tr=document.createElement("tr");
+    tr.innerHTML = `<td>${idx+1}</td><td>${b.tag||"AUTO"}</td><td>${b.target}x</td><td>$${b.stake.toFixed?b.stake.toFixed(2):b.stake}</td><td>${b.crash? b.crash.toFixed(2)+"x":"—"}</td><td>${st}</td><td>${b.pl||"—"}</td>`;
+    tb.appendChild(tr);
+  });
+}
+function renderRoseHistory(){
+  const cont = $("roseHistory");
+  cont.innerHTML = "";
+  const items = roseIntervals.slice(-30).reverse();
+  if(!items.length){
+    const d=document.createElement("div");
+    d.className="muted"; d.textContent="Aún no hay enlaces entre rosas (≥10x).";
+    cont.appendChild(d); return;
+  }
+  items.forEach((it)=>{
+    const row = document.createElement("div");
+    row.className = "rose-item";
+    row.innerHTML = `
+      <span class="pill pink">${it.from.v.toFixed(2)}x</span>
+      <small>${HHmm(it.from.ts)}</small>
+      <span class="muted">→</span>
+      <span class="pill pink">${it.to.v.toFixed(2)}x</span>
+      <small>${HHmm(it.to.ts)}</small>
+      <span class="muted">en</span>
+      <b>${it.gap}</b> <span class="muted">rondas</span>`;
+    cont.appendChild(row);
+  });
 }
 
-/*** ===== CONEXIÓN FEED robusta ===== */
-function processValue(raw){ if(raw===null||raw===undefined) return null; const s=String(raw).replace(/,/g,''); const c=s.replace(/[^\d.]/g,''); if(c==='') return null; const v=Number(c); return (v>=1&&!isNaN(v))?v:null; }
+/*** ===== ROSAS: actualizar en cada ronda ===== */
+function handleRoseMeta(v, ts){
+  if(v>=10){
+    // nueva rosa
+    const idx = rounds.length-1;
+    const item = {idx, v, ts};
+    roses.push(item);
+    if(roses.length>=2){
+      const prev = roses[roses.length-2];
+      const gap = item.idx - prev.idx;
+      roseIntervals.push({from:prev, to:item, gap});
+      if(roseIntervals.length>30) roseIntervals.shift();
+    }
+    lastRose = {v, ts};
+    sinceRose = 0;
+    renderRoseHistory();
+  }else{
+    if(sinceRose==null) sinceRose = 1;
+    else sinceRose++;
+  }
 
+  // alerta rosa automática
+  const hazard = roseHazardNext();
+  const alertEl = $("roseAlert");
+  if(hazard.h>0 && hazard.h >= hazard.q75){
+    alertEl.style.display="inline-block";
+    alertEl.textContent = hazard.eta ? `Alerta Rosa próxima (~${hazard.eta} r)` : `Alerta Rosa próxima`;
+    beepPink();
+  }else{
+    alertEl.style.display="none";
+  }
+}
+
+/*** ===== onNewCrash ===== */
+function onNewCrash(v, ts, isBase=false){
+  rounds.push(v);
+  roundsMeta.push({v,ts});
+  if(rounds.length>2000){ rounds.shift(); roundsMeta.shift(); }
+  if(!isBase && cooldownLeft>0) cooldownLeft--;
+
+  handleRoseMeta(v, ts);
+
+  // asignar apuestas pendientes SOLO con datos en vivo
+  if(!isBase && pendings.length){
+    const bet = pendings.shift();
+    const win = (v > bet.target);
+    bet.crash = v; bet.state = win?"win":"lose"; bet.pl = win? "+1" : "−1";
+    bets.push(bet);
+    renderBets();
+  }
+
+  lastShown.unshift(v); if(lastShown.length>60) lastShown.pop();
+
+  renderStats();
+
+  if(!isBase){
+    // motor automático 60/120
+    tickPredEngine();
+
+    // señal normal automática (solo si no está activo el motor pred)
+    // -> desactivada para evitar duplicados. Si quisieras activarla, descomenta:
+    // if(ui.autoSignal && gatesPass(ui.selTarget)) emitSignal(ui.selTarget, "AUTO");
+  }
+}
+
+/*** ===== CONEXIÓN FEED ===== */
+function processValue(raw){ if(raw===null||raw===undefined) return null; const s=String(raw).replace(/,/g,''); const c=s.replace(/[^\d.]/g,''); if(c==='') return null; const v=Number(c); return (v>=1&&!isNaN(v))?v:null; }
 let liveRef=null, liveCb=null, lastSeenKey=null, lastSeenTs=null;
 
 async function connectFeed(){
@@ -430,13 +508,11 @@ async function connectFeed(){
   const refPath=`feeds/${FEED_ID}/crashes`;
   feedbackEl&&(feedbackEl.textContent=`Conectando a ${refPath}…`);
 
-  try{ await auth.signInAnonymously(); }
-  catch(e){ console.warn("[auth] anónimo no habilitado, sigo sin auth:", e?.message||e); }
+  try{ await auth.signInAnonymously(); }catch(e){ console.warn("[auth] anónimo no habilitado:", e?.message||e); }
 
   const ref=db.ref(refPath);
   loadingBase=true; feedbackEl&&(feedbackEl.textContent="Cargando historial…");
 
-  // 1) intenta por ts; si no, por key
   let snap=null, method="key";
   try{
     const s1=await ref.orderByChild("ts").limitToLast(800).once("value");
@@ -451,8 +527,8 @@ async function connectFeed(){
   const data=snap.val(), keys=Object.keys(data).sort();
   baseCount=keys.length;
 
-  // limpiar buffers
-  rounds=[]; roundsMeta=[]; lastShown=[]; roses=[]; roseIntervals=[]; bonusEpisodes=[]; bonusActive=null;
+  // reset buffers
+  rounds=[]; roundsMeta=[]; lastShown=[]; roses=[]; roseIntervals=[]; sinceRose=null; lastRose=null; bets=[]; pendings=[]; signalsCount=0; cooldownLeft=0;
 
   keys.forEach(k=>{
     const node=data[k]; const v=processValue(node?.v ?? node); const ts=Number(node?.ts ?? k) || now();
@@ -464,28 +540,29 @@ async function connectFeed(){
 
   loadingBase=false;
 
-  // 2) subscripción en vivo
+  // vivo
   if(method==="ts"){
     liveRef=ref.orderByChild("ts").startAt(lastSeenTs);
     liveCb=function(s){
       const key=s.key, d=s.val(); const v=processValue(d?.v ?? d); const ts=Number(d?.ts ?? key) || now();
-      if(lastSeenTs && ts<=lastSeenTs && key===lastSeenKey) return; // evita duplicado
+      if(lastSeenTs && ts<=lastSeenTs && key===lastSeenKey) return;
       lastSeenKey=key; lastSeenTs=ts;
       if(v!==null) onNewCrash(v, ts, /*isBase*/false);
     };
   }else{
     liveRef=ref.orderByKey().startAt(lastSeenKey||"");
     liveCb=function(s){
-      const key=s.key, d=s.val(); if(lastSeenKey && key<=lastSeenKey) return;
-      lastSeenKey=key; const v=processValue(d?.v ?? d); const ts=Number(d?.ts ?? key) || now();
+      const key=s.key, d=s.val(); if(lastSeenKey && key<=lastSeenKey) return; lastSeenKey=key;
+      const v=processValue(d?.v ?? d); const ts=Number(d?.ts ?? key) || now();
       if(v!==null) onNewCrash(v, ts, /*isBase*/false);
     };
   }
   liveRef.on("child_added", liveCb);
 
   connected=true; feedbackEl&&(feedbackEl.textContent="Conectado.");
-  renderStats(); renderRoseHistory(); renderEpisodes(); renderHourCounts();
+  renderStats(); renderRoseHistory();
 }
+
 function disconnectFeed(){
   if(!connected) return;
   if(liveRef && liveCb) liveRef.off("child_added", liveCb);
@@ -495,7 +572,7 @@ function disconnectFeed(){
 
 /*** ===== BACKUP / RESTORE ===== */
 function saveModel(){
-  const obj={model, ui:{minConf:ui.minConf, cooldown:ui.cooldown, mode:ui.mode, mode120:ui.mode120, conf3x:ui.conf3x, bonusThr:ui.bonusThr, radar:ui.radar, modeEV:ui.modeEV}};
+  const obj={model, ui:{minConf:ui.minConf, cooldown:ui.cooldown, mode:ui.mode, radar:{}, autoSignal:ui.autoSignal}};
   auth.currentUser?Promise.resolve():auth.signInAnonymously(); return db.ref(`feeds/${FEED_ID}/state/model_v1`).set(obj);
 }
 function loadModel(){
@@ -504,22 +581,19 @@ function loadModel(){
     if(v.model) Object.assign(model,v.model);
     if(v.ui){
       ui.minConf=v.ui.minConf??ui.minConf; ui.cooldown=v.ui.cooldown??ui.cooldown; ui.mode=v.ui.mode??ui.mode;
-      ui.mode120=v.ui.mode120??ui.mode120; ui.conf3x=v.ui.conf3x??ui.conf3x; if(v.ui.bonusThr) Object.assign(ui.bonusThr,v.ui.bonusThr);
-      if(v.ui.radar) Object.assign(ui.radar,v.ui.radar); if(typeof v.ui.modeEV==="boolean") ui.modeEV=v.ui.modeEV;
+      if(typeof v.ui.autoSignal==="boolean") ui.autoSignal=v.ui.autoSignal;
       applyUIFromState();
     }
   });
 }
 
-/*** ===== UI BINDINGS (todos seguros) ===== */
+/*** ===== UI BINDINGS ===== */
 function applyUIFromState(){
   document.querySelectorAll("#objChips .chip").forEach(el=>el.classList.toggle("on", Number(el.dataset.v)==ui.selTarget));
   document.querySelectorAll("#modeChips .chip").forEach(el=>el.classList.toggle("on", el.dataset.m===ui.mode));
-  setVal("minConf", ui.minConf); $("minConfVal").textContent=ui.minConf+"%";
-  setVal("cooldown", ui.cooldown); setChk("beepToggle", ui.beep); setChk("modeEV", ui.modeEV);
-  setVal("thr10", ui.radar.thr10); setVal("thr20", ui.radar.thr20); setVal("thr50", ui.radar.thr50); setVal("thr100", ui.radar.thr100);
-  setChk("mode120", ui.mode120); setVal("conf3x", ui.conf3x);
-  setVal("thrRosas60", ui.bonusThr.minRoses); setVal("thrMoradas60", ui.bonusThr.minPurples); setVal("thrAzules60", ui.bonusThr.maxBlues);
+  $("minConf").value=ui.minConf; $("minConfVal").textContent=ui.minConf+"%";
+  $("cooldown").value=ui.cooldown; $("beepToggle").checked=ui.beep;
+  $("autoSignal").checked=ui.autoSignal;
 }
 on("objChips","click",e=>{ const el=e.target.closest(".chip"); if(!el) return; document.querySelectorAll("#objChips .chip").forEach(x=>x.classList.remove("on")); el.classList.add("on"); ui.selTarget=Number(el.dataset.v); });
 on("modeChips","click",e=>{ const el=e.target.closest(".chip"); if(!el) return; document.querySelectorAll("#modeChips .chip").forEach(x=>x.classList.remove("on")); el.classList.add("on"); ui.mode=el.dataset.m; });
@@ -527,38 +601,33 @@ on("autoSignal","change",e=> ui.autoSignal=e.target.checked);
 on("minConf","input",e=>{ ui.minConf=Number(e.target.value); $("minConfVal").textContent=ui.minConf+"%"; });
 on("cooldown","change",e=> ui.cooldown=Number(e.target.value));
 on("beepToggle","change",e=> ui.beep=e.target.checked);
-on("modeEV","change",e=> ui.modeEV=e.target.checked);
-["thr10","thr20","thr50","thr100"].forEach(id=> on(id,"change",e=>{ ui.radar[id.replace("thr","thr")] = Number(e.target.value); }));
-on("mode120","change",e=>{ ui.mode120=e.target.checked; if(!ui.mode120) stopSession120(); });
-on("conf3x","change",e=> ui.conf3x=Number(e.target.value));
-on("thrRosas60","change",e=> ui.bonusThr.minRoses=Number(e.target.value));
-on("thrMoradas60","change",e=> ui.bonusThr.minPurples=Number(e.target.value));
-on("thrAzules60","change",e=> ui.bonusThr.maxBlues=Number(e.target.value));
+
 on("connectBtn","click", connectFeed);
 on("disconnectBtn","click", disconnectFeed);
-on("startBtn","click", ()=>{signalsCount=0; cooldownLeft=0; bets=[]; pendings=[]; renderBets(); renderStats(); beep(660,90,0.03); if(ui.mode120) startSession120();});
-on("stopBtn","click",  ()=>{bets=[]; pendings=[]; signalsCount=0; cooldownLeft=0; renderBets(); renderStats(); stopSession120();});
-on("resetBtn","click", ()=>{bets=[]; pendings=[]; signalsCount=0; cooldownLeft=0; renderBets(); renderStats(); stopSession120();});
+
+on("startBtn","click", ()=>{
+  signalsCount=0; cooldownLeft=0; bets=[]; pendings=[]; renderBets(); renderStats(); beep(660,90,0.03);
+  // arranca motor 60/120 automático
+  startPredSession();
+});
+on("stopBtn","click", ()=>{
+  bets=[]; pendings=[]; signalsCount=0; cooldownLeft=0; renderBets(); renderStats();
+  stopPredSession();
+});
+on("resetBtn","click", ()=>{
+  bets=[]; pendings=[]; signalsCount=0; cooldownLeft=0; renderBets(); renderStats();
+  stopPredSession();
+});
+
 on("hardResetBtn","click", ()=>{ localStorage.clear(); location.reload(); });
 on("saveModelBtn","click", ()=>{ saveModel(); });
 on("loadModelBtn","click", ()=>{ loadModel().then(()=>renderStats()); });
 on("autoBackup","change", e=>{ if(e.target.checked){ saveModel(); }});
 
-/*** ===== onNewCrash ===== */
-function onNewCrash(v, ts, isBase=false){
-  rounds.push(v); roundsMeta.push({v,ts}); if(rounds.length>2000){ rounds.shift(); roundsMeta.shift(); }
-  if(!isBase && cooldownLeft>0) cooldownLeft--;
-  if(v>=10) onRose(v, ts);
-  if(!isBase && pendings.length){ const bet=pendings.shift(); const win=(v>bet.target); bet.crash=v; bet.state=win?"win":"lose"; bet.pl=win?"+1":"−1"; bets.push(bet); renderBets(); }
-  lastShown.unshift(v); if(lastShown.length>60) lastShown.pop();
-  renderStats(); updateEpisodeCounters();
-  if(!isBase) session120Logic();
-}
-
 /*** ===== Reloj ===== */
 setInterval(()=>{ $("clockNow").textContent=new Date().toLocaleTimeString(); }, 1000);
 
-/*** ===== Bootstrap ===== */
+/*** ===== Arranque ===== */
 (function bootstrap(){
   try{ const st=JSON.parse(localStorage.getItem("gocho_ui_state")||"{}"); Object.assign(ui,st); }catch(_){}
   applyUIFromState();
