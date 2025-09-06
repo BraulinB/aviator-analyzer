@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v7.0.0</title>
+<title>Aviator Analyzer • Gocho v7.0.1</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
   :root{
@@ -46,10 +46,10 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v7.0.0</span> <span id="clock" class="muted" style="margin-left:auto; font-size:14px"></span></h1>
+  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v7.0.1</span> <span id="clock" class="muted" style="margin-left:auto; font-size:14px"></span></h1>
 
   <div class="card">
-    <div class="row"><div class="row"><span class="muted">Objetivo</span><div id="objChips" class="row"><div data-v="2" class="chip">2x</div><div data-v="2.5" class="chip">2.5x</div><div data-v="3" class="chip on">3x</div><div data-v="3.5" class="chip">3.5x</div><div data-v="4" class="chip">4x</div><div data-v="5" class="chip">5x</div></div></div><div class="row" style="margin-left:8px"><span class="muted">Modo:</span><div id="modeChips" class="row"><div data-m="agresivo" class="chip on">Agresivo</div><div data-m="normal" class="chip">Normal</div><div data-m="conservador" class="chip">Conservador</div></div><label style="margin-left:8px"><input id="autoSignal" type="checkbox" checked> Auto‑señal</label></div><div class="row" style="margin-left:auto"><span class="muted">Conf. mín.:</span><input id="minConf" type="range" min="50" max="95" value="75"/><span id="minConfVal">75%</span><span class="muted" style="margin-left:8px">CoolDown:</span><input id="cooldown" type="number" min="0" max="50" value="5"/></div></div>
+    <div class="row"><div class="row"><span class="muted">Objetivo</span><div id="objChips" class="row"><div data-v="2" class="chip">2x</div><div data-v="2.5" class="chip">2.5x</div><div data-v="3" class="chip on">3x</div><div data-v="3.5" class="chip">3.5x</div><div data-v="4" class="chip">4x</div><div data-v="5" class="chip">5x</div></div></div><div class="row" style="margin-left:8px"><span class="muted">Modo:</span><div id="modeChips" class="row"><div data-m="agresivo" class="chip on">Agresivo</div><div data-m="normal" class="chip">Normal</div><div data-m="conservador" class="chip">Conservador</div></div><label style="margin-left:8px"><input id="autoSignal" type="checkbox" checked> Auto‑señal</label></div><div class="row" style="margin-left:auto"><span class="muted">Conf. mín.:</span><input id="minConf" type="range" min="50" max="95" value="68"/><span id="minConfVal">68%</span><span class="muted" style="margin-left:8px">CoolDown:</span><input id="cooldown" type="number" min="0" max="50" value="3"/></div></div>
     <div class="row" style="margin-top:10px"><button id="startBtn" class="btn ok">Iniciar sesión</button><button id="stopBtn" class="btn">Cerrar sesión</button><button id="resetBtn" class="btn">Reset</button><div class="row" style="margin-left:10px"><label><input id="beepToggle" type="checkbox" checked> Beep señal</label></div><div class="row" style="margin-left:auto"><span class="muted">Feed:</span><input id="feedId" type="text" value="gocho"/><button id="connectBtn" class="btn">Conectar feed</button><button id="disconnectBtn" class="btn">Desconectar</button></div></div>
   </div>
 
@@ -120,10 +120,10 @@ let pinkRounds = []; // [{v, idx, ts}]
 let hotZones = []; // [{startIdx, startTime, endIdx, endTime}]
 const model = { priors: { "2": [10,10], "2.5":[8,10], "3":[6,10], "5":[3,9], "10":[1.5,8.5] } };
 const ui = {
-  selTarget: 3.0, mode: "agresivo", autoSignal: true, minConf: 75, cooldown: 5, beep: true, winN: 80,
+  selTarget: 3.0, mode: "agresivo", autoSignal: true, minConf: 68, cooldown: 3, beep: true, winN: 80,
   dryness: { threshold: 30, probBonus: 20 },
-  momentum: { window: 7, hits: 4, confBonus: 30 },
-  preflight: { window: 12, blues: 6, confBonus: 25 },
+  momentum: { window: 7, hits: 4, confBonus: 25 },
+  preflight: { window: 12, blues: 6, confBonus: 20 },
 };
 
 /*** ====== UTIL Y AUDIO ====== ***/
@@ -140,7 +140,7 @@ function drynessSince5x(){ let d=0; for(let i=rounds.length-1;i>=0;i--){if(round
 function detectMomentum(){ const{window,hits}=ui.momentum; if(rounds.length<window)return false; return rounds.slice(-window).filter(r=>r>=2.0).length>=hits; }
 function detectPreFlightPattern() { const {window,blues}=ui.preflight; if(rounds.length<window)return false; const recent=rounds.slice(-window); const blueCount=recent.filter(r=>r<1.5).length; const purpleCount=recent.filter(r=>r>=2.0).length; return blueCount>=blues && purpleCount>=1; }
 
-/*** ===== LÓGICA DE SEÑALES (v7.0.0) ===== ***/
+/*** ===== LÓGICA DE SEÑALES (v7.0.1) ===== ***/
 function gatesPass(target){
   let pTarget = probGE(target), minP = ui.minConf/100, reasonDetails = [];
   const isMomentum = detectMomentum();
@@ -158,11 +158,11 @@ function gatesPass(target){
 function maybeSignal(){ const feedbackEl=document.getElementById("statusFeedback"); if(rounds.length<20){feedbackEl.textContent="Analizando...";return;} const { pass, reason } = gatesPass(ui.selTarget); feedbackEl.innerHTML = `Estado: ${reason}`; feedbackEl.className = pass ? 'flag ok' : 'flag'; if(pass) emitSignal(ui.selTarget); }
 function emitSignal(target){ pendings.push({id:"S"+Date.now(), target, stake:1, ts:Date.now(), state:"pend"}); signalsCount++; cooldownLeft = ui.cooldown; renderBets(); const sig=document.getElementById("lastSignal"); sig.style.display="inline-block"; sig.textContent=`Señal: ${target}x`; setTimeout(()=>sig.style.display="none", 3500); beep(880,140,0.04); }
 
-/*** ===== GESTIÓN DE RONDAS Y DATOS (CONEXIÓN ESTABLE v7.0.0) ===== ***/
+/*** ===== GESTIÓN DE RONDAS Y DATOS (CONEXIÓN ESTABLE v7.0.1) ===== ***/
 function processValue(rawValue) { if (rawValue === null || rawValue === undefined) return null; const strValue = String(rawValue).replace(/,/g, ''); const cleanedValue = strValue.replace(/[^\d.]/g, ''); if (cleanedValue === '') return null; const v = Number(cleanedValue); return (v >= 1 && !isNaN(v)) ? v : null; }
-function onNewCrash(v, ts){
+function onNewCrash(v, tsKey){
   rounds.push(v); if(rounds.length>2000)rounds.shift();
-  if(v >= 10) pinkRounds.push({v, idx: rounds.length -1, ts});
+  if(v >= 10) pinkRounds.push({v, idx: rounds.length -1, ts: tsKey});
   if(cooldownLeft>0)cooldownLeft--;
   if(pendings.length){ const bet=pendings.shift(); const win=(v>bet.target); bet.crash=v; bet.state=win?"win":"lose"; bet.pl=win?"+1":"−1"; bets.push(bet); renderBets(); }
   lastShown.unshift(v); if(lastShown.length>100)lastShown.pop();
@@ -191,7 +191,7 @@ function connectFeed(){
         renderStats(); updateChart();
         const refNew = lastProcessedKey ? db.ref(`feeds/${FEED_ID}/crashes`).orderByKey().startAfter(lastProcessedKey) : db.ref(`feeds/${FEED_ID}/crashes`).orderByKey().startAt(String(Date.now()));
         sub = refNew.on("child_added", s=>{
-          if(s.key === lastProcessedKey) return;
+          if(s.key === lastProcessedKey || !s.key) return; // FIX DEFINITIVO anti-duplicados y nulos
           lastProcessedKey = s.key;
           const d = s.val(); if (!d) return;
           const v = processValue(d.v || d);
@@ -207,57 +207,9 @@ function disconnectFeed(){ if(!connected)return; const refNew=db.ref(`feeds/${FE
 /*** ===== RENDER Y GRÁFICA ===== ***/
 function renderStats(){ const p3=probGE(3),p5=probGE(5),p10=probGE(10); const ma10=movingAverage(rounds,10),vol=stdDev(rounds.slice(-20)); document.getElementById("rounds").textContent=`${rounds.length}(base ${baseCount})`; ["p3","p5","p10"].forEach(id=>document.getElementById(id).textContent=eval(`fmtPct(${id})`)); document.getElementById("ma10").textContent=isNaN(ma10)?"–":ma10.toFixed(2)+"x"; document.getElementById("volatility").textContent=vol.toFixed(2); document.getElementById("cdLeft").textContent=cooldownLeft; document.getElementById("signals").textContent=signalsCount; const cont=document.getElementById("lastRounds"); cont.innerHTML=""; lastShown.slice(0,60).forEach(x=>{const d=document.createElement("span"); if(x>=10){d.className="pill pink";}else if(x>=2){d.className="pill purple";}else{d.className="pill blue";} d.textContent=x.toFixed(2)+"x"; cont.appendChild(d);}); renderPinkStats(); renderHotZones(); }
 function renderBets(){ const tb=document.getElementById("betsTbody"); tb.innerHTML=""; bets.concat(pendings).forEach((b,idx)=>{ const tr=document.createElement("tr"); const st=b.state==="win"?"win":b.state==="lose"?"lose":"pend"; tr.innerHTML = `<td>${idx+1}</td><td>${b.target}x</td><td>$1.00</td><td>${b.crash?b.crash.toFixed(2)+"x":"—"}</td><td>${st}</td><td>${b.pl||"—"}</td>`; tb.appendChild(tr); }); }
-function renderPinkStats() {
-    document.getElementById('totalPinks').textContent = pinkRounds.length;
-    const sinceEl = document.getElementById('sinceLastPink');
-    const avgEl = document.getElementById('avgPinks'), minEl=document.getElementById('minPinks'), maxEl=document.getElementById('maxPinks');
-    const tbody = document.getElementById('pinkHistoryTbody');
-    tbody.innerHTML = '';
-
-    if (pinkRounds.length === 0) { sinceEl.textContent = rounds.length > 0 ? `${rounds.length}` : '–'; avgEl.textContent=minEl.textContent=maxEl.textContent='–'; return; }
-    
-    const lastPink = pinkRounds[pinkRounds.length - 1];
-    sinceEl.textContent = rounds.length - 1 - lastPink.idx;
-    
-    let intervals = [];
-    if (pinkRounds.length > 1) {
-        for (let i = 1; i < pinkRounds.length; i++) { intervals.push(pinkRounds[i].idx - pinkRounds[i - 1].idx); }
-        const avg = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-        avgEl.textContent = `Cada ${avg.toFixed(1)}r`;
-        minEl.textContent = Math.min(...intervals); maxEl.textContent = Math.max(...intervals);
-    } else { avgEl.textContent=minEl.textContent=maxEl.textContent='Necesita +1'; }
-
-    [...pinkRounds].reverse().slice(0, 30).forEach((p, i) => {
-        const interval = i < intervals.length ? [...intervals].reverse()[i] : '–';
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${p.v.toFixed(2)}x</td><td>${interval}</td>`;
-        tbody.appendChild(tr);
-    });
-}
-function renderHotZones() {
-    const statusEl = document.getElementById('hotzoneStatus');
-    const tbody = document.getElementById('hotzoneHistoryTbody');
-    const currentZone = hotZones.find(z => !z.endIdx);
-    statusEl.textContent = currentZone ? `Activa (${rounds.length - currentZone.startIdx}r)` : 'Inactiva';
-    statusEl.className = currentZone ? 'flag ok' : 'flag';
-    tbody.innerHTML = '';
-    [...hotZones].reverse().slice(0, 10).forEach((z, i) => {
-        const tr = document.createElement('tr');
-        const duration = z.endIdx ? z.endIdx - z.startIdx : rounds.length - z.startIdx;
-        tr.innerHTML = `<td>${hotZones.length - i}</td><td>${formatTime(z.startTime)}</td><td>${z.endTime ? formatTime(z.endTime) : 'En curso...'}</td><td>${duration}</td>`;
-        tbody.appendChild(tr);
-    });
-}
-function updateHotZone() {
-    const isHot = detectMomentum();
-    const currentZone = hotZones.find(z => !z.endIdx);
-    if (isHot && !currentZone) {
-        hotZones.push({ startIdx: rounds.length - 1, startTime: Date.now() });
-    } else if (!isHot && currentZone) {
-        currentZone.endIdx = rounds.length - 1;
-        currentZone.endTime = Date.now();
-    }
-}
+function renderPinkStats() { document.getElementById('totalPinks').textContent = pinkRounds.length; const sinceEl = document.getElementById('sinceLastPink'); const avgEl = document.getElementById('avgPinks'), minEl=document.getElementById('minPinks'), maxEl=document.getElementById('maxPinks'); const tbody = document.getElementById('pinkHistoryTbody'); tbody.innerHTML = ''; if (pinkRounds.length === 0) { sinceEl.textContent = rounds.length > 0 ? `${rounds.length}` : '–'; avgEl.textContent=minEl.textContent=maxEl.textContent='–'; return; } const lastPink = pinkRounds[pinkRounds.length - 1]; sinceEl.textContent = rounds.length - 1 - lastPink.idx; let intervals = []; if (pinkRounds.length > 1) { for (let i = 1; i < pinkRounds.length; i++) { intervals.push(pinkRounds[i].idx - pinkRounds[i - 1].idx); } const avg = intervals.reduce((a, b) => a + b, 0) / intervals.length; avgEl.textContent = `${avg.toFixed(1)}r`; minEl.textContent = Math.min(...intervals); maxEl.textContent = Math.max(...intervals); } else { avgEl.textContent=minEl.textContent=maxEl.textContent='Necesita +1'; } [...pinkRounds].reverse().slice(0, 30).forEach((p, i) => { const interval = i < intervals.length ? [...intervals].reverse()[i] : '–'; const tr = document.createElement('tr'); tr.innerHTML = `<td>${p.v.toFixed(2)}x</td><td>${interval}</td>`; tbody.appendChild(tr); }); }
+function renderHotZones() { const statusEl = document.getElementById('hotzoneStatus'); const tbody = document.getElementById('hotzoneHistoryTbody'); const currentZone = hotZones.find(z => !z.endIdx); statusEl.textContent = currentZone ? `Activa (${rounds.length - currentZone.startIdx}r)` : 'Inactiva'; statusEl.className = currentZone ? 'flag ok' : 'flag'; tbody.innerHTML = ''; [...hotZones].reverse().slice(0, 10).forEach((z, i) => { const tr = document.createElement('tr'); const duration = z.endIdx ? z.endIdx - z.startIdx : rounds.length - z.startIdx; tr.innerHTML = `<td>${hotZones.length - i}</td><td>${formatTime(z.startTime)}</td><td>${z.endTime ? formatTime(z.endTime) : 'En curso...'}</td><td>${duration}</td>`; tbody.appendChild(tr); }); }
+function updateHotZone() { const isHot = detectMomentum(); const currentZone = hotZones.find(z => !z.endIdx); if (isHot && !currentZone) { hotZones.push({ startIdx: rounds.length - 1, startTime: Date.now() }); } else if (!isHot && currentZone) { currentZone.endIdx = rounds.length - 1; currentZone.endTime = Date.now(); } }
 function initChart(){ const ctx=document.getElementById('historyChart').getContext('2d'); historyChart=new Chart(ctx,{type:'line',data:{labels:[],datasets:[{label:'Crash',data:[],borderColor:'rgba(138,180,255,0.6)',backgroundColor:'rgba(138,180,255,0.1)',borderWidth:1.5,pointRadius:1,tension:0.1},{label:'MA(10)',data:[],borderColor:'rgba(230,126,34,0.8)',borderWidth:2,pointRadius:0,tension:0.2},{label:'EMA(30)',data:[],borderColor:'rgba(236,240,241,0.5)',borderWidth:2,pointRadius:0,tension:0.4,borderDash:[5,5]}]},options:{scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,0.05)'}},x:{grid:{color:'rgba(255,255,255,0.05)'}}}}});}
 function updateChart(){ if(!historyChart)return; const dataSlice=rounds.slice(-100); const labels=Array.from({length:dataSlice.length},(_,i)=>i+1); const ma10Data=[]; for(let i=0;i<dataSlice.length;i++){ma10Data.push(movingAverage(dataSlice.slice(0,i+1),10));} const ema30Data=exponentialMovingAverage(dataSlice,30); historyChart.data.labels=labels; historyChart.data.datasets[0].data=dataSlice; historyChart.data.datasets[1].data=ma10Data; historyChart.data.datasets[2].data=ema30Data; historyChart.update('none'); }
 
@@ -282,7 +234,7 @@ document.getElementById("autoBackup").addEventListener("change",e=>{ if(e.target
 
 (function bootstrap(){ 
   const clockEl = document.getElementById('clock');
-  function updateClock() { clockEl.textContent = new Date().toLocaleTimeString(); }
+  function updateClock() { clockEl.textContent = new Date().toLocaleTimeString('en-GB'); }
   updateClock(); setInterval(updateClock, 1000);
   try{const st=JSON.parse(localStorage.getItem("gocho_ui_state")||"{}");Object.assign(ui,st);}catch(_){} 
   applyUIFromState(); 
