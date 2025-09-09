@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v7.8.0 (Burst Mode + Post‑Rosa + Turbo‑60++)</title>
+<title>Aviator Analyzer • Gocho v7.9.0 (Cluster‑Rose + Safe Post‑Rose + Turbo‑60++)</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5;
@@ -44,7 +44,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v7.8.0</span>
+  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v7.9.0</span>
     <span id="statusFeedback" class="muted" style="margin-left:8px"></span>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
   </h1>
@@ -211,10 +211,10 @@ let roseLossStreak = 0;       // consecutivas perdidas
 let roseAttemptsStartIdx = null;
 let roseAttemptsCount = 0;    // máx 2 por 120
 
-// Post‑Rosa 3x (o 5x)
-const postRose = {active:false, startIdx:null, used:false};
+// Post‑Rosa 3x/5x
+const postRose = {active:false, startIdx:null, used:false, tries:0};
 
-// Motor 60 con presupuesto dinámico + extensión y re‑anclaje
+// Motor 60 con presupuesto + extensión y re‑anclaje
 const pred = {
   active:false,
   sessionStartIdx:null,
@@ -228,6 +228,9 @@ const pred = {
   extendStartIdx:null,
   reanchored:false
 };
+
+// Control racha 3x
+const guard3x = {lossStreak:0, pauseUntilIdx:null};
 
 const model = {
   priors: { "2":[10,10], "2.5":[8,10], "3":[6,10], "5":[3,9], "10":[1.5,8.5] },
@@ -297,26 +300,28 @@ function distToLastPurple(limit=12){
 
 /*** ===== REGIMEN (Burst) ===== */
 function burstBudget(){
-  // Analiza últimas 60 rondas para decidir presupuesto (señales máximas por ventana)
   const w = rounds.slice(-60); const L=w.length||1;
   const r10 = w.filter(x=>x>=10).length;
   const r5  = w.filter(x=>x>=5).length;
   const blue = w.filter(x=>x<2).length/L;
   const sl10 = slopeMA_n(10);
-  const dryBoost = clamp((30 - drynessSince5x())/30,0,1); // menor sequía => más impulso
-
-  // Score de “ráfaga” (0..2 aprox)
-  let score = 0.50*clamp(r10/6,0,1.6) + 0.25*clamp(r5/12,0,1.2) + 0.15*clamp((0.6-blue)/0.6,0,1) + 0.10*clamp((sl10+0.08)/0.12,0,1) + 0.10*dryBoost;
+  let score = 0.50*clamp(r10/6,0,1.6) + 0.25*clamp(r5/12,0,1.2) + 0.15*clamp((0.6-blue)/0.6,0,1) + 0.10*clamp((sl10+0.08)/0.12,0,1);
   score = clamp(score,0,2);
-
-  // Presupuesto dinámico
-  let b=1;
-  if(score>=1.00) b=2;
-  if(score>=1.45) b=3; // raras ráfagas intensas
+  let b=1; if(score>=1.00) b=2; if(score>=1.45) b=3;
   return {score, budget:b, r10, r5, blue, sl10};
 }
 
-/*** ===== ROSAS: hazard + contexto ===== */
+/*** ===== CLÚSTER ROSAS ===== */
+function roseClusterScore(){
+  const c60 = rounds.slice(-60).filter(x=>x>=10).length;
+  const c30 = rounds.slice(-30).filter(x=>x>=10).length;
+  const pur = rounds.slice(-20).filter(x=>x>=5 && x<10).length;
+  const b15 = blueDensity(15);
+  const sc = 0.6*clamp(c60/8,0,1.5) + 0.2*clamp(c30/4,0,1.2) + 0.2*clamp(pur/3,0,1) - 0.2*clamp(b15,0,1);
+  return {score:clamp(sc,0,2), c60, c30, pur, b15};
+}
+
+/*** ===== ROSAS: hazard + clúster + contexto ===== */
 function roseHazardNext(){
   if(roseIntervals.length<5 || sinceRose==null) return {h:0, eta:null, q75:0, q80:0};
   const gaps = roseIntervals.map(x=>x.gap);
@@ -324,25 +329,14 @@ function roseHazardNext(){
   const freq = new Map();
   for(const g of gaps) freq.set(g, (freq.get(g)||0)+1);
   const N = gaps.length;
-  const pdf = []; const cdf = [];
-  let cum=0;
-  for(let t=1;t<=maxG+20;t++){
-    const p = (freq.get(t)||0)/N;
-    pdf[t]=p; cum+=p; cdf[t]=cum;
-  }
-  const hazards = [];
-  for(let t=1;t<=maxG+20;t++){
-    const S = 1-(cdf[t-1]||0);
-    hazards[t] = S>0 ? pdf[t]/S : 0;
-  }
+  const pdf = []; const cdf = []; let cum=0;
+  for(let t=1;t<=maxG+20;t++){ const p=(freq.get(t)||0)/N; pdf[t]=p; cum+=p; cdf[t]=cum; }
+  const hazards = []; for(let t=1;t<=maxG+20;t++){ const S=1-(cdf[t-1]||0); hazards[t]= S>0 ? pdf[t]/S : 0; }
   const hazVals = hazards.filter(x=>x>0).sort((a,b)=>a-b);
   const q75 = hazVals.length? hazVals[Math.floor(0.75*(hazVals.length-1))] : 0.12;
   const q80 = hazVals.length? hazVals[Math.floor(0.80*(hazVals.length-1))] : 0.15;
   const tNext = sinceRose+1;
-  let eta=null, bestH=0;
-  for(let t=tNext; t<tNext+20; t++){
-    if(hazards[t]>q75 && hazards[t]>bestH){ bestH=hazards[t]; eta=t-sinceRose; }
-  }
+  let eta=null,bestH=0; for(let t=tNext;t<tNext+20;t++){ if(hazards[t]>q75 && hazards[t]>bestH){bestH=hazards[t]; eta=t-sinceRose;} }
   return {h:hazards[tNext]||0, eta, q75, q80};
 }
 
@@ -352,8 +346,7 @@ function emitSignal(target, tag="AUTO", beepKind="green", reason="", conf=0){
   pendings.push({id, target, stake:1, ts:now(), state:"pend", tag, reason, conf});
   signalsCount++; cooldownLeft=ui.cooldown;
   renderBets();
-  const sig=$("lastSignal");
-  sig.style.display="inline-block"; sig.textContent = `Señal ${tag}: ${target}x`;
+  const sig=$("lastSignal"); sig.style.display="inline-block"; sig.textContent=`Señal ${tag}: ${target}x`;
   setTimeout(()=>sig.style.display="none", 3500);
   if(beepKind==="pink") beepPink(); else beep(880,140,0.04);
 }
@@ -380,16 +373,16 @@ function scoreEntry(){
 }
 function explainWhy(pLike, sl10, blue15, bad, haz){
   const parts=[];
-  if(pLike<0.33) parts.push(`probabilidad baja (${fmtPct(pLike)})`);
+  if(pLike<0.36) parts.push(`probabilidad baja (${fmtPct(pLike)})`);
   if(sl10<0) parts.push(`tendencia bajista (${sl10.toFixed(3)})`);
-  if(blue15>0.55) parts.push(`muchas azules (densidad ${(100*blue15).toFixed(0)}%)`);
+  if(blue15>0.50) parts.push(`muchas azules (densidad ${(100*blue15).toFixed(0)}%)`);
   if(bad>=5) parts.push(`zona mala <1.70 (${bad}/8)`);
   if(haz && haz.h < (haz.q75||0)) parts.push(`prob. de Rosa no destacada`);
   if(!parts.length) parts.push(`criterios estrictos aún no se cumplen`);
   return "Sin entrada sólida: " + parts.join(" · ");
 }
 
-/*** ===== Motor 60 con presupuesto + extensión + re‑anclaje ===== */
+/*** ===== Motor 60 con presupuesto + extensión + re‑anclaje + pausa por racha ===== */
 function startPredSession(){
   pred.active=true;
   pred.sessionStartIdx=rounds.length;
@@ -400,6 +393,7 @@ function startPredSession(){
   pred.extending=false;
   pred.extendStartIdx=null;
   pred.reanchored=false;
+  guard3x.lossStreak=0; guard3x.pauseUntilIdx=null;
   $("slotFlag").style.display="inline-block";
   $("slotExplain").style.display="none";
   updateSlotFlag();
@@ -418,6 +412,7 @@ function updateSlotFlag(){
     txt += ` • extensión ${ext}/${pred.extendSize}`;
   }
   if(pred.reanchored) txt += " • re‑anclada";
+  if(guard3x.pauseUntilIdx && rounds.length<guard3x.pauseUntilIdx) txt += " • pausa‑3x";
   $("slotFlag").textContent = txt;
 }
 function maybeReanchorWindow(){
@@ -431,10 +426,7 @@ function maybeReanchorWindow(){
     updateSlotFlag();
   }
 }
-function refreshBudget(){
-  const {budget} = burstBudget();
-  pred.budgetMax = Math.max(pred.budgetMax, budget); // puede subir en mitad de ventana
-}
+function refreshBudget(){ const {budget} = burstBudget(); pred.budgetMax = Math.max(pred.budgetMax, budget); }
 function tickPredEngine(){
   if(!pred.active) return;
 
@@ -447,91 +439,88 @@ function tickPredEngine(){
   const bad = countBad170(rounds,8);
   const haz = roseHazardNext();
 
+  // PAUSA por racha de fallos 3x
+  if(target<=3 && guard3x.pauseUntilIdx && rounds.length<guard3x.pauseUntilIdx){
+    updateSlotFlag();
+    if(!within60){
+      pred.winIndex++; pred.winStartIdx=rounds.length; pred.budgetUsed=0; pred.budgetMax=1;
+      pred.extending=false; pred.extendStartIdx=null; pred.reanchored=false; $("slotExplain").style.display="none";
+    }
+    return;
+  }
+
+  // Umbrales reforzados
   const phase = clamp(done / pred.winSize, 0, 1);
-  const baseThr = (target==5) ? 0.92 : 0.86;
-  const endThr  = (target==5) ? 0.66 : 0.58;
+  const baseThr = (target==5) ? 0.94 : 0.88;
+  const endThr  = (target==5) ? 0.70 : 0.60;
   const thr = baseThr - (baseThr-endThr)*phase;
 
-  const minP20 = (target==5) ? 0.14 : 0.30;
-  const minSl  = (target==5) ? -0.001 : -0.004;
-  const maxBlueD = 0.55;
+  const minP20 = (target==5) ? 0.16 : 0.34;
+  const minP60 = (target==5) ? 0.22 : 0.36;
+  const minSl  = (target==5) ? -0.0005 : -0.003;
+  const maxBlueD = 0.50;
 
   const pLike = (target==5)? probGE_window(5, 60) : probGE_window(3, 60);
 
-  // Gate principal
-  const gate = (score>=thr) && (p20>=minP20) && (sl10>=minSl) && (blue15<=maxBlueD) && (bad<6);
+  const gate = (score>=thr) && (p20>=minP20) && (p60>=minP60) && (sl10>=minSl) && (blue15<=maxBlueD) && (bad<6);
 
   if(pred.budgetUsed < pred.budgetMax && gate && ui.autoSignal && cooldownLeft<=0){
     const tag = (pred.winIndex%2===1) ? "P60" : "P120";
     const conf = clamp(score, 0, 1);
     const reason = `score=${(100*score).toFixed(0)} • p20=${fmtPct(p20)} • p60=${fmtPct(p60)} • sl10=${sl10.toFixed(3)} • blue15=${(100*blue15).toFixed(0)}% • bonus=${bonus} • purple=${purple}`;
     emitSignal(target, tag, "green", reason, conf);
-    pred.budgetUsed++;
-    $("slotExplain").style.display="none";
-    updateSlotFlag();
+    pred.budgetUsed++; $("slotExplain").style.display="none"; updateSlotFlag();
   }
 
   // Fin de 60
   if(!within60){
     if(pred.budgetUsed===0 && !pred.extending){
-      pred.extending = true;
-      pred.extendStartIdx = rounds.length;
+      pred.extending = true; pred.extendStartIdx = rounds.length;
       const el = $("slotExplain"); el.style.display="inline-block";
       el.textContent = explainWhy(pLike, sl10, blue15, bad, haz);
     }
-    // Si ya gastamos presupuesto o termina extensión -> abrir nueva ventana
     if( (pred.budgetUsed>=1 && !pred.extending) || (pred.extending && (rounds.length - pred.extendStartIdx)>=pred.extendSize) ){
-      pred.winIndex++;
-      pred.winStartIdx = rounds.length;
-      pred.budgetUsed=0;
-      pred.budgetMax=1;
-      pred.extending=false; pred.extendStartIdx=null; pred.reanchored=false;
-      $("slotExplain").style.display="none";
-      updateSlotFlag();
+      pred.winIndex++; pred.winStartIdx = rounds.length; pred.budgetUsed=0; pred.budgetMax=1;
+      pred.extending=false; pred.extendStartIdx=null; pred.reanchored=false; $("slotExplain").style.display="none"; updateSlotFlag();
     }
   }else if(pred.extending){
-    // Mientras extendemos, explicar
     $("slotExplain").style.display="inline-block";
     $("slotExplain").textContent = explainWhy(pLike, sl10, blue15, bad, haz);
-
-    // si aparece set‑up real en extensión
     if(pred.budgetUsed < 1 && gate && ui.autoSignal && cooldownLeft<=0){
       const tag = (pred.winIndex%2===1) ? "P60" : "P120";
       const conf = clamp(score, 0, 1);
       const reason = `EXT • score=${(100*score).toFixed(0)} • p20=${fmtPct(p20)} • sl10=${sl10.toFixed(3)} • blue15=${(100*blue15).toFixed(0)}%`;
       emitSignal(target, tag, "green", reason, conf);
-      pred.budgetUsed=1;
-      pred.winIndex++;
-      pred.winStartIdx = rounds.length;
-      pred.budgetMax=1;
-      pred.extending=false; pred.extendStartIdx=null; pred.reanchored=false;
-      $("slotExplain").style.display="none";
-      updateSlotFlag();
+      pred.budgetUsed=1; pred.winIndex++; pred.winStartIdx = rounds.length; pred.budgetMax=1;
+      pred.extending=false; pred.extendStartIdx=null; pred.reanchored=false; $("slotExplain").style.display="none"; updateSlotFlag();
     }
   }
 
   updateSlotFlag();
 }
 
-/*** ===== Post‑Rosa (follow‑up) para 3x/5x ===== */
+/*** ===== Post‑Rosa (seguimiento) seguro ===== */
 function maybePostRose(){
   if(!postRose.active || postRose.used) return;
   const since = (rounds.length-1) - postRose.startIdx;
   if(since<1) return;
-  if(since>10){ postRose.active=false; return; }
+  if(since>8){ postRose.active=false; return; }
 
   const target = ui.selTarget;
   const p20 = probGE_window(target, 20);
+  const p60 = probGE_window(target, 60);
   const sl5 = slopeMA_n(5);
   const blueRun6 = maxBlueRun(6);
-  const ok = (p20 >= (target==5?0.16:0.32)) && (sl5>=-0.002) && (blueRun6<=3);
+  const blue15 = blueDensity(15);
+  const bonus = inBonusZone();
+  const hasPur8 = hasPurple(8);
 
-  if(ok && ui.autoSignal && cooldownLeft<=0 && pred.budgetUsed < pred.budgetMax){
-    const reason = `POSTROSE • desde rosa=${since}r • p20=${fmtPct(p20)} • sl5=${sl5.toFixed(3)} • runBlue6≤${blueRun6}`;
+  const ok = (p20 >= (target==5?0.18:0.36)) && (p60 >= (target==5?0.24:0.38)) && (sl5>=0) && (blueRun6<=3) && (blue15<=0.48) && (bonus || hasPur8);
+
+  if(ok && ui.autoSignal && cooldownLeft<=0 && pred.budgetUsed < pred.budgetMax && postRose.tries===0){
+    const reason = `POSTROSE • ${since}r • p20=${fmtPct(p20)} • p60=${fmtPct(p60)} • sl5=${sl5.toFixed(3)} • runBlue6≤${blueRun6}`;
     emitSignal(target, "POSTROSE", "green", reason, clamp(p20,0,1));
-    pred.budgetUsed++;
-    postRose.used=true; postRose.active=false;
-    updateSlotFlag();
+    pred.budgetUsed++; postRose.used=true; postRose.active=false; postRose.tries=1; updateSlotFlag();
   }
 }
 
@@ -608,7 +597,7 @@ function handleRoseMeta(v, ts){
     $("roseAlert").style.display="none";
 
     // activar post‑rosa
-    postRose.active=true; postRose.startIdx=idx; postRose.used=false;
+    postRose.active=true; postRose.startIdx=idx; postRose.used=false; postRose.tries=0;
 
     renderRoseHistory();
   }else{
@@ -620,12 +609,15 @@ function handleRoseMeta(v, ts){
   if(roseCD>0) roseCD--;
 
   const hazard = roseHazardNext();
+  const cluster = roseClusterScore();
   const sl10 = slopeMA_n(10);
   const blueD = blueDensity(15);
   const blueRun = maxBlueRun(12);
   const purple = hasPurple(12);
   const nearPurple = distToLastPurple(6) <= 6;
-  const okCtx = (sl10>=0) && (blueRun<=3) && (blueD<=0.45) && purple && nearPurple;
+
+  const okCtx = (sl10>=-0.001) && (blueRun<=3) && (blueD<=0.45);
+  const okCtxStrong = okCtx && (inBonusZone() || purple) && nearPurple;
 
   // Pre‑alerta
   if(hazard.h>0 && hazard.h >= hazard.q75){
@@ -637,7 +629,7 @@ function handleRoseMeta(v, ts){
     $("roseAlert").style.display="none";
   }
 
-  // Disparo ROSE (estricto + guardas)
+  // Canal 1: Hazard alto (ROSE10)
   const canTryWindow = (()=>{ // máx 2 por 120
     const curIdx = rounds.length;
     if(roseAttemptsStartIdx==null || (curIdx - roseAttemptsStartIdx)>120){
@@ -645,13 +637,19 @@ function handleRoseMeta(v, ts){
     }
     return (roseAttemptsCount < 2);
   })();
-
-  if(hazard.h>0 && hazard.h >= Math.max(hazard.q80,0.18) && okCtx && ui.autoSignal && cooldownLeft<=0 && roseCD<=0 && roseLossStreak<2 && canTryWindow){
+  if(hazard.h>0 && hazard.h >= Math.max(hazard.q80,0.18) && okCtxStrong && ui.autoSignal && cooldownLeft<=0 && roseCD<=0 && roseLossStreak<2 && canTryWindow){
     const conf = clamp( 0.55*hazard.h + 0.15*(inBonusZone()?1:0) + 0.15*(1-blueD) + 0.15*(purple?1:0) , 0, 1);
-    const reason = `haz=${(100*hazard.h).toFixed(0)} (q80≈${(100*hazard.q80).toFixed(0)}) • MA10=${sl10.toFixed(3)} • blue15=${(100*blueD).toFixed(0)}% • purple=${purple} • runBlue≤${blueRun}`;
+    const reason = `ROSE10 • haz=${(100*hazard.h).toFixed(0)} (q80≈${(100*hazard.q80).toFixed(0)}) • MA10=${sl10.toFixed(3)} • blue15=${(100*blueD).toFixed(0)}% • cluster=${cluster.c60}/${cluster.c30}`;
     emitSignal(10, "ROSE", "pink", reason, conf);
-    roseCD = 12;
-    roseAttemptsCount++;
+    roseCD = 12; roseAttemptsCount++;
+  }
+
+  // Canal 2: Clúster fuerte (ROSECL) – si hazard no llega pero hay presión real
+  if(hazard.h < hazard.q80 && cluster.score>=1.05 && okCtx && ui.autoSignal && cooldownLeft<=0 && roseCD<=0 && roseLossStreak<2 && canTryWindow){
+    const conf = clamp( 0.45*cluster.score + 0.20*(inBonusZone()?1:0) + 0.15*(1-blueD) + 0.20*(purple?1:0) , 0, 1);
+    const reason = `ROSECL • cluster=${cluster.c60}/${cluster.c30} (sc=${(100*cluster.score).toFixed(0)}) • MA10=${sl10.toFixed(3)} • blue15=${(100*blueD).toFixed(0)}%`;
+    emitSignal(10, "ROSECL", "pink", reason, conf);
+    roseCD = 12; roseAttemptsCount++;
   }
 }
 
@@ -671,7 +669,21 @@ function onNewCrash(v, ts, isBase=false){
     const bet = pendings.shift();
     const win = (v > bet.target);
     bet.crash = v; bet.state = win?"win":"lose"; bet.pl = win? "+1" : "−1";
-    if(bet.tag==="ROSE"){ if(win) roseLossStreak=0; else roseLossStreak++; }
+
+    // control de racha 3x
+    if((bet.tag||"").startsWith("P") && bet.target<=3){
+      guard3x.lossStreak = win ? 0 : (guard3x.lossStreak+1);
+      if(guard3x.lossStreak>=2){
+        // pausar hasta que mejore (a lo sumo 40 rondas)
+        guard3x.pauseUntilIdx = rounds.length + 30;
+      }
+    }
+
+    // guardas ROSE
+    if(bet.tag==="ROSE" || bet.tag==="ROSECL"){
+      if(win) roseLossStreak=0; else roseLossStreak++;
+    }
+
     bets.push(bet);
     renderBets();
   }
@@ -723,7 +735,8 @@ async function connectFeed(){
   rounds=[]; roundsMeta=[]; lastShown=[]; roses=[]; roseIntervals=[]; sinceRose=null; lastRose=null; roseAlertActive=false;
   bets=[]; pendings=[]; signalsCount=0; cooldownLeft=0;
   roseCD=0; roseLossStreak=0; roseAttemptsStartIdx=null; roseAttemptsCount=0;
-  postRose.active=false; postRose.startIdx=null; postRose.used=false;
+  postRose.active=false; postRose.startIdx=null; postRose.used=false; postRose.tries=0;
+  guard3x.lossStreak=0; guard3x.pauseUntilIdx=null;
 
   keys.forEach(k=>{
     const node=data[k]; const v=processValue(node?.v ?? node); const ts=Number(node?.ts ?? k) || now();
