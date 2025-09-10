@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v8.1.0 (Rose Sniper+ Intentos dinámicos)</title>
+<title>Aviator Analyzer • Gocho v8.1.1 (Rose Sniper+ Intentos dinámicos)</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5;
@@ -44,7 +44,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v8.1.0</span>
+  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v8.1.1</span>
     <span id="statusFeedback" class="muted" style="margin-left:8px"></span>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
   </h1>
@@ -153,12 +153,54 @@ const clamp=(v,min,max)=>v<min?min:(v>max?max:v);
 const now=()=>Date.now();
 const HHmm=ts=>new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
 
+/* Parser robusto para valores del feed:
+   - Acepta "2,416.11x", "2.416,11x", "2416.11x", etc.
+   - Detecta el separador decimal por la última coma/punto.
+   - Elimina miles correctamente y devuelve Number o null. */
+function parseCrashValue(raw){
+  if(raw===null || raw===undefined) return null;
+  if(typeof raw === "number"){
+    return (isFinite(raw) && raw>=1) ? raw : null;
+  }
+  let s = String(raw).trim();
+  if(!s) return null;
+  // deja sólo dígitos, coma y punto (y signo por si acaso), elimina 'x' y otros
+  s = s.replace(/[^\d.,+-]+/g,'');
+  if(!s) return null;
+
+  const lastDot   = s.lastIndexOf('.');
+  const lastComma = s.lastIndexOf(',');
+  let decimalSep = null;
+  if(lastDot===-1 && lastComma===-1){
+    decimalSep='.'; // sin separadores: entero
+  }else{
+    decimalSep = (lastComma > lastDot) ? ',' : '.';
+  }
+
+  if(decimalSep===','){
+    // punto como miles, coma como decimal
+    s = s.replace(/\./g,'');
+    s = s.replace(',', '.');
+  }else{
+    // coma como miles
+    s = s.replace(/,/g,'');
+  }
+  const v = Number(s);
+  return (isFinite(v) && v>=1) ? v : null;
+}
+
 /*** ===== ESTADO ===== ***/
 let FEED_ID="gocho", connected=false, loadingBase=false;
 let rounds=[], roundsMeta=[], lastShown=[];
 let baseCount=0;
 
 let pendings=[], bets=[], signalsCount=0, cooldownLeft=0;
+
+const PERSIST_BETS_KEY = "gocho_rose_bets_v2";
+const PERSIST_UI_KEY   = "gocho_rose_ui";
+const PERSIST_MAX_BETS = 500;
+
+const session = { active:false, startTs:null };
 
 // Eventos Rosa por umbral
 const R10=[], R20=[], R50=[], R100=[];
@@ -251,9 +293,16 @@ function attemptPolicy(CL, H10){
   return {budgetMax:budget, cdBase:cd, minGap:gap};
 }
 
+/*** ===== UTIL: Ventana por ETA ===== */
+function etaWindowOK(H, since, pre=2, post=2){
+  if(!H || !H.eta) return true; // si no hay ETA, no bloqueamos
+  const t = since ?? 0;
+  return (t >= (H.eta - pre)) && (t <= (H.eta + post));
+}
+
 /*** ===== DISPARO DE ROSAS ===== */
 function emitSignal(target, tag, reason, conf){
-  if(!$("autoSignal").checked) return;
+  if(!$("autoSignal").checked || !session.active) return;
   const id="S"+now();
   pendings.push({id, target, stake:1, ts:now(), state:"pend", tag, reason, conf});
   signalsCount++; cooldownLeft=Number($("cooldown").value)||8;
@@ -261,7 +310,7 @@ function emitSignal(target, tag, reason, conf){
   sig.textContent = `Señal ${tag}: ${target}x`;
   setTimeout(()=>sig.style.display="none", 3500);
   beepPink();
-  renderBets();
+  renderBets(); persistBets();
 }
 
 /*** ===== ESTRATEGIA: SOLO ROSAS ===== */
@@ -289,6 +338,8 @@ function roseEngine(){
 
   const sl=slopeMA10(), b15=blueDensity(15), purple=hasPurple(12);
   const baseRel = (x,q)=> (q? Math.min(x/q, 2) : 0);
+
+  // Puntuaciones base
   const S10 = baseRel(H10.h, H10.q80) * (contextOK("10")?1:0) + ((CL.score>=1.0 && H10.h<H10.q80)?0.25:0);
   const S20 = baseRel(H20.h, H20.q80) * (contextOK("20")?1:0);
   const S50 = baseRel(H50.h, H50.q80) * (contextOK("50")?1:0);
@@ -298,20 +349,23 @@ function roseEngine(){
     {tag:"ROSE100",k:100,score:S100},
     {tag:"ROSE50", k:50, score:S50},
     {tag:"ROSE20", k:20, score:S20},
-    {tag:"ROSE10", k:10, score:S10}
+    {tag:"ROSE10", k:10, score:S10, etaOK: etaWindowOK(H10, since10, 2, 2)}
   ].sort((a,b)=>b.score-a.score);
 
   const best = cand[0];
-  const scoreThr = 1.00; // exigente
+  // Umbral dinámico: más estricto si hay pocos 10x recientes
+  const scoreBase = 1.00;
+  const scoreThr = (CL.c60<6) ? (scoreBase+0.15) : (CL.c60<8 ? (scoreBase+0.08) : scoreBase);
 
   // Controles dinámicos
   const budgetOK = (roseAttemptsCount < policy.budgetMax);
   const cdOK = (cooldownLeft<=0) && (roseCD<=0);
   const gapOK = (lastRoseAttemptIdx<0) ? true : ((rounds.length - lastRoseAttemptIdx) >= policy.minGap);
   const lossOK = (roseLossStreak<2);
+  const etaOK  = (best.tag==="ROSE10") ? (cand.find(c=>c.tag==="ROSE10")?.etaOK ?? true) : true;
 
-  if(budgetOK && cdOK && gapOK && lossOK && best.score>=scoreThr){
-    const reason = `${best.tag} • hrel=${best.score.toFixed(2)} • sl=${sl.toFixed(3)} • blue15=${(100*b15).toFixed(0)}% • dens60=${CL.c60} • cluster=${CL.c60}/${CL.c30} • pur=${purple}`;
+  if(budgetOK && cdOK && gapOK && lossOK && etaOK && best.score>=scoreThr){
+    const reason = `${best.tag} • hrel=${best.score.toFixed(2)} • sl=${sl.toFixed(3)} • blue15=${(100*b15).toFixed(0)}% • dens60=${CL.c60} • cluster=${CL.c60}/${CL.c30} • pur=${purple} • etaOK=${etaOK}`;
     emitSignal(best.k, best.tag, reason, Math.min(best.score/1.6,1));
     roseAttemptsCount++;
     roseCD = policy.cdBase;                 // cooldown dinámico
@@ -326,6 +380,8 @@ function renderStats(){
   $("roseCountLbl").textContent = R10.length;
   $("sinceRose").textContent = (since10==null?"–":since10);
   $("lastRoseLbl").textContent  = last10?(`${last10.v.toFixed(2)}x • ${HHmm(last10.ts)}`):"–";
+  $("signals").textContent = signalsCount;
+  $("cdLeft").textContent = cooldownLeft;
 
   const cont=$("lastRounds"); cont.innerHTML="";
   lastShown.forEach(x=>{ const d=document.createElement("span"); d.className="pill neu"; d.textContent=x.toFixed(2)+"x"; cont.appendChild(d); });
@@ -402,11 +458,13 @@ function onNewCrash(v, ts, isBase=false){
   rounds.push(v); roundsMeta.push({v,ts}); if(rounds.length>2500){ rounds.shift(); roundsMeta.shift(); }
   if(!isBase && cooldownLeft>0) cooldownLeft--;
 
-  if(!isBase && pendings.length){
+  if(session.active && !isBase && pendings.length){
     const bet=pendings.shift(); const win=(v>bet.target);
     bet.crash=v; bet.state=win?"win":"lose"; bet.pl=win?"+1":"−1";
     if((bet.tag||"").startsWith("ROSE")){ if(win) roseLossStreak=0; else roseLossStreak++; }
-    bets.push(bet); renderBets();
+    bets.push(bet);
+    if(bets.length>PERSIST_MAX_BETS) bets.splice(0, bets.length-PERSIST_MAX_BETS);
+    renderBets(); persistBets();
   }
 
   lastShown.unshift(v); if(lastShown.length>60) lastShown.pop();
@@ -414,14 +472,17 @@ function onNewCrash(v, ts, isBase=false){
   handleRosesOnValue(v, ts);
   renderStats();
 
-  if(!isBase){ roseEngine(); }
+  if(session.active && !isBase){ roseEngine(); }
 }
 
 /*** ===== CONEXIÓN FEED ===== */
-function processValue(raw){ if(raw===null||raw===undefined) return null; const s=String(raw).replace(/,/g,''); const c=s.replace(/[^\d.]/g,''); if(c==='') return null; const v=Number(c); return (v>=1&&!isNaN(v))?v:null; }
+function processValue(raw){
+  // wrapper para compatibilidad con nombre original
+  return parseCrashValue(raw);
+}
 let liveRef=null, liveCb=null, lastSeenKey=null, lastSeenTs=null, lastActivityTs=null, watchdog=null;
 
-async function connectFeed(){
+async function connectFeed(opts={resetSession:false}){
   if(connected) return;
   FEED_ID=($("feedId").value||"gocho").trim();
   const feedbackEl=$("statusFeedback"); const refPath=`feeds/${FEED_ID}/crashes`;
@@ -438,12 +499,16 @@ async function connectFeed(){
 
   const data=snap.val(), keys=Object.keys(data).sort(); baseCount=keys.length;
 
-  // reset de buffers
+  // ——— Reset de buffers de mercado (pero NO del historial de señales) ———
   rounds=[]; roundsMeta=[]; lastShown=[];
-  bets=[]; pendings=[]; signalsCount=0; cooldownLeft=0;
   [R10,R20,R50,R100].forEach(a=>a.length=0); [I10,I20,I50,I100].forEach(a=>a.length=0);
   since10=since20=since50=since100=null; last10=last20=last50=last100=null;
   hour100.fill(0); roseCD=0; roseLossStreak=0; roseAttemptsStartIdx=null; roseAttemptsCount=0; lastRoseAttemptIdx=-1;
+
+  // (Si opts.resetSession === true, entonces sí limpiamos todas las señales)
+  if(opts.resetSession){
+    pendings=[]; bets=[]; signalsCount=0; cooldownLeft=0; persistBets();
+  }
 
   keys.forEach(k=>{
     const node=data[k]; const v=processValue(node?.v ?? node); const ts=Number(node?.ts ?? k) || now();
@@ -452,7 +517,7 @@ async function connectFeed(){
 
   lastSeenKey=keys[keys.length-1]||null;
   lastSeenTs = (()=>{ const n=data[lastSeenKey]; const t=Number(n?.ts ?? lastSeenKey); return isFinite(t)?t:now(); })();
-  lastActivityTs = lastSeenTs;
+  lastActivityTs = now(); // actividad reciente al cargar base
 
   loadingBase=false;
 
@@ -462,23 +527,33 @@ async function connectFeed(){
     liveCb=function(s){
       const key=s.key, d=s.val(); const v=processValue(d?.v ?? d); const ts=Number(d?.ts ?? key) || now();
       if(lastSeenTs && ts<=lastSeenTs && key===lastSeenKey) return;
-      lastSeenKey=key; lastSeenTs=ts; if(v!==null) onNewCrash(v, ts, false);
+      lastSeenKey=key; lastSeenTs=ts; lastActivityTs=now();
+      if(v!==null) onNewCrash(v, ts, false);
     };
   }else{
     liveRef=ref.orderByKey().startAt(lastSeenKey||"");
     liveCb=function(s){
       const key=s.key, d=s.val(); if(lastSeenKey && key<=lastSeenKey) return; lastSeenKey=key;
       const v=processValue(d?.v ?? d); const ts=Number(d?.ts ?? key) || now();
+      lastSeenTs=ts; lastActivityTs=now();
       if(v!==null) onNewCrash(v, ts, false);
     };
   }
   liveRef.on("child_added", liveCb);
 
   if(watchdog) clearInterval(watchdog);
-  watchdog=setInterval(()=>{ if(!connected) return; const delta=Date.now()-(lastActivityTs||0); if(delta>180000){ disconnectFeed(true); connectFeed(); } }, 30000);
+  // Si no hay actividad >5min, reintenta reconectar SIN resetear sesión
+  watchdog=setInterval(()=>{ 
+    if(!connected) return; 
+    const delta=Date.now()-(lastActivityTs||0); 
+    if(delta>300000){ // 5 minutos
+      disconnectFeed(true); 
+      connectFeed({resetSession:false});
+    } 
+  }, 30000);
 
   connected=true; feedbackEl&&(feedbackEl.textContent="Conectado.");
-  renderStats(); renderRoseHistory(); renderHourGrid();
+  renderStats(); renderRoseHistory(); renderHourGrid(); renderBets();
 }
 
 function disconnectFeed(silent=false){
@@ -502,11 +577,38 @@ function loadModel(){
   });
 }
 
+/*** ===== PERSISTENCIA LOCAL DEL HISTORIAL DE SEÑALES ===== */
+function persistBets(){
+  try{
+    const payload = {bets, pendings, signalsCount, cooldownLeft, session};
+    localStorage.setItem(PERSIST_BETS_KEY, JSON.stringify(payload));
+  }catch(_){}
+}
+function restoreBets(){
+  try{
+    const raw = localStorage.getItem(PERSIST_BETS_KEY);
+    if(!raw) return;
+    const p = JSON.parse(raw);
+    if(Array.isArray(p.bets))     bets = p.bets;
+    if(Array.isArray(p.pendings)) pendings = p.pendings;
+    if(typeof p.signalsCount==="number") signalsCount=p.signalsCount;
+    if(typeof p.cooldownLeft==="number") cooldownLeft=p.cooldownLeft;
+    if(p.session && typeof p.session.active==="boolean"){ session.active = p.session.active; session.startTs = p.session.startTs||null; }
+  }catch(_){}
+}
+
 /*** ===== UI / RELOJ ===== */
-on("connectBtn","click", connectFeed);
+on("connectBtn","click", ()=>connectFeed({resetSession:false}));
 on("disconnectBtn","click", ()=>disconnectFeed(false));
-on("startBtn","click", ()=>{ signalsCount=0; cooldownLeft=0; bets=[]; pendings=[]; renderBets(); renderStats(); beep(660,90,0.03); });
-on("stopBtn","click",  ()=>{ bets=[]; pendings=[]; signalsCount=0; cooldownLeft=0; renderBets(); renderStats(); });
+on("startBtn","click", ()=>{ 
+  session.active=true; session.startTs=now();
+  signalsCount=0; cooldownLeft=0; bets=[]; pendings=[]; 
+  renderBets(); renderStats(); persistBets(); beep(660,90,0.03); 
+});
+on("stopBtn","click",  ()=>{ 
+  session.active=false; persistBets(); 
+  renderBets(); renderStats(); 
+});
 on("resetBtn","click", ()=>{ localStorage.clear(); location.reload(); });
 on("hardResetBtn","click", ()=>{ localStorage.clear(); location.reload(); });
 on("saveModelBtn","click", ()=>{ saveModel(); });
@@ -515,12 +617,21 @@ on("autoBackup","change", e=>{ if(e.target.checked){ saveModel(); }});
 
 setInterval(()=>{ $("clockNow").textContent=new Date().toLocaleTimeString(); }, 1000);
 
+// Bootstrap persistencia UI + historial de señales
 (function bootstrap(){
-  try{ const st=JSON.parse(localStorage.getItem("gocho_rose_ui")||"{}");
+  try{ const st=JSON.parse(localStorage.getItem(PERSIST_UI_KEY)||"{}");
     if(typeof st.autoSignal==="boolean") $("autoSignal").checked=st.autoSignal;
     if(st.cooldown) $("cooldown").value=st.cooldown;
   }catch(_){}
-  setInterval(()=>{ const st={autoSignal:$("autoSignal").checked, cooldown:Number($("cooldown").value)||8}; localStorage.setItem("gocho_rose_ui", JSON.stringify(st)); }, 2000);
+  // restaurar historial
+  restoreBets();
+  renderBets();
+
+  setInterval(()=>{ 
+    const st={autoSignal:$("autoSignal").checked, cooldown:Number($("cooldown").value)||8}; 
+    localStorage.setItem(PERSIST_UI_KEY, JSON.stringify(st)); 
+    persistBets();
+  }, 2000);
 })();
 </script>
 </body>
