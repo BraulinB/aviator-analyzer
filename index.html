@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v7.9.0 (Cluster‑Rose + Safe Post‑Rose + Turbo‑60++)</title>
+<title>Aviator Analyzer • Gocho v8.0.0 (Rose Sniper)</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5;
@@ -11,19 +11,16 @@
     --chip:#232837; --chip-on:#3b4257;
   }
   html,body{background:var(--bg);color:var(--text);font:14px/1.4 system-ui,Inter,Segoe UI,Roboto,Arial,sans-serif;margin:0}
-  .wrap{max-width:1080px;margin:20px auto;padding:0 12px}
+  .wrap{max-width:1100px;margin:20px auto;padding:0 12px}
   .card{background:var(--panel);border-radius:12px;padding:14px;margin:10px 0;border:1px solid #222836}
   h1{font-size:18px;margin:0 0 8px 0;display:flex;gap:8px;align-items:center}
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .chip{padding:6px 10px;border-radius:999px;background:var(--chip);cursor:pointer;user-select:none}
-  .chip.on{background:var(--chip-on)}
   .btn{background:#2a3042;color:var(--text);border:0;border-radius:8px;padding:8px 12px;cursor:pointer}
   .btn.ok{background:#2ecc71;color:#0c0f12;font-weight:700}
   .btn.bad{background:#e74c3c}
   .muted{color:var(--muted)}
   input[type="number"]{width:72px;background:#0f121a;color:var(--text);border:1px solid #2a3144;border-radius:6px;padding:6px}
   input[type="text"]{width:140px;background:#0f121a;color:var(--text);border:1px solid #2a3144;border-radius:6px;padding:6px}
-  input[type="range"]{width:180px}
   .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#1f2432;margin:2px}
   .pill.neu{background:#1c2130}
   .pill.pink{background:rgba(255,90,195,.14);color:#ffb2e3;border:1px solid rgba(255,90,195,.32)}
@@ -40,56 +37,26 @@
   .rose-item{display:flex;gap:8px;align-items:center;padding:6px 8px;border:1px solid #22283a;border-radius:8px;margin:5px 0;background:#0f121a}
   .rose-item small{color:var(--muted)}
   .clock{font-variant-numeric:tabular-nums}
+  .hour-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:8px}
+  .hour-cell{padding:6px 8px;border:1px solid #22283a;border-radius:8px;background:#0f121a;display:flex;justify-content:space-between;align-items:center}
+  .hour-cell.top{border-color:#ff5ac3}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v7.9.0</span>
+  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v8.0.0</span>
     <span id="statusFeedback" class="muted" style="margin-left:8px"></span>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
   </h1>
 
   <div class="card">
     <div class="row">
-      <div class="row">
-        <span class="muted">Objetivo</span>
-        <div id="objChips" class="row">
-          <div data-v="2"   class="chip">2x</div>
-          <div data-v="2.5" class="chip">2.5x</div>
-          <div data-v="3"   class="chip on">3x</div>
-          <div data-v="3.5" class="chip">3.5x</div>
-          <div data-v="4"   class="chip">4x</div>
-          <div data-v="5"   class="chip">5x</div>
-        </div>
-      </div>
-
-      <div class="row" style="margin-left:8px">
-        <span class="muted">Modo:</span>
-        <div id="modeChips" class="row">
-          <div data-m="agresivo"     class="chip">Agresivo</div>
-          <div data-m="normal"       class="chip on">Normal</div>
-          <div data-m="conservador"  class="chip">Conservador</div>
-        </div>
-        <label style="margin-left:8px"><input id="autoSignal" type="checkbox" checked> Auto‑señal</label>
-      </div>
-
-      <div class="row" style="margin-left:auto">
-        <span class="muted">Conf. mín.:</span>
-        <input id="minConf" type="range" min="50" max="95" value="80"/>
-        <span id="minConfVal">80%</span>
-        <span class="muted" style="margin-left:8px">CoolDown:</span>
-        <input id="cooldown" type="number" min="0" max="50" value="4"/>
-      </div>
-    </div>
-
-    <div class="row" style="margin-top:10px">
       <button id="startBtn" class="btn ok">Iniciar sesión</button>
       <button id="stopBtn" class="btn">Cerrar sesión</button>
       <button id="resetBtn" class="btn">Reset</button>
-
-      <div class="row" style="margin-left:10px">
-        <label><input id="beepToggle" type="checkbox" checked> Beep señal</label>
-      </div>
+      <label class="row" style="margin-left:10px"><input id="autoSignal" type="checkbox" checked> Auto‑señal</label>
+      <label class="row"><input id="beepToggle" type="checkbox" checked> Beep</label>
+      <span class="muted">CoolDown:</span><input id="cooldown" type="number" min="0" max="50" value="8"/>
 
       <div class="row" style="margin-left:auto">
         <span class="muted">Feed:</span>
@@ -103,24 +70,16 @@
   <div class="card">
     <div class="kpi">
       <div class="box">Rondas: <b id="rounds">0</b> <span class="muted">(base)</span></div>
-      <div class="box">P(≥2x): <b id="p2">0%</b></div>
-      <div class="box">P(≥2.5x): <b id="p25">0%</b></div>
-      <div class="box">P(≥3x): <b id="p3">0%</b></div>
-      <div class="box">P(≥5x): <b id="p5">0%</b></div>
-      <div class="box">P(≥10x): <b id="p10">0%</b></div>
-      <div class="box">MA10: <b id="ma10">–</b></div>
-      <div class="box">Racha &lt;1.70: <b id="badRun">0</b></div>
-      <div class="box">CoolDown: <b id="cdLeft">0</b></div>
-      <div class="box">Señales: <b id="signals">0</b></div>
-      <div class="box">Rosas (≥10x): <b id="roseCountLbl">0</b></div>
+      <div class="box">Rosas (≥10x) totales: <b id="roseCountLbl">0</b></div>
       <div class="box">Desde última Rosa: <b id="sinceRose">–</b> <span class="muted">r</span><br><span class="muted">Últ.: <span id="lastRoseLbl">–</span></span></div>
+      <div class="box">Señales: <b id="signals">0</b></div>
+      <div class="box">CoolDown: <b id="cdLeft">0</b></div>
+      <div class="box">MA10: <b id="ma10">–</b></div>
     </div>
 
     <div class="row" style="margin-top:10px;gap:8px">
-      <span id="zoneFlag" class="flag">Sin señal</span>
       <span id="roseAlert" class="flag pink" style="display:none">Alerta Rosa próxima</span>
       <span id="lastSignal" class="flag ok" style="display:none">Señal emitida</span>
-      <span id="slotFlag" class="flag info" style="display:none">Ventana 60: 0/60</span>
       <span id="slotExplain" class="flag warn" style="display:none"></span>
     </div>
 
@@ -130,17 +89,27 @@
     </div>
   </div>
 
-  <!-- Área de Rosas: intervalos exactos -->
+  <!-- Intervalos exactos y últimas 60 rosas -->
   <div class="card">
     <div class="row">
-      <h3 style="margin:0">Rosas (≥10x): intervalos exactos entre rosas</h3>
-      <span class="muted" style="margin-left:auto">Últimos 30 enlaces</span>
+      <h3 style="margin:0">Rosas (≥10x): intervalos exactos (últimos 60 enlaces)</h3>
+      <span class="muted" style="margin-left:auto">ROSE10/20/50/100: disparo con magnitud</span>
     </div>
     <div id="roseHistory" style="margin-top:8px"></div>
   </div>
 
+  <!-- Mapa horario 100x -->
   <div class="card">
-    <div class="row"><h3 style="margin:0">Apuestas registradas</h3></div>
+    <div class="row">
+      <h3 style="margin:0">Mapa horario ≥100x (conteo por hora del día)</h3>
+      <span class="muted" style="margin-left:auto">Top horas para francotirador 100x</span>
+    </div>
+    <div id="hourSummary" class="muted" style="margin-top:6px">Aún sin datos ≥100x suficientes.</div>
+    <div id="hourGrid" class="hour-grid"></div>
+  </div>
+
+  <div class="card">
+    <div class="row"><h3 style="margin:0">Apuestas / Señales registradas</h3></div>
     <table class="table" style="margin-top:8px">
       <thead><tr><th>#</th><th>Tipo</th><th>Objetivo</th><th>Stake</th><th>Crash</th><th>Resultado</th><th>P/L</th></tr></thead>
       <tbody id="betsTbody"></tbody>
@@ -179,84 +148,39 @@ firebase.initializeApp(firebaseConfig);
 const db  = firebase.database();
 const auth= firebase.auth();
 
-/*** ===== HELPERS UI ===== ***/
+/*** ===== HELPERS ===== ***/
 const $ = (id)=>document.getElementById(id);
 const on=(id,ev,fn)=>{ const el=$(id); if(el) el.addEventListener(ev,fn); };
-
-/*** ===== ESTADO ===== ***/
-let FEED_ID = "gocho";
-let connected = false;
-let loadingBase = false;
-
-let rounds = [];              // números (reciente al final)
-let roundsMeta = [];          // {v, ts}
-let lastShown = [];
-let baseCount = 0;
-
-let pendings = [];            // [{id, target, stake, ts, tag, reason, conf}]
-let bets = [];
-let signalsCount = 0;
-let cooldownLeft = 0;
-
-// Rosas
-let roses=[];                 // [{idx,v,ts}]
-let roseIntervals=[];         // [{from,to,gap}]
-let sinceRose = null;         // rondas desde la última Rosa
-let lastRose = null;          // {v, ts}
-let roseAlertActive = false;
-
-// Guardas ROSE
-let roseCD = 0;               // enfriamiento en rondas
-let roseLossStreak = 0;       // consecutivas perdidas
-let roseAttemptsStartIdx = null;
-let roseAttemptsCount = 0;    // máx 2 por 120
-
-// Post‑Rosa 3x/5x
-const postRose = {active:false, startIdx:null, used:false, tries:0};
-
-// Motor 60 con presupuesto + extensión y re‑anclaje
-const pred = {
-  active:false,
-  sessionStartIdx:null,
-  winSize:60,
-  extendSize:30,
-  winStartIdx:null,
-  winIndex:1,
-  budgetUsed:0,
-  budgetMax:1,
-  extending:false,
-  extendStartIdx:null,
-  reanchored:false
-};
-
-// Control racha 3x
-const guard3x = {lossStreak:0, pauseUntilIdx:null};
-
-const model = {
-  priors: { "2":[10,10], "2.5":[8,10], "3":[6,10], "5":[3,9], "10":[1.5,8.5] },
-  winN: 120
-};
-
-const ui = {
-  selTarget: 3.0,
-  mode: "normal",
-  autoSignal: true,
-  minConf: 80,
-  cooldown: 4,
-  beep: true
-};
-
-/*** ===== UTIL ===== */
 const fmtPct=x=>(x*100).toFixed(1)+"%";
 const clamp=(v,min,max)=>v<min?min:(v>max?max:v);
 const now=()=>Date.now();
 const HHmm=ts=>new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-const lastIndex=(arr, pred)=>{ for(let i=arr.length-1;i>=0;i--){ if(pred(arr[i],i)) return i; } return -1; };
+
+/*** ===== ESTADO ===== ***/
+let FEED_ID="gocho", connected=false, loadingBase=false;
+
+let rounds=[], roundsMeta=[], lastShown=[];
+let baseCount=0;
+
+let pendings=[], bets=[], signalsCount=0, cooldownLeft=0;
+
+// Eventos Rosa por umbral
+const R10=[], R20=[], R50=[], R100=[];          // {idx, v, ts}
+const I10=[], I20=[], I50=[], I100=[];          // {from,to,gap}
+
+let since10=null, since20=null, since50=null, since100=null;
+let last10=null, last20=null, last50=null, last100=null;
+
+// Mapa horario 100x
+const hour100 = new Array(24).fill(0);          // conteo por hora local
+
+// Guardas
+let roseCD=0, roseLossStreak=0, roseAttemptsStartIdx=null, roseAttemptsCount=0;
 
 /*** ===== AUDIO ===== */
 let audioCtx=null;
 function beep(freq=880, ms=120, gain=0.03){
-  if(!ui.beep) return;
+  if(!$("beepToggle").checked) return;
   try{
     if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
     const o = audioCtx.createOscillator(), g = audioCtx.createGain();
@@ -264,284 +188,133 @@ function beep(freq=880, ms=120, gain=0.03){
     o.start(); setTimeout(()=>{o.stop();}, ms);
   }catch(_){}
 }
-const beepPink=()=>{beep(520,160,0.035); setTimeout(()=>beep(980,80,0.03),100);};
+const beepPink=()=>{beep(520,160,0.035); setTimeout(()=>beep(980,80,0.03),110);};
 
-/*** ===== MÉTRICAS ===== */
-function probGE(k){
-  const v=rounds.slice(-model.winN), s=v.filter(x=>x>=k).length, n=v.length;
-  const [a,b]=model.priors[String(k)]||[2,2]; return (s+a)/(n+a+b);
-}
-function probGE_window(k, n){
-  const w = rounds.slice(-n);
-  const s = w.filter(x=>x>=k).length, L = w.length;
-  const [a,b] = model.priors[String(k)] || [2,2];
-  return (s+a)/(L+a+b);
-}
+/*** ===== MÉTRICAS BÁSICAS ===== */
 function movingAverage(arr,n){const L=Math.min(arr.length,n); if(!L) return NaN; let s=0; for(let i=arr.length-L;i<arr.length;i++) s+=arr[i]; return s/L;}
-function slopeMA_n(n){ if(rounds.length<n+1) return 0; const nowMA=movingAverage(rounds,n), prevMA=movingAverage(rounds.slice(0,-1),n); return nowMA-prevMA; }
-function countBad170(arr, w=8){ return arr.slice(-w).filter(x=>x<1.70).length; }
-function inBonusZone(){
-  const w=rounds.slice(-14); if(w.length<14) return false;
-  const p2=w.filter(x=>x>=2).length/w.length;
-  const has5=w.some(x=>x>=5);
-  const sl=slopeMA_n(10);
-  return (p2>=0.60 && has5 && sl>=0);
-}
-function drynessSince5x(){ let d=0; for(let i=rounds.length-1;i>=0;i--){ if(rounds[i]>=5) break; else d++; } return d; }
+function slopeMA10(){ if(rounds.length<11) return 0; const nowMA=movingAverage(rounds,10), prevMA=movingAverage(rounds.slice(0,-1),10); return nowMA-prevMA; }
 function blueDensity(n=15){const w=rounds.slice(-n); if(!w.length) return 1; const b=w.filter(x=>x<2).length; return b/w.length;}
-function hasPurple(n=12){const w=rounds.slice(-n); return w.some(x=>x>=5 && x<10);}
 function maxBlueRun(n=12){const w=rounds.slice(-n); let maxR=0,cur=0; for(const x of w){ if(x<2){cur++; maxR=Math.max(maxR,cur);} else cur=0; } return maxR; }
-function distToLastPurple(limit=12){
-  for(let i=rounds.length-1, d=0; i>=0 && d<=limit; i--, d++){
-    const v=rounds[i]; if(v>=5 && v<10) return d;
-  }
-  return Infinity;
-}
+function hasPurple(n=12){return rounds.slice(-n).some(x=>x>=5 && x<10);}
 
-/*** ===== REGIMEN (Burst) ===== */
-function burstBudget(){
-  const w = rounds.slice(-60); const L=w.length||1;
-  const r10 = w.filter(x=>x>=10).length;
-  const r5  = w.filter(x=>x>=5).length;
-  const blue = w.filter(x=>x<2).length/L;
-  const sl10 = slopeMA_n(10);
-  let score = 0.50*clamp(r10/6,0,1.6) + 0.25*clamp(r5/12,0,1.2) + 0.15*clamp((0.6-blue)/0.6,0,1) + 0.10*clamp((sl10+0.08)/0.12,0,1);
-  score = clamp(score,0,2);
-  let b=1; if(score>=1.00) b=2; if(score>=1.45) b=3;
-  return {score, budget:b, r10, r5, blue, sl10};
-}
-
-/*** ===== CLÚSTER ROSAS ===== */
-function roseClusterScore(){
-  const c60 = rounds.slice(-60).filter(x=>x>=10).length;
-  const c30 = rounds.slice(-30).filter(x=>x>=10).length;
-  const pur = rounds.slice(-20).filter(x=>x>=5 && x<10).length;
-  const b15 = blueDensity(15);
-  const sc = 0.6*clamp(c60/8,0,1.5) + 0.2*clamp(c30/4,0,1.2) + 0.2*clamp(pur/3,0,1) - 0.2*clamp(b15,0,1);
-  return {score:clamp(sc,0,2), c60, c30, pur, b15};
-}
-
-/*** ===== ROSAS: hazard + clúster + contexto ===== */
-function roseHazardNext(){
-  if(roseIntervals.length<5 || sinceRose==null) return {h:0, eta:null, q75:0, q80:0};
-  const gaps = roseIntervals.map(x=>x.gap);
-  const maxG = Math.max(...gaps);
+/*** ===== HAZARD GENÉRICO (por umbral) ===== */
+function hazardBuilder(listEvents, listIntervals, since, lastN){
+  if(listIntervals.length<3 || since==null) return {h:0, eta:null, q75:0, q80:0};
+  const intervals = listIntervals.slice(-Math.max(3, lastN-1));
+  const gaps = intervals.map(x=>x.gap);
+  const maxG = Math.max(...gaps, 1);
   const freq = new Map();
-  for(const g of gaps) freq.set(g, (freq.get(g)||0)+1);
+  gaps.forEach(g=>freq.set(g,(freq.get(g)||0)+1));
   const N = gaps.length;
-  const pdf = []; const cdf = []; let cum=0;
+  const pdf=[], cdf=[]; let cum=0;
   for(let t=1;t<=maxG+20;t++){ const p=(freq.get(t)||0)/N; pdf[t]=p; cum+=p; cdf[t]=cum; }
-  const hazards = []; for(let t=1;t<=maxG+20;t++){ const S=1-(cdf[t-1]||0); hazards[t]= S>0 ? pdf[t]/S : 0; }
+  const hazards=[]; for(let t=1;t<=maxG+20;t++){ const S=1-(cdf[t-1]||0); hazards[t]=S>0? pdf[t]/S : 0; }
   const hazVals = hazards.filter(x=>x>0).sort((a,b)=>a-b);
-  const q75 = hazVals.length? hazVals[Math.floor(0.75*(hazVals.length-1))] : 0.12;
-  const q80 = hazVals.length? hazVals[Math.floor(0.80*(hazVals.length-1))] : 0.15;
-  const tNext = sinceRose+1;
-  let eta=null,bestH=0; for(let t=tNext;t<tNext+20;t++){ if(hazards[t]>q75 && hazards[t]>bestH){bestH=hazards[t]; eta=t-sinceRose;} }
+  const q75 = hazVals.length? hazVals[Math.floor(0.75*(hazVals.length-1))] : 0.10;
+  const q80 = hazVals.length? hazVals[Math.floor(0.80*(hazVals.length-1))] : 0.13;
+  const tNext = since+1;
+  let eta=null,best=0;
+  for(let t=tNext;t<tNext+20;t++){ if(hazards[t]>q75 && hazards[t]>best){best=hazards[t]; eta=t-since;} }
   return {h:hazards[tNext]||0, eta, q75, q80};
 }
 
-/*** ===== SEÑALES ===== */
-function emitSignal(target, tag="AUTO", beepKind="green", reason="", conf=0){
+/*** ===== CLÚSTER 10x ===== */
+function cluster10(){
+  const c60 = rounds.slice(-60).filter(x=>x>=10).length;
+  const c30 = rounds.slice(-30).filter(x=>x>=10).length;
+  const pur20 = rounds.slice(-20).filter(x=>x>=5 && x<10).length;
+  const b15 = blueDensity(15);
+  const sc = 0.6*clamp(c60/8,0,1.5) + 0.2*clamp(c30/4,0,1.2) + 0.2*clamp(pur20/3,0,1) - 0.2*clamp(b15,0,1);
+  return {score:clamp(sc,0,2), c60, c30, pur20, b15};
+}
+
+/*** ===== CONTEXTO PARA ROSA ===== */
+function contextOK(level="10"){
+  const sl=slopeMA10(), b15=blueDensity(15), br=maxBlueRun(12);
+  const purple = hasPurple(12);
+  if(level==="100") return (sl>=0) && (b15<=0.42) && (br<=3) && purple;
+  if(level==="50")  return (sl>=-0.001) && (b15<=0.45) && (br<=3);
+  if(level==="20")  return (sl>=-0.002) && (b15<=0.48) && (br<=4);
+  return (sl>=-0.003) && (b15<=0.50) && (br<=4);
+}
+
+/*** ===== DISPARO DE ROSAS ===== */
+function emitSignal(target, tag, reason, conf){
+  if(!$("autoSignal").checked) return;
   const id="S"+now();
   pendings.push({id, target, stake:1, ts:now(), state:"pend", tag, reason, conf});
-  signalsCount++; cooldownLeft=ui.cooldown;
+  signalsCount++; cooldownLeft=Number($("cooldown").value)||8;
   renderBets();
-  const sig=$("lastSignal"); sig.style.display="inline-block"; sig.textContent=`Señal ${tag}: ${target}x`;
+  const sig=$("lastSignal"); sig.style.display="inline-block";
+  sig.textContent = `Señal ${tag}: ${target}x`;
   setTimeout(()=>sig.style.display="none", 3500);
-  if(beepKind==="pink") beepPink(); else beep(880,140,0.04);
+  beepPink();
 }
 
-/*** ===== Turbo‑60 (score) ===== */
-function scoreEntry(){
-  const target = ui.selTarget;                         // 3 o 5
-  const p60 = probGE_window(target, 60);
-  const p20 = probGE_window(target, 20);
-  const sl10 = slopeMA_n(10);
-  const sl5  = slopeMA_n(5);
-  const blue15 = blueDensity(15);                      // 0..1 (más bajo, mejor)
-  const dry = clamp(drynessSince5x()/60, 0, 1);
-  const bonus = inBonusZone()?1:0;
-  const purple = hasPurple(12)?1:0;
+/*** ===== ESTRATEGIA: SOLO ROSAS ===== */
+function roseEngine(){
+  // Guardas
+  if(roseCD>0) roseCD--;
+  const curIdx = rounds.length;
+  if(roseAttemptsStartIdx==null || (curIdx - roseAttemptsStartIdx)>120){ roseAttemptsStartIdx=curIdx; roseAttemptsCount=0; }
 
-  const f_sl10 = clamp((sl10+0.08)/0.12, 0, 1);
-  const f_sl5  = clamp((sl5 +0.06)/0.10, 0, 1);
-  const f_blue = 1 - clamp(blue15, 0, 1);
+  // Hazard por umbral (con sus memorias)
+  const H10 = hazardBuilder(R10, I10, since10, 60);
+  const H20 = hazardBuilder(R20, I20, since20, 40);
+  const H50 = hazardBuilder(R50, I50, since50, 25);
+  const H100= hazardBuilder(R100,I100,since100,15);
 
-  const score = 0.30*p60 + 0.22*p20 + 0.15*f_sl10 + 0.10*f_sl5 + 0.10*f_blue + 0.07*bonus + 0.06*dry + 0.05*purple;
-
-  return {score, target, p60, p20, sl10, sl5, blue15, dry, bonus, purple};
-}
-function explainWhy(pLike, sl10, blue15, bad, haz){
-  const parts=[];
-  if(pLike<0.36) parts.push(`probabilidad baja (${fmtPct(pLike)})`);
-  if(sl10<0) parts.push(`tendencia bajista (${sl10.toFixed(3)})`);
-  if(blue15>0.50) parts.push(`muchas azules (densidad ${(100*blue15).toFixed(0)}%)`);
-  if(bad>=5) parts.push(`zona mala <1.70 (${bad}/8)`);
-  if(haz && haz.h < (haz.q75||0)) parts.push(`prob. de Rosa no destacada`);
-  if(!parts.length) parts.push(`criterios estrictos aún no se cumplen`);
-  return "Sin entrada sólida: " + parts.join(" · ");
-}
-
-/*** ===== Motor 60 con presupuesto + extensión + re‑anclaje + pausa por racha ===== */
-function startPredSession(){
-  pred.active=true;
-  pred.sessionStartIdx=rounds.length;
-  pred.winStartIdx=rounds.length;
-  pred.winIndex=1;
-  pred.budgetUsed=0;
-  pred.budgetMax=1;
-  pred.extending=false;
-  pred.extendStartIdx=null;
-  pred.reanchored=false;
-  guard3x.lossStreak=0; guard3x.pauseUntilIdx=null;
-  $("slotFlag").style.display="inline-block";
-  $("slotExplain").style.display="none";
-  updateSlotFlag();
-}
-function stopPredSession(){
-  pred.active=false;
-  $("slotFlag").style.display="none";
-  $("slotExplain").style.display="none";
-}
-function updateSlotFlag(){
-  if(!pred.active) return;
-  const done = rounds.length - pred.winStartIdx;
-  let txt = `Ventana ${pred.winIndex*60}: ${Math.max(0,done)}/${pred.winSize} • señales ${pred.budgetUsed}/${pred.budgetMax}`;
-  if(pred.extending){
-    const ext = rounds.length - pred.extendStartIdx;
-    txt += ` • extensión ${ext}/${pred.extendSize}`;
-  }
-  if(pred.reanchored) txt += " • re‑anclada";
-  if(guard3x.pauseUntilIdx && rounds.length<guard3x.pauseUntilIdx) txt += " • pausa‑3x";
-  $("slotFlag").textContent = txt;
-}
-function maybeReanchorWindow(){
-  if(!pred.active || pred.reanchored) return;
-  const done = rounds.length - pred.winStartIdx;
-  if(done<8 && countBad170(rounds,8)>=6){
-    pred.winStartIdx = rounds.length;
-    pred.reanchored = true;
-    $("slotExplain").style.display="inline-block";
-    $("slotExplain").textContent = "Re‑anclaje: racha <1.70 muy alta al inicio; esperando estructura limpia";
-    updateSlotFlag();
-  }
-}
-function refreshBudget(){ const {budget} = burstBudget(); pred.budgetMax = Math.max(pred.budgetMax, budget); }
-function tickPredEngine(){
-  if(!pred.active) return;
-
-  const done = rounds.length - pred.winStartIdx;
-  const within60 = done < pred.winSize;
-
-  refreshBudget();
-
-  const {score, target, p60, p20, sl10, sl5, blue15, dry, bonus, purple} = scoreEntry();
-  const bad = countBad170(rounds,8);
-  const haz = roseHazardNext();
-
-  // PAUSA por racha de fallos 3x
-  if(target<=3 && guard3x.pauseUntilIdx && rounds.length<guard3x.pauseUntilIdx){
-    updateSlotFlag();
-    if(!within60){
-      pred.winIndex++; pred.winStartIdx=rounds.length; pred.budgetUsed=0; pred.budgetMax=1;
-      pred.extending=false; pred.extendStartIdx=null; pred.reanchored=false; $("slotExplain").style.display="none";
-    }
-    return;
+  // Pre‑alerta visual con H10
+  if(H10.h>=H10.q75){
+    $("roseAlert").style.display="inline-block";
+    $("roseAlert").textContent = H10.eta ? `Alerta Rosa (~${H10.eta} r)` : `Alerta Rosa próxima`;
+  }else{
+    $("roseAlert").style.display="none";
   }
 
-  // Umbrales reforzados
-  const phase = clamp(done / pred.winSize, 0, 1);
-  const baseThr = (target==5) ? 0.94 : 0.88;
-  const endThr  = (target==5) ? 0.70 : 0.60;
-  const thr = baseThr - (baseThr-endThr)*phase;
+  // Selección de magnitud (ranking simple por “puntuación de disparo”)
+  const sl=slopeMA10(), b15=blueDensity(15), purple=hasPurple(12);
+  const base = (x,q)=> (q? clamp(x/q,0,2): x); // relación con su propio umbral
+  const S10 = base(H10.h, H10.q80) * (contextOK("10")?1.0:0.0);
+  const S20 = base(H20.h, H20.q80) * (contextOK("20")?1.0:0.0);
+  const S50 = base(H50.h, H50.q80) * (contextOK("50")?1.0:0.0);
+  const S100= base(H100.h,H100.q80)* (contextOK("100")?1.0:0.0);
 
-  const minP20 = (target==5) ? 0.16 : 0.34;
-  const minP60 = (target==5) ? 0.22 : 0.36;
-  const minSl  = (target==5) ? -0.0005 : -0.003;
-  const maxBlueD = 0.50;
+  // Impulso por clúster 10x si H10 no es alto
+  const CL = cluster10();
+  const clusterBoost = (CL.score>=1.0 && H10.h < H10.q80) ? 0.25 : 0;
 
-  const pLike = (target==5)? probGE_window(5, 60) : probGE_window(3, 60);
+  const cand = [
+    {tag:"ROSE100",k:100,score:S100},
+    {tag:"ROSE50", k:50, score:S50},
+    {tag:"ROSE20", k:20, score:S20},
+    {tag:"ROSE10", k:10, score:S10+clusterBoost}
+  ].sort((a,b)=>b.score-a.score);
 
-  const gate = (score>=thr) && (p20>=minP20) && (p60>=minP60) && (sl10>=minSl) && (blue15<=maxBlueD) && (bad<6);
+  const best = cand[0];
 
-  if(pred.budgetUsed < pred.budgetMax && gate && ui.autoSignal && cooldownLeft<=0){
-    const tag = (pred.winIndex%2===1) ? "P60" : "P120";
-    const conf = clamp(score, 0, 1);
-    const reason = `score=${(100*score).toFixed(0)} • p20=${fmtPct(p20)} • p60=${fmtPct(p60)} • sl10=${sl10.toFixed(3)} • blue15=${(100*blue15).toFixed(0)}% • bonus=${bonus} • purple=${purple}`;
-    emitSignal(target, tag, "green", reason, conf);
-    pred.budgetUsed++; $("slotExplain").style.display="none"; updateSlotFlag();
-  }
+  // Condiciones globales para disparar
+  const budgetOK = (roseAttemptsCount<2);          // máx 2/120
+  const cdOK = (cooldownLeft<=0) && (roseCD<=0);
+  const lossOK = (roseLossStreak<2);
+  const scoreThr = 1.00;                           // relativo a su q80; ≈ exigente
 
-  // Fin de 60
-  if(!within60){
-    if(pred.budgetUsed===0 && !pred.extending){
-      pred.extending = true; pred.extendStartIdx = rounds.length;
-      const el = $("slotExplain"); el.style.display="inline-block";
-      el.textContent = explainWhy(pLike, sl10, blue15, bad, haz);
-    }
-    if( (pred.budgetUsed>=1 && !pred.extending) || (pred.extending && (rounds.length - pred.extendStartIdx)>=pred.extendSize) ){
-      pred.winIndex++; pred.winStartIdx = rounds.length; pred.budgetUsed=0; pred.budgetMax=1;
-      pred.extending=false; pred.extendStartIdx=null; pred.reanchored=false; $("slotExplain").style.display="none"; updateSlotFlag();
-    }
-  }else if(pred.extending){
-    $("slotExplain").style.display="inline-block";
-    $("slotExplain").textContent = explainWhy(pLike, sl10, blue15, bad, haz);
-    if(pred.budgetUsed < 1 && gate && ui.autoSignal && cooldownLeft<=0){
-      const tag = (pred.winIndex%2===1) ? "P60" : "P120";
-      const conf = clamp(score, 0, 1);
-      const reason = `EXT • score=${(100*score).toFixed(0)} • p20=${fmtPct(p20)} • sl10=${sl10.toFixed(3)} • blue15=${(100*blue15).toFixed(0)}%`;
-      emitSignal(target, tag, "green", reason, conf);
-      pred.budgetUsed=1; pred.winIndex++; pred.winStartIdx = rounds.length; pred.budgetMax=1;
-      pred.extending=false; pred.extendStartIdx=null; pred.reanchored=false; $("slotExplain").style.display="none"; updateSlotFlag();
-    }
-  }
-
-  updateSlotFlag();
-}
-
-/*** ===== Post‑Rosa (seguimiento) seguro ===== */
-function maybePostRose(){
-  if(!postRose.active || postRose.used) return;
-  const since = (rounds.length-1) - postRose.startIdx;
-  if(since<1) return;
-  if(since>8){ postRose.active=false; return; }
-
-  const target = ui.selTarget;
-  const p20 = probGE_window(target, 20);
-  const p60 = probGE_window(target, 60);
-  const sl5 = slopeMA_n(5);
-  const blueRun6 = maxBlueRun(6);
-  const blue15 = blueDensity(15);
-  const bonus = inBonusZone();
-  const hasPur8 = hasPurple(8);
-
-  const ok = (p20 >= (target==5?0.18:0.36)) && (p60 >= (target==5?0.24:0.38)) && (sl5>=0) && (blueRun6<=3) && (blue15<=0.48) && (bonus || hasPur8);
-
-  if(ok && ui.autoSignal && cooldownLeft<=0 && pred.budgetUsed < pred.budgetMax && postRose.tries===0){
-    const reason = `POSTROSE • ${since}r • p20=${fmtPct(p20)} • p60=${fmtPct(p60)} • sl5=${sl5.toFixed(3)} • runBlue6≤${blueRun6}`;
-    emitSignal(target, "POSTROSE", "green", reason, clamp(p20,0,1));
-    pred.budgetUsed++; postRose.used=true; postRose.active=false; postRose.tries=1; updateSlotFlag();
+  if(budgetOK && cdOK && lossOK && best.score>=scoreThr){
+    const reason = `${best.tag} • hrel=${best.score.toFixed(2)} • sl=${sl.toFixed(3)} • blue15=${(100*b15).toFixed(0)}% • cluster=${CL.c60}/${CL.c30} • pur=${purple}`;
+    emitSignal(best.k, best.tag, reason, clamp(best.score/1.6,0,1));
+    roseAttemptsCount++; roseCD=12;
   }
 }
 
 /*** ===== RENDER ===== */
 function renderStats(){
-  const p2=probGE(2),p25=probGE(2.5),p3=probGE(3),p5=probGE(5),p10=probGE(10), ma10=movingAverage(rounds,10), bad=countBad170(rounds,8);
-  $("rounds").textContent=`${rounds.length} (base ${baseCount})`;
-  $("p2").textContent=fmtPct(p2); $("p25").textContent=fmtPct(p25); $("p3").textContent=fmtPct(p3);
-  $("p5").textContent=fmtPct(p5); $("p10").textContent=fmtPct(p10);
-  $("ma10").textContent=isNaN(ma10)?"–":(ma10.toFixed(2)+"x");
-  $("badRun").textContent=bad; $("cdLeft").textContent=cooldownLeft; $("signals").textContent=signalsCount;
+  $("rounds").textContent = `${rounds.length} (base ${baseCount})`;
+  const ma10 = movingAverage(rounds,10); $("ma10").textContent = isNaN(ma10)?"–":(ma10.toFixed(2)+"x");
+  $("roseCountLbl").textContent = R10.length;
+  $("sinceRose").textContent = (since10==null?"–":since10);
+  $("lastRoseLbl").textContent  = last10?(`${last10.v.toFixed(2)}x • ${HHmm(last10.ts)}`):"–";
 
-  const zone=$("zoneFlag");
-  if(bad>=7) { zone.className="flag bad"; zone.textContent="Zona mala: bloqueo <1.70"; }
-  else if(inBonusZone()) { zone.className="flag ok"; zone.textContent="Bonus zone (tendencia alcista)"; }
-  else { zone.className="flag"; zone.textContent="Sin señal"; }
-
-  $("roseCountLbl").textContent = roses.length;
-  $("sinceRose").textContent = (sinceRose==null?"–":sinceRose);
-  $("lastRoseLbl").textContent = lastRose?(`${lastRose.v.toFixed(2)}x • ${HHmm(lastRose.ts)}`):"–";
-
+  // últimas rondas
   const cont=$("lastRounds"); cont.innerHTML="";
   lastShown.forEach(x=>{ const d=document.createElement("span"); d.className="pill neu"; d.textContent=x.toFixed(2)+"x"; cont.appendChild(d); });
 }
@@ -551,22 +324,16 @@ function renderBets(){
     const st = b.state==="win"?"win": b.state==="lose"?"lose":"pend";
     const tr=document.createElement("tr");
     tr.title = (b.reason?`Motivo: ${b.reason} • Conf≈${Math.round((b.conf||0)*100)}%`:"");
-    tr.innerHTML = `<td>${idx+1}</td><td>${b.tag||"AUTO"}</td><td>${b.target}x</td><td>$${b.stake.toFixed?b.stake.toFixed(2):b.stake}</td><td>${b.crash? b.crash.toFixed(2)+"x":"—"}</td><td>${st}</td><td>${b.pl||"—"}</td>`;
+    tr.innerHTML = `<td>${idx+1}</td><td>${b.tag||"ROSE"}</td><td>${b.target}x</td><td>$${(b.stake?.toFixed?b.stake.toFixed(2):b.stake)||"1.00"}</td><td>${b.crash? b.crash.toFixed(2)+"x":"—"}</td><td>${st}</td><td>${b.pl||"—"}</td>`;
     tb.appendChild(tr);
   });
 }
 function renderRoseHistory(){
-  const cont = $("roseHistory");
-  cont.innerHTML = "";
-  const items = roseIntervals.slice(-30).reverse();
-  if(!items.length){
-    const d=document.createElement("div");
-    d.className="muted"; d.textContent="Aún no hay enlaces entre rosas (≥10x).";
-    cont.appendChild(d); return;
-  }
-  items.forEach((it)=>{
-    const row = document.createElement("div");
-    row.className = "rose-item";
+  const cont = $("roseHistory"); cont.innerHTML="";
+  const items = I10.slice(-60).reverse(); // últimos 60 enlaces 10x
+  if(!items.length){ const d=document.createElement("div"); d.className="muted"; d.textContent="Aún no hay enlaces suficientes (≥10x)."; cont.appendChild(d); return; }
+  items.forEach(it=>{
+    const row=document.createElement("div"); row.className="rose-item";
     row.innerHTML = `
       <span class="pill pink">${it.from.v.toFixed(2)}x</span>
       <small>${HHmm(it.from.ts)}</small>
@@ -578,165 +345,99 @@ function renderRoseHistory(){
     cont.appendChild(row);
   });
 }
-
-/*** ===== ROSAS (actualización por ronda) ===== */
-function handleRoseMeta(v, ts){
-  if(v>=10){
-    const idx = rounds.length-1;
-    const item = {idx, v, ts};
-    roses.push(item);
-    if(roses.length>=2){
-      const prev = roses[roses.length-2];
-      const gap = item.idx - prev.idx;
-      roseIntervals.push({from:prev, to:item, gap});
-      if(roseIntervals.length>30) roseIntervals.shift();
-    }
-    lastRose = {v, ts};
-    sinceRose = 0;
-    roseAlertActive = false;
-    $("roseAlert").style.display="none";
-
-    // activar post‑rosa
-    postRose.active=true; postRose.startIdx=idx; postRose.used=false; postRose.tries=0;
-
-    renderRoseHistory();
-  }else{
-    if(sinceRose==null) sinceRose = 1;
-    else sinceRose++;
-  }
-
-  // Guardas ROSE
-  if(roseCD>0) roseCD--;
-
-  const hazard = roseHazardNext();
-  const cluster = roseClusterScore();
-  const sl10 = slopeMA_n(10);
-  const blueD = blueDensity(15);
-  const blueRun = maxBlueRun(12);
-  const purple = hasPurple(12);
-  const nearPurple = distToLastPurple(6) <= 6;
-
-  const okCtx = (sl10>=-0.001) && (blueRun<=3) && (blueD<=0.45);
-  const okCtxStrong = okCtx && (inBonusZone() || purple) && nearPurple;
-
-  // Pre‑alerta
-  if(hazard.h>0 && hazard.h >= hazard.q75){
-    $("roseAlert").style.display="inline-block";
-    $("roseAlert").textContent = hazard.eta ? `Alerta Rosa (~${hazard.eta} r)` : `Alerta Rosa próxima`;
-    if(!roseAlertActive){ roseAlertActive=true; beepPink(); }
-  }else{
-    if(roseAlertActive){ roseAlertActive=false; }
-    $("roseAlert").style.display="none";
-  }
-
-  // Canal 1: Hazard alto (ROSE10)
-  const canTryWindow = (()=>{ // máx 2 por 120
-    const curIdx = rounds.length;
-    if(roseAttemptsStartIdx==null || (curIdx - roseAttemptsStartIdx)>120){
-      roseAttemptsStartIdx = curIdx; roseAttemptsCount = 0;
-    }
-    return (roseAttemptsCount < 2);
-  })();
-  if(hazard.h>0 && hazard.h >= Math.max(hazard.q80,0.18) && okCtxStrong && ui.autoSignal && cooldownLeft<=0 && roseCD<=0 && roseLossStreak<2 && canTryWindow){
-    const conf = clamp( 0.55*hazard.h + 0.15*(inBonusZone()?1:0) + 0.15*(1-blueD) + 0.15*(purple?1:0) , 0, 1);
-    const reason = `ROSE10 • haz=${(100*hazard.h).toFixed(0)} (q80≈${(100*hazard.q80).toFixed(0)}) • MA10=${sl10.toFixed(3)} • blue15=${(100*blueD).toFixed(0)}% • cluster=${cluster.c60}/${cluster.c30}`;
-    emitSignal(10, "ROSE", "pink", reason, conf);
-    roseCD = 12; roseAttemptsCount++;
-  }
-
-  // Canal 2: Clúster fuerte (ROSECL) – si hazard no llega pero hay presión real
-  if(hazard.h < hazard.q80 && cluster.score>=1.05 && okCtx && ui.autoSignal && cooldownLeft<=0 && roseCD<=0 && roseLossStreak<2 && canTryWindow){
-    const conf = clamp( 0.45*cluster.score + 0.20*(inBonusZone()?1:0) + 0.15*(1-blueD) + 0.20*(purple?1:0) , 0, 1);
-    const reason = `ROSECL • cluster=${cluster.c60}/${cluster.c30} (sc=${(100*cluster.score).toFixed(0)}) • MA10=${sl10.toFixed(3)} • blue15=${(100*blueD).toFixed(0)}%`;
-    emitSignal(10, "ROSECL", "pink", reason, conf);
-    roseCD = 12; roseAttemptsCount++;
+function renderHourGrid(){
+  const g=$("hourGrid"); g.innerHTML="";
+  const total = hour100.reduce((a,b)=>a+b,0);
+  const topIdx = [...hour100.keys()].sort((a,b)=>hour100[b]-hour100[a]).slice(0,3);
+  $("hourSummary").textContent = total? `Total ≥100x vistos: ${total}. Mejores horas: ${topIdx.map(h=>String(h).padStart(2,"0")+":00").join(", ")}.` : "Aún sin datos ≥100x suficientes.";
+  for(let h=0;h<24;h++){
+    const cell=document.createElement("div"); cell.className="hour-cell"+(topIdx.includes(h)?" top":"");
+    cell.innerHTML = `<span>${String(h).padStart(2,"0")}:00</span><b>${hour100[h]}</b>`;
+    g.appendChild(cell);
   }
 }
 
-/*** ===== onNewCrash ===== */
-let lastActivityTs=null, watchdog=null;
+/*** ===== ACTUALIZACIÓN POR RONDA ===== */
+function handleRosesOnValue(v, ts){
+  // detectar y actualizar estructuras por umbral
+  const idx=rounds.length-1;
+
+  function pushEvent(list, listInt, lastRef, sinceRef, thr){
+    if(v>=thr){
+      const ev={idx,v,ts}; list.push(ev);
+      if(list===R100) hour100[new Date(ts).getHours()]++; // mapa horario
+      if(list.length>=2){ const prev=list[list.length-2]; listInt.push({from:prev,to:ev,gap:ev.idx-prev.idx}); if(listInt.length>120) listInt.shift(); }
+      if(list===R10){ last10=ev; since10=0; } else if(list===R20){ last20=ev; since20=0; } else if(list===R50){ last50=ev; since50=0; } else { last100=ev; since100=0; }
+    }else{
+      if(list===R10){ since10 = (since10==null?1:since10+1); }
+      if(list===R20){ since20 = (since20==null?1:since20+1); }
+      if(list===R50){ since50 = (since50==null?1:since50+1); }
+      if(list===R100){ since100= (since100==null?1:since100+1); }
+    }
+  }
+
+  pushEvent(R100,I100,last100,since100,100);
+  pushEvent(R50 ,I50 ,last50 ,since50 ,50);
+  pushEvent(R20 ,I20 ,last20 ,since20 ,20);
+  pushEvent(R10 ,I10 ,last10 ,since10 ,10);
+
+  // mantener tamaños razonables
+  if(R10.length>120) R10.shift();
+  if(R20.length>80)  R20.shift();
+  if(R50.length>50)  R50.shift();
+  if(R100.length>40) R100.shift();
+
+  renderRoseHistory();
+  renderHourGrid();
+}
 
 function onNewCrash(v, ts, isBase=false){
-  rounds.push(v);
-  roundsMeta.push({v,ts});
-  if(rounds.length>2000){ rounds.shift(); roundsMeta.shift(); }
+  rounds.push(v); roundsMeta.push({v,ts}); if(rounds.length>2500){ rounds.shift(); roundsMeta.shift(); }
   if(!isBase && cooldownLeft>0) cooldownLeft--;
-
-  handleRoseMeta(v, ts);
 
   // asignar apuestas pendientes SOLO en vivo
   if(!isBase && pendings.length){
-    const bet = pendings.shift();
-    const win = (v > bet.target);
-    bet.crash = v; bet.state = win?"win":"lose"; bet.pl = win? "+1" : "−1";
-
-    // control de racha 3x
-    if((bet.tag||"").startsWith("P") && bet.target<=3){
-      guard3x.lossStreak = win ? 0 : (guard3x.lossStreak+1);
-      if(guard3x.lossStreak>=2){
-        // pausar hasta que mejore (a lo sumo 40 rondas)
-        guard3x.pauseUntilIdx = rounds.length + 30;
-      }
-    }
-
-    // guardas ROSE
-    if(bet.tag==="ROSE" || bet.tag==="ROSECL"){
-      if(win) roseLossStreak=0; else roseLossStreak++;
-    }
-
-    bets.push(bet);
-    renderBets();
+    const bet=pendings.shift(); const win=(v>bet.target);
+    bet.crash=v; bet.state=win?"win":"lose"; bet.pl=win?"+1":"−1";
+    if((bet.tag||"").startsWith("ROSE")){ if(win) roseLossStreak=0; else roseLossStreak++; }
+    bets.push(bet); renderBets();
   }
 
   lastShown.unshift(v); if(lastShown.length>60) lastShown.pop();
 
+  handleRosesOnValue(v, ts);
   renderStats();
 
-  if(!isBase){
-    maybeReanchorWindow();
-    tickPredEngine();
-    maybePostRose();
-  }
-
-  lastActivityTs = ts || Date.now();
+  if(!isBase){ roseEngine(); }
 }
 
-/*** ===== CONEXIÓN FEED + auto‑reconnect ===== */
+/*** ===== CONEXIÓN FEED ===== */
 function processValue(raw){ if(raw===null||raw===undefined) return null; const s=String(raw).replace(/,/g,''); const c=s.replace(/[^\d.]/g,''); if(c==='') return null; const v=Number(c); return (v>=1&&!isNaN(v))?v:null; }
-let liveRef=null, liveCb=null, lastSeenKey=null, lastSeenTs=null;
+let liveRef=null, liveCb=null, lastSeenKey=null, lastSeenTs=null, lastActivityTs=null, watchdog=null;
 
 async function connectFeed(){
   if(connected) return;
   FEED_ID=($("feedId").value||"gocho").trim();
-  const feedbackEl=$("statusFeedback");
-  const refPath=`feeds/${FEED_ID}/crashes`;
+  const feedbackEl=$("statusFeedback"); const refPath=`feeds/${FEED_ID}/crashes`;
   feedbackEl&&(feedbackEl.textContent=`Conectando a ${refPath}…`);
-
-  try{ await auth.signInAnonymously(); }catch(e){ console.warn("[auth] anónimo no habilitado:", e?.message||e); }
+  try{ await auth.signInAnonymously(); }catch(e){ console.warn("[auth] anónimo:", e?.message||e); }
 
   const ref=db.ref(refPath);
   loadingBase=true; feedbackEl&&(feedbackEl.textContent="Cargando historial…");
 
   let snap=null, method="key";
-  try{
-    const s1=await ref.orderByChild("ts").limitToLast(800).once("value");
-    if(s1 && s1.val() && Object.keys(s1.val()).length){ snap=s1; method="ts"; }
-  }catch(e){ console.warn("[rtdb] orderByChild(ts) falló:", e?.message||e); }
-  if(!snap){
-    try{ snap=await ref.orderByKey().limitToLast(800).once("value"); method="key"; }
-    catch(e){ console.error("[rtdb] orderByKey falló:", e?.message||e); }
-  }
+  try{ const s1=await ref.orderByChild("ts").limitToLast(800).once("value"); if(s1 && s1.val() && Object.keys(s1.val()).length){ snap=s1; method="ts"; } }catch(e){}
+  if(!snap){ try{ snap=await ref.orderByKey().limitToLast(800).once("value"); method="key"; } catch(e){} }
   if(!snap || !snap.val()){ feedbackEl&&(feedbackEl.textContent="Sin datos en el feed."); loadingBase=false; return; }
 
-  const data=snap.val(), keys=Object.keys(data).sort();
-  baseCount=keys.length;
+  const data=snap.val(), keys=Object.keys(data).sort(); baseCount=keys.length;
 
-  // reset buffers
-  rounds=[]; roundsMeta=[]; lastShown=[]; roses=[]; roseIntervals=[]; sinceRose=null; lastRose=null; roseAlertActive=false;
+  // reset de buffers
+  rounds=[]; roundsMeta=[]; lastShown=[];
   bets=[]; pendings=[]; signalsCount=0; cooldownLeft=0;
-  roseCD=0; roseLossStreak=0; roseAttemptsStartIdx=null; roseAttemptsCount=0;
-  postRose.active=false; postRose.startIdx=null; postRose.used=false; postRose.tries=0;
-  guard3x.lossStreak=0; guard3x.pauseUntilIdx=null;
+  [R10,R20,R50,R100].forEach(a=>a.length=0); [I10,I20,I50,I100].forEach(a=>a.length=0);
+  since10=since20=since50=since100=null; last10=last20=last50=last100=null;
+  hour100.fill(0); roseCD=0; roseLossStreak=0; roseAttemptsStartIdx=null; roseAttemptsCount=0;
 
   keys.forEach(k=>{
     const node=data[k]; const v=processValue(node?.v ?? node); const ts=Number(node?.ts ?? k) || now();
@@ -755,32 +456,24 @@ async function connectFeed(){
     liveCb=function(s){
       const key=s.key, d=s.val(); const v=processValue(d?.v ?? d); const ts=Number(d?.ts ?? key) || now();
       if(lastSeenTs && ts<=lastSeenTs && key===lastSeenKey) return;
-      lastSeenKey=key; lastSeenTs=ts;
-      if(v!==null) onNewCrash(v, ts, /*isBase*/false);
+      lastSeenKey=key; lastSeenTs=ts; if(v!==null) onNewCrash(v, ts, false);
     };
   }else{
     liveRef=ref.orderByKey().startAt(lastSeenKey||"");
     liveCb=function(s){
       const key=s.key, d=s.val(); if(lastSeenKey && key<=lastSeenKey) return; lastSeenKey=key;
       const v=processValue(d?.v ?? d); const ts=Number(d?.ts ?? key) || now();
-      if(v!==null) onNewCrash(v, ts, /*isBase*/false);
+      if(v!==null) onNewCrash(v, ts, false);
     };
   }
   liveRef.on("child_added", liveCb);
 
-  // watchdog auto‑reconnect
+  // watchdog
   if(watchdog) clearInterval(watchdog);
-  watchdog = setInterval(()=>{
-    if(!connected) return;
-    const delta = Date.now() - (lastActivityTs||0);
-    if(delta > 180000){ // >3 min sin actividad
-      console.warn("[watchdog] Reintentando conexión…");
-      disconnectFeed(true); connectFeed();
-    }
-  }, 30000);
+  watchdog=setInterval(()=>{ if(!connected) return; const delta=Date.now()-(lastActivityTs||0); if(delta>180000){ disconnectFeed(true); connectFeed(); } }, 30000);
 
   connected=true; feedbackEl&&(feedbackEl.textContent="Conectado.");
-  renderStats(); renderRoseHistory();
+  renderStats(); renderRoseHistory(); renderHourGrid();
 }
 
 function disconnectFeed(silent=false){
@@ -793,65 +486,41 @@ function disconnectFeed(silent=false){
 
 /*** ===== BACKUP / RESTORE ===== */
 function saveModel(){
-  const obj={model, ui:{minConf:ui.minConf, cooldown:ui.cooldown, mode:ui.mode, autoSignal:ui.autoSignal}};
-  auth.currentUser?Promise.resolve():auth.signInAnonymously(); return db.ref(`feeds/${FEED_ID}/state/model_v1`).set(obj);
+  const obj={ui:{autoSignal:$("autoSignal").checked, cooldown:Number($("cooldown").value)||8}};
+  auth.currentUser?Promise.resolve():auth.signInAnonymously();
+  return db.ref(`feeds/${FEED_ID}/state/rose_sniper_v1`).set(obj);
 }
 function loadModel(){
-  return db.ref(`feeds/${FEED_ID}/state/model_v1`).once("value").then(s=>{
+  return db.ref(`feeds/${FEED_ID}/state/rose_sniper_v1`).once("value").then(s=>{
     const v=s.val(); if(!v) return;
-    if(v.model) Object.assign(model,v.model);
-    if(v.ui){
-      ui.minConf=v.ui.minConf??ui.minConf; ui.cooldown=v.ui.cooldown??ui.cooldown; ui.mode=v.ui.mode??ui.mode;
-      if(typeof v.ui.autoSignal==="boolean") ui.autoSignal=v.ui.autoSignal;
-      applyUIFromState();
-    }
+    if(v.ui){ $("autoSignal").checked = v.ui.autoSignal??true; $("cooldown").value = v.ui.cooldown??8; }
   });
 }
 
 /*** ===== UI BINDINGS ===== */
-function applyUIFromState(){
-  document.querySelectorAll("#objChips .chip").forEach(el=>el.classList.toggle("on", Number(el.dataset.v)==ui.selTarget));
-  document.querySelectorAll("#modeChips .chip").forEach(el=>el.classList.toggle("on", el.dataset.m===ui.mode));
-  $("minConf").value=ui.minConf; $("minConfVal").textContent=ui.minConf+"%";
-  $("cooldown").value=ui.cooldown; $("beepToggle").checked=ui.beep;
-  $("autoSignal").checked=ui.autoSignal;
-}
-on("objChips","click",e=>{ const el=e.target.closest(".chip"); if(!el) return; document.querySelectorAll("#objChips .chip").forEach(x=>x.classList.remove("on")); el.classList.add("on"); ui.selTarget=Number(el.dataset.v); });
-on("modeChips","click",e=>{ const el=e.target.closest(".chip"); if(!el) return; document.querySelectorAll("#modeChips .chip").forEach(x=>x.classList.remove("on")); el.classList.add("on"); ui.mode=el.dataset.m; });
-on("autoSignal","change",e=> ui.autoSignal=e.target.checked);
-on("minConf","input",e=>{ ui.minConf=Number(e.target.value); $("minConfVal").textContent=ui.minConf+"%"; });
-on("cooldown","change",e=> ui.cooldown=Number(e.target.value));
-on("beepToggle","change",e=> ui.beep=e.target.checked);
-
 on("connectBtn","click", connectFeed);
 on("disconnectBtn","click", ()=>disconnectFeed(false));
-
-on("startBtn","click", ()=>{
-  signalsCount=0; cooldownLeft=0; bets=[]; pendings=[]; renderBets(); renderStats(); beep(660,90,0.03);
-  startPredSession();
-});
-on("stopBtn","click", ()=>{
-  bets=[]; pendings=[]; signalsCount=0; cooldownLeft=0; renderBets(); renderStats();
-  stopPredSession();
-});
-on("resetBtn","click", ()=>{
-  bets=[]; pendings=[]; signalsCount=0; cooldownLeft=0; renderBets(); renderStats();
-  stopPredSession();
-});
+on("startBtn","click", ()=>{ signalsCount=0; cooldownLeft=0; bets=[]; pendings=[]; renderBets(); renderStats(); beep(660,90,0.03); });
+on("stopBtn","click",  ()=>{ bets=[]; pendings=[]; signalsCount=0; cooldownLeft=0; renderBets(); renderStats(); });
+on("resetBtn","click", ()=>{ localStorage.clear(); location.reload(); });
 
 on("hardResetBtn","click", ()=>{ localStorage.clear(); location.reload(); });
 on("saveModelBtn","click", ()=>{ saveModel(); });
 on("loadModelBtn","click", ()=>{ loadModel().then(()=>renderStats()); });
 on("autoBackup","change", e=>{ if(e.target.checked){ saveModel(); }});
 
-/*** ===== Reloj ===== */
+/*** ===== TABLA / RELOJ ===== */
+function renderBetsStart(){ const tb=$("betsTbody"); tb.innerHTML=""; }
 setInterval(()=>{ $("clockNow").textContent=new Date().toLocaleTimeString(); }, 1000);
 
 /*** ===== Arranque ===== */
 (function bootstrap(){
-  try{ const st=JSON.parse(localStorage.getItem("gocho_ui_state")||"{}"); Object.assign(ui,st); }catch(_){}
-  applyUIFromState();
-  setInterval(()=>localStorage.setItem("gocho_ui_state", JSON.stringify(ui)), 2000);
+  try{ const st=JSON.parse(localStorage.getItem("gocho_rose_ui")||"{}");
+    if(typeof st.autoSignal==="boolean") $("autoSignal").checked=st.autoSignal;
+    if(st.cooldown) $("cooldown").value=st.cooldown;
+  }catch(_){}
+  setInterval(()=>{ const st={autoSignal:$("autoSignal").checked, cooldown:Number($("cooldown").value)||8}; localStorage.setItem("gocho_rose_ui", JSON.stringify(st)); }, 2000);
+  renderBetsStart();
 })();
 </script>
 </body>
