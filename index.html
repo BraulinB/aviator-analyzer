@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v8.1.1 (Rose Sniper+ Intentos dinámicos)</title>
+<title>Aviator Analyzer • Gocho v8.2.0 (Modos + Señal siempre + Anti-silencio)</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5;
@@ -21,6 +21,7 @@
   .muted{color:var(--muted)}
   input[type="number"]{width:72px;background:#0f121a;color:var(--text);border:1px solid #2a3144;border-radius:6px;padding:6px}
   input[type="text"]{width:140px;background:#0f121a;color:var(--text);border:1px solid #2a3144;border-radius:6px;padding:6px}
+  select{background:#0f121a;color:var(--text);border:1px solid #2a3144;border-radius:6px;padding:6px}
   .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#1f2432;margin:2px}
   .pill.neu{background:#1c2130}
   .pill.pink{background:rgba(255,90,195,.14);color:#ffb2e3;border:1px solid rgba(255,90,195,.32)}
@@ -44,7 +45,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v8.1.1</span>
+  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v8.2.0</span>
     <span id="statusFeedback" class="muted" style="margin-left:8px"></span>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
   </h1>
@@ -57,7 +58,13 @@
       <label class="row" style="margin-left:10px"><input id="autoSignal" type="checkbox" checked> Auto-señal</label>
       <label class="row"><input id="beepToggle" type="checkbox" checked> Beep</label>
       <span class="muted">CoolDown:</span><input id="cooldown" type="number" min="0" max="50" value="8"/>
-
+      <label class="row"><span class="muted">Modo:</span>
+        <select id="modeSel">
+          <option value="balanced" selected>Balanceado</option>
+          <option value="aggressive">Agresivo</option>
+          <option value="conservative">Conservador</option>
+        </select>
+      </label>
       <div class="row" style="margin-left:auto">
         <span class="muted">Feed:</span>
         <input id="feedId" type="text" value="gocho"/>
@@ -153,40 +160,20 @@ const clamp=(v,min,max)=>v<min?min:(v>max?max:v);
 const now=()=>Date.now();
 const HHmm=ts=>new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
 
-/* Parser robusto para valores del feed:
-   - Acepta "2,416.11x", "2.416,11x", "2416.11x", etc.
-   - Detecta el separador decimal por la última coma/punto.
-   - Elimina miles correctamente y devuelve Number o null. */
+/* Parser robusto (admite 2,416.11x / 2.416,11x / 2416.11x / etc.) */
 function parseCrashValue(raw){
   if(raw===null || raw===undefined) return null;
-  if(typeof raw === "number"){
-    return (isFinite(raw) && raw>=1) ? raw : null;
-  }
+  if(typeof raw === "number"){ return (isFinite(raw)&&raw>=1)?raw:null; }
   let s = String(raw).trim();
   if(!s) return null;
-  // deja sólo dígitos, coma y punto (y signo por si acaso), elimina 'x' y otros
   s = s.replace(/[^\d.,+-]+/g,'');
   if(!s) return null;
-
-  const lastDot   = s.lastIndexOf('.');
-  const lastComma = s.lastIndexOf(',');
-  let decimalSep = null;
-  if(lastDot===-1 && lastComma===-1){
-    decimalSep='.'; // sin separadores: entero
-  }else{
-    decimalSep = (lastComma > lastDot) ? ',' : '.';
-  }
-
-  if(decimalSep===','){
-    // punto como miles, coma como decimal
-    s = s.replace(/\./g,'');
-    s = s.replace(',', '.');
-  }else{
-    // coma como miles
-    s = s.replace(/,/g,'');
-  }
+  const lastDot=s.lastIndexOf('.'), lastComma=s.lastIndexOf(',');
+  let dec = (lastComma>lastDot)?',':'.';
+  if(lastDot===-1 && lastComma===-1) dec='.';
+  if(dec===','){ s=s.replace(/\./g,''); s=s.replace(',', '.'); } else { s=s.replace(/,/g,''); }
   const v = Number(s);
-  return (isFinite(v) && v>=1) ? v : null;
+  return (isFinite(v)&&v>=1)?v:null;
 }
 
 /*** ===== ESTADO ===== ***/
@@ -197,7 +184,7 @@ let baseCount=0;
 let pendings=[], bets=[], signalsCount=0, cooldownLeft=0;
 
 const PERSIST_BETS_KEY = "gocho_rose_bets_v2";
-const PERSIST_UI_KEY   = "gocho_rose_ui";
+const PERSIST_UI_KEY   = "gocho_rose_ui_plus";
 const PERSIST_MAX_BETS = 500;
 
 const session = { active:false, startTs:null };
@@ -211,7 +198,7 @@ let last10=null, last20=null, last50=null, last100=null;
 // Mapa horario 100x
 const hour100 = new Array(24).fill(0);
 
-// Guardas / anti-spam dinámico
+// Anti-spam dinámico
 let roseCD=0, roseLossStreak=0, roseAttemptsStartIdx=null, roseAttemptsCount=0;
 let lastRoseAttemptIdx = -1;
 
@@ -228,16 +215,17 @@ function beep(freq=880, ms=120, gain=0.03){
 }
 const beepPink=()=>{beep(520,160,0.035); setTimeout(()=>beep(980,80,0.03),110);};
 
-/*** ===== MÉTRICAS BÁSICAS ===== */
+/*** ===== MÉTRICAS ===== */
 function movingAverage(arr,n){const L=Math.min(arr.length,n); if(!L) return NaN; let s=0; for(let i=arr.length-L;i<arr.length;i++) s+=arr[i]; return s/L;}
 function slopeMA10(){ if(rounds.length<11) return 0; const nowMA=movingAverage(rounds,10), prevMA=movingAverage(rounds.slice(0,-1),10); return nowMA-prevMA; }
 function blueDensity(n=15){const w=rounds.slice(-n); if(!w.length) return 1; const b=w.filter(x=>x<2).length; return b/w.length;}
 function maxBlueRun(n=12){const w=rounds.slice(-n); let maxR=0,cur=0; for(const x of w){ if(x<2){cur++; maxR=Math.max(maxR,cur);} else cur=0; } return maxR; }
 function hasPurple(n=12){return rounds.slice(-n).some(x=>x>=5 && x<10);}
+function median(a){ if(!a.length) return NaN; const s=[...a].sort((x,y)=>x-y); const m=Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2; }
 
 /*** ===== HAZARD (por umbral) ===== */
 function hazardBuilder(listIntervals, since, lastN){
-  if(listIntervals.length<3 || since==null) return {h:0, eta:null, q75:0, q80:0};
+  if(listIntervals.length<3 || since==null) return {h:0, eta:null, q70:0, q75:0, q80:0, q90:0};
   const intervals = listIntervals.slice(-Math.max(3, lastN-1));
   const gaps = intervals.map(x=>x.gap);
   const maxG = Math.max(...gaps, 1);
@@ -248,12 +236,12 @@ function hazardBuilder(listIntervals, since, lastN){
   for(let t=1;t<=maxG+20;t++){ const p=(freq.get(t)||0)/N; pdf[t]=p; cum+=p; cdf[t]=cum; }
   const hazards=[]; for(let t=1;t<=maxG+20;t++){ const S=1-(cdf[t-1]||0); hazards[t]=S>0? pdf[t]/S : 0; }
   const hazVals = hazards.filter(x=>x>0).sort((a,b)=>a-b);
-  const q75 = hazVals.length? hazVals[Math.floor(0.75*(hazVals.length-1))] : 0.10;
-  const q80 = hazVals.length? hazVals[Math.floor(0.80*(hazVals.length-1))] : 0.13;
+  const q=(p)=> hazVals.length? hazVals[Math.floor(p*(hazVals.length-1))] : 0.1;
+  const q70=q(0.70), q75=q(0.75), q80=q(0.80), q90=q(0.90);
   const tNext = since+1;
   let eta=null,best=0;
   for(let t=tNext;t<tNext+20;t++){ if(hazards[t]>q75 && hazards[t]>best){best=hazards[t]; eta=t-since;} }
-  return {h:hazards[tNext]||0, eta, q75, q80};
+  return {h:hazards[tNext]||0, eta, q70, q75, q80, q90};
 }
 
 /*** ===== CLÚSTER 10x ===== */
@@ -266,19 +254,30 @@ function cluster10(){
   return {score:Math.max(0,Math.min(sc,2)), c60, c30, pur20, b15};
 }
 
-/*** ===== CONTEXTO PARA ROSA ===== */
-function contextOK(level="10"){
-  const sl=slopeMA10(), b15=blueDensity(15), br=maxBlueRun(12);
-  const purple = hasPurple(12);
-  if(level==="100") return (sl>=0) && (b15<=0.42) && (br<=3) && purple;
-  if(level==="50")  return (sl>=-0.001) && (b15<=0.45) && (br<=3);
-  if(level==="20")  return (sl>=-0.002) && (b15<=0.48) && (br<=4);
-  return (sl>=-0.003) && (b15<=0.50) && (br<=4);
+/*** ===== MODO ===== */
+function modeParams(){
+  const m = ($("modeSel")?.value)||"balanced";
+  if(m==="aggressive")   return {thrBase:0.88, etaPre:3, etaPost:4, relax30:0.06, relax60:0.12, ctxFlex:1.0, policyBias:-1};
+  if(m==="conservative") return {thrBase:1.03, etaPre:1, etaPost:2, relax30:0.00, relax60:0.00, ctxFlex:0.0, policyBias:+1};
+  return {thrBase:0.96, etaPre:2, etaPost:3, relax30:0.03, relax60:0.06, ctxFlex:0.5, policyBias:0};
 }
 
-/*** ===== POLÍTICA DINÁMICA DE INTENTOS ===== */
+/*** ===== CONTEXTO (ajustable por modo) ===== */
+function contextOK(level="10", flex=0){
+  const sl=slopeMA10(), b15=blueDensity(15), br=maxBlueRun(12);
+  const purple = hasPurple(12);
+  const brAdj = (x)=> x + Math.round(1*flex);
+  const bAdj  = (x)=> x + 0.03*flex;
+  const slAdj = (x)=> x - 0.003*flex; // permite algo más de pendiente negativa
+
+  if(level==="100") return (sl>=slAdj(0)) && (b15<=bAdj(0.42)) && (br<=brAdj(3)) && purple;
+  if(level==="50")  return (sl>=slAdj(-0.001)) && (b15<=bAdj(0.45)) && (br<=brAdj(3));
+  if(level==="20")  return (sl>=slAdj(-0.002)) && (b15<=bAdj(0.48)) && (br<=brAdj(4));
+  return (sl>=slAdj(-0.003)) && (b15<=bAdj(0.50)) && (br<=brAdj(4));
+}
+
+/*** ===== POLÍTICA DE INTENTOS ===== */
 function attemptPolicy(CL, H10){
-  // Base por densidad de 10x en 60 rondas
   let budget=2, cd=12, gap=4;
   const d=CL.c60;
   if(d>=10){ budget=8; cd=4; gap=2; }
@@ -286,25 +285,34 @@ function attemptPolicy(CL, H10){
   else if(d>=6){ budget=4; cd=7; gap=3; }
   else if(d>=4){ budget=3; cd=9; gap=4; }
 
-  // Si el hazard relativo de 10x es fuerte, aflojar un poco más
   const hRel = H10.q80 ? (H10.h / H10.q80) : 0;
   if(hRel>=1.3){ budget=Math.max(budget,5); cd=Math.min(cd,6); }
+
+  // sesgo por modo
+  const mp = modeParams();
+  budget = Math.max(2, budget + (mp.policyBias||0));
+  cd     = Math.max(3, cd - (mp.policyBias<0?1:0)); // agresivo reduce 1
+  gap    = Math.max(2, gap - (mp.policyBias<0?1:0));
 
   return {budgetMax:budget, cdBase:cd, minGap:gap};
 }
 
-/*** ===== UTIL: Ventana por ETA ===== */
-function etaWindowOK(H, since, pre=2, post=2){
-  if(!H || !H.eta) return true; // si no hay ETA, no bloqueamos
+/*** ===== Ventana por ETA (ajustada por modo) ===== */
+function etaWindowOK(H, since){
+  const mp = modeParams();
+  if(!H || !H.eta) return true;
   const t = since ?? 0;
-  return (t >= (H.eta - pre)) && (t <= (H.eta + post));
+  return (t >= (H.eta - mp.etaPre)) && (t <= (H.eta + mp.etaPost));
 }
 
 /*** ===== DISPARO DE ROSAS ===== */
 function emitSignal(target, tag, reason, conf){
-  if(!$("autoSignal").checked || !session.active) return;
+  if(!$("autoSignal").checked) return;
   const id="S"+now();
-  pendings.push({id, target, stake:1, ts:now(), state:"pend", tag, reason, conf});
+  // Emite SIEMPRE (beep/flag). Solo loguea si la sesión está activa.
+  if(session.active){
+    pendings.push({id, target, stake:1, ts:now(), state:"pend", tag, reason, conf});
+  }
   signalsCount++; cooldownLeft=Number($("cooldown").value)||8;
   const sig=$("lastSignal"); sig.style.display="inline-block";
   sig.textContent = `Señal ${tag}: ${target}x`;
@@ -337,25 +345,33 @@ function roseEngine(){
   const policy = attemptPolicy(CL, H10);
 
   const sl=slopeMA10(), b15=blueDensity(15), purple=hasPurple(12);
-  const baseRel = (x,q)=> (q? Math.min(x/q, 2) : 0);
+  const baseRel = (x,q)=> (q? Math.min(x/q, 2.2) : 0);
+  const mp = modeParams();
 
   // Puntuaciones base
-  const S10 = baseRel(H10.h, H10.q80) * (contextOK("10")?1:0) + ((CL.score>=1.0 && H10.h<H10.q80)?0.25:0);
-  const S20 = baseRel(H20.h, H20.q80) * (contextOK("20")?1:0);
-  const S50 = baseRel(H50.h, H50.q80) * (contextOK("50")?1:0);
-  const S100= baseRel(H100.h,H100.q80)* (contextOK("100")?1:0);
+  const S10 = baseRel(H10.h, H10.q80) * (contextOK("10", mp.ctxFlex)?1:0) + ((CL.score>=1.0 && H10.h<H10.q80)?0.20:0);
+  const S20 = baseRel(H20.h, H20.q80) * (contextOK("20", mp.ctxFlex)?1:0);
+  const S50 = baseRel(H50.h, H50.q80) * (contextOK("50", mp.ctxFlex)?1:0);
+  const S100= baseRel(H100.h,H100.q80)* (contextOK("100",mp.ctxFlex)?1:0);
 
   const cand = [
     {tag:"ROSE100",k:100,score:S100},
     {tag:"ROSE50", k:50, score:S50},
     {tag:"ROSE20", k:20, score:S20},
-    {tag:"ROSE10", k:10, score:S10, etaOK: etaWindowOK(H10, since10, 2, 2)}
+    {tag:"ROSE10", k:10, score:S10, etaOK: etaWindowOK(H10, since10)}
   ].sort((a,b)=>b.score-a.score);
 
   const best = cand[0];
-  // Umbral dinámico: más estricto si hay pocos 10x recientes
-  const scoreBase = 1.00;
-  const scoreThr = (CL.c60<6) ? (scoreBase+0.15) : (CL.c60<8 ? (scoreBase+0.08) : scoreBase);
+
+  // Umbral base por modo + ajuste por densidad reciente
+  let scoreThr = mp.thrBase;
+  if(CL.c60<6) scoreThr += 0.06; else if(CL.c60<8) scoreThr += 0.03;
+
+  // Relajación automática si llevamos tiempo sin intentar
+  const noSigRounds = (lastRoseAttemptIdx<0)? 999 : (rounds.length - lastRoseAttemptIdx);
+  if(noSigRounds>30) scoreThr -= mp.relax30;
+  if(noSigRounds>60) scoreThr -= mp.relax60;
+  scoreThr = Math.max(0.75, scoreThr);
 
   // Controles dinámicos
   const budgetOK = (roseAttemptsCount < policy.budgetMax);
@@ -364,8 +380,13 @@ function roseEngine(){
   const lossOK = (roseLossStreak<2);
   const etaOK  = (best.tag==="ROSE10") ? (cand.find(c=>c.tag==="ROSE10")?.etaOK ?? true) : true;
 
-  if(budgetOK && cdOK && gapOK && lossOK && etaOK && best.score>=scoreThr){
-    const reason = `${best.tag} • hrel=${best.score.toFixed(2)} • sl=${sl.toFixed(3)} • blue15=${(100*b15).toFixed(0)}% • dens60=${CL.c60} • cluster=${CL.c60}/${CL.c30} • pur=${purple} • etaOK=${etaOK}`;
+  // Regla de “catch-up” si la ventana ya debería haber llegado
+  const gaps10 = I10.slice(-40).map(x=>x.gap);
+  const medGap10 = median(gaps10)||12;
+  const catchUp = (since10!=null && since10>=medGap10 && H10.h>=Math.max(H10.q70*0.95, 0.08) && contextOK("10", mp.ctxFlex));
+
+  if(budgetOK && cdOK && gapOK && lossOK && (etaOK || catchUp) && best.score>=scoreThr){
+    const reason = `${best.tag} • mode=${$("modeSel").value} • thr=${scoreThr.toFixed(2)} • hrel=${best.score.toFixed(2)} • sl=${sl.toFixed(3)} • blue15=${(100*b15).toFixed(0)}% • dens60=${CL.c60} • etaOK=${etaOK} • catchUp=${catchUp}`;
     emitSignal(best.k, best.tag, reason, Math.min(best.score/1.6,1));
     roseAttemptsCount++;
     roseCD = policy.cdBase;                 // cooldown dinámico
@@ -427,10 +448,9 @@ function renderHourGrid(){
 
 /*** ===== ACTUALIZACIÓN POR RONDA ===== */
 function handleRosesOnValue(v, ts){
-  const idx=rounds.length-1;
-
   function push(list, listInt, thr){
     if(v>=thr){
+      const idx=rounds.length-1;
       const ev={idx,v,ts}; list.push(ev);
       if(list===R100) hour100[new Date(ts).getHours()]++;
       if(list.length>=2){ const prev=list[list.length-2]; listInt.push({from:prev,to:ev,gap:ev.idx-prev.idx}); if(listInt.length>200) listInt.shift(); }
@@ -458,13 +478,18 @@ function onNewCrash(v, ts, isBase=false){
   rounds.push(v); roundsMeta.push({v,ts}); if(rounds.length>2500){ rounds.shift(); roundsMeta.shift(); }
   if(!isBase && cooldownLeft>0) cooldownLeft--;
 
-  if(session.active && !isBase && pendings.length){
-    const bet=pendings.shift(); const win=(v>bet.target);
-    bet.crash=v; bet.state=win?"win":"lose"; bet.pl=win?"+1":"−1";
-    if((bet.tag||"").startsWith("ROSE")){ if(win) roseLossStreak=0; else roseLossStreak++; }
-    bets.push(bet);
-    if(bets.length>PERSIST_MAX_BETS) bets.splice(0, bets.length-PERSIST_MAX_BETS);
-    renderBets(); persistBets();
+  if(!isBase && pendings.length){
+    // Solo liquida si la sesión está activa; si no, ignora pendientes (no habrá)
+    if(session.active){
+      const bet=pendings.shift(); const win=(v>bet.target);
+      bet.crash=v; bet.state=win?"win":"lose"; bet.pl=win?"+1":"−1";
+      if((bet.tag||"").startsWith("ROSE")){ if(win) roseLossStreak=0; else roseLossStreak++; }
+      bets.push(bet);
+      if(bets.length>PERSIST_MAX_BETS) bets.splice(0, bets.length-PERSIST_MAX_BETS);
+      renderBets(); persistBets();
+    }else{
+      pendings=[]; // seguridad
+    }
   }
 
   lastShown.unshift(v); if(lastShown.length>60) lastShown.pop();
@@ -472,14 +497,11 @@ function onNewCrash(v, ts, isBase=false){
   handleRosesOnValue(v, ts);
   renderStats();
 
-  if(session.active && !isBase){ roseEngine(); }
+  if(!isBase){ roseEngine(); }
 }
 
 /*** ===== CONEXIÓN FEED ===== */
-function processValue(raw){
-  // wrapper para compatibilidad con nombre original
-  return parseCrashValue(raw);
-}
+function processValue(raw){ return parseCrashValue(raw); }
 let liveRef=null, liveCb=null, lastSeenKey=null, lastSeenTs=null, lastActivityTs=null, watchdog=null;
 
 async function connectFeed(opts={resetSession:false}){
@@ -499,16 +521,13 @@ async function connectFeed(opts={resetSession:false}){
 
   const data=snap.val(), keys=Object.keys(data).sort(); baseCount=keys.length;
 
-  // ——— Reset de buffers de mercado (pero NO del historial de señales) ———
+  // Reset buffers de mercado (NO del historial salvo que opts.resetSession)
   rounds=[]; roundsMeta=[]; lastShown=[];
   [R10,R20,R50,R100].forEach(a=>a.length=0); [I10,I20,I50,I100].forEach(a=>a.length=0);
   since10=since20=since50=since100=null; last10=last20=last50=last100=null;
   hour100.fill(0); roseCD=0; roseLossStreak=0; roseAttemptsStartIdx=null; roseAttemptsCount=0; lastRoseAttemptIdx=-1;
 
-  // (Si opts.resetSession === true, entonces sí limpiamos todas las señales)
-  if(opts.resetSession){
-    pendings=[]; bets=[]; signalsCount=0; cooldownLeft=0; persistBets();
-  }
+  if(opts.resetSession){ pendings=[]; bets=[]; signalsCount=0; cooldownLeft=0; persistBets(); }
 
   keys.forEach(k=>{
     const node=data[k]; const v=processValue(node?.v ?? node); const ts=Number(node?.ts ?? k) || now();
@@ -517,11 +536,10 @@ async function connectFeed(opts={resetSession:false}){
 
   lastSeenKey=keys[keys.length-1]||null;
   lastSeenTs = (()=>{ const n=data[lastSeenKey]; const t=Number(n?.ts ?? lastSeenKey); return isFinite(t)?t:now(); })();
-  lastActivityTs = now(); // actividad reciente al cargar base
+  lastActivityTs = now();
 
   loadingBase=false;
 
-  // vivo
   if(method==="ts"){
     liveRef=ref.orderByChild("ts").startAt(lastSeenTs);
     liveCb=function(s){
@@ -542,11 +560,10 @@ async function connectFeed(opts={resetSession:false}){
   liveRef.on("child_added", liveCb);
 
   if(watchdog) clearInterval(watchdog);
-  // Si no hay actividad >5min, reintenta reconectar SIN resetear sesión
   watchdog=setInterval(()=>{ 
     if(!connected) return; 
     const delta=Date.now()-(lastActivityTs||0); 
-    if(delta>300000){ // 5 minutos
+    if(delta>300000){ // 5 min sin actividad
       disconnectFeed(true); 
       connectFeed({resetSession:false});
     } 
@@ -566,21 +583,25 @@ function disconnectFeed(silent=false){
 
 /*** ===== BACKUP / RESTORE ===== */
 function saveModel(){
-  const obj={ui:{autoSignal:$("autoSignal").checked, cooldown:Number($("cooldown").value)||8}};
+  const obj={ui:{autoSignal:$("autoSignal").checked, cooldown:Number($("cooldown").value)||8, mode: $("modeSel").value}};
   auth.currentUser?Promise.resolve():auth.signInAnonymously();
   return db.ref(`feeds/${FEED_ID}/state/rose_sniper_v1`).set(obj);
 }
 function loadModel(){
   return db.ref(`feeds/${FEED_ID}/state/rose_sniper_v1`).once("value").then(s=>{
     const v=s.val(); if(!v) return;
-    if(v.ui){ $("autoSignal").checked = v.ui.autoSignal??true; $("cooldown").value = v.ui.cooldown??8; }
+    if(v.ui){ 
+      $("autoSignal").checked = v.ui.autoSignal??true; 
+      $("cooldown").value = v.ui.cooldown??8; 
+      if(v.ui.mode) $("modeSel").value = v.ui.mode;
+    }
   });
 }
 
-/*** ===== PERSISTENCIA LOCAL DEL HISTORIAL DE SEÑALES ===== */
+/*** ===== PERSISTENCIA LOCAL ===== */
 function persistBets(){
   try{
-    const payload = {bets, pendings, signalsCount, cooldownLeft, session};
+    const payload = {bets, pendings, signalsCount, cooldownLeft, session, mode:$("modeSel").value};
     localStorage.setItem(PERSIST_BETS_KEY, JSON.stringify(payload));
   }catch(_){}
 }
@@ -594,6 +615,7 @@ function restoreBets(){
     if(typeof p.signalsCount==="number") signalsCount=p.signalsCount;
     if(typeof p.cooldownLeft==="number") cooldownLeft=p.cooldownLeft;
     if(p.session && typeof p.session.active==="boolean"){ session.active = p.session.active; session.startTs = p.session.startTs||null; }
+    if(p.mode && $("modeSel")) $("modeSel").value = p.mode;
   }catch(_){}
 }
 
@@ -614,21 +636,21 @@ on("hardResetBtn","click", ()=>{ localStorage.clear(); location.reload(); });
 on("saveModelBtn","click", ()=>{ saveModel(); });
 on("loadModelBtn","click", ()=>{ loadModel().then(()=>renderStats()); });
 on("autoBackup","change", e=>{ if(e.target.checked){ saveModel(); }});
+on("modeSel","change", ()=>{ persistBets(); saveModel(); });
 
 setInterval(()=>{ $("clockNow").textContent=new Date().toLocaleTimeString(); }, 1000);
 
-// Bootstrap persistencia UI + historial de señales
+// Bootstrap UI + historial
 (function bootstrap(){
   try{ const st=JSON.parse(localStorage.getItem(PERSIST_UI_KEY)||"{}");
     if(typeof st.autoSignal==="boolean") $("autoSignal").checked=st.autoSignal;
     if(st.cooldown) $("cooldown").value=st.cooldown;
+    if(st.mode) $("modeSel").value=st.mode;
   }catch(_){}
-  // restaurar historial
-  restoreBets();
-  renderBets();
+  restoreBets(); renderBets();
 
   setInterval(()=>{ 
-    const st={autoSignal:$("autoSignal").checked, cooldown:Number($("cooldown").value)||8}; 
+    const st={autoSignal:$("autoSignal").checked, cooldown:Number($("cooldown").value)||8, mode:$("modeSel").value}; 
     localStorage.setItem(PERSIST_UI_KEY, JSON.stringify(st)); 
     persistBets();
   }, 2000);
