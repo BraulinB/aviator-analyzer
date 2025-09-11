@@ -299,6 +299,41 @@ function maxBlueRun(n=16){const w=rounds.slice(-n); let maxR=0,cur=0; for(const 
 function hasPurple(n=12){return rounds.slice(-n).some(x=>x>=5 && x<10);}
 function median(a){ if(!a.length) return NaN; const s=[...a].sort((x,y)=>x-y); const m=Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2; }
 
+// Nueva métrica: Volatilidad reciente (desviación estándar logarítmica para manejar multiplicadores)
+function recentVolatility(n=20) {
+  const w = rounds.slice(-n).map(x => Math.log(x)); // Log para estabilizar varianza en multiplicadores
+  if (w.length < 2) return 0;
+  const mean = w.reduce((a, b) => a + b, 0) / w.length;
+  const variance = w.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (w.length - 1);
+  return Math.sqrt(variance);
+}
+
+// Nueva métrica: Momentum ajustado (pendiente ponderada con EMA para suavizado)
+function momentum(n=15) {
+  const w = rounds.slice(-n);
+  if (w.length < 2) return 0;
+  let ema = w[0];
+  const alpha = 2 / (n + 1);
+  for (let i = 1; i < w.length; i++) {
+    ema = alpha * w[i] + (1 - alpha) * ema;
+  }
+  const slope = (ema - movingAverage(w, n)) / n; // Normalizado por longitud
+  return slope;
+}
+
+// Nueva métrica: Probabilidad condicional basada en Markov simple (transiciones de estados: low<2, mid2-10, high>10)
+function markovProbHigh(n=50) {
+  const states = rounds.slice(-n).map(x => x < 2 ? 'low' : (x < 10 ? 'mid' : 'high'));
+  if (states.length < 2) return 0.1;
+  const transitions = { low: { low: 0, mid: 0, high: 0 }, mid: { low: 0, mid: 0, high: 0 }, high: { low: 0, mid: 0, high: 0 } };
+  for (let i = 0; i < states.length - 1; i++) {
+    transitions[states[i]][states[i+1]]++;
+  }
+  const lastState = states[states.length - 1];
+  const totalFromLast = Object.values(transitions[lastState]).reduce((a, b) => a + b, 0);
+  return totalFromLast > 0 ? (transitions[lastState].high / totalFromLast) : 0.1;
+}
+
 /*** ===== HAZARD ===== */
 function hazardBuilder(listIntervals, since, lastN){
   if(listIntervals.length<3 || since==null) return {h:0, eta:null, q70:0, q75:0, q80:0, q90:0};
@@ -344,11 +379,17 @@ function contextOK(level="10", flex=0){
   const bAdj  = (x)=> x + 0.03*flex;
   const slAdj = (x)=> x - 0.003*flex;
 
-  if(level==="100") return (sl>=slAdj(0)) && (b15<=bAdj(0.42)) && (br<=brAdj(3)) && purple;
-  if(level==="50")  return (sl>=slAdj(-0.001)) && (b15<=bAdj(0.45)) && (br<=brAdj(3));
-  if(level==="20")  return (sl>=slAdj(-0.003)) && (b15<=bAdj(0.48)) && (br<=brAdj(4));
-  if(level==="5")   return (sl>=slAdj(-0.005)) && (b15<=bAdj(0.55)) && (br<=brAdj(5));
-  return (sl>=slAdj(-0.004)) && (b15<=bAdj(0.50)) && (br<=brAdj(4));
+  // Mejora: Incorporar volatilidad y momentum para contexto más robusto
+  const vol = recentVolatility(20);
+  const mom = momentum(15);
+  const volPenalty = (vol > 1.5) ? 0.8 : (vol < 0.5 ? 1.2 : 1.0); // Penaliza alta volatilidad, bonifica baja
+  const momBoost = (mom > 0.05) ? 1.1 : (mom < -0.05 ? 0.9 : 1.0); // Boost si momentum positivo
+
+  if(level==="100") return (sl>=slAdj(0)) && (b15<=bAdj(0.42)) && (br<=brAdj(3)) && purple && (volPenalty * momBoost >= 1.0);
+  if(level==="50")  return (sl>=slAdj(-0.001)) && (b15<=bAdj(0.45)) && (br<=brAdj(3)) && (volPenalty * momBoost >= 0.95);
+  if(level==="20")  return (sl>=slAdj(-0.003)) && (b15<=bAdj(0.48)) && (br<=brAdj(4)) && (volPenalty * momBoost >= 0.95);
+  if(level==="5")   return (sl>=slAdj(-0.005)) && (b15<=bAdj(0.55)) && (br<=brAdj(5)) && (volPenalty * momBoost >= 0.9);
+  return (sl>=slAdj(-0.004)) && (b15<=bAdj(0.50)) && (br<=brAdj(4)) && (volPenalty * momBoost >= 0.95);
 }
 
 /*** ===== VENTANAS ETA ===== */
@@ -426,7 +467,18 @@ function roseEngine(){
   if(noSigRounds>60) scoreThr -= mp.relax60;
   scoreThr = Math.max(0.78, scoreThr);
 
+  // Mejora: Ajuste dinámico del umbral basado en volatilidad y Markov
+  const vol = recentVolatility(20);
+  const markovHigh = markovProbHigh(50);
+  scoreThr *= (vol > 1.2 ? 1.1 : (vol < 0.8 ? 0.95 : 1.0)); // Aumenta umbral en alta volatilidad para consistencia
+  scoreThr -= markovHigh * 0.05; // Reduce umbral si alta prob. de high next (mejora agresividad selectiva)
+
+  // Mejora en policy: Incorporar streak de pérdidas y budget ajustado por winrate histórico
   const policy = attemptPolicy(CL, H10);
+  const historicalWR = (bets.length > 10) ? (bets.filter(b => b.state === "win").length / bets.length) : 0.5;
+  policy.budgetMax = Math.floor(policy.budgetMax * (historicalWR > 0.6 ? 1.2 : (historicalWR < 0.4 ? 0.8 : 1.0))); // Ajuste budget por WR
+  policy.minGap = Math.max(2, policy.minGap + (roseLossStreak > 1 ? 2 : 0)); // Aumenta gap tras losses para gestión de riesgo
+
   const policyOK = (roseAttemptsCount < policy.budgetMax);
   const cdOK     = (cooldownLeft<=0) && (roseCD<=0);
   const gapOK    = (lastRoseAttemptIdx<0) ? true : ((rounds.length - lastRoseAttemptIdx) >= policy.minGap);
@@ -437,8 +489,12 @@ function roseEngine(){
   const medGap10 = median(I10.slice(-40).map(x=>x.gap))||12;
   const catchUp = (since10!=null && since10>=medGap10 && H10.h>=Math.max(H10.q70*0.95,0.08) && contextOK("10", mp.ctxFlex));
 
-  if(policyOK && cdOK && gapOK && lossOK && (etaOK || catchUp) && best.score>=scoreThr){
-    const reason = `${best.tag} • mode=${$("modeSel").value} • thr=${scoreThr.toFixed(2)} • score=${best.score.toFixed(2)} • noSig=${noSigRounds}`;
+  // Mejora: Condición adicional de momentum y Markov para filtrar señales falsas
+  const mom = momentum(15);
+  const momentumOK = (mom > -0.02); // Evita señales en momentum negativo fuerte
+
+  if(policyOK && cdOK && gapOK && lossOK && (etaOK || catchUp) && best.score>=scoreThr && momentumOK && markovHigh >= 0.15){
+    const reason = `${best.tag} • mode=${$("modeSel").value} • thr=${scoreThr.toFixed(2)} • score=${best.score.toFixed(2)} • noSig=${noSigRounds} • vol=${vol.toFixed(2)} • markovHigh=${markovHigh.toFixed(2)}`;
     emitSignal(best.k, best.tag, reason, Math.min(best.score/1.6,1));
     roseAttemptsCount++; roseCD=policy.cdBase; lastRoseAttemptIdx=rounds.length;
   }
@@ -484,9 +540,14 @@ function b60Engine(){
   const ctx = contextOK("10",0.5);
   const latePush = (inBlock>=50) && ( (H10.h>=H10.q70 && ctx) || (since10!=null && since10>=medGap10) );
 
-  if( (etaOK && rel>=0.95 && ctx) || latePush ){
-    const reason=`B60_ROSE10 • rel=${rel.toFixed(2)} • eta=${H10.eta||"?"} • inBlock=${inBlock}`;
-    emitSignal(10,"B60_ROSE10",reason,Math.min(rel/1.6,1));
+  // Mejora en B60: Integrar Markov y volatilidad para mayor precisión
+  const markovHigh = markovProbHigh(50);
+  const vol = recentVolatility(20);
+  const adjustedRel = rel * (markovHigh > 0.2 ? 1.1 : 1.0) * (vol > 1.5 ? 0.9 : 1.0);
+
+  if( (etaOK && adjustedRel>=0.95 && ctx) || latePush ){
+    const reason=`B60_ROSE10 • rel=${adjustedRel.toFixed(2)} • eta=${H10.eta||"?"} • inBlock=${inBlock} • markovHigh=${markovHigh.toFixed(2)}`;
+    emitSignal(10,"B60_ROSE10",reason,Math.min(adjustedRel/1.6,1));
     b60.sent=true; b60.count++; b60.lastTxt=`${HHmm(Date.now())} • inBlock ${inBlock}`;
     const s=$("b60Shot"); s.style.display="inline-block"; setTimeout(()=>s.style.display="none",3500);
     $("b60Flag").style.display="none"; persistAll();
@@ -517,9 +578,14 @@ function b40Engine(){
   const median5 = median(I5.slice(-60).map(x=>x.gap))||10;
   const latePush = (inBlock>=32) && ( (H5.h>=H5.q70 && ctx) || (since5!=null && since5>=median5) );
 
-  if( (etaOK && rel>=0.92 && ctx) || latePush ){
-    const reason=`B40_ROSE5 • rel=${rel.toFixed(2)} • eta=${H5.eta||"?"} • inBlock=${inBlock}`;
-    emitSignal(5,"B40_ROSE5",reason,Math.min(rel/1.6,1));
+  // Mejora en B40: Similar a B60, con ajuste por Markov y volatilidad
+  const markovHigh = markovProbHigh(50); // Para ≥5x, usamos high como proxy (ajustar si se necesita mid)
+  const vol = recentVolatility(20);
+  const adjustedRel = rel * (markovHigh > 0.15 ? 1.1 : 1.0) * (vol > 1.5 ? 0.9 : 1.0);
+
+  if( (etaOK && adjustedRel>=0.92 && ctx) || latePush ){
+    const reason=`B40_ROSE5 • rel=${adjustedRel.toFixed(2)} • eta=${H5.eta||"?"} • inBlock=${inBlock} • markovHigh=${markovHigh.toFixed(2)}`;
+    emitSignal(5,"B40_ROSE5",reason,Math.min(adjustedRel/1.6,1));
     b40.sent=true; b40.count++; b40.lastTxt=`${HHmm(Date.now())} • inBlock ${inBlock}`;
     const s=$("b40Shot"); s.style.display="inline-block"; setTimeout(()=>s.style.display="none",3500);
     $("b40Flag").style.display="none"; persistAll();
