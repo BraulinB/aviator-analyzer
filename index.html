@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v8.4.0 (B40/B60 + Predicción refinada + Fix ≥1000x)</title>
+<title>Aviator Analyzer • Gocho v9.0 (Optimizado: B60/90 + Rosas Altas + Automático)</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5;
@@ -41,20 +41,17 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v8.4.0</span>
+  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v9.0</span>
     <span id="statusFeedback" class="muted" style="margin-left:8px"></span>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
   </h1>
 
   <div class="card">
     <div class="row">
-      <button id="startBtn" class="btn ok">Iniciar sesión</button>
-      <button id="stopBtn" class="btn">Cerrar sesión</button>
+      <button id="startBtn" class="btn ok">Iniciar</button>
+      <button id="stopBtn" class="btn">Detener</button>
       <button id="resetBtn" class="btn">Reset</button>
-      <label class="row" style="margin-left:10px"><input id="autoSignal" type="checkbox" checked> Auto‑señal</label>
-      <label class="row"><input id="beepToggle" type="checkbox" checked> Beep</label>
-      <label class="row"><input id="fix1k" type="checkbox" checked> Auto‑1k</label>
-      <span class="muted">CoolDown:</span><input id="cooldown" type="number" min="0" max="50" value="8"/>
+      <span class="muted">CoolDown:</span><input id="cooldown" type="number" min="0" max="50" value="5"/>
       <label class="row"><span class="muted">Modo:</span>
         <select id="modeSel">
           <option value="balanced" selected>Balanceado</option>
@@ -65,15 +62,14 @@
       <div class="row" style="margin-left:auto">
         <span class="muted">Feed:</span>
         <input id="feedId" type="text" value="gocho"/>
-        <button id="connectBtn" class="btn">Conectar feed</button>
-        <button id="disconnectBtn" class="btn">Desconectar</button>
+        <button id="connectBtn" class="btn">Conectar</button>
       </div>
     </div>
   </div>
 
   <div class="card">
     <div class="kpi">
-      <div class="box">Rondas: <b id="rounds">0</b> <span class="muted">(base)</span></div>
+      <div class="box">Rondas: <b id="rounds">0</b></div>
       <div class="box">Rosas (≥10x): <b id="roseCountLbl">0</b></div>
       <div class="box">≥1000x: <b id="rose1000Lbl">0</b><br><span class="muted">Últ.: <span id="last1000Lbl">–</span></span></div>
       <div class="box">Desde última Rosa: <b id="sinceRose">–</b> <span class="muted">r</span><br><span class="muted">Últ.: <span id="lastRoseLbl">–</span></span></div>
@@ -88,34 +84,24 @@
     </div>
 
     <div style="margin-top:12px">
-      <div class="muted" style="margin-bottom:6px">Últimas rondas (más reciente primero)</div>
+      <div class="muted" style="margin-bottom:6px">Últimas rondas</div>
       <div id="lastRounds"></div>
     </div>
   </div>
 
   <div class="card">
     <div class="row">
-      <h3 style="margin:0">Rosas (≥10x): intervalos exactos (últimos 60 enlaces)</h3>
-      <span class="muted" style="margin-left:auto">ROSE10/20/50/100/1000</span>
+      <h3 style="margin:0">Mapa horario ≥100x</h3>
+      <span class="muted" style="margin-left:auto">Top horas</span>
     </div>
-    <div id="roseHistory" style="margin-top:8px"></div>
-  </div>
-
-  <div class="card">
-    <div class="row">
-      <h3 style="margin:0">Mapa horario ≥100x (conteo por hora del día)</h3>
-      <span class="muted" style="margin-left:auto">Top horas 100x</span>
-    </div>
-    <div id="hourSummary" class="muted" style="margin-top:6px">Aún sin datos ≥100x suficientes.</div>
+    <div id="hourSummary" class="muted" style="margin-top:6px">Sin datos.</div>
     <div id="hourGrid" class="hour-grid"></div>
   </div>
 
-  <!-- B60 -->
+  <!-- B60 (≥5x) -->
   <div class="card">
     <div class="row">
-      <h3 style="margin:0">Señal puntual cada 60 rondas (B60 ≥10x)</h3>
-      <label class="row"><input id="b60Enable" type="checkbox" checked> Activar B60</label>
-      <label class="row"><input id="b60Beep" type="checkbox" checked> Sonido B60</label>
+      <h3 style="margin:0">Señal ≥5x cada 60 rondas (B60)</h3>
       <button id="b60ResetStats" class="btn">Reset B60</button>
     </div>
     <div class="kpi" style="margin-top:10px">
@@ -130,42 +116,37 @@
     </div>
   </div>
 
-  <!-- B40 -->
+  <!-- B90 (≥10x) -->
   <div class="card">
     <div class="row">
-      <h3 style="margin:0">Señal puntual cada 40 rondas (B40 ≥5x)</h3>
-      <label class="row"><input id="b40Enable" type="checkbox" checked> Activar B40</label>
-      <label class="row"><input id="b40Beep" type="checkbox" checked> Sonido B40</label>
-      <button id="b40ResetStats" class="btn">Reset B40</button>
+      <h3 style="margin:0">Señal ≥10x cada 90 rondas (B90)</h3>
+      <button id="b90ResetStats" class="btn">Reset B90</button>
     </div>
     <div class="kpi" style="margin-top:10px">
-      <div class="box">Bloque: <b id="b40InBlock">0/40</b></div>
-      <div class="box">Señales: <b id="b40Count">0</b></div>
-      <div class="box">Winrate: <b id="b40WR">0%</b></div>
-      <div class="box">Última: <b id="b40Last">–</b></div>
+      <div class="box">Bloque: <b id="b90InBlock">0/90</b></div>
+      <div class="box">Señales: <b id="b90Count">0</b></div>
+      <div class="box">Winrate: <b id="b90WR">0%</b></div>
+      <div class="box">Última: <b id="b90Last">–</b></div>
     </div>
     <div class="row" style="margin-top:8px;gap:8px">
-      <span id="b40Flag" class="flag info" style="display:none"></span>
-      <span id="b40Shot" class="flag ok" style="display:none">B40 emitida</span>
+      <span id="b90Flag" class="flag info" style="display:none"></span>
+      <span id="b90Shot" class="flag ok" style="display:none">B90 emitida</span>
     </div>
   </div>
 
   <div class="card">
-    <div class="row"><h3 style="margin:0">Apuestas / Señales registradas</h3></div>
+    <div class="row"><h3 style="margin:0">Señales registradas</h3></div>
     <table class="table" style="margin-top:8px">
-      <thead><tr><th>#</th><th>Tipo</th><th>Objetivo</th><th>Stake</th><th>Crash</th><th>Resultado</th><th>P/L</th></tr></thead>
+      <thead><tr><th>#</th><th>Tipo</th><th>Objetivo</th><th>Crash</th><th>Resultado</th></tr></thead>
       <tbody id="betsTbody"></tbody>
     </table>
     <div class="row" style="margin-top:10px;gap:6px">
-      <button id="hardResetBtn" class="btn bad" title="Borra solo el modelo local (no la historia del feed)">Hard reset modelo (local)</button>
-      <label><input id="autoBackup" type="checkbox"/> Auto‑backup modelo</label>
-      <button id="saveModelBtn" class="btn">Guardar modelo</button>
-      <button id="loadModelBtn" class="btn">Restaurar modelo</button>
+      <button id="hardResetBtn" class="btn bad">Reset local</button>
     </div>
   </div>
 
   <div class="card muted" style="font-size:12px">
-    Uso educativo/análisis. No garantiza resultados. “Ganada” = crash &gt; objetivo (igual o menor = pérdida).
+    Análisis educativo. No garantiza ganancias. Optimizado para eficiencia.
   </div>
 </div>
 
@@ -196,152 +177,68 @@ const on=(id,ev,fn)=>{ const el=$(id); if(el) el.addEventListener(ev,fn); };
 const now=()=>Date.now();
 const HHmm=ts=>new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
 const clamp=(v,min,max)=>v<min?min:(v>max?max:v);
-const logistic=(x,k=8,x0=1)=>1/(1+Math.exp(-k*(x-x0))); // mezcla suave hazard relativo
+const logistic=(x,k=8,x0=1)=>1/(1+Math.exp(-k*(x-x0)));
 
-/*** ===== PARSER ROBUSTO (incluye intento de rescate ≥1000) ===== ***/
-function parseCrashValue(raw, useFix1k=true){
-  if(raw===null || raw===undefined) return null;
-
-  // Si viene como objeto {raw, v}, intentar raw primero
-  let sRaw = (typeof raw==='object' && raw!==null && 'raw' in raw) ? String(raw.raw) : String(raw);
-
-  // 1) Buscar patrón de miles explícito (1.234,56 / 1,234.56 / 1 234,56)
-  const thousandRegex = /(\d{1,3}(?:[.,\u00A0\u2009]\d{3})+(?:[.,]\d+)?)/; // admite NBSP y thin-space
-  const m = sRaw.match(thousandRegex);
-  if(m){
-    let t = m[1];
-    // normalizar separadores
-    t = t.replace(/[\u00A0\u2009]/g,' '); // espacios finos -> espacio normal
-    const lastDot=t.lastIndexOf('.'), lastComma=t.lastIndexOf(',');
-    let dec = (lastComma>lastDot)?',':'.';
-    if(dec===','){ t=t.replace(/\./g,''); t=t.replace(/ /g,''); t=t.replace(',', '.'); }
-    else{ t=t.replace(/,/g,''); t=t.replace(/ /g,''); }
-    const v = Number(t);
-    return (isFinite(v)&&v>=1)?v:null;
-  }
-
-  // 2) Normalización genérica (sin miles)
-  let s = sRaw.trim().replace(/[^\d.,+-]+/g,''); // deja dígitos, coma y punto
-  if(!s) return null;
+/*** ===== PARSER ===== ***/
+function parseCrashValue(raw){
+  let s = String(raw).trim().replace(/[^\d.,]/g,'');
   const lastDot=s.lastIndexOf('.'), lastComma=s.lastIndexOf(',');
   let dec = (lastComma>lastDot)?',':'.';
-  if(lastDot===-1 && lastComma===-1) dec='.';
-  if(dec===','){ s=s.replace(/\./g,''); s=s.replace(',', '.'); } else { s=s.replace(/,/g,''); }
-  let v = Number(s);
-  if(!(isFinite(v)&&v>=1)) return null;
-
-  // 3) Rescate heurístico ≥1000 (si el capturador cortó el primer dígito)
-  // Heurística: si v está en [300, 399.99], última etiqueta del origen tenía una coma antes (baldosa común "1,3xx.xx"),
-  // y el modo Auto‑1k está activo, elevamos +1000.
-  if(useFix1k && $("fix1k") && $("fix1k").checked){
-    const rawHasComma = /,/.test(String(raw));
-    if(v>=300 && v<400 && rawHasComma===false){
-      // Si justo antes hubo una Rosa muy grande (≥100x) y MA10>20, es muy probable que fuera 1,3xx
-      const recentBig = rounds.slice(-8).some(x=>x>=100);
-      const ma10 = movingAverage(rounds,10);
-      if(recentBig || (ma10 && ma10>20)){
-        v = v + 1000;
-      }
-    }
-  }
-  return v;
+  if(dec===',') s=s.replace(/./g,'').replace(',', '.'); else s=s.replace(/,/g,'');
+  const v = Number(s);
+  return (isFinite(v)&&v>=1)?v:null;
 }
 
 /*** ===== ESTADO ===== ***/
 let FEED_ID="gocho", connected=false;
-let rounds=[], roundsMeta=[], lastShown=[];
-let baseCount=0;
-
+let rounds=[], lastShown=[];
 let pendings=[], bets=[], signalsCount=0, cooldownLeft=0;
 
-const PERSIST_KEY = "gocho_v840_state";
-const PERSIST_MAX_BETS = 600;
+const PERSIST_KEY = "gocho_v90_state";
 
-const session = { active:false, startTs:null };
+const session = { active:false };
 
-// Eventos por umbral
-const R5=[],  I5=[];
-const R10=[], I10=[];
-const R20=[], I20=[];
-const R50=[], I50=[];
-const R100=[],I100=[];
-const R1000=[],I1000=[];
+// Eventos
+const R5=[], I5=[], R10=[], I10=[], R20=[], I20=[], R50=[], I50=[], R100=[], I100=[], R1000=[], I1000=[];
 let since5=null, since10=null, since20=null, since50=null, since100=null, since1000=null;
-let last5=null, last10=null, last20=null, last50=null, last100=null, last1000=null;
+let last10=null, last1000=null;
 
-// Mapa horario 100x
+// Mapa horario
 const hour100 = new Array(24).fill(0);
 
-// Anti‑spam (motor normal)
-let roseCD=0, roseLossStreak=0, roseAttemptsStartIdx=null, roseAttemptsCount=0;
-let lastRoseAttemptIdx = -1;
+// Anti-spam
+let roseCD=0, roseLossStreak=0, lastRoseAttemptIdx = -1;
 
 /*** ===== AUDIO ===== */
 let audioCtx=null;
-function beep(freq=880, ms=120, gain=0.03){ if(!$("beepToggle").checked) return; beeper(freq,ms,gain); }
-function beeper(freq=880, ms=120, gain=0.03){
-  try{
-    if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.type="sine"; o.frequency.value=freq; g.gain.value=gain; o.connect(g); g.connect(audioCtx.destination);
-    o.start(); setTimeout(()=>{o.stop();}, ms);
-  }catch(_){}
+function beep(freq=880, ms=120, gain=0.03){ beeper(freq,ms,gain); }
+function beeper(freq, ms, gain){
+  if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type="sine"; o.frequency.value=freq; g.gain.value=gain; o.connect(g); g.connect(audioCtx.destination);
+  o.start(); setTimeout(()=>{o.stop();}, ms);
 }
 const beepPink = ()=>{beep(520,160,0.035); setTimeout(()=>beep(980,80,0.03),110);};
-const beepB60  = ()=>{beeper(360,140,0.035); setTimeout(()=>beeper(540,120,0.035),150); setTimeout(()=>beeper(860,90,0.030),300);};
-const beepB40  = ()=>{beeper(450,120,0.035); setTimeout(()=>beeper(700,120,0.030),140);};
+const beepB60  = ()=>{beep(360,140,0.035); setTimeout(()=>beep(540,120,0.035),150);};
+const beepB90  = ()=>{beep(450,120,0.035); setTimeout(()=>beep(700,120,0.030),140);};
 
 /*** ===== MÉTRICAS ===== */
-function movingAverage(arr,n){const L=Math.min(arr.length,n); if(!L) return NaN; let s=0; for(let i=arr.length-L;i<arr.length;i++) s+=arr[i]; return s/L;}
-function slopeMA10(){ if(rounds.length<11) return 0; const nowMA=movingAverage(rounds,10), prevMA=movingAverage(rounds.slice(0,-1),10); return nowMA-prevMA; }
-function blueDensity(n=15){const w=rounds.slice(-n); if(!w.length) return 1; const b=w.filter(x=>x<2).length; return b/w.length;}
+function movingAverage(arr,n){const L=Math.min(arr.length,n); let s=0; for(let i=arr.length-L;i<arr.length;i++) s+=arr[i]; return s/L;}
+function slopeMA10(){ const nowMA=movingAverage(rounds,10), prevMA=movingAverage(rounds.slice(0,-1),10); return nowMA-prevMA; }
+function blueDensity(n=15){const w=rounds.slice(-n); const b=w.filter(x=>x<2).length; return b/w.length;}
 function maxBlueRun(n=16){const w=rounds.slice(-n); let maxR=0,cur=0; for(const x of w){ if(x<2){cur++; maxR=Math.max(maxR,cur);} else cur=0; } return maxR; }
 function hasPurple(n=12){return rounds.slice(-n).some(x=>x>=5 && x<10);}
-function median(a){ if(!a.length) return NaN; const s=[...a].sort((x,y)=>x-y); const m=Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2; }
-
-// Nueva métrica: Volatilidad reciente (desviación estándar logarítmica para manejar multiplicadores)
-function recentVolatility(n=20) {
-  const w = rounds.slice(-n).map(x => Math.log(x)); // Log para estabilizar varianza en multiplicadores
-  if (w.length < 2) return 0;
-  const mean = w.reduce((a, b) => a + b, 0) / w.length;
-  const variance = w.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (w.length - 1);
-  return Math.sqrt(variance);
-}
-
-// Nueva métrica: Momentum ajustado (pendiente ponderada con EMA para suavizado)
-function momentum(n=15) {
-  const w = rounds.slice(-n);
-  if (w.length < 2) return 0;
-  let ema = w[0];
-  const alpha = 2 / (n + 1);
-  for (let i = 1; i < w.length; i++) {
-    ema = alpha * w[i] + (1 - alpha) * ema;
-  }
-  const slope = (ema - movingAverage(w, n)) / n; // Normalizado por longitud
-  return slope;
-}
-
-// Nueva métrica: Probabilidad condicional basada en Markov simple (transiciones de estados: low<2, mid2-10, high>10)
-function markovProbHigh(n=50) {
-  const states = rounds.slice(-n).map(x => x < 2 ? 'low' : (x < 10 ? 'mid' : 'high'));
-  if (states.length < 2) return 0.1;
-  const transitions = { low: { low: 0, mid: 0, high: 0 }, mid: { low: 0, mid: 0, high: 0 }, high: { low: 0, mid: 0, high: 0 } };
-  for (let i = 0; i < states.length - 1; i++) {
-    transitions[states[i]][states[i+1]]++;
-  }
-  const lastState = states[states.length - 1];
-  const totalFromLast = Object.values(transitions[lastState]).reduce((a, b) => a + b, 0);
-  return totalFromLast > 0 ? (transitions[lastState].high / totalFromLast) : 0.1;
-}
+function median(a){ const s=[...a].sort((x,y)=>x-y); const m=Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2; }
+function recentVolatility(n=20) { const w = rounds.slice(-n).map(x => Math.log(x)); const mean = w.reduce((a, b) => a + b, 0) / w.length; const variance = w.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (w.length - 1); return Math.sqrt(variance); }
+function momentum(n=15) { const w = rounds.slice(-n); let ema = w[0]; const alpha = 2 / (n + 1); for (let i = 1; i < w.length; i++) { ema = alpha * w[i] + (1 - alpha) * ema; } return (ema - movingAverage(w, n)) / n; }
+function markovProbHigh(n=50) { const states = rounds.slice(-n).map(x => x < 2 ? 'low' : (x < 10 ? 'mid' : 'high')); const transitions = { low: { low: 0, mid: 0, high: 0 }, mid: { low: 0, mid: 0, high: 0 }, high: { low: 0, mid: 0, high: 0 } }; for (let i = 0; i < states.length - 1; i++) { transitions[states[i]][states[i+1]]++; } const lastState = states[states.length - 1]; const totalFromLast = Object.values(transitions[lastState]).reduce((a, b) => a + b, 0); return totalFromLast > 0 ? (transitions[lastState].high / totalFromLast) : 0.1; }
 
 /*** ===== HAZARD ===== */
 function hazardBuilder(listIntervals, since, lastN){
-  if(listIntervals.length<3 || since==null) return {h:0, eta:null, q70:0, q75:0, q80:0, q90:0};
   const intervals = listIntervals.slice(-Math.max(3, lastN-1));
   const gaps = intervals.map(x=>x.gap);
   const maxG = Math.max(...gaps, 1);
-  const freq = new Map();
-  gaps.forEach(g=>freq.set(g,(freq.get(g)||0)+1));
+  const freq = new Map(); gaps.forEach(g=>freq.set(g,(freq.get(g)||0)+1));
   const N = gaps.length;
   const pdf=[], cdf=[]; let cum=0;
   for(let t=1;t<=maxG+20;t++){ const p=(freq.get(t)||0)/N; pdf[t]=p; cum+=p; cdf[t]=cum; }
@@ -355,292 +252,202 @@ function hazardBuilder(listIntervals, since, lastN){
   return {h:hazards[tNext]||0, eta, q70, q75, q80, q90};
 }
 
-/*** ===== CLÚSTER 10x ===== */
+/*** ===== CLÚSTER ===== */
 function cluster10(){
   const c60 = rounds.slice(-60).filter(x=>x>=10).length;
   const c30 = rounds.slice(-30).filter(x=>x>=10).length;
   const pur20 = rounds.slice(-20).filter(x=>x>=5 && x<10).length;
   const b15 = blueDensity(15);
   const sc = 0.6*Math.min(c60/8,1.5) + 0.2*Math.min(c30/4,1.2) + 0.2*Math.min(pur20/3,1) - 0.2*Math.min(b15,1);
-  return {score:Math.max(0,Math.min(sc,2)), c60, c30, pur20, b15};
+  return {score:Math.max(0,Math.min(sc,2))};
 }
 
 /*** ===== MODO ===== */
 function modeParams(){
-  const m = ($("modeSel")?.value)||"balanced";
-  if(m==="aggressive")   return {thrBase:0.92, etaPre:3, etaPost:4, relax30:0.06, relax60:0.12, ctxFlex:1.0, policyBias:-1};
-  if(m==="conservative") return {thrBase:1.05, etaPre:1, etaPost:2, relax30:0.00, relax60:0.00, ctxFlex:0.0, policyBias:+1};
-  return {thrBase:0.98, etaPre:2, etaPost:3, relax30:0.03, relax60:0.06, ctxFlex:0.5, policyBias:0};
+  const m = $("modeSel").value||"balanced";
+  if(m==="aggressive")   return {thrBase:0.90, etaPre:3, etaPost:4, relax30:0.08, relax60:0.15, ctxFlex:1.2};
+  if(m==="conservative") return {thrBase:1.10, etaPre:1, etaPost:2, relax30:0.00, relax60:0.00, ctxFlex:0.0};
+  return {thrBase:0.95, etaPre:2, etaPost:3, relax30:0.04, relax60:0.08, ctxFlex:0.6};
 }
 function contextOK(level="10", flex=0){
   const sl=slopeMA10(), b15=blueDensity(15), br=maxBlueRun(16);
   const purple = hasPurple(12);
-  const brAdj = (x)=> x + Math.round(1*flex);
-  const bAdj  = (x)=> x + 0.03*flex;
-  const slAdj = (x)=> x - 0.003*flex;
-
-  // Mejora: Incorporar volatilidad y momentum para contexto más robusto
   const vol = recentVolatility(20);
   const mom = momentum(15);
-  const volPenalty = (vol > 1.5) ? 0.8 : (vol < 0.5 ? 1.2 : 1.0); // Penaliza alta volatilidad, bonifica baja
-  const momBoost = (mom > 0.05) ? 1.1 : (mom < -0.05 ? 0.9 : 1.0); // Boost si momentum positivo
-
-  if(level==="100") return (sl>=slAdj(0)) && (b15<=bAdj(0.42)) && (br<=brAdj(3)) && purple && (volPenalty * momBoost >= 1.0);
-  if(level==="50")  return (sl>=slAdj(-0.001)) && (b15<=bAdj(0.45)) && (br<=brAdj(3)) && (volPenalty * momBoost >= 0.95);
-  if(level==="20")  return (sl>=slAdj(-0.003)) && (b15<=bAdj(0.48)) && (br<=brAdj(4)) && (volPenalty * momBoost >= 0.95);
-  if(level==="5")   return (sl>=slAdj(-0.005)) && (b15<=bAdj(0.55)) && (br<=brAdj(5)) && (volPenalty * momBoost >= 0.9);
-  return (sl>=slAdj(-0.004)) && (b15<=bAdj(0.50)) && (br<=brAdj(4)) && (volPenalty * momBoost >= 0.95);
-}
-
-/*** ===== VENTANAS ETA ===== */
-function etaWindowOK(H, since, pre, post){
-  const mp = modeParams();
-  const preN  = (pre==null? mp.etaPre : pre);
-  const postN = (post==null? mp.etaPost: post);
-  if(!H || !H.eta) return true;
-  const t = since ?? 0;
-  return (t >= (H.eta - preN)) && (t <= (H.eta + postN));
+  const volPenalty = (vol > 1.5) ? 0.8 : (vol < 0.5 ? 1.2 : 1.0);
+  const momBoost = (mom > 0.05) ? 1.1 : (mom < -0.05 ? 0.9 : 1.0);
+  if(level==="100") return (sl>=0) && (b15<=0.42) && (br<=3) && purple && (volPenalty * momBoost >= 1.0);
+  if(level==="50")  return (sl>=-0.001) && (b15<=0.45) && (br<=3) && (volPenalty * momBoost >= 0.95);
+  if(level==="20")  return (sl>=-0.003) && (b15<=0.48) && (br<=4) && (volPenalty * momBoost >= 0.95);
+  if(level==="5")   return (sl>=-0.005) && (b15<=0.55) && (br<=5) && (volPenalty * momBoost >= 0.9);
+  return (sl>=-0.004) && (b15<=0.50) && (br<=4) && (volPenalty * momBoost >= 0.95);
 }
 
 /*** ===== EMISIÓN ===== */
 function emitSignal(target, tag, reason, conf){
-  if(!$("autoSignal").checked) return;
   const id="S"+now();
   if(session.active){
-    pendings.push({id, target, stake:1, ts:now(), state:"pend", tag, reason, conf});
+    pendings.push({id, target, ts:now(), state:"pend", tag, reason, conf});
   }
-  signalsCount++; cooldownLeft=Number($("cooldown").value)||8;
+  signalsCount++; cooldownLeft=Number($("cooldown").value)||5;
   const sig=$("lastSignal"); sig.style.display="inline-block"; sig.textContent=`Señal ${tag}: ${target}x`;
   setTimeout(()=>sig.style.display="none", 3500);
   if(tag.startsWith("B60")) beepB60();
-  else if(tag.startsWith("B40")) { if($("b40Beep").checked) beepB40(); }
+  else if(tag.startsWith("B90")) beepB90();
   else beepPink();
   renderBets(); persistAll();
 }
 
-/*** ===== MOTOR NORMAL (mezcla 10/20/50/100) ===== */
+/*** ===== MOTOR ROSAS ===== */
 function roseEngine(){
   if(roseCD>0) roseCD--;
-
-  const curIdx=rounds.length;
-  if(roseAttemptsStartIdx==null || (curIdx-roseAttemptsStartIdx)>120){ roseAttemptsStartIdx=curIdx; roseAttemptsCount=0; }
-
-  const H5 = hazardBuilder(I5,  since5,  80);
   const H10= hazardBuilder(I10, since10, 60);
   const H20= hazardBuilder(I20, since20, 40);
   const H50= hazardBuilder(I50, since50, 25);
   const H100=hazardBuilder(I100,since100,15);
 
-  // Precarga de alerta 10x
   if(H10.h>=H10.q75){
     $("roseAlert").style.display="inline-block";
-    $("roseAlert").textContent = H10.eta ? `Alerta Rosa (~${H10.eta} r)` : `Alerta Rosa próxima`;
+    $("roseAlert").textContent = H10.eta ? `Alerta (~${H10.eta} r)` : `Alerta próxima`;
   }else $("roseAlert").style.display="none";
 
   const CL = cluster10();
   const mp = modeParams();
 
-  // Puntuaciones (blend logístico)
   const rel=(H,Q)=> Q?Math.min(H/Q,2.5):0;
-  const S10 = logistic(rel(H10.h,H10.q80)) * (contextOK("10",mp.ctxFlex)?1:0);
   const S20 = logistic(rel(H20.h,H20.q80)) * (contextOK("20",mp.ctxFlex)?1:0);
-  const S50 = logistic(rel(H50.h,H50.q80)) * (contextOK("50",mp.ctxFlex)?1:0)*0.9; // un poco más exigente
+  const S50 = logistic(rel(H50.h,H50.q80)) * (contextOK("50",mp.ctxFlex)?1:0)*0.9;
   const S100= logistic(rel(H100.h,H100.q80))*(contextOK("100",mp.ctxFlex)?1:0)*0.8;
 
-  // anti-chase: si la última ronda ya superó el k, penaliza
   const lastV = rounds[rounds.length-1]||0;
   const anti = (k)=> (lastV>k?0.65:1);
   const cand = [
     {tag:"ROSE100",k:100,score:S100*anti(100)},
     {tag:"ROSE50", k:50, score:S50*anti(50)},
-    {tag:"ROSE20", k:20, score:S20*anti(20)},
-    {tag:"ROSE10", k:10, score:S10*anti(10), etaOK:etaWindowOK(H10,since10)}
+    {tag:"ROSE20", k:20, score:S20*anti(20)}
   ].sort((a,b)=>b.score-a.score);
 
   const best=cand[0];
 
-  // Umbral dinámico + relajaciones
   let scoreThr = mp.thrBase;
-  if(CL.c60<6) scoreThr += 0.07; else if(CL.c60<8) scoreThr += 0.03;
   const noSigRounds = (lastRoseAttemptIdx<0)? 999 : (rounds.length - lastRoseAttemptIdx);
   if(noSigRounds>30) scoreThr -= mp.relax30;
   if(noSigRounds>60) scoreThr -= mp.relax60;
   scoreThr = Math.max(0.78, scoreThr);
 
-  // Mejora: Ajuste dinámico del umbral basado en volatilidad y Markov
   const vol = recentVolatility(20);
   const markovHigh = markovProbHigh(50);
-  scoreThr *= (vol > 1.2 ? 1.1 : (vol < 0.8 ? 0.95 : 1.0)); // Aumenta umbral en alta volatilidad para consistencia
-  scoreThr -= markovHigh * 0.05; // Reduce umbral si alta prob. de high next (mejora agresividad selectiva)
+  scoreThr *= (vol > 1.2 ? 1.1 : 0.95); 
+  scoreThr -= markovHigh * 0.05;
 
-  // Mejora en policy: Incorporar streak de pérdidas y budget ajustado por winrate histórico
-  const policy = attemptPolicy(CL, H10);
-  const historicalWR = (bets.length > 10) ? (bets.filter(b => b.state === "win").length / bets.length) : 0.5;
-  policy.budgetMax = Math.floor(policy.budgetMax * (historicalWR > 0.6 ? 1.2 : (historicalWR < 0.4 ? 0.8 : 1.0))); // Ajuste budget por WR
-  policy.minGap = Math.max(2, policy.minGap + (roseLossStreak > 1 ? 2 : 0)); // Aumenta gap tras losses para gestión de riesgo
-
-  const policyOK = (roseAttemptsCount < policy.budgetMax);
-  const cdOK     = (cooldownLeft<=0) && (roseCD<=0);
-  const gapOK    = (lastRoseAttemptIdx<0) ? true : ((rounds.length - lastRoseAttemptIdx) >= policy.minGap);
-  const lossOK   = (roseLossStreak<2);
-  const etaOK    = (best.tag==="ROSE10") ? (cand.find(c=>c.tag==="ROSE10")?.etaOK ?? true) : true;
-
-  // catch‑up si ventana seca
-  const medGap10 = median(I10.slice(-40).map(x=>x.gap))||12;
-  const catchUp = (since10!=null && since10>=medGap10 && H10.h>=Math.max(H10.q70*0.95,0.08) && contextOK("10", mp.ctxFlex));
-
-  // Mejora: Condición adicional de momentum y Markov para filtrar señales falsas
+  const cdOK = (cooldownLeft<=0) && (roseCD<=0);
+  const gapOK = (lastRoseAttemptIdx<0) ? true : ((rounds.length - lastRoseAttemptIdx) >= 4);
+  const lossOK = (roseLossStreak<2);
   const mom = momentum(15);
-  const momentumOK = (mom > -0.02); // Evita señales en momentum negativo fuerte
+  const momentumOK = (mom > -0.02);
 
-  if(policyOK && cdOK && gapOK && lossOK && (etaOK || catchUp) && best.score>=scoreThr && momentumOK && markovHigh >= 0.15){
-    const reason = `${best.tag} • mode=${$("modeSel").value} • thr=${scoreThr.toFixed(2)} • score=${best.score.toFixed(2)} • noSig=${noSigRounds} • vol=${vol.toFixed(2)} • markovHigh=${markovHigh.toFixed(2)}`;
+  if(cdOK && gapOK && lossOK && best.score>=scoreThr && momentumOK && markovHigh >= 0.15){
+    const reason = `${best.tag} • thr=${scoreThr.toFixed(2)} • score=${best.score.toFixed(2)}`;
     emitSignal(best.k, best.tag, reason, Math.min(best.score/1.6,1));
-    roseAttemptsCount++; roseCD=policy.cdBase; lastRoseAttemptIdx=rounds.length;
+    roseCD=8; lastRoseAttemptIdx=rounds.length; roseLossStreak=0;
   }
 }
-function attemptPolicy(CL, H10){
-  let budget=2, cd=12, gap=4;
-  const d=CL.c60;
-  if(d>=10){ budget=8; cd=4; gap=2; }
-  else if(d>=8){ budget=6; cd=5; gap=3; }
-  else if(d>=6){ budget=4; cd=7; gap=3; }
-  else if(d>=4){ budget=3; cd=9; gap=4; }
-  const hRel = H10.q80 ? (H10.h / H10.q80) : 0;
-  if(hRel>=1.3){ budget=Math.max(budget,5); cd=Math.min(cd,6); }
-  const mp = modeParams();
-  budget = Math.max(2, budget + (mp.policyBias||0));
-  cd     = Math.max(3, cd - (mp.policyBias<0?1:0));
-  gap    = Math.max(2, gap - (mp.policyBias<0?1:0));
-  return {budgetMax:budget, cdBase:cd, minGap:gap};
-}
 
-/*** ===== B60 (≥10x) ===== */
+/*** ===== B60 (≥5x) ===== */
 const b60={startIdx:0,sent:false,count:0,wins:0,losses:0,lastTxt:"–"};
 function b60Render(){
-  const inBlock = Math.max(0, rounds.length - b60.startIdx);
+  const inBlock = rounds.length - b60.startIdx;
   $("b60InBlock").textContent = `${inBlock}/60`;
   $("b60Count").textContent   = b60.count;
   $("b60WR").textContent      = b60.count? `${Math.round(100*b60.wins/b60.count)}%`:"0%";
   $("b60Last").textContent    = b60.lastTxt;
 }
 function b60Engine(){
-  if(!$("b60Enable").checked) return;
-  const inBlock = Math.max(0, rounds.length - b60.startIdx);
+  const inBlock = rounds.length - b60.startIdx;
   if(inBlock>=60){ b60.startIdx=rounds.length; b60.sent=false; $("b60Flag").style.display="none"; }
   if(b60.sent) return;
 
-  const H10=hazardBuilder(I10,since10,60);
-  const gaps10 = I10.slice(-40).map(x=>x.gap);
-  const medGap10 = median(gaps10)||12;
-  if(H10.eta){ const el=$("b60Flag"); el.style.display="inline-block"; el.textContent=`B60 ventana ~${H10.eta} r`; }
-
-  const etaOK = etaWindowOK(H10, since10, 2, 3);
-  const rel = H10.q80? (H10.h/H10.q80):0;
-  const ctx = contextOK("10",0.5);
-  const latePush = (inBlock>=50) && ( (H10.h>=H10.q70 && ctx) || (since10!=null && since10>=medGap10) );
-
-  // Mejora en B60: Integrar Markov y volatilidad para mayor precisión
+  const H5=hazardBuilder(I5,since5,80);
+  const rel = H5.q80? (H5.h/H5.q80):0;
+  const ctx = contextOK("5",0.6);
   const markovHigh = markovProbHigh(50);
   const vol = recentVolatility(20);
-  const adjustedRel = rel * (markovHigh > 0.2 ? 1.1 : 1.0) * (vol > 1.5 ? 0.9 : 1.0);
+  const adjustedRel = rel * (markovHigh > 0.15 ? 1.1 : 1.0) * (vol > 1.5 ? 0.9 : 1.0);
+  const medGap5 = median(I5.slice(-60).map(x=>x.gap))||10;
+  const latePush = (inBlock>=50) && ( (H5.h>=H5.q70 && ctx) || (since5>=medGap5) );
 
-  if( (etaOK && adjustedRel>=0.95 && ctx) || latePush ){
-    const reason=`B60_ROSE10 • rel=${adjustedRel.toFixed(2)} • eta=${H10.eta||"?"} • inBlock=${inBlock} • markovHigh=${markovHigh.toFixed(2)}`;
-    emitSignal(10,"B60_ROSE10",reason,Math.min(adjustedRel/1.6,1));
-    b60.sent=true; b60.count++; b60.lastTxt=`${HHmm(Date.now())} • inBlock ${inBlock}`;
+  if( (adjustedRel>=0.92 && ctx) || latePush ){
+    const reason=`B60 ≥5x • rel=${adjustedRel.toFixed(2)}`;
+    emitSignal(5,"B60",reason,Math.min(adjustedRel/1.6,1));
+    b60.sent=true; b60.count++; b60.lastTxt=`${HHmm(now())} • ${inBlock}`;
     const s=$("b60Shot"); s.style.display="inline-block"; setTimeout(()=>s.style.display="none",3500);
-    $("b60Flag").style.display="none"; persistAll();
+    persistAll();
   }
 }
 
-/*** ===== B40 (≥5x) ===== */
-const b40={startIdx:0,sent:false,count:0,wins:0,losses:0,lastTxt:"–"};
-function b40Render(){
-  const inBlock = Math.max(0, rounds.length - b40.startIdx);
-  $("b40InBlock").textContent = `${inBlock}/40`;
-  $("b40Count").textContent   = b40.count;
-  $("b40WR").textContent      = b40.count? `${Math.round(100*b40.wins/b40.count)}%`:"0%";
-  $("b40Last").textContent    = b40.lastTxt;
+/*** ===== B90 (≥10x) ===== */
+const b90={startIdx:0,sent:false,count:0,wins:0,losses:0,lastTxt:"–"};
+function b90Render(){
+  const inBlock = rounds.length - b90.startIdx;
+  $("b90InBlock").textContent = `${inBlock}/90`;
+  $("b90Count").textContent   = b90.count;
+  $("b90WR").textContent      = b90.count? `${Math.round(100*b90.wins/b90.count)}%`:"0%";
+  $("b90Last").textContent    = b90.lastTxt;
 }
-function b40Engine(){
-  if(!$("b40Enable").checked) return;
-  const inBlock = Math.max(0, rounds.length - b40.startIdx);
-  if(inBlock>=40){ b40.startIdx=rounds.length; b40.sent=false; $("b40Flag").style.display="none"; }
-  if(b40.sent) return;
+function b90Engine(){
+  const inBlock = rounds.length - b90.startIdx;
+  if(inBlock>=90){ b90.startIdx=rounds.length; b90.sent=false; $("b90Flag").style.display="none"; }
+  if(b90.sent) return;
 
-  const H5 = hazardBuilder(I5, since5, 80);
-  const rel = H5.q80? (H5.h/H5.q80):0;
-  const ctx = contextOK("5",0.6);
-  if(H5.eta){ const el=$("b40Flag"); el.style.display="inline-block"; el.textContent=`B40 ventana ~${H5.eta} r`; }
-
-  const etaOK = etaWindowOK(H5, since5, 2, 3);
-  const median5 = median(I5.slice(-60).map(x=>x.gap))||10;
-  const latePush = (inBlock>=32) && ( (H5.h>=H5.q70 && ctx) || (since5!=null && since5>=median5) );
-
-  // Mejora en B40: Similar a B60, con ajuste por Markov y volatilidad
-  const markovHigh = markovProbHigh(50); // Para ≥5x, usamos high como proxy (ajustar si se necesita mid)
+  const H10=hazardBuilder(I10,since10,60);
+  const rel = H10.q80? (H10.h/H10.q80):0;
+  const ctx = contextOK("10",0.5);
+  const markovHigh = markovProbHigh(50);
   const vol = recentVolatility(20);
-  const adjustedRel = rel * (markovHigh > 0.15 ? 1.1 : 1.0) * (vol > 1.5 ? 0.9 : 1.0);
+  const adjustedRel = rel * (markovHigh > 0.2 ? 1.1 : 1.0) * (vol > 1.5 ? 0.9 : 1.0);
+  const medGap10 = median(I10.slice(-40).map(x=>x.gap))||12;
+  const latePush = (inBlock>=75) && ( (H10.h>=H10.q70 && ctx) || (since10>=medGap10) );
 
-  if( (etaOK && adjustedRel>=0.92 && ctx) || latePush ){
-    const reason=`B40_ROSE5 • rel=${adjustedRel.toFixed(2)} • eta=${H5.eta||"?"} • inBlock=${inBlock} • markovHigh=${markovHigh.toFixed(2)}`;
-    emitSignal(5,"B40_ROSE5",reason,Math.min(adjustedRel/1.6,1));
-    b40.sent=true; b40.count++; b40.lastTxt=`${HHmm(Date.now())} • inBlock ${inBlock}`;
-    const s=$("b40Shot"); s.style.display="inline-block"; setTimeout(()=>s.style.display="none",3500);
-    $("b40Flag").style.display="none"; persistAll();
+  if( (adjustedRel>=0.95 && ctx) || latePush ){
+    const reason=`B90 ≥10x • rel=${adjustedRel.toFixed(2)}`;
+    emitSignal(10,"B90",reason,Math.min(adjustedRel/1.6,1));
+    b90.sent=true; b90.count++; b90.lastTxt=`${HHmm(now())} • ${inBlock}`;
+    const s=$("b90Shot"); s.style.display="inline-block"; setTimeout(()=>s.style.display="none",3500);
+    persistAll();
   }
 }
 
 /*** ===== RENDER ===== */
 function renderStats(){
-  $("rounds").textContent = `${rounds.length} (base ${baseCount})`;
-  const ma10 = movingAverage(rounds,10); $("ma10").textContent = isNaN(ma10)?"–":(ma10.toFixed(2)+"x");
+  $("rounds").textContent = rounds.length;
+  const ma10 = movingAverage(rounds,10); $("ma10").textContent = isNaN(ma10)?"–":ma10.toFixed(2)+"x";
   $("roseCountLbl").textContent = R10.length;
-  $("sinceRose").textContent = (since10==null?"–":since10);
-  $("lastRoseLbl").textContent  = last10?(`${last10.v.toFixed(2)}x • ${HHmm(last10.ts)}`):"–";
+  $("sinceRose").textContent = since10==null?"–":since10;
+  $("lastRoseLbl").textContent  = last10?`${last10.v.toFixed(2)}x • ${HHmm(last10.ts)}`:"–";
   $("signals").textContent = signalsCount;
   $("cdLeft").textContent = cooldownLeft;
   $("rose1000Lbl").textContent = R1000.length;
-  $("last1000Lbl").textContent = last1000?(`${last1000.v.toFixed(2)}x • ${HHmm(last1000.ts)}`):"–";
+  $("last1000Lbl").textContent = last1000?`${last1000.v.toFixed(2)}x • ${HHmm(last1000.ts)}`:"–";
 
   const cont=$("lastRounds"); cont.innerHTML="";
   lastShown.forEach(x=>{ const d=document.createElement("span"); d.className="pill"; d.textContent=x.toFixed(2)+"x"; cont.appendChild(d); });
 
-  b60Render(); b40Render();
+  b60Render(); b90Render();
 }
 function renderBets(){
   const tb=$("betsTbody"); tb.innerHTML="";
   bets.concat(pendings).forEach((b,idx)=>{
     const st = b.state==="win"?"win": b.state==="lose"?"lose":"pend";
     const tr=document.createElement("tr");
-    tr.title = (b.reason?`Motivo: ${b.reason} • Conf≈${Math.round((b.conf||0)*100)}%`:"");
-    tr.innerHTML = `<td>${idx+1}</td><td>${b.tag||"ROSE"}</td><td>${b.target}x</td><td>$${(b.stake?.toFixed?b.stake.toFixed(2):b.stake)||"1.00"}</td><td>${b.crash? b.crash.toFixed(2)+"x":"—"}</td><td>${st}</td><td>${b.pl||"—"}</td>`;
+    tr.innerHTML = `<td>${idx+1}</td><td>${b.tag||"ROSE"}</td><td>${b.target}x</td><td>${b.crash? b.crash.toFixed(2)+"x":"—"}</td><td>${st}</td>`;
     tb.appendChild(tr);
-  });
-}
-function renderRoseHistory(){
-  const cont = $("roseHistory"); cont.innerHTML="";
-  const items = I10.slice(-60).reverse();
-  if(!items.length){ const d=document.createElement("div"); d.className="muted"; d.textContent="Aún no hay enlaces suficientes (≥10x)."; cont.appendChild(d); return; }
-  items.forEach(it=>{
-    const row=document.createElement("div"); row.className="rose-item";
-    row.innerHTML = `
-      <span class="pill pink">${it.from.v.toFixed(2)}x</span>
-      <small>${HHmm(it.from.ts)}</small>
-      <span class="muted">→</span>
-      <span class="pill pink">${it.to.v.toFixed(2)}x</span>
-      <small>${HHmm(it.to.ts)}</small>
-      <span class="muted">en</span>
-      <b>${it.gap}</b> <span class="muted">rondas</span>`;
-    cont.appendChild(row);
   });
 }
 function renderHourGrid(){
   const g=$("hourGrid"); g.innerHTML="";
   const total = hour100.reduce((a,b)=>a+b,0);
   const topIdx = [...hour100.keys()].sort((a,b)=>hour100[b]-hour100[a]).slice(0,3);
-  $("hourSummary").textContent = total? `Total ≥100x vistos: ${total}. Mejores horas: ${topIdx.map(h=>String(h).padStart(2,"0")+":00").join(", ")}.` : "Aún sin datos ≥100x suficientes.";
+  $("hourSummary").textContent = total? `Total ≥100x: ${total}. Top: ${topIdx.map(h=>String(h).padStart(2,"0")+":00").join(", ")}.` : "Sin datos.";
   for(let h=0;h<24;h++){
     const cell=document.createElement("div"); cell.className="hour-cell"+(topIdx.includes(h)?" top":"");
     cell.innerHTML = `<span>${String(h).padStart(2,"0")}:00</span><b>${hour100[h]}</b>`;
@@ -648,246 +455,116 @@ function renderHourGrid(){
   }
 }
 
-/*** ===== ACTUALIZACIÓN POR RONDA ===== */
-function pushEvt(v, ts, list, listInt, thr, sinceRef, lastRef, markHour100=false, mark1000=false){
+/*** ===== ACTUALIZACIÓN ===== */
+function pushEvt(v, ts, list, listInt, thr, sinceRef, lastRef, markHour=false){
   if(v>=thr){
-    const idx=rounds.length-1;
-    const ev={idx,v,ts}; list.push(ev);
-    if(markHour100) hour100[new Date(ts).getHours()]++;
-    if(list.length>=2){ const prev=list[list.length-2]; listInt.push({from:prev,to:ev,gap:ev.idx-prev.idx}); if(listInt.length>240) listInt.shift(); }
-    if(lastRef==="5"){ last5=ev; since5=0; }
-    else if(lastRef==="10"){ last10=ev; since10=0; }
-    else if(lastRef==="20"){ last20=ev; since20=0; }
-    else if(lastRef==="50"){ last50=ev; since50=0; }
-    else if(lastRef==="100"){ last100=ev; since100=0; }
-    else if(lastRef==="1000"){ last1000=ev; since1000=0; }
+    const ev={v,ts}; list.push(ev);
+    if(markHour) hour100[new Date(ts).getHours()]++;
+    if(list.length>=2){ const prev=list[list.length-2]; listInt.push({from:prev,to:ev,gap:rounds.length-prev.idx-1}); }
+    if(lastRef==="10") last10=ev, since10=0;
+    if(lastRef==="1000") last1000=ev, since1000=0;
+    if(lastRef==="5") since5=0;
+    if(lastRef==="20") since20=0;
+    if(lastRef==="50") since50=0;
+    if(lastRef==="100") since100=0;
   }else{
-    if(lastRef==="5")   since5   = (since5==null?1:since5+1);
-    if(lastRef==="10")  since10  = (since10==null?1:since10+1);
-    if(lastRef==="20")  since20  = (since20==null?1:since20+1);
-    if(lastRef==="50")  since50  = (since50==null?1:since50+1);
-    if(lastRef==="100") since100 = (since100==null?1:since100+1);
-    if(lastRef==="1000")since1000= (since1000==null?1:since1000+1);
+    if(sinceRef==="5") since5++;
+    if(sinceRef==="10") since10++;
+    if(sinceRef==="20") since20++;
+    if(sinceRef==="50") since50++;
+    if(sinceRef==="100") since100++;
+    if(sinceRef==="1000") since1000++;
   }
 }
-function handleOnValue(v, ts){
-  pushEvt(v,ts,R1000,I1000,1000,"1000");
-  pushEvt(v,ts,R100,I100,100,"100",true);
-  pushEvt(v,ts,R50,I50,50,"50");
-  pushEvt(v,ts,R20,I20,20,"20");
-  pushEvt(v,ts,R10,I10,10,"10");
-  pushEvt(v,ts,R5, I5, 5,"5");
-
-  if(R10.length>260) R10.shift();
-  if(R20.length>200) R20.shift();
-  if(R50.length>160) R50.shift();
-  if(R100.length>120) R100.shift();
-  if(R1000.length>80) R1000.shift();
-
-  renderRoseHistory();
-  renderHourGrid();
-}
 function onNewCrash(v, ts, isBase=false){
-  rounds.push(v); roundsMeta.push({v,ts}); if(rounds.length>3000){ rounds.shift(); roundsMeta.shift(); }
+  rounds.push(v); if(rounds.length>2000) rounds.shift();
   if(!isBase && cooldownLeft>0) cooldownLeft--;
 
   if(!isBase && pendings.length && session.active){
     const bet=pendings.shift(); const win=(v>bet.target);
-    bet.crash=v; bet.state=win?"win":"lose"; bet.pl=win?"+1":"−1";
-    if((bet.tag||"").startsWith("B60")){ if(win) b60.wins++; else b60.losses++; b60.lastTxt=`${win?"GANADA":"PERDIDA"} • ${v.toFixed(2)}x • ${HHmm(ts)}`; }
-    if((bet.tag||"").startsWith("B40")){ if(win) b40.wins++; else b40.losses++; b40.lastTxt=`${win?"GANADA":"PERDIDA"} • ${v.toFixed(2)}x • ${HHmm(ts)}`; }
-    if((bet.tag||"").startsWith("ROSE")){ if(win) roseLossStreak=0; else roseLossStreak++; }
-    bets.push(bet); if(bets.length>PERSIST_MAX_BETS) bets.splice(0,bets.length-PERSIST_MAX_BETS);
+    bet.crash=v; bet.state=win?"win":"lose";
+    if(bet.tag==="B60"){ win?b60.wins++:b60.losses++; b60.lastTxt=`${win?"GANADA":"PERDIDA"} • ${v.toFixed(2)}x`;}
+    if(bet.tag==="B90"){ win?b90.wins++:b90.losses++; b90.lastTxt=`${win?"GANADA":"PERDIDA"} • ${v.toFixed(2)}x`;}
+    if(bet.tag.startsWith("ROSE")) win?roseLossStreak=0:roseLossStreak++;
+    bets.push(bet); if(bets.length>300) bets.shift();
     renderBets(); persistAll();
-  }else if(!session.active){ pendings=[]; }
+  }
 
-  lastShown.unshift(v); if(lastShown.length>60) lastShown.pop();
+  lastShown.unshift(v); if(lastShown.length>40) lastShown.pop();
 
-  handleOnValue(v, ts);
-  renderStats();
+  pushEvt(v,ts,R1000,I1000,1000,"1000","1000");
+  pushEvt(v,ts,R100,I100,100,"100","100",true);
+  pushEvt(v,ts,R50,I50,50,"50","50");
+  pushEvt(v,ts,R20,I20,20,"20","20");
+  pushEvt(v,ts,R10,I10,10,"10","10");
+  pushEvt(v,ts,R5,I5,5,"5","5");
+
+  renderStats(); renderHourGrid();
 
   if(!isBase){
     roseEngine();
     b60Engine();
-    b40Engine();
-    b60Render(); b40Render();
+    b90Engine();
+    b60Render(); b90Render();
   }
 }
 
-/*** ===== CONEXIÓN FEED ===== */
-let liveRef=null, liveCb=null, lastSeenKey=null, lastSeenTs=null, lastActivityTs=null, watchdog=null;
-
-function processNode(node){
-  // Preferir node.raw si está; si no, node.v; si no, el propio nodo
-  const raw = (node && typeof node==='object' && ('raw' in node || 'v' in node)) ? (node.raw ?? node.v) : node;
-  const v = parseCrashValue(raw, /*useFix1k*/true);
-  const ts = Number(node?.ts) || now();
-  return {v, ts};
-}
-
-async function connectFeed(opts={resetSession:false}){
+/*** ===== CONEXIÓN ===== */
+async function connectFeed(){
   if(connected) return;
-  FEED_ID=($("feedId").value||"gocho").trim();
-  const fb=$("statusFeedback"); const refPath=`feeds/${FEED_ID}/crashes`;
-  fb&&(fb.textContent=`Conectando a ${refPath}…`);
+  const fb=$("statusFeedback"); fb.textContent="Conectando...";
+  await auth.signInAnonymously();
+  const ref=db.ref(`feeds/${FEED_ID}/crashes`);
+  const snap=await ref.orderByKey().limitToLast(800).once("value");
+  const data=snap.val(); const keys=Object.keys(data).sort();
 
-  try{ await auth.signInAnonymously(); }catch(e){ console.warn("[auth anon]", e?.message||e); }
-
-  const ref=db.ref(refPath);
-  fb&&(fb.textContent="Cargando historial…");
-
-  let snap=null, method="key";
-  try{ const s1=await ref.orderByChild("ts").limitToLast(800).once("value"); if(s1 && s1.val() && Object.keys(s1.val()).length){ snap=s1; method="ts"; } }catch(e){}
-  if(!snap){ try{ snap=await ref.orderByKey().limitToLast(800).once("value"); method="key"; } catch(e){} }
-  if(!snap || !snap.val()){ fb&&(fb.textContent="Sin datos en el feed."); return; }
-
-  const data=snap.val(), keys=Object.keys(data).sort(); baseCount=keys.length;
-
-  // Reset buffers mercado
-  rounds=[]; roundsMeta=[]; lastShown=[];
+  rounds=[]; lastShown=[];
   [R5,R10,R20,R50,R100,R1000].forEach(a=>a.length=0); [I5,I10,I20,I50,I100,I1000].forEach(a=>a.length=0);
-  since5=since10=since20=since50=since100=since1000=null;
-  last5=last10=last20=last50=last100=last1000=null;
-  hour100.fill(0); roseCD=0; roseLossStreak=0; roseAttemptsStartIdx=null; roseAttemptsCount=0; lastRoseAttemptIdx=-1;
-
-  // Reset bloques desde el punto actual
-  b60.startIdx=0; b60.sent=false;
-  b40.startIdx=0; b40.sent=false;
-
-  if(opts.resetSession){ pendings=[]; bets=[]; signalsCount=0; cooldownLeft=0; persistAll(); }
+  since5=since10=since20=since50=since100=since1000=0;
 
   keys.forEach(k=>{
-    const node=data[k]; const {v,ts}=processNode(node);
-    if(v!==null) onNewCrash(v, ts, true);
-    lastSeenKey=k; lastSeenTs=Number(node?.ts||k)||now(); lastActivityTs=now();
+    const node=data[k]; const v=parseCrashValue(node.v||node.raw||node); if(v) onNewCrash(v, Number(node.ts||now()), true);
   });
 
-  // fijar inicio bloques
-  b60.startIdx=rounds.length; b60.sent=false;
-  b40.startIdx=rounds.length; b40.sent=false;
-  b60Render(); b40Render();
+  b60.startIdx=rounds.length; b90.startIdx=rounds.length;
 
-  if(method==="ts"){
-    liveRef=ref.orderByChild("ts").startAt(lastSeenTs);
-    liveCb=function(s){
-      const key=s.key, d=s.val();
-      const {v,ts}=processNode(d);
-      if(lastSeenTs && ts<=lastSeenTs && key===lastSeenKey) return;
-      lastSeenKey=key; lastSeenTs=ts; lastActivityTs=now();
-      if(v!==null) onNewCrash(v, ts, false);
-    };
-  }else{
-    liveRef=ref.orderByKey().startAt(lastSeenKey||"");
-    liveCb=function(s){
-      const key=s.key, d=s.val(); if(lastSeenKey && key<=lastSeenKey) return; lastSeenKey=key;
-      const {v,ts}=processNode(d); lastSeenTs=ts; lastActivityTs=now();
-      if(v!==null) onNewCrash(v, ts, false);
-    };
-  }
-  liveRef.on("child_added", liveCb);
+  const liveRef=ref.orderByKey().startAt(keys[keys.length-1]||"");
+  liveRef.on("child_added", s=>{
+    const d=s.val(); const v=parseCrashValue(d.v||d.raw||d); if(v) onNewCrash(v, Number(d.ts||now()), false);
+  });
 
-  if(watchdog) clearInterval(watchdog);
-  watchdog=setInterval(()=>{ if(!connected) return; const dt=Date.now()-(lastActivityTs||0); if(dt>300000){ disconnectFeed(true); connectFeed({resetSession:false}); } }, 30000);
-
-  connected=true; fb&&(fb.textContent="Conectado.");
-  renderStats(); renderRoseHistory(); renderHourGrid(); renderBets();
+  connected=true; fb.textContent="Conectado.";
+  renderStats(); renderHourGrid(); renderBets();
 }
 
-function disconnectFeed(silent=false){
-  if(!connected) return;
-  if(liveRef && liveCb) liveRef.off("child_added", liveCb);
-  liveRef=null; liveCb=null; lastSeenKey=null; lastSeenTs=null; connected=false;
-  if(watchdog){ clearInterval(watchdog); watchdog=null; }
-  const fb=$("statusFeedback"); if(!silent) fb&&(fb.textContent="Desconectado.");
-}
-
-/*** ===== BACKUP / RESTORE LOCAL ===== */
+/*** ===== PERSIST ===== */
 function persistAll(){
-  try{
-    const payload = {
-      bets, pendings, signalsCount, cooldownLeft, session,
-      ui:{
-        autoSignal:$("autoSignal").checked, cooldown:Number($("cooldown").value)||8, mode:$("modeSel").value,
-        b60Enable:$("b60Enable").checked, b60Beep:$("b60Beep").checked,
-        b40Enable:$("b40Enable").checked, b40Beep:$("b40Beep").checked,
-        fix1k:$("fix1k").checked
-      },
-      b60, b40
-    };
-    localStorage.setItem(PERSIST_KEY, JSON.stringify(payload));
-  }catch(_){}
+  localStorage.setItem(PERSIST_KEY, JSON.stringify({bets, pendings, signalsCount, cooldownLeft, session, ui:{cooldown:Number($("cooldown").value)||5, mode:$("modeSel").value}, b60, b90}));
 }
 function restoreAll(){
-  try{
-    const raw = localStorage.getItem(PERSIST_KEY); if(!raw) return;
-    const p = JSON.parse(raw);
-    if(Array.isArray(p.bets)) bets=p.bets;
-    if(Array.isArray(p.pendings)) pendings=p.pendings;
-    if(typeof p.signalsCount==="number") signalsCount=p.signalsCount;
-    if(typeof p.cooldownLeft==="number") cooldownLeft=p.cooldownLeft;
-    if(p.session && typeof p.session.active==="boolean"){ session.active=p.session.active; session.startTs=p.session.startTs||null; }
-    if(p.ui){
-      $("autoSignal").checked = p.ui.autoSignal??true;
-      $("cooldown").value     = p.ui.cooldown??8;
-      $("modeSel").value      = p.ui.mode||"balanced";
-      $("b60Enable").checked  = p.ui.b60Enable??true;
-      $("b60Beep").checked    = p.ui.b60Beep??true;
-      $("b40Enable").checked  = p.ui.b40Enable??true;
-      $("b40Beep").checked    = p.ui.b40Beep??true;
-      $("fix1k").checked      = p.ui.fix1k??true;
-    }
-    if(p.b60){ Object.assign(b60,p.b60); }
-    if(p.b40){ Object.assign(b40,p.b40); }
-  }catch(_){}
-}
-
-/*** ===== SAVE/LOAD EN CLOUD ===== */
-function saveModel(){
-  const obj={ui:{
-    autoSignal:$("autoSignal").checked, cooldown:Number($("cooldown").value)||8, mode:$("modeSel").value,
-    b60Enable:$("b60Enable").checked, b60Beep:$("b60Beep").checked,
-    b40Enable:$("b40Enable").checked, b40Beep:$("b40Beep").checked,
-    fix1k:$("fix1k").checked
-  }};
-  auth.currentUser?Promise.resolve():auth.signInAnonymously();
-  return db.ref(`feeds/${FEED_ID}/state/rose_sniper_v1`).set(obj);
-}
-function loadModel(){
-  return db.ref(`feeds/${FEED_ID}/state/rose_sniper_v1`).once("value").then(s=>{
-    const v=s.val(); if(!v) return;
-    if(v.ui){
-      $("autoSignal").checked = v.ui.autoSignal??true;
-      $("cooldown").value     = v.ui.cooldown??8;
-      if(v.ui.mode) $("modeSel").value = v.ui.mode;
-      if(typeof v.ui.b60Enable==="boolean") $("b60Enable").checked=v.ui.b60Enable;
-      if(typeof v.ui.b60Beep==="boolean") $("b60Beep").checked=v.ui.b60Beep;
-      if(typeof v.ui.b40Enable==="boolean") $("b40Enable").checked=v.ui.b40Enable;
-      if(typeof v.ui.b40Beep==="boolean") $("b40Beep").checked=v.ui.b40Beep;
-      if(typeof v.ui.fix1k==="boolean") $("fix1k").checked=v.ui.fix1k;
-    }
-  });
+  const raw = localStorage.getItem(PERSIST_KEY); if(!raw) return;
+  const p = JSON.parse(raw);
+  bets=p.bets||[]; pendings=p.pendings||[]; signalsCount=p.signalsCount||0; cooldownLeft=p.cooldownLeft||0;
+  session.active=p.session?.active||false;
+  $("cooldown").value = p.ui?.cooldown||5; $("modeSel").value = p.ui?.mode||"balanced";
+  Object.assign(b60, p.b60||{}); Object.assign(b90, p.b90||{});
 }
 
 /*** ===== UI ===== */
-on("connectBtn","click", ()=>connectFeed({resetSession:false}));
-on("disconnectBtn","click", ()=>disconnectFeed(false));
-on("startBtn","click", ()=>{ session.active=true; session.startTs=now(); signalsCount=0; cooldownLeft=0; bets=[]; pendings=[]; renderBets(); renderStats(); persistAll(); beeper(660,90,0.03); });
+on("connectBtn","click", connectFeed);
+on("startBtn","click", ()=>{ session.active=true; signalsCount=0; cooldownLeft=0; bets=[]; pendings=[]; renderBets(); renderStats(); persistAll(); beep(660,90,0.03); });
 on("stopBtn","click",  ()=>{ session.active=false; persistAll(); renderBets(); renderStats(); });
 on("resetBtn","click", ()=>{ localStorage.clear(); location.reload(); });
 on("hardResetBtn","click", ()=>{ localStorage.clear(); location.reload(); });
-on("saveModelBtn","click", ()=>{ saveModel(); });
-on("loadModelBtn","click", ()=>{ loadModel().then(()=>renderStats()); });
-on("autoBackup","change", e=>{ if(e.target.checked){ saveModel(); }});
-on("modeSel","change", ()=>{ persistAll(); saveModel(); });
-on("b60ResetStats","click", ()=>{ b60.count=0;b60.wins=0;b60.losses=0;b60.lastTxt="–"; persistAll(); b60Render(); });
-on("b40ResetStats","click", ()=>{ b40.count=0;b40.wins=0;b40.losses=0;b40.lastTxt="–"; persistAll(); b40Render(); });
+on("b60ResetStats","click", ()=>{ b60.count=b60.wins=b60.losses=0; b60.lastTxt="–"; persistAll(); b60Render(); });
+on("b90ResetStats","click", ()=>{ b90.count=b90.wins=b90.losses=0; b90.lastTxt="–"; persistAll(); b90Render(); });
 
 setInterval(()=>{ $("clockNow").textContent=new Date().toLocaleTimeString(); }, 1000);
 
-// Bootstrap persistencia
+// Bootstrap
 (function bootstrap(){
-  restoreAll(); renderBets(); b60Render(); b40Render();
-  setInterval(()=>{ persistAll(); }, 2000);
+  restoreAll(); renderBets(); b60Render(); b90Render(); connectFeed();
+  setInterval(persistAll, 2000);
 })();
 </script>
 </body>
