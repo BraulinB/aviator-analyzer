@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v8.2.0 (Modos + Señal siempre + Anti-silencio)</title>
+<title>Aviator Analyzer • Gocho v8.3.0 (B60 + Modos + Persistencia)</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5;
@@ -45,7 +45,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v8.2.0</span>
+  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v8.3.0</span>
     <span id="statusFeedback" class="muted" style="margin-left:8px"></span>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
   </h1>
@@ -113,6 +113,26 @@
     <div id="hourGrid" class="hour-grid"></div>
   </div>
 
+  <!-- ===== NUEVA SECCIÓN: B60 ===== -->
+  <div class="card">
+    <div class="row">
+      <h3 style="margin:0">Señal puntual cada 60 rondas (B60)</h3>
+      <label class="row"><input id="b60Enable" type="checkbox" checked> Activar B60</label>
+      <label class="row"><input id="b60Beep" type="checkbox" checked> Sonido B60</label>
+      <button id="b60ResetStats" class="btn">Reset B60</button>
+    </div>
+    <div class="kpi" style="margin-top:10px">
+      <div class="box">Bloque actual: <b id="b60InBlock">0/60</b></div>
+      <div class="box">Señales B60: <b id="b60Count">0</b></div>
+      <div class="box">Winrate B60: <b id="b60WR">0%</b></div>
+      <div class="box">Última B60: <b id="b60Last">–</b></div>
+    </div>
+    <div class="row" style="margin-top:8px;gap:8px">
+      <span id="b60Flag" class="flag info" style="display:none"></span>
+      <span id="b60Shot" class="flag ok" style="display:none">B60 emitida</span>
+    </div>
+  </div>
+
   <div class="card">
     <div class="row"><h3 style="margin:0">Apuestas / Señales registradas</h3></div>
     <table class="table" style="margin-top:8px">
@@ -160,7 +180,7 @@ const clamp=(v,min,max)=>v<min?min:(v>max?max:v);
 const now=()=>Date.now();
 const HHmm=ts=>new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
 
-/* Parser robusto (admite 2,416.11x / 2.416,11x / 2416.11x / etc.) */
+/* Parser robusto: 2,416.11x / 2.416,11x / 2416.11x / etc. */
 function parseCrashValue(raw){
   if(raw===null || raw===undefined) return null;
   if(typeof raw === "number"){ return (isFinite(raw)&&raw>=1)?raw:null; }
@@ -183,11 +203,19 @@ let baseCount=0;
 
 let pendings=[], bets=[], signalsCount=0, cooldownLeft=0;
 
-const PERSIST_BETS_KEY = "gocho_rose_bets_v2";
-const PERSIST_UI_KEY   = "gocho_rose_ui_plus";
+const PERSIST_BETS_KEY = "gocho_rose_bets_v3";
+const PERSIST_UI_KEY   = "gocho_rose_ui_b60";
 const PERSIST_MAX_BETS = 500;
 
 const session = { active:false, startTs:null };
+
+/* B60 state */
+const b60 = {
+  startIdx: 0,   // índice donde empieza el bloque actual
+  sent: false,   // ya se lanzó la B60 en este bloque
+  count: 0, wins: 0, losses: 0,
+  lastTxt: "–"
+};
 
 // Eventos Rosa por umbral
 const R10=[], R20=[], R50=[], R100=[];
@@ -198,7 +226,7 @@ let last10=null, last20=null, last50=null, last100=null;
 // Mapa horario 100x
 const hour100 = new Array(24).fill(0);
 
-// Anti-spam dinámico
+// Anti-spam dinámico (motor normal)
 let roseCD=0, roseLossStreak=0, roseAttemptsStartIdx=null, roseAttemptsCount=0;
 let lastRoseAttemptIdx = -1;
 
@@ -213,7 +241,22 @@ function beep(freq=880, ms=120, gain=0.03){
     o.start(); setTimeout(()=>{o.stop();}, ms);
   }catch(_){}
 }
+function beepRaw(freq=880, ms=120, gain=0.03){
+  // sin respetar el toggle global (para B60)
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type="sine"; o.frequency.value=freq; g.gain.value=gain; o.connect(g); g.connect(audioCtx.destination);
+    o.start(); setTimeout(()=>{o.stop();}, ms);
+  }catch(_){}
+}
 const beepPink=()=>{beep(520,160,0.035); setTimeout(()=>beep(980,80,0.03),110);};
+function beepB60(){
+  if(!$("b60Beep").checked) return;
+  beepRaw(360,140,0.035);
+  setTimeout(()=>beepRaw(540,120,0.035),150);
+  setTimeout(()=>beepRaw(860,90,0.030),300);
+}
 
 /*** ===== MÉTRICAS ===== */
 function movingAverage(arr,n){const L=Math.min(arr.length,n); if(!L) return NaN; let s=0; for(let i=arr.length-L;i<arr.length;i++) s+=arr[i]; return s/L;}
@@ -223,7 +266,7 @@ function maxBlueRun(n=12){const w=rounds.slice(-n); let maxR=0,cur=0; for(const 
 function hasPurple(n=12){return rounds.slice(-n).some(x=>x>=5 && x<10);}
 function median(a){ if(!a.length) return NaN; const s=[...a].sort((x,y)=>x-y); const m=Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2; }
 
-/*** ===== HAZARD (por umbral) ===== */
+/*** ===== HAZARD ===== */
 function hazardBuilder(listIntervals, since, lastN){
   if(listIntervals.length<3 || since==null) return {h:0, eta:null, q70:0, q75:0, q80:0, q90:0};
   const intervals = listIntervals.slice(-Math.max(3, lastN-1));
@@ -262,13 +305,13 @@ function modeParams(){
   return {thrBase:0.96, etaPre:2, etaPost:3, relax30:0.03, relax60:0.06, ctxFlex:0.5, policyBias:0};
 }
 
-/*** ===== CONTEXTO (ajustable por modo) ===== */
+/*** ===== CONTEXTO ===== */
 function contextOK(level="10", flex=0){
   const sl=slopeMA10(), b15=blueDensity(15), br=maxBlueRun(12);
   const purple = hasPurple(12);
   const brAdj = (x)=> x + Math.round(1*flex);
   const bAdj  = (x)=> x + 0.03*flex;
-  const slAdj = (x)=> x - 0.003*flex; // permite algo más de pendiente negativa
+  const slAdj = (x)=> x - 0.003*flex;
 
   if(level==="100") return (sl>=slAdj(0)) && (b15<=bAdj(0.42)) && (br<=brAdj(3)) && purple;
   if(level==="50")  return (sl>=slAdj(-0.001)) && (b15<=bAdj(0.45)) && (br<=brAdj(3));
@@ -276,7 +319,7 @@ function contextOK(level="10", flex=0){
   return (sl>=slAdj(-0.003)) && (b15<=bAdj(0.50)) && (br<=brAdj(4));
 }
 
-/*** ===== POLÍTICA DE INTENTOS ===== */
+/*** ===== POLÍTICA DE INTENTOS (motor normal) ===== */
 function attemptPolicy(CL, H10){
   let budget=2, cd=12, gap=4;
   const d=CL.c60;
@@ -288,28 +331,28 @@ function attemptPolicy(CL, H10){
   const hRel = H10.q80 ? (H10.h / H10.q80) : 0;
   if(hRel>=1.3){ budget=Math.max(budget,5); cd=Math.min(cd,6); }
 
-  // sesgo por modo
   const mp = modeParams();
   budget = Math.max(2, budget + (mp.policyBias||0));
-  cd     = Math.max(3, cd - (mp.policyBias<0?1:0)); // agresivo reduce 1
+  cd     = Math.max(3, cd - (mp.policyBias<0?1:0));
   gap    = Math.max(2, gap - (mp.policyBias<0?1:0));
 
   return {budgetMax:budget, cdBase:cd, minGap:gap};
 }
 
-/*** ===== Ventana por ETA (ajustada por modo) ===== */
-function etaWindowOK(H, since){
+/*** ===== Ventana por ETA ===== */
+function etaWindowOK(H, since, pre, post){
   const mp = modeParams();
+  const preN  = (pre==null? mp.etaPre : pre);
+  const postN = (post==null? mp.etaPost: post);
   if(!H || !H.eta) return true;
   const t = since ?? 0;
-  return (t >= (H.eta - mp.etaPre)) && (t <= (H.eta + mp.etaPost));
+  return (t >= (H.eta - preN)) && (t <= (H.eta + postN));
 }
 
-/*** ===== DISPARO DE ROSAS ===== */
+/*** ===== EMISIÓN ===== */
 function emitSignal(target, tag, reason, conf){
   if(!$("autoSignal").checked) return;
   const id="S"+now();
-  // Emite SIEMPRE (beep/flag). Solo loguea si la sesión está activa.
   if(session.active){
     pendings.push({id, target, stake:1, ts:now(), state:"pend", tag, reason, conf});
   }
@@ -317,11 +360,11 @@ function emitSignal(target, tag, reason, conf){
   const sig=$("lastSignal"); sig.style.display="inline-block";
   sig.textContent = `Señal ${tag}: ${target}x`;
   setTimeout(()=>sig.style.display="none", 3500);
-  beepPink();
-  renderBets(); persistBets();
+  if(tag==="B60_ROSE10") beepB60(); else beepPink();
+  renderBets(); persistAll();
 }
 
-/*** ===== ESTRATEGIA: SOLO ROSAS ===== */
+/*** ===== MOTOR NORMAL (Rosas) ===== */
 function roseEngine(){
   if(roseCD>0) roseCD--;
 
@@ -333,7 +376,6 @@ function roseEngine(){
   const H50 = hazardBuilder(I50, since50, 25);
   const H100= hazardBuilder(I100,since100,15);
 
-  // Pre-alerta visual con H10
   if(H10.h>=H10.q75){
     $("roseAlert").style.display="inline-block";
     $("roseAlert").textContent = H10.eta ? `Alerta Rosa (~${H10.eta} r)` : `Alerta Rosa próxima`;
@@ -344,11 +386,10 @@ function roseEngine(){
   const CL = cluster10();
   const policy = attemptPolicy(CL, H10);
 
-  const sl=slopeMA10(), b15=blueDensity(15), purple=hasPurple(12);
+  const sl=slopeMA10(), b15=blueDensity(15);
   const baseRel = (x,q)=> (q? Math.min(x/q, 2.2) : 0);
   const mp = modeParams();
 
-  // Puntuaciones base
   const S10 = baseRel(H10.h, H10.q80) * (contextOK("10", mp.ctxFlex)?1:0) + ((CL.score>=1.0 && H10.h<H10.q80)?0.20:0);
   const S20 = baseRel(H20.h, H20.q80) * (contextOK("20", mp.ctxFlex)?1:0);
   const S50 = baseRel(H50.h, H50.q80) * (contextOK("50", mp.ctxFlex)?1:0);
@@ -363,34 +404,88 @@ function roseEngine(){
 
   const best = cand[0];
 
-  // Umbral base por modo + ajuste por densidad reciente
   let scoreThr = mp.thrBase;
-  if(CL.c60<6) scoreThr += 0.06; else if(CL.c60<8) scoreThr += 0.03;
-
-  // Relajación automática si llevamos tiempo sin intentar
+  const CL60 = CL.c60;
+  if(CL60<6) scoreThr += 0.06; else if(CL60<8) scoreThr += 0.03;
   const noSigRounds = (lastRoseAttemptIdx<0)? 999 : (rounds.length - lastRoseAttemptIdx);
   if(noSigRounds>30) scoreThr -= mp.relax30;
   if(noSigRounds>60) scoreThr -= mp.relax60;
   scoreThr = Math.max(0.75, scoreThr);
 
-  // Controles dinámicos
-  const budgetOK = (roseAttemptsCount < policy.budgetMax);
-  const cdOK = (cooldownLeft<=0) && (roseCD<=0);
-  const gapOK = (lastRoseAttemptIdx<0) ? true : ((rounds.length - lastRoseAttemptIdx) >= policy.minGap);
-  const lossOK = (roseLossStreak<2);
-  const etaOK  = (best.tag==="ROSE10") ? (cand.find(c=>c.tag==="ROSE10")?.etaOK ?? true) : true;
+  const policyOK = (roseAttemptsCount < policy.budgetMax);
+  const cdOK     = (cooldownLeft<=0) && (roseCD<=0);
+  const gapOK    = (lastRoseAttemptIdx<0) ? true : ((rounds.length - lastRoseAttemptIdx) >= policy.minGap);
+  const lossOK   = (roseLossStreak<2);
+  const etaOK    = (best.tag==="ROSE10") ? (cand.find(c=>c.tag==="ROSE10")?.etaOK ?? true) : true;
 
-  // Regla de “catch-up” si la ventana ya debería haber llegado
   const gaps10 = I10.slice(-40).map(x=>x.gap);
   const medGap10 = median(gaps10)||12;
   const catchUp = (since10!=null && since10>=medGap10 && H10.h>=Math.max(H10.q70*0.95, 0.08) && contextOK("10", mp.ctxFlex));
 
-  if(budgetOK && cdOK && gapOK && lossOK && (etaOK || catchUp) && best.score>=scoreThr){
-    const reason = `${best.tag} • mode=${$("modeSel").value} • thr=${scoreThr.toFixed(2)} • hrel=${best.score.toFixed(2)} • sl=${sl.toFixed(3)} • blue15=${(100*b15).toFixed(0)}% • dens60=${CL.c60} • etaOK=${etaOK} • catchUp=${catchUp}`;
+  if(policyOK && cdOK && gapOK && lossOK && (etaOK || catchUp) && best.score>=scoreThr){
+    const reason = `${best.tag} • mode=${$("modeSel").value} • thr=${scoreThr.toFixed(2)} • hrel=${best.score.toFixed(2)} • sl=${sl.toFixed(3)} • blue15=${(100*b15).toFixed(0)}% • dens60=${CL60} • etaOK=${etaOK} • catchUp=${catchUp}`;
     emitSignal(best.k, best.tag, reason, Math.min(best.score/1.6,1));
     roseAttemptsCount++;
-    roseCD = policy.cdBase;                 // cooldown dinámico
-    lastRoseAttemptIdx = rounds.length;     // gap dinámico
+    roseCD = policy.cdBase;
+    lastRoseAttemptIdx = rounds.length;
+  }
+}
+
+/*** ===== MOTOR B60 (una señal por bloque de 60 rondas) ===== */
+function b60Render(){
+  const inBlock = Math.max(0, rounds.length - b60.startIdx);
+  $("b60InBlock").textContent = `${inBlock}/60`;
+  $("b60Count").textContent   = b60.count;
+  const wr = (b60.count? Math.round(100*b60.wins/b60.count):0);
+  $("b60WR").textContent      = `${wr}%`;
+  $("b60Last").textContent    = b60.lastTxt || "–";
+}
+function b60Engine(){
+  if(!$("b60Enable").checked) return;
+  const inBlock = Math.max(0, rounds.length - b60.startIdx);
+
+  // Cierre/rotación de bloque
+  if(inBlock>=60){
+    b60.startIdx = rounds.length;
+    b60.sent = false;
+    $("b60Flag").style.display="none";
+  }
+
+  // Si ya se lanzó en este bloque, nada más que mostrar
+  if(b60.sent) return;
+
+  // Señal: buscar ventana con H10 + ETA
+  const H10 = hazardBuilder(I10, since10, 60);
+  const CL  = cluster10();
+  const gaps10 = I10.slice(-40).map(x=>x.gap);
+  const medGap10 = median(gaps10)||12;
+
+  const scoreRel = H10.q80 ? (H10.h / H10.q80) : 0;
+  const ctxOK = contextOK("10", 0.5);
+
+  // Mostrar ETA sugerida en la banderita info
+  if(H10.eta){
+    const etaText = `B60 ventana ~${H10.eta} r (desde ahora:${since10??0})`;
+    const el=$("b60Flag"); el.style.display="inline-block"; el.textContent=etaText;
+  }else{
+    $("b60Flag").style.display="none";
+  }
+
+  // Reglas de disparo B60 (independientes del motor normal)
+  const etaOK   = etaWindowOK(H10, since10, 2, 3); // ventana propia B60
+  const strong  = (scoreRel>=1.0) && ctxOK;        // fuerte
+  const medium  = (scoreRel>=0.9) && ctxOK;        // medio
+  const latePush= (inBlock>=50) && ( (H10.h>=H10.q70 && ctxOK) || (since10!=null && since10>=medGap10) );
+
+  if( (etaOK && strong) || (etaOK && medium) || latePush ){
+    const reason = `B60_ROSE10 • rel=${scoreRel.toFixed(2)} • eta=${H10.eta||"?"} • inBlock=${inBlock} • medGap10=${medGap10}`;
+    emitSignal(10, "B60_ROSE10", reason, Math.min(scoreRel/1.6,1));
+    b60.sent = true;
+    b60.count++;
+    b60.lastTxt = `${HHmm(Date.now())} • inBlock ${inBlock}`;
+    const s=$("b60Shot"); s.style.display="inline-block"; setTimeout(()=>s.style.display="none", 3500);
+    $("b60Flag").style.display="none";
+    persistAll();
   }
 }
 
@@ -406,6 +501,8 @@ function renderStats(){
 
   const cont=$("lastRounds"); cont.innerHTML="";
   lastShown.forEach(x=>{ const d=document.createElement("span"); d.className="pill neu"; d.textContent=x.toFixed(2)+"x"; cont.appendChild(d); });
+
+  b60Render();
 }
 function renderBets(){
   const tb=$("betsTbody"); tb.innerHTML="";
@@ -459,7 +556,7 @@ function handleRosesOnValue(v, ts){
     }else{
       if(list===R10){ since10 = (since10==null?1:since10+1); }
       if(list===R20){ since20 = (since20==null?1:since20+1); }
-      if(list===R50){ since50 = (since50==null?1:since50+1); }
+      if(list===R50){ since50 = (since50==null?1:1+ (since50??0)); }
       if(list===R100){ since100= (since100==null?1:since100+1); }
     }
   }
@@ -478,18 +575,19 @@ function onNewCrash(v, ts, isBase=false){
   rounds.push(v); roundsMeta.push({v,ts}); if(rounds.length>2500){ rounds.shift(); roundsMeta.shift(); }
   if(!isBase && cooldownLeft>0) cooldownLeft--;
 
-  if(!isBase && pendings.length){
-    // Solo liquida si la sesión está activa; si no, ignora pendientes (no habrá)
-    if(session.active){
-      const bet=pendings.shift(); const win=(v>bet.target);
-      bet.crash=v; bet.state=win?"win":"lose"; bet.pl=win?"+1":"−1";
-      if((bet.tag||"").startsWith("ROSE")){ if(win) roseLossStreak=0; else roseLossStreak++; }
-      bets.push(bet);
-      if(bets.length>PERSIST_MAX_BETS) bets.splice(0, bets.length-PERSIST_MAX_BETS);
-      renderBets(); persistBets();
-    }else{
-      pendings=[]; // seguridad
+  if(!isBase && pendings.length && session.active){
+    const bet=pendings.shift(); const win=(v>bet.target);
+    bet.crash=v; bet.state=win?"win":"lose"; bet.pl=win?"+1":"−1";
+    if((bet.tag||"").startsWith("ROSE")){ if(win) roseLossStreak=0; else roseLossStreak++; }
+    if((bet.tag||"").startsWith("B60")){
+      if(win) b60.wins++; else b60.losses++;
+      b60.lastTxt = `${win?"GANADA":"PERDIDA"} • ${v.toFixed(2)}x • ${HHmm(ts)}`;
     }
+    bets.push(bet);
+    if(bets.length>PERSIST_MAX_BETS) bets.splice(0, bets.length-PERSIST_MAX_BETS);
+    renderBets(); persistAll();
+  }else if(!session.active){
+    pendings=[]; // seguridad si estuvieran
   }
 
   lastShown.unshift(v); if(lastShown.length>60) lastShown.pop();
@@ -497,7 +595,11 @@ function onNewCrash(v, ts, isBase=false){
   handleRosesOnValue(v, ts);
   renderStats();
 
-  if(!isBase){ roseEngine(); }
+  if(!isBase){
+    roseEngine();    // motor normal
+    b60Engine();     // motor B60
+    b60Render();
+  }
 }
 
 /*** ===== CONEXIÓN FEED ===== */
@@ -521,13 +623,17 @@ async function connectFeed(opts={resetSession:false}){
 
   const data=snap.val(), keys=Object.keys(data).sort(); baseCount=keys.length;
 
-  // Reset buffers de mercado (NO del historial salvo que opts.resetSession)
+  // Reset buffers de mercado
   rounds=[]; roundsMeta=[]; lastShown=[];
   [R10,R20,R50,R100].forEach(a=>a.length=0); [I10,I20,I50,I100].forEach(a=>a.length=0);
   since10=since20=since50=since100=null; last10=last20=last50=last100=null;
   hour100.fill(0); roseCD=0; roseLossStreak=0; roseAttemptsStartIdx=null; roseAttemptsCount=0; lastRoseAttemptIdx=-1;
 
-  if(opts.resetSession){ pendings=[]; bets=[]; signalsCount=0; cooldownLeft=0; persistBets(); }
+  // B60: iniciar bloque nuevo desde aquí (no se borran stats salvo reset)
+  b60.startIdx = 0; b60.sent=false;
+  b60.startIdx = 0;
+
+  if(opts.resetSession){ pendings=[]; bets=[]; signalsCount=0; cooldownLeft=0; persistAll(); }
 
   keys.forEach(k=>{
     const node=data[k]; const v=processValue(node?.v ?? node); const ts=Number(node?.ts ?? k) || now();
@@ -537,6 +643,11 @@ async function connectFeed(opts={resetSession:false}){
   lastSeenKey=keys[keys.length-1]||null;
   lastSeenTs = (()=>{ const n=data[lastSeenKey]; const t=Number(n?.ts ?? lastSeenKey); return isFinite(t)?t:now(); })();
   lastActivityTs = now();
+
+  // Al terminar la carga base, arrancar bloque B60 desde el punto actual
+  b60.startIdx = rounds.length;
+  b60.sent = false;
+  b60Render();
 
   loadingBase=false;
 
@@ -570,7 +681,7 @@ async function connectFeed(opts={resetSession:false}){
   }, 30000);
 
   connected=true; feedbackEl&&(feedbackEl.textContent="Conectado.");
-  renderStats(); renderRoseHistory(); renderHourGrid(); renderBets();
+  renderStats(); renderRoseHistory(); renderHourGrid(); renderBets(); b60Render();
 }
 
 function disconnectFeed(silent=false){
@@ -583,7 +694,13 @@ function disconnectFeed(silent=false){
 
 /*** ===== BACKUP / RESTORE ===== */
 function saveModel(){
-  const obj={ui:{autoSignal:$("autoSignal").checked, cooldown:Number($("cooldown").value)||8, mode: $("modeSel").value}};
+  const obj={ui:{
+    autoSignal:$("autoSignal").checked, 
+    cooldown:Number($("cooldown").value)||8, 
+    mode:$("modeSel").value,
+    b60Enable:$("b60Enable").checked,
+    b60Beep:$("b60Beep").checked
+  }};
   auth.currentUser?Promise.resolve():auth.signInAnonymously();
   return db.ref(`feeds/${FEED_ID}/state/rose_sniper_v1`).set(obj);
 }
@@ -594,18 +711,23 @@ function loadModel(){
       $("autoSignal").checked = v.ui.autoSignal??true; 
       $("cooldown").value = v.ui.cooldown??8; 
       if(v.ui.mode) $("modeSel").value = v.ui.mode;
+      if(typeof v.ui.b60Enable==="boolean") $("b60Enable").checked=v.ui.b60Enable;
+      if(typeof v.ui.b60Beep==="boolean") $("b60Beep").checked=v.ui.b60Beep;
     }
   });
 }
 
 /*** ===== PERSISTENCIA LOCAL ===== */
-function persistBets(){
+function persistAll(){
   try{
-    const payload = {bets, pendings, signalsCount, cooldownLeft, session, mode:$("modeSel").value};
+    const payload = {bets, pendings, signalsCount, cooldownLeft, session, mode:$("modeSel").value,
+      b60:{count:b60.count,wins:b60.wins,losses:b60.losses,lastTxt:b60.lastTxt,startIdx:b60.startIdx,sent:b60.sent},
+      ui:{autoSignal:$("autoSignal").checked,cooldown:Number($("cooldown").value)||8,mode:$("modeSel").value,b60Enable:$("b60Enable").checked,b60Beep:$("b60Beep").checked}
+    };
     localStorage.setItem(PERSIST_BETS_KEY, JSON.stringify(payload));
   }catch(_){}
 }
-function restoreBets(){
+function restoreAll(){
   try{
     const raw = localStorage.getItem(PERSIST_BETS_KEY);
     if(!raw) return;
@@ -616,6 +738,17 @@ function restoreBets(){
     if(typeof p.cooldownLeft==="number") cooldownLeft=p.cooldownLeft;
     if(p.session && typeof p.session.active==="boolean"){ session.active = p.session.active; session.startTs = p.session.startTs||null; }
     if(p.mode && $("modeSel")) $("modeSel").value = p.mode;
+    if(p.b60){
+      b60.count=p.b60.count||0; b60.wins=p.b60.wins||0; b60.losses=p.b60.losses||0; b60.lastTxt=p.b60.lastTxt||"–";
+      b60.startIdx=p.b60.startIdx||rounds.length; b60.sent=!!p.b60.sent;
+    }
+    if(p.ui){
+      if(typeof p.ui.autoSignal==="boolean") $("autoSignal").checked=p.ui.autoSignal;
+      if(p.ui.cooldown) $("cooldown").value=p.ui.cooldown;
+      if(p.ui.mode) $("modeSel").value=p.ui.mode;
+      if(typeof p.ui.b60Enable==="boolean") $("b60Enable").checked=p.ui.b60Enable;
+      if(typeof p.ui.b60Beep==="boolean") $("b60Beep").checked=p.ui.b60Beep;
+    }
   }catch(_){}
 }
 
@@ -625,10 +758,10 @@ on("disconnectBtn","click", ()=>disconnectFeed(false));
 on("startBtn","click", ()=>{ 
   session.active=true; session.startTs=now();
   signalsCount=0; cooldownLeft=0; bets=[]; pendings=[]; 
-  renderBets(); renderStats(); persistBets(); beep(660,90,0.03); 
+  renderBets(); renderStats(); persistAll(); beep(660,90,0.03); 
 });
 on("stopBtn","click",  ()=>{ 
-  session.active=false; persistBets(); 
+  session.active=false; persistAll(); 
   renderBets(); renderStats(); 
 });
 on("resetBtn","click", ()=>{ localStorage.clear(); location.reload(); });
@@ -636,23 +769,26 @@ on("hardResetBtn","click", ()=>{ localStorage.clear(); location.reload(); });
 on("saveModelBtn","click", ()=>{ saveModel(); });
 on("loadModelBtn","click", ()=>{ loadModel().then(()=>renderStats()); });
 on("autoBackup","change", e=>{ if(e.target.checked){ saveModel(); }});
-on("modeSel","change", ()=>{ persistBets(); saveModel(); });
+on("modeSel","change", ()=>{ persistAll(); saveModel(); });
+on("b60ResetStats","click", ()=>{ b60.count=0; b60.wins=0; b60.losses=0; b60.lastTxt="–"; persistAll(); b60Render(); });
 
 setInterval(()=>{ $("clockNow").textContent=new Date().toLocaleTimeString(); }, 1000);
 
-// Bootstrap UI + historial
+// Bootstrap
 (function bootstrap(){
   try{ const st=JSON.parse(localStorage.getItem(PERSIST_UI_KEY)||"{}");
     if(typeof st.autoSignal==="boolean") $("autoSignal").checked=st.autoSignal;
     if(st.cooldown) $("cooldown").value=st.cooldown;
     if(st.mode) $("modeSel").value=st.mode;
+    if(typeof st.b60Enable==="boolean") $("b60Enable").checked=st.b60Enable;
+    if(typeof st.b60Beep==="boolean") $("b60Beep").checked=st.b60Beep;
   }catch(_){}
-  restoreBets(); renderBets();
+  restoreAll(); renderBets(); b60Render();
 
   setInterval(()=>{ 
-    const st={autoSignal:$("autoSignal").checked, cooldown:Number($("cooldown").value)||8, mode:$("modeSel").value}; 
+    const st={autoSignal:$("autoSignal").checked, cooldown:Number($("cooldown").value)||8, mode:$("modeSel").value, b60Enable:$("b60Enable").checked, b60Beep:$("b60Beep").checked}; 
     localStorage.setItem(PERSIST_UI_KEY, JSON.stringify(st)); 
-    persistBets();
+    persistAll();
   }, 2000);
 })();
 </script>
