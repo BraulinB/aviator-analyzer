@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v9.1 (Conecta & Programadas)</title>
+<title>Aviator Analyzer • Gocho v9.2 (Conecta & Programadas + S60‑5x)</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5;
@@ -33,7 +33,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v9.1</span>
+  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v9.2</span>
     <span id="statusFeedback" class="muted" style="margin-left:8px"></span>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
   </h1>
@@ -72,6 +72,15 @@
         <label><input id="p60_3_beep" type="checkbox" checked> Sonido</label>
         <button id="test_3" class="btn">Probar alerta 3x</button>
         <span id="flag_3" class="flag info" style="display:none;margin-left:6px"></span>
+      </div>
+
+      <div class="box">
+        <b>Bloque 60 • 5x</b><br>
+        <span>Progreso: <b id="p60_5_prog">0/60</b> • Señales: <b id="p60_5_cnt">0</b> • WR: <b id="p60_5_wr">0%</b></span><br>
+        <label><input id="p60_5_on" type="checkbox" checked> Activar</label>
+        <label><input id="p60_5_beep" type="checkbox" checked> Sonido</label>
+        <button id="test_5" class="btn">Probar alerta 5x</button>
+        <span id="flag_5" class="flag info" style="display:none;margin-left:6px"></span>
       </div>
 
       <div class="box">
@@ -154,7 +163,7 @@ const HHmm = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2
 function movingAverage(arr,n){const L=Math.min(arr.length,n); if(!L) return NaN; let s=0; for(let i=arr.length-L;i<arr.length;i++) s+=arr[i]; return s/L;}
 function logistic(x,k=7,x0=1){return 1/(1+Math.exp(-k*(x-x0)));}
 
-/* Parser ultra-robusto con rescate de ≥1000x (si capturador recorta el 1) */
+/* Parser ultra-robusto con rescate de ≥1000x */
 function parseCrashValue(raw){
   if(raw===null||raw===undefined) return null;
   if(typeof raw==="number") return (raw>=1 && isFinite(raw))? raw : null;
@@ -190,12 +199,13 @@ let baseCount=0;
 
 let pendings=[], bets=[], signalsCount=0;
 
-const PERSIST_KEY="gocho_v91_state";
+const PERSIST_KEY="gocho_v92_state";
 const session = {active:false, startTs:null};
 
 /* Eventos por umbral */
 const R17=[], I17=[]; let since17=null;
 const R3=[],  I3=[];  let since3=null;
+const R5=[],  I5=[];  let since5=null;
 const R10=[], I10=[]; let since10=null;
 const R20=[], I20=[]; let since20=null;
 const R30=[], I30=[]; let since30=null;
@@ -206,6 +216,7 @@ let last1000=null;
 
 /* Bloques */
 const B60_3 ={startIdx:0,sent:false,count:0,wins:0,losses:0};
+const B60_5 ={startIdx:0,sent:false,count:0,wins:0,losses:0};
 const B60_17={startIdx:0,used:0,wins:0,losses:0,lastShotIdx:-999}; // 5 por bloque
 const B90_10={startIdx:0,sent:false,count:0,wins:0,losses:0};
 
@@ -225,6 +236,7 @@ function beeper(freq=880, ms=120, gain=0.03){
 }
 const beepOP = ()=>{beeper(600,120,0.035); setTimeout(()=>beeper(950,80,0.03),140);};                  // oportunista
 const beep3  = ()=>{ if($("p60_3_beep").checked){ beeper(420,130,0.035); setTimeout(()=>beeper(760,110,0.03),150);} };
+const beep5  = ()=>{ if($("p60_5_beep").checked){ beeper(580,120,0.035); setTimeout(()=>beeper(820,100,0.03),150);} };
 const beep17 = ()=>{ if($("p60_17_beep").checked){ beeper(500,110,0.035); setTimeout(()=>beeper(680,110,0.03),140);} };
 const beep10 = ()=>{ if($("p90_10_beep").checked){ beeper(360,120,0.035); setTimeout(()=>beeper(720,120,0.03),140); setTimeout(()=>beeper(980,90,0.03),300);} };
 const beep100= ()=>{beeper(300,160,0.04); setTimeout(()=>beeper(1100,120,0.035),180);};
@@ -257,7 +269,8 @@ function contextOK(level){
   if(level>=20)  return (sl>=-0.003) && (b15<=0.49) && (br<=4);
   if(level>=10)  return (sl>=-0.004) && (b15<=0.52) && (br<=5);
   if(level>=5)   return (sl>=-0.005) && (b15<=0.55) && (br<=5);
-  return (sl>=-0.006) && (b15<=0.58) && (br<=6);
+  if(level>=3)   return (sl>=-0.006) && (b15<=0.58) && (br<=6);
+  return (sl>=-0.006) && (b15<=0.60) && (br<=6);
 }
 function etaOK(H, since, pre=2, post=3){
   if(!H || !H.eta) return true; const t=since??0; return (t>=(H.eta-pre))&&(t<=(H.eta+post));
@@ -271,6 +284,7 @@ function emitSignal(target, tag, reason, conf){
   signalsCount++;
   const flag=$("lastSignal"); flag.style.display="inline-block"; flag.textContent=`Señal ${tag}: ${target}x`; setTimeout(()=>flag.style.display="none",3500);
   if(tag.startsWith("S60_3x")) beep3();
+  else if(tag.startsWith("S60_5x")) beep5();
   else if(tag.startsWith("S60_17")) beep17();
   else if(tag.startsWith("S90_")) beep10();
   else beepOP();
@@ -297,7 +311,27 @@ function engineB60_3(){
     B60_3.sent=true; B60_3.count++;
   }
 }
-// 2) Bloque 60: 5 señales objetivo ≥1.70x (mín. 8 rondas entre tiros)
+// 2) Bloque 60: 1 señal objetivo 5x (nuevo)
+function engineB60_5(){
+  if(!$("p60_5_on").checked) return;
+  const inBlock = Math.max(0, rounds.length - B60_5.startIdx);
+  $("p60_5_prog").textContent = `${inBlock}/60`;
+  if(inBlock>=60){ B60_5.startIdx=rounds.length; B60_5.sent=false; }
+  if(B60_5.sent) return;
+
+  const H5=hazard(I5, since5, 80);
+  if(H5.eta){ const el=$("flag_5"); el.style.display="inline-block"; el.textContent=`Ventana 5x ~${H5.eta} r`; setTimeout(()=>el.style.display="none",3800); }
+  const rel=H5.q80? (H5.h/H5.q80):0;
+  const okCtx=contextOK(5);
+  const nearEnd = inBlock>=52;
+  const medGap5 = median(I5.slice(-60).map(x=>x.gap))||10;
+  const good=(etaOK(H5,since5,2,4) && rel>=0.94 && okCtx) || (nearEnd && ((H5.h>=H5.q70 && okCtx) || (since5!=null && since5>=medGap5)));
+  if(good){
+    emitSignal(5,"S60_5x",`S60_5x • rel=${rel.toFixed(2)} • inBlock=${inBlock}`, Math.min(rel/1.5,1));
+    B60_5.sent=true; B60_5.count++;
+  }
+}
+// 3) Bloque 60: 5 señales objetivo ≥1.70x (mín. 8 rondas entre tiros)
 function engineB60_17(){
   if(!$("p60_17_on").checked) return;
   const inBlock = Math.max(0, rounds.length - B60_17.startIdx);
@@ -309,17 +343,17 @@ function engineB60_17(){
   const H17=hazard(I17, since17, 120);
   if(H17.eta){ const el=$("flag_17"); el.style.display="inline-block"; el.textContent=`Ventana 1.70x ~${H17.eta} r`; setTimeout(()=>el.style.display="none",3500); }
   const rel=H17.q80? (H17.h/H17.q80):0;
-  const okCtx=contextOK(2);  // contexto laxo para 1.7
-  const gapOK = (rounds.length - B60_17.lastShotIdx) >= 8; // separación
-  const nearEnd = inBlock>=54; // si no hemos tirado lo suficiente
-  const needPush = (B60_17.used < Math.floor(inBlock/12)); // ritmo aprox 5/60 => 1 cada 12
+  const okCtx=contextOK(2);
+  const gapOK = (rounds.length - B60_17.lastShotIdx) >= 8;
+  const nearEnd = inBlock>=54;
+  const needPush = (B60_17.used < Math.floor(inBlock/12)); // ritmo 5 por 60
   const good=(gapOK && okCtx && ( (etaOK(H17,since17,2,3) && rel>=0.90) || (nearEnd && (H17.h>=H17.q70 || needPush)) ));
   if(good){
     emitSignal(1.70,"S60_17",`S60_17 • rel=${rel.toFixed(2)} • inBlock=${inBlock}`, Math.min(rel/1.5,1));
     B60_17.used++; B60_17.lastShotIdx=rounds.length;
   }
 }
-// 3) Bloque 90: 1 señal ≥10x (posible elevación a 20x/30x)
+// 4) Bloque 90: 1 señal ≥10x (posible 20x/30x)
 function engineB90_10(){
   if(!$("p90_10_on").checked) return;
   const inBlock = Math.max(0, rounds.length - B90_10.startIdx);
@@ -333,7 +367,6 @@ function engineB90_10(){
   const okCtx=contextOK(10);
   const nearEnd=inBlock>=80;
 
-  // posibilidad de elevar objetivo
   const H20=hazard(I20,since20,40), rel20=H20.q80?(H20.h/H20.q80):0;
   const H30=hazard(I30,since30,30), rel30=H30.q80?(H30.h/H30.q80):0;
   let target=10, tag="S90_10x";
@@ -384,13 +417,16 @@ function renderStats(){
   $("rose1000Lbl").textContent=R1000.length;
   $("last1000Lbl").textContent=last1000?(`${last1000.v.toFixed(2)}x • ${HHmm(last1000.ts)}`):"–";
   $("p60_3_cnt").textContent=B60_3.count;
+  $("p60_5_cnt").textContent=B60_5.count;
   $("p90_10_cnt").textContent=B90_10.count;
 
   // WRs
   const wr3  = (B60_3.wins+B60_3.losses)>0 ? Math.round(100*B60_3.wins/(B60_3.wins+B60_3.losses)) : 0;
+  const wr5  = (B60_5.wins+B60_5.losses)>0 ? Math.round(100*B60_5.wins/(B60_5.wins+B60_5.losses)) : 0;
   const wr17 = (B60_17.wins+B60_17.losses)>0 ? Math.round(100*B60_17.wins/(B60_17.wins+B60_17.losses)) : 0;
   const wr10 = (B90_10.wins+B90_10.losses)>0 ? Math.round(100*B90_10.wins/(B90_10.wins+B90_10.losses)) : 0;
   $("p60_3_wr").textContent = wr3+"%";
+  $("p60_5_wr").textContent = wr5+"%";
   $("p60_17_wr").textContent= wr17+"%";
   $("p90_10_wr").textContent= wr10+"%";
 
@@ -426,7 +462,8 @@ function pushEvt(v,ts,list,listInt,thr,label){
     if(list.length>=2){ const prev=list[list.length-2]; listInt.push({from:prev,to:ev,gap:ev.idx-prev.idx}); if(listInt.length>240) listInt.shift(); }
     if(label===17) since17=0;
     if(label===3)  since3=0;
-    if(label===10) { since10=0; }
+    if(label===5)  since5=0;
+    if(label===10) since10=0;
     if(label===20) since20=0;
     if(label===30) since30=0;
     if(label===50) since50=0;
@@ -435,6 +472,7 @@ function pushEvt(v,ts,list,listInt,thr,label){
   }else{
     if(label===17) since17=(since17==null?1:since17+1);
     if(label===3)  since3 =(since3 ==null?1:since3 +1);
+    if(label===5)  since5 =(since5 ==null?1:since5 +1);
     if(label===10) since10=(since10==null?1:since10+1);
     if(label===20) since20=(since20==null?1:since20+1);
     if(label===30) since30=(since30==null?1:since30+1);
@@ -450,6 +488,7 @@ function handleOnValue(v,ts){
   pushEvt(v,ts,R30, I30, 30, 30);
   pushEvt(v,ts,R20, I20, 20, 20);
   pushEvt(v,ts,R10, I10, 10, 10);
+  pushEvt(v,ts,R5,  I5,  5,  5);
   pushEvt(v,ts,R3,  I3,  3,  3);
   pushEvt(v,ts,R17, I17, 1.7,17);
 
@@ -468,6 +507,7 @@ function onNewCrash(v, ts, base=false){
     const bet=pendings.shift(); const win=(v>bet.target);
     bet.crash=v; bet.state=win?"win":"lose"; bet.pl=win?"+1":"−1";
     if((bet.tag||"").startsWith("S60_3x")) { if(win) B60_3.wins++; else B60_3.losses++; }
+    if((bet.tag||"").startsWith("S60_5x")) { if(win) B60_5.wins++; else B60_5.losses++; }
     if((bet.tag||"").startsWith("S60_17")){ if(win) B60_17.wins++; else B60_17.losses++; }
     if((bet.tag||"").startsWith("S90_"))  { if(win) B90_10.wins++; else B90_10.losses++; }
     bets.push(bet); if(bets.length>600) bets.splice(0,bets.length-600);
@@ -479,6 +519,7 @@ function onNewCrash(v, ts, base=false){
 
   if(!base){
     engineB60_3();
+    engineB60_5();
     engineB60_17();
     engineB90_10();
     engineOpportunistic();
@@ -510,14 +551,15 @@ async function connectFeed(){
 
   // Reset buffers (no borro historial de señales)
   rounds=[]; roundsMeta=[]; lastShown=[];
-  [R17,R3,R10,R20,R30,R50,R100,R1000].forEach(a=>a.length=0);
-  [I17,I3,I10,I20,I30,I50,I100,I1000].forEach(a=>a.length=0);
-  since17=since3=since10=since20=since30=since50=since100=since1000=null;
+  [R17,R3,R5,R10,R20,R30,R50,R100,R1000].forEach(a=>a.length=0);
+  [I17,I3,I5,I10,I20,I30,I50,I100,I1000].forEach(a=>a.length=0);
+  since17=since3=since5=since10=since20=since30=since50=since100=since1000=null;
   last1000=null; baseCount = Object.keys(snap.val()).length;
   coolDown=0; lastEmitRound=-1;
 
   // Bloques desde final del historial
   B60_3.startIdx=0; B60_3.sent=false;
+  B60_5.startIdx=0; B60_5.sent=false;
   B60_17.startIdx=0; B60_17.used=0; B60_17.lastShotIdx=-999;
   B90_10.startIdx=0; B90_10.sent=false;
 
@@ -527,6 +569,7 @@ async function connectFeed(){
   // arranque de bloques
   const cur=rounds.length;
   B60_3.startIdx=cur; B60_3.sent=false;
+  B60_5.startIdx=cur; B60_5.sent=false;
   B60_17.startIdx=cur; B60_17.used=0; B60_17.lastShotIdx=-999;
   B90_10.startIdx=cur; B90_10.sent=false;
   renderStats();
@@ -558,7 +601,7 @@ function disconnectFeed(silent=false){
 function persistLocal(){
   try{
     localStorage.setItem(PERSIST_KEY, JSON.stringify({
-      bets, pendings, signalsCount, session, B60_3, B60_17, B90_10
+      bets, pendings, signalsCount, session, B60_3, B60_5, B60_17, B90_10
     }));
   }catch(_){}
 }
@@ -571,6 +614,7 @@ function restoreLocal(){
     if(typeof p.signalsCount==="number") signalsCount=p.signalsCount;
     if(p.session && typeof p.session.active==="boolean"){ session.active=p.session.active; session.startTs=p.session.startTs||null; }
     if(p.B60_3)  Object.assign(B60_3 ,p.B60_3);
+    if(p.B60_5)  Object.assign(B60_5 ,p.B60_5);
     if(p.B60_17) Object.assign(B60_17,p.B60_17);
     if(p.B90_10) Object.assign(B90_10,p.B90_10);
   }catch(_){}
@@ -582,6 +626,7 @@ $("disconnectBtn").addEventListener("click", ()=>disconnectFeed(false));
 $("startBtn").addEventListener("click", ()=>{ session.active=true; session.startTs=now(); bets=[]; pendings=[]; signalsCount=0; renderBets(); renderStats(); persistLocal(); beeper(660,90,0.03); });
 $("pauseBtn").addEventListener("click",  ()=>{ session.active=false; persistLocal(); });
 $("test_3").addEventListener("click", ()=>beep3());
+$("test_5").addEventListener("click", ()=>beep5());
 $("test_17").addEventListener("click",()=>beep17());
 $("test_10").addEventListener("click",()=>beep10());
 setInterval(()=>{ $("clockNow").textContent=new Date().toLocaleTimeString(); }, 1000);
