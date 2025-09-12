@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v9.3 (Modo Calidad)</title>
+<title>Aviator Analyzer • Gocho v9.4 (Anti‑Chase)</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5;
@@ -33,7 +33,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v9.3</span>
+  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v9.4</span>
     <span id="statusFeedback" class="muted" style="margin-left:8px"></span>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
   </h1>
@@ -47,7 +47,6 @@
       <label class="row"><input id="beepToggle" type="checkbox" checked> Beep</label>
       <label class="row"><input id="fix1k" type="checkbox" checked> Auto‑1k</label>
 
-      <!-- NUEVO: Modo Calidad + Filtro horario + Máx 1.70 -->
       <label class="row" style="margin-left:10px"><input id="qualityMode" type="checkbox" checked> Calidad ON</label>
       <label class="row"><input id="hourFilter" type="checkbox" checked> Filtro horario (Top‑hrs)</label>
       <span class="muted">Top‑N:</span><input id="hourTopN" type="number" min="1" max="8" value="4" style="width:56px"/>
@@ -206,7 +205,7 @@ let baseCount=0;
 
 let pendings=[], bets=[], signalsCount=0;
 
-const PERSIST_KEY="gocho_v93_state";
+const PERSIST_KEY="gocho_v94_state";
 const session = {active:false, startTs:null};
 
 /* Eventos por umbral */
@@ -227,11 +226,12 @@ const hour100 = new Array(24).fill(0);
 /* Bloques */
 const B60_3 ={startIdx:0,sent:false,count:0,wins:0,losses:0};
 const B60_5 ={startIdx:0,sent:false,count:0,wins:0,losses:0};
-const B60_17={startIdx:0,used:0,wins:0,losses:0,lastShotIdx:-999}; // hasta máx configurable
+const B60_17={startIdx:0,used:0,wins:0,losses:0,lastShotIdx:-999};
 const B90_10={startIdx:0,sent:false,count:0,wins:0,losses:0};
 
-/* Oportunista */
+/* Oportunista + Anti‑chase */
 let lastEmitRound=-1, coolDown=0;
+let ROSE_LOCK=0; // bloquea señales >=10x tras clúster de rosas
 
 /* ==================== AUDIO ==================== */
 let audioCtx=null;
@@ -244,7 +244,7 @@ function beeper(freq=880, ms=120, gain=0.03){
     o.start(); setTimeout(()=>o.stop(), ms);
   }catch(_){}
 }
-const beepOP = ()=>{beeper(600,120,0.035); setTimeout(()=>beeper(950,80,0.03),140);};                  // oportunista
+const beepOP = ()=>{beeper(600,120,0.035); setTimeout(()=>beeper(950,80,0.03),140);};
 const beep3  = ()=>{ if($("p60_3_beep").checked){ beeper(420,130,0.035); setTimeout(()=>beeper(760,110,0.03),150);} };
 const beep5  = ()=>{ if($("p60_5_beep").checked){ beeper(580,120,0.035); setTimeout(()=>beeper(820,100,0.03),150);} };
 const beep17 = ()=>{ if($("p60_17_beep").checked){ beeper(500,110,0.035); setTimeout(()=>beeper(680,110,0.03),140);} };
@@ -270,6 +270,15 @@ function hazard(listIntervals, since, lastN){
   for(let t=tNext;t<tNext+20;t++){ if(haz[t]>q75 && haz[t]>best){best=haz[t]; eta=t-(since??0);} }
   return {h:haz[tNext]||0, eta, q70,q75,q80,q90};
 }
+function gapStats(listIntervals,lastN=60){
+  const ints=listIntervals.slice(-Math.max(3,lastN)).map(x=>x.gap);
+  if(!ints.length) return {q25:NaN,q50:NaN,q75:NaN,mean:NaN};
+  const s=[...ints].sort((a,b)=>a-b);
+  const q=p=>s[Math.floor(p*(s.length-1))];
+  const mean=s.reduce((a,b)=>a+b,0)/s.length;
+  return {q25:q(0.25), q50:q(0.5), q75:q(0.75), mean};
+}
+function enoughSamples(list, minN){ return list && list.length >= (minN||5); }
 function getCtx(){
   const sl = (rounds.length<11)?0:(movingAverage(rounds,10)-movingAverage(rounds.slice(0,-1),10));
   const b15=blueDensity(15), br=maxBlueRun(16), purple=hasPurple(12);
@@ -290,21 +299,35 @@ function etaOK(H, since, pre=2, post=3){
   if(!H || !H.eta) return true; const t=since??0; return (t>=(H.eta-pre))&&(t<=(H.eta+post));
 }
 
-/* Calidad: skip en bloques muy malos y filtro horario Top‑hrs */
+/* Bloque frío y filtro horario (para 1.70x y oportunista) */
 function shouldSkipBlock(){
   if(!$("qualityMode").checked) return false;
   const {b15,br,purple}=getCtx();
-  return (b15>0.56 && br>=6 && !purple); // bloque frío: muchas <2x, racha azul larga, sin purple
+  return (b15>0.56 && br>=6 && !purple);
 }
 function allowByHour(ts){
   if(!$("qualityMode").checked || !$("hourFilter").checked) return true;
   const total = hour100.reduce((a,b)=>a+b,0);
-  const minEv = 20; // hasta acumular muestras decentes, no filtra
-  if(total < minEv) return true;
+  if(total < 20) return true;
   const N = Math.max(1, Math.min(8, Number($("hourTopN").value)||4));
   const topIdx = [...hour100.keys()].sort((a,b)=>hour100[b]-hour100[a]).slice(0,N);
   const h = new Date(ts||Date.now()).getHours();
   return topIdx.includes(h);
+}
+
+/* Anti‑chase helpers */
+function countEventsInLast(EV, n){
+  const start = (rounds.length-1) - (n-1);
+  let c=0; for(let i=EV.length-1;i>=0;i--){ if(EV[i].idx>=start) c++; else break; }
+  return c;
+}
+function updateRoseLock(){
+  const c6  = countEventsInLast(R10,6);
+  const c12 = countEventsInLast(R10,12);
+  const c15 = countEventsInLast(R10,15);
+  let add=0;
+  if(c6>=2) add=12; else if(c12>=3) add=10; else if(c15>=3) add=8;
+  if(add>ROSE_LOCK) ROSE_LOCK=add;
 }
 
 /* ==================== EMISIÓN ==================== */
@@ -323,10 +346,10 @@ function emitSignal(target, tag, reason, conf){
 }
 
 /* ==================== MOTORES PROGRAMADOS ==================== */
-// 1) Bloque 60: 1 señal objetivo 3x
+// 1) Bloque 60: 1 señal 3x  (no aplica filtro horario; sí skip de bloque frío)
 function engineB60_3(){
   if(!$("p60_3_on").checked) return;
-  if(shouldSkipBlock() || !allowByHour()) return;
+  if(shouldSkipBlock()) return;
 
   const inBlock = Math.max(0, rounds.length - B60_3.startIdx);
   $("p60_3_prog").textContent = `${inBlock}/60`;
@@ -349,10 +372,10 @@ function engineB60_3(){
     B60_3.sent=true; B60_3.count++;
   }
 }
-// 2) Bloque 60: 1 señal objetivo 5x
+// 2) Bloque 60: 1 señal 5x  (no filtro horario; sí skip de bloque frío)
 function engineB60_5(){
   if(!$("p60_5_on").checked) return;
-  if(shouldSkipBlock() || !allowByHour()) return;
+  if(shouldSkipBlock()) return;
 
   const inBlock = Math.max(0, rounds.length - B60_5.startIdx);
   $("p60_5_prog").textContent = `${inBlock}/60`;
@@ -376,10 +399,11 @@ function engineB60_5(){
     B60_5.sent=true; B60_5.count++;
   }
 }
-// 3) Bloque 60: hasta N señales objetivo ≥1.70x (separación mínima, ritmo)
+// 3) Bloque 60: hasta N señales 1.70x  (aplica filtro horario en Calidad)
 function engineB60_17(){
   if(!$("p60_17_on").checked) return;
-  if(shouldSkipBlock() || !allowByHour()) return;
+  if(shouldSkipBlock()) return;
+  if($("qualityMode").checked && !allowByHour()) return;
 
   const inBlock = Math.max(0, rounds.length - B60_17.startIdx);
   $("p60_17_prog").textContent = `${inBlock}/60`;
@@ -396,11 +420,10 @@ function engineB60_17(){
   const {b15,br}=getCtx();
   const okCtx = quality? (contextOK(2) && b15<=0.52 && br<=5) : contextOK(2);
 
-  const sep = quality? 10 : 8; // separación
+  const sep = quality? 10 : 8;
   const gapOK = (rounds.length - B60_17.lastShotIdx) >= sep;
   const nearEnd = inBlock>=54;
   const needPush = quality? (B60_17.used < Math.floor(inBlock/15)) : (B60_17.used < Math.floor(inBlock/12));
-
   const relThr = quality? 0.98 : 0.90;
   const catchUpOK = quality? (H17.h>=H17.q75) : (H17.h>=H17.q70);
 
@@ -410,10 +433,16 @@ function engineB60_17(){
     B60_17.used++; B60_17.lastShotIdx=rounds.length;
   }
 }
-// 4) Bloque 90: 1 señal ≥10x (posible 20x/30x más exigente en Calidad)
+// 4) Bloque 90: 1 señal ≥10x  (sin filtro horario; anti‑chase por gap + lock)
 function engineB90_10(){
   if(!$("p90_10_on").checked) return;
-  if(shouldSkipBlock() || !allowByHour()) return;
+  if(shouldSkipBlock()) return;
+  if(ROSE_LOCK>0) return;                        // anti‑chase: no perseguir clúster de rosas
+  if(!enoughSamples(I10,8)) return;              // muestra mínima
+
+  const gs10=gapStats(I10,60);
+  const lb10=Math.max(3, Math.round((gs10.q25||6))); // gap mínimo para habilitar tiros 10x
+  if(since10!=null && since10 < lb10) return;
 
   const inBlock = Math.max(0, rounds.length - B90_10.startIdx);
   $("p90_10_prog").textContent = `${inBlock}/90`;
@@ -432,7 +461,6 @@ function engineB90_10(){
   let target=10, tag="S90_10x";
 
   if(quality){
-    // elevar solo con evidencia fuerte
     if(rel30>=1.00 && contextOK(30)) { target=30; tag="S90_30x"; }
     else if(rel20>=1.00 && contextOK(20)) { target=20; tag="S90_20x"; }
   }else{
@@ -442,22 +470,22 @@ function engineB90_10(){
 
   const okCtx10 = quality? (contextOK(10) && sl>=0) : contextOK(10);
   const nearEnd=inBlock>=80;
-
-  const relThr10 = quality? 1.00 : 0.95;
+  const relThr10 = quality? 0.98 : 0.95;
+  const allowCatchUp = !$("qualityMode").checked; // en Calidad: sin catch‑up
 
   const good=(etaOK(H10,since10,2,3) && rel10>=relThr10 && okCtx10)
-          || (nearEnd && ((H10.h>=H10.q70 && okCtx10) || (since10!=null && since10 >= (median(I10.slice(-40).map(x=>x.gap))||12))));
+          || (allowCatchUp && nearEnd && ((H10.h>=H10.q70 && okCtx10) || (since10!=null && since10 >= (median(I10.slice(-40).map(x=>x.gap))||12))));
   if(good){
-    emitSignal(target, tag, `${tag} • rel10=${rel10.toFixed(2)} • inBlock=${inBlock}`, Math.min(Math.max(rel10,rel20,rel30)/1.6,1));
+    emitSignal(target, tag, `${tag} • rel10=${rel10.toFixed(2)} • inBlock=${inBlock} • lb=${lb10}`, Math.min(Math.max(rel10,rel20,rel30)/1.6,1));
     B90_10.sent=true; B90_10.count++;
   }
 }
 
-/* ==================== MOTOR OPORTUNISTA (20/30/50/100) ==================== */
+/* ==================== MOTOR OPORTUNISTA (30/50/100; 20x opcional en no‑calidad) ==================== */
 function engineOpportunistic(){
   if(coolDown>0){ coolDown--; return; }
-  if(!$("qualityMode").checked && shouldSkipBlock()) return; // si no está ON calidad, igual respetar skip en bloque feo
   if($("qualityMode").checked && !allowByHour()) return;
+  if(ROSE_LOCK>0) return; // no perseguir tras clúster
 
   const roundIdx=rounds.length; if(roundIdx===lastEmitRound) return;
 
@@ -470,15 +498,15 @@ function engineOpportunistic(){
 
   const baseCand = quality
     ? [
-        {k:100, rel:rel100, ok:contextOK(100), H:H100, tag:"ROSE100", wpre:3, wpost:4, w:1.12},
-        {k:50,  rel:rel50,  ok:contextOK(50),  H:H50,  tag:"ROSE50",  wpre:3, wpost:4, w:1.06},
-        {k:30,  rel:rel30,  ok:contextOK(30),  H:H30,  tag:"ROSE30",  wpre:2, wpost:3, w:1.00},
+        {k:100, rel:rel100, ok:contextOK(100), H:H100, tag:"ROSE100", wpre:3, wpost:4, w:1.12, since:since100, list:I100, minN:6, lastN:15},
+        {k:50,  rel:rel50,  ok:contextOK(50),  H:H50,  tag:"ROSE50",  wpre:3, wpost:4, w:1.06, since:since50,  list:I50,  minN:6, lastN:25},
+        {k:30,  rel:rel30,  ok:contextOK(30),  H:H30,  tag:"ROSE30",  wpre:2, wpost:3, w:1.00, since:since30,  list:I30,  minN:6, lastN:30}
       ]
     : [
-        {k:100, rel:rel100, ok:contextOK(100), H:H100, tag:"ROSE100", wpre:3, wpost:4, w:1.10},
-        {k:50,  rel:rel50,  ok:contextOK(50),  H:H50,  tag:"ROSE50",  wpre:3, wpost:4, w:1.05},
-        {k:30,  rel:rel30,  ok:contextOK(30),  H:H30,  tag:"ROSE30",  wpre:2, wpost:3, w:1.00},
-        {k:20,  rel:rel20,  ok:contextOK(20),  H:H20,  tag:"ROSE20",  wpre:2, wpost:3, w:1.00}
+        {k:100, rel:rel100, ok:contextOK(100), H:H100, tag:"ROSE100", wpre:3, wpost:4, w:1.10, since:since100, list:I100, minN:6, lastN:15},
+        {k:50,  rel:rel50,  ok:contextOK(50),  H:H50,  tag:"ROSE50",  wpre:3, wpost:4, w:1.05, since:since50,  list:I50,  minN:6, lastN:25},
+        {k:30,  rel:rel30,  ok:contextOK(30),  H:H30,  tag:"ROSE30",  wpre:2, wpost:3, w:1.00, since:since30,  list:I30,  minN:6, lastN:30},
+        {k:20,  rel:rel20,  ok:contextOK(20),  H:H20,  tag:"ROSE20",  wpre:2, wpost:3, w:1.00, since:since20,  list:I20,  minN:6, lastN:40}
       ];
 
   const cand = baseCand.map(c=>({...c, score: logistic(c.rel)*(c.ok?1:0)}))
@@ -486,11 +514,19 @@ function engineOpportunistic(){
 
   const dens60=rounds.slice(-60).filter(x=>x>=10).length;
   let thr=0.98 - (dens60>=8?0.06:(dens60>=6?0.03:0));
-  thr=Math.max(quality?1.02:0.90, thr); // en Calidad, más exigente
+  thr=Math.max(quality?1.02:0.90, thr);
 
   const best=cand[0];
-  if(best && best.score>=thr && etaOK(best.H, (best.k===100?since100:best.k===50?since50:best.k===30?since30:since20), best.wpre, best.wpost)){
-    emitSignal(best.k, best.tag, `${best.tag} • rel=${best.rel.toFixed(2)} • thr=${thr.toFixed(2)}`, Math.min(best.rel/1.6,1));
+  if(!best) return;
+  if(!enoughSamples(best.list, best.minN)) return;
+
+  // anti-chase por gap: exigir al menos el q25 de ese umbral
+  const gs=gapStats(best.list,best.lastN);
+  const lb=Math.max(best.k>=50?3:2, Math.round((gs.q25|| (best.k>=50?7:5))));
+  if(best.since!=null && best.since < lb) return;
+
+  if(best.score>=thr && etaOK(best.H, best.since, best.wpre, best.wpost)){
+    emitSignal(best.k, best.tag, `${best.tag} • rel=${best.rel.toFixed(2)} • thr=${thr.toFixed(2)} • lb=${lb}`, Math.min(best.rel/1.6,1));
     lastEmitRound=roundIdx; coolDown = best.k>=50? 10 : (best.k>=30? 8 : 6);
   }
 
@@ -549,7 +585,7 @@ function pushEvt(v,ts,list,listInt,thr,label){
     if(label===17) since17=0;
     if(label===3)  since3=0;
     if(label===5)  since5=0;
-    if(label===10) since10=0;
+    if(label===10) { since10=0; }
     if(label===20) since20=0;
     if(label===30) since30=0;
     if(label===50) since50=0;
@@ -589,6 +625,10 @@ function onNewCrash(v, ts, base=false){
   rounds.push(v); roundsMeta.push({v,ts}); if(rounds.length>3000){ rounds.shift(); roundsMeta.shift(); }
   lastShown.unshift(v); if(lastShown.length>60) lastShown.pop();
 
+  if(!base){
+    ROSE_LOCK = Math.max(ROSE_LOCK-1,0); // decaimiento por ronda
+  }
+
   if(!base && pendings.length && session.active){
     const bet=pendings.shift(); const win=(v>bet.target);
     bet.crash=v; bet.state=win?"win":"lose"; bet.pl=win?"+1":"−1";
@@ -601,6 +641,7 @@ function onNewCrash(v, ts, base=false){
   }else if(!session.active){ pendings=[]; }
 
   handleOnValue(v, ts);
+  if(!base){ updateRoseLock(); } // detecta clúster y recarga lock si aplica
   renderStats();
 
   if(!base){
@@ -610,6 +651,8 @@ function onNewCrash(v, ts, base=false){
     engineB90_10();
     engineOpportunistic();
   }
+
+  const lastV=rounds[rounds.length-1]||0; if(lastV>=100) beep100();
 }
 
 /* ==================== CONEXIÓN FEED ==================== */
@@ -642,7 +685,7 @@ async function connectFeed(){
   since17=since3=since5=since10=since20=since30=since50=since100=since1000=null;
   last1000=null; baseCount = Object.keys(snap.val()).length;
   hour100.fill(0);
-  coolDown=0; lastEmitRound=-1;
+  coolDown=0; lastEmitRound=-1; ROSE_LOCK=0;
 
   // Bloques desde final del historial
   B60_3.startIdx=0; B60_3.sent=false;
@@ -653,7 +696,6 @@ async function connectFeed(){
   const data=snap.val(), keys=Object.keys(data).sort();
   keys.forEach(k=>{ const {v,ts}=nodeToVT(data[k]); if(v!==null) onNewCrash(v,ts,true); lastKey=k; lastTs=Number(data[k]?.ts||k)||now(); lastActivity=now(); });
 
-  // arranque de bloques
   const cur=rounds.length;
   B60_3.startIdx=cur; B60_3.sent=false;
   B60_5.startIdx=cur; B60_5.sent=false;
