@@ -1,536 +1,215 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v9.0 — Simplificado Pro</title>
-<style>
-  :root{
-    --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5;
-    --ok:#2ecc71; --warn:#e67e22; --bad:#e74c3c; --brand:#8ab4ff; --pink:#ff5ac3;
-  }
-  html,body{background:var(--bg);color:var(--text);font:14px/1.45 system-ui,Inter,Segoe UI,Roboto,Arial,sans-serif;margin:0}
-  .wrap{max-width:1080px;margin:20px auto;padding:0 12px}
-  .card{background:var(--panel);border:1px solid #22283a;border-radius:12px;padding:14px;margin:10px 0}
-  h1{font-size:18px;margin:0 0 8px 0;display:flex;gap:8px;align-items:center}
-  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .btn{background:#2a3042;color:var(--text);border:0;border-radius:8px;padding:8px 12px;cursor:pointer}
-  .btn.ok{background:#2ecc71;color:#0c0f12;font-weight:700}
-  .btn.bad{background:#e74c3c}
-  .muted{color:var(--muted)}
-  input[type="text"],input[type="number"],select{background:#0f121a;color:var(--text);border:1px solid #2a3144;border-radius:6px;padding:6px}
-  input[type="text"]{width:140px} input[type="number"]{width:80px}
-  .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#1c2130;margin:2px}
-  .table{width:100%;border-collapse:collapse;font-size:13px}
-  .table th,.table td{padding:8px;border-bottom:1px solid #22283a;text-align:left}
-  .kpi{display:flex;gap:16px;flex-wrap:wrap}
-  .kpi .box{background:#0f121a;border:1px solid #22283a;border-radius:10px;padding:10px 12px}
-  .flag{padding:4px 8px;border-radius:6px;background:#22283a}
-  .flag.ok{background:rgba(46,204,113,.15);color:#7ff5b0}
-  .flag.info{background:#1f2432;color:#cbd5e1;border:1px dashed #2a3144}
-  .flag.warn{background:rgba(230,126,34,.12);color:#ffbf7a}
-  .clock{font-variant-numeric:tabular-nums}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analizador de Aviator - Dashboard Avanzado de Análisis</title>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #121212; color: #ffffff; }
+        #chart { max-width: 800px; margin: 20px auto; }
+        #predictions { margin: 20px; padding: 10px; border: 1px solid #ccc; background-color: #1e1e1e; }
+        #signals { list-style-type: none; padding: 0; }
+        #signals li { padding: 10px; background: #333; margin: 10px 0; border-radius: 5px; }
+        #stats { margin: 20px; padding: 10px; background-color: #1e1e1e; border: 1px solid #ccc; }
+        button { background-color: #4CAF50; color: white; padding: 10px; border: none; cursor: pointer; }
+        button:hover { background-color: #45a049; }
+    </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v9.0</span>
-    <span id="statusFeedback" class="muted" style="margin-left:8px"></span>
-    <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
-  </h1>
-
-  <!-- Barra superior: solo lo necesario -->
-  <div class="card">
-    <div class="row">
-      <button id="startBtn" class="btn ok">Iniciar</button>
-      <button id="stopBtn" class="btn">Pausar</button>
-      <label class="row"><input id="autoSignal" type="checkbox" checked> Auto‑señal</label>
-      <label class="row"><input id="beepToggle" type="checkbox" checked> Beep</label>
-      <div class="row" style="margin-left:auto">
-        <span class="muted">Feed:</span>
-        <input id="feedId" type="text" value="gocho"/>
-        <button id="connectBtn" class="btn">Conectar</button>
-        <button id="disconnectBtn" class="btn">Desconectar</button>
-      </div>
+    <h1>Dashboard Avanzado de Análisis para Aviator</h1>
+    <p>Esta herramienta avanzada analiza datos históricos de multiplicadores en tiempo real para identificar patrones estadísticos y sugerir momentos potenciales donde el multiplicador podría superar 3x, 5x o 10x. Basado en un modelo LSTM con TensorFlow.js para predicciones más precisas en series temporales. Recuerda: esto es solo para estudio y maximizar tu tiempo; el juego es aleatorio (RNG) y no garantiza ganancias. Usa estrategias como observación de rachas, gestión de bankroll (Martingala) y análisis de volatilidad.</p>
+    
+    <canvas id="multiplierChart"></canvas>
+    <div id="stats">
+        <h2>Estadísticas Históricas</h2>
+        <p id="avgMultiplier">Multiplicador promedio: Calculando...</p>
+        <p id="highCount">Rondas >5x: Calculando...</p>
+        <p id="streakInfo">Racha actual de altos: Calculando...</p>
     </div>
-  </div>
-
-  <!-- KPIs compactos -->
-  <div class="card">
-    <div class="kpi">
-      <div class="box">Rondas: <b id="rounds">0</b> <span class="muted">(base)</span></div>
-      <div class="box">≥10x: <b id="rose10Lbl">0</b> &nbsp; • ≥1000x: <b id="rose1000Lbl">0</b><br><span class="muted">Últ. ≥1000x: <span id="last1000Lbl">–</span></span></div>
-      <div class="box">MA10: <b id="ma10">–</b></div>
-      <div class="box">Señales: <b id="signals">0</b></div>
-      <div class="box">Bloque 60 (≥5x): <b id="s60Prog">0/60</b><br><span class="muted">WR: <span id="s60WR">0%</span></span></div>
-      <div class="box">Bloque 90 (≥10x): <b id="s90Prog">0/90</b><br><span class="muted">WR: <span id="s90WR">0%</span></span></div>
+    <div id="predictions">
+        <h2>Predicciones y Señales Mejoradas</h2>
+        <ul id="signals"></ul>
+        <button id="retrainButton">Reentrenar Modelo</button>
     </div>
 
-    <div class="row" style="margin-top:10px;gap:8px">
-      <span id="lastSignal" class="flag ok" style="display:none">Señal emitida</span>
-      <span id="infoFlag" class="flag info" style="display:none"></span>
-    </div>
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
+            authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
+            databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com",
+            projectId: "aviator-analyzer-b29a7",
+            storageBucket: "aviator-analyzer-b29a7.firebasestorage.app",
+            messagingSenderId: "575063626276",
+            appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
+            measurementId: "G-325QCBSQMH"
+        };
 
-    <div style="margin-top:12px">
-      <div class="muted" style="margin-bottom:6px">Últimas rondas (más reciente primero)</div>
-      <div id="lastRounds"></div>
-    </div>
-  </div>
+        // Inicializar Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const database = firebase.database(app);
+        const crashesRef = database.ref('crashes');
 
-  <!-- Enlaces de Rosas -->
-  <div class="card">
-    <div class="row">
-      <h3 style="margin:0">Rosas (≥10x): intervalos exactos (últimos 60 enlaces)</h3>
-      <span class="muted" style="margin-left:auto">10/20/30/50/100/1000</span>
-    </div>
-    <div id="roseHistory" style="margin-top:8px"></div>
-  </div>
+        // Configuración avanzada
+        const minHistoryForPrediction = 20;  // Bajado para funcionar con ~60 rondas
+        const lookbackForPrediction = 10;  // Mirar atrás 10 rondas
+        const predictionThresholds = [3, 5, 10];
+        let localCrashes = [];
+        let model;
+        let chart;
+        let dataMin = 0;
+        let dataMax = 1;  // Para denormalización
 
-  <!-- Log de señales -->
-  <div class="card">
-    <div class="row"><h3 style="margin:0">Señales registradas</h3></div>
-    <table class="table" style="margin-top:8px">
-      <thead><tr><th>#</th><th>Tipo</th><th>Objetivo</th><th>Stake</th><th>Crash</th><th>Resultado</th><th>P/L</th></tr></thead>
-      <tbody id="betsTbody"></tbody>
-    </table>
-  </div>
+        // Normalizar datos (Min-Max)
+        function normalize(data) {
+            dataMin = Math.min(...data);
+            dataMax = Math.max(...data);
+            return data.map(value => (value - dataMin) / (dataMax - dataMin));
+        }
 
-  <div class="card muted" style="font-size:12px">
-    Uso educativo/análisis. No garantiza resultados. “Ganada” = crash &gt; objetivo.
-  </div>
-</div>
+        // Denormalizar
+        function denormalize(value) {
+            return value * (dataMax - dataMin) + dataMin;
+        }
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+        // Crear secuencias para LSTM
+        function createSequences(data, lookback) {
+            const xs = [];
+            const ys = [];
+            for (let i = 0; i < data.length - lookback; i++) {
+                xs.push(data.slice(i, i + lookback));
+                ys.push(data[i + lookback]);
+            }
+            return {
+                xs: tf.tensor3d(xs, [xs.length, lookback, 1]),
+                ys: tf.tensor2d(ys, [ys.length, 1])
+            };
+        }
 
-<script>
-/* ==================== CONFIG FIREBASE ==================== */
-const firebaseConfig = {
-  apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
-  authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
-  projectId: "aviator-analyzer-b29a7",
-  storageBucket: "aviator-analyzer-b29a7.appspot.com",
-  messagingSenderId: "575063626276",
-  appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
-  measurementId: "G-325QCBSQMH",
-  databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com"
-};
-firebase.initializeApp(firebaseConfig);
-const db  = firebase.database();
-const auth= firebase.auth();
+        // Crear modelo LSTM
+        async function createModel() {
+            const model = tf.sequential();
+            model.add(tf.layers.lstm({ units: 50, inputShape: [lookbackForPrediction, 1] }));
+            model.add(tf.layers.dense({ units: 1 }));
+            model.compile({ optimizer: 'adam', loss: 'meanSquaredError' });
+            return model;
+        }
 
-/* ==================== HELPERS ==================== */
-const $ = (id)=>document.getElementById(id);
-const now=()=>Date.now();
-const HHmm = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-function movingAverage(arr,n){const L=Math.min(arr.length,n); if(!L) return NaN; let s=0; for(let i=arr.length-L;i<arr.length;i++) s+=arr[i]; return s/L;}
-function logistic(x,k=7,x0=1){return 1/(1+Math.exp(-k*(x-x0)));}
+        // Entrenar modelo
+        async function trainModel() {
+            if (localCrashes.length < minHistoryForPrediction) {
+                console.log('No suficientes datos para entrenar. Necesitas al menos ' + minHistoryForPrediction + ' rondas.');
+                return;
+            }
+            const normalizedData = normalize(localCrashes);
+            const { xs, ys } = createSequences(normalizedData, lookbackForPrediction);
+            model = await createModel();
+            await model.fit(xs, ys, { epochs: 50, batchSize: 16 });
+            console.log('Modelo entrenado.');
+            xs.dispose();
+            ys.dispose();
+        }
 
-/* Parser ultra-robusto: maneja 1,334.81 / 1.334,81 / 1 334,81 / 1334.81 / 334.81 (rescata 1000 si es probable) */
-function parseCrashValue(raw){
-  if(raw===null||raw===undefined) return null;
-  if(typeof raw==="number") return (raw>=1 && isFinite(raw))? raw : null;
-  let sRaw = String((typeof raw==="object" && raw && ("raw" in raw || "v" in raw)) ? (raw.raw ?? raw.v) : raw);
-  // 1) Si hay miles explícitos
-  const rx=/(\d{1,3}(?:[.,\u00A0\u2009]\d{3})+(?:[.,]\d+)?)/;
-  const m=sRaw.match(rx);
-  if(m){
-    let t=m[1].replace(/[\u00A0\u2009]/g,' ');
-    const lastDot=t.lastIndexOf('.'), lastComma=t.lastIndexOf(',');
-    const dec=(lastComma>lastDot)?',':'.';
-    if(dec===','){ t=t.replace(/\./g,'').replace(/ /g,'').replace(',', '.'); }
-    else{ t=t.replace(/,/g,'').replace(/ /g,''); }
-    const v=Number(t); return (isFinite(v)&&v>=1)?v:null;
-  }
-  // 2) Normalización genérica
-  let s=sRaw.replace(/[^\d.,+-]+/g,'').trim();
-  if(!s) return null;
-  const lastDot=s.lastIndexOf('.'), lastComma=s.lastIndexOf(',');
-  let dec=(lastComma>lastDot)?',':'.'; if(lastDot===-1&&lastComma===-1) dec='.';
-  if(dec===','){ s=s.replace(/\./g,''); s=s.replace(',', '.'); } else { s=s.replace(/,/g,''); }
-  let v=Number(s); if(!(isFinite(v)&&v>=1)) return null;
+        // Predecir próximo
+        async function predictNext() {
+            if (localCrashes.length < lookbackForPrediction || !model) {
+                console.log('Modelo no listo o datos insuficientes para predicción.');
+                return [];
+            }
+            const lastSequence = normalize(localCrashes.slice(-lookbackForPrediction));  // Renormalizar últimos
+            const input = tf.tensor3d([lastSequence], [1, lookbackForPrediction, 1]);
+            const prediction = await model.predict(input).dataSync()[0];
+            const denormPred = denormalize(prediction);
+            input.dispose();
 
-  // 3) Rescate heurístico: si llega 334.81 pero contexto sugiere 1334.81
-  if(v>=300 && v<450){
-    const ma10 = movingAverage(rounds,10);
-    const recentHuge = rounds.slice(-8).some(x=>x>=200);
-    if(recentHuge || (ma10 && ma10>20)) v+=1000;
-  }
-  return v;
-}
+            const signals = [];
+            predictionThresholds.forEach(threshold => {
+                if (denormPred > threshold) {
+                    const confidence = Math.min(100, (denormPred / threshold) * 50);  // Ajustado para más señales
+                    signals.push(`Señal potencial para >${threshold}x (confianza: ${Math.round(confidence)}%, pred: ${denormPred.toFixed(2)}x)`);
+                }
+            });
+            return signals;
+        }
 
-/* ==================== ESTADO ==================== */
-let FEED_ID="gocho", connected=false;
-let rounds=[], roundsMeta=[], lastShown=[];
-let baseCount=0;
+        // Calcular stats
+        function calculateStats() {
+            if (localCrashes.length === 0) return;
+            const avg = localCrashes.reduce((a, b) => a + b, 0) / localCrashes.length;
+            const highCount = localCrashes.filter(m => m > 5).length;
+            let maxStreak = 0, currentStreak = 0;
+            localCrashes.forEach(m => {
+                if (m > 5) currentStreak++;
+                else currentStreak = 0;
+                if (currentStreak > maxStreak) maxStreak = currentStreak;
+            });
+            document.getElementById('avgMultiplier').textContent = `Multiplicador promedio: ${avg.toFixed(2)}x`;
+            document.getElementById('highCount').textContent = `Rondas >5x: ${highCount} (${((highCount / localCrashes.length) * 100).toFixed(1)}%)`;
+            document.getElementById('streakInfo').textContent = `Racha máxima de >5x: ${maxStreak}`;
+        }
 
-let pendings=[], bets=[], signalsCount=0;
-const PERSIST_KEY="gocho_v90_state";
-const session = {active:false, startTs:null};
+        // Actualizar chart
+        function updateChart() {
+            const ctx = document.getElementById('multiplierChart').getContext('2d');
+            if (chart) chart.destroy();
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: localCrashes.map((_, i) => `Ronda ${i + 1}`),
+                    datasets: [{
+                        label: 'Multiplicadores Históricos',
+                        data: localCrashes,
+                        borderColor: 'cyan',
+                        fill: false
+                    }]
+                },
+                options: {
+                    scales: { y: { beginAtZero: true, grid: { color: '#444' } } },
+                    plugins: { legend: { labels: { color: '#fff' } } }
+                }
+            });
+        }
 
-/* Eventos por umbral */
-const R5=[],  I5=[];
-const R10=[], I10=[];
-const R20=[], I20=[];
-const R30=[], I30=[];
-const R50=[], I50=[];
-const R100=[],I100=[];
-const R1000=[],I1000=[];
-let since5=null, since10=null, since20=null, since30=null, since50=null, since100=null, since1000=null;
-let last10=null, last1000=null;
+        // Mostrar señales
+        async function showSignals() {
+            const signals = await predictNext();
+            const signalsList = document.getElementById('signals');
+            signalsList.innerHTML = '';
+            if (signals.length > 0) {
+                signals.forEach(signal => {
+                    const li = document.createElement('li');
+                    li.textContent = signal;
+                    signalsList.appendChild(li);
+                });
+            } else {
+                const li = document.createElement('li');
+                li.textContent = 'No hay señales fuertes. Intenta reentrenar o agregar más datos.';
+                signalsList.appendChild(li);
+            }
+        }
 
-/* Bloques programados */
-const S60={startIdx:0, sent:false, count:0, wins:0, losses:0};   // objetivo ≥5x, 1 señal por 60
-const S90={startIdx:0, sent:false, count:0, wins:0, losses:0};   // objetivo ≥10x, 1 señal por 90
+        // Listener Firebase
+        crashesRef.on('value', async (snapshot) => {
+            const data = snapshot.val();
+            localCrashes = data ? Object.values(data) : [];
+            console.log(`Datos cargados: ${localCrashes.length} rondas.`);
+            updateChart();
+            calculateStats();
+            await trainModel();
+            await showSignals();
+        });
 
-/* Anti‑spam motor oportunista */
-let lastEmitRound=-1, coolDown=0;
+        // Botón reentrenar
+        document.getElementById('retrainButton').addEventListener('click', async () => {
+            await trainModel();
+            await showSignals();
+        });
 
-/* ==================== AUDIO ==================== */
-let audioCtx=null;
-function beeper(freq=880, ms=120, gain=0.03){
-  if(!$("beepToggle").checked) return;
-  try{
-    if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-    o.type="sine"; o.frequency.value=freq; g.gain.value=gain; o.connect(g); g.connect(audioCtx.destination);
-    o.start(); setTimeout(()=>o.stop(), ms);
-  }catch(_){}
-}
-const beepOP = ()=>{beeper(520,160,0.035); setTimeout(()=>beeper(980,80,0.03),110);};                 // oportunista
-const beep60 = ()=>{beeper(420,120,0.035); setTimeout(()=>beeper(660,120,0.03),140);};               // S60
-const beep90 = ()=>{beeper(360,120,0.035); setTimeout(()=>beeper(720,120,0.03),140); setTimeout(()=>beeper(980,90,0.03),300);}; // S90
-const beep100= ()=>{beeper(300,160,0.04); setTimeout(()=>beeper(1100,120,0.035),180);};               // ≥100x avistado
-
-/* ==================== MÉTRICAS & HAZARD ==================== */
-function blueDensity(n=15){const w=rounds.slice(-n); if(!w.length) return 1; return w.filter(x=>x<2).length/w.length;}
-function maxBlueRun(n=16){const w=rounds.slice(-n); let m=0,c=0; for(const x of w){ if(x<2){c++; m=Math.max(m,c);} else c=0; } return m;}
-function hasPurple(n=12){return rounds.slice(-n).some(x=>x>=5 && x<10);}
-function median(a){if(!a.length) return NaN; const s=[...a].sort((x,y)=>x-y); const m=Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2;}
-function hazard(listIntervals, since, lastN){
-  if(listIntervals.length<3 || since==null) return {h:0,eta:null,q70:0,q75:0,q80:0,q90:0};
-  const ints=listIntervals.slice(-Math.max(3,lastN-1)).map(x=>x.gap);
-  const maxG=Math.max(...ints,1), freq=new Map(); ints.forEach(g=>freq.set(g,(freq.get(g)||0)+1));
-  const N=ints.length, pdf=[], cdf=[]; let cum=0;
-  for(let t=1;t<=maxG+20;t++){ const p=(freq.get(t)||0)/N; pdf[t]=p; cum+=p; cdf[t]=cum; }
-  const haz=[], vals=[]; for(let t=1;t<=maxG+20;t++){ const S=1-(cdf[t-1]||0); haz[t]=S>0? pdf[t]/S : 0; if(haz[t]>0) vals.push(haz[t]); }
-  vals.sort((a,b)=>a-b);
-  const pick=p=> vals.length? vals[Math.floor(p*(vals.length-1))] : 0.1;
-  const q70=pick(0.70), q75=pick(0.75), q80=pick(0.80), q90=pick(0.90);
-  const tNext=(since??0)+1; let eta=null, best=0;
-  for(let t=tNext;t<tNext+20;t++){ if(haz[t]>q75 && haz[t]>best){best=haz[t]; eta=t-(since??0);} }
-  return {h:haz[tNext]||0, eta, q70,q75,q80,q90};
-}
-function contextOK(level){
-  const sl=(()=>{ if(rounds.length<11) return 0; const a=movingAverage(rounds,10), b=movingAverage(rounds.slice(0,-1),10); return a-b; })();
-  const b15=blueDensity(15), br=maxBlueRun(16), purple=hasPurple(12);
-  if(level>=100) return (sl>=-0.000) && (b15<=0.42) && (br<=3) && purple;
-  if(level>=50)  return (sl>=-0.001) && (b15<=0.45) && (br<=3);
-  if(level>=30)  return (sl>=-0.002) && (b15<=0.47) && (br<=4);
-  if(level>=20)  return (sl>=-0.003) && (b15<=0.49) && (br<=4);
-  if(level>=10)  return (sl>=-0.004) && (b15<=0.52) && (br<=5);
-  return (sl>=-0.005) && (b15<=0.55) && (br<=5);
-}
-function etaOK(H, since, pre=2, post=3){
-  if(!H || !H.eta) return true; const t=since??0; return (t>=(H.eta-pre))&&(t<=(H.eta+post));
-}
-
-/* ==================== EMISIÓN ==================== */
-function emitSignal(target, tag, reason, conf){
-  if(!$("autoSignal").checked) return;
-  const id="S"+now();
-  if(session.active){ pendings.push({id,target,stake:1,ts:now(),state:"pend",tag,reason,conf}); }
-  signalsCount++;
-  const flag=$("lastSignal"); flag.style.display="inline-block"; flag.textContent=`Señal ${tag}: ${target}x`; setTimeout(()=>flag.style.display="none",3500);
-  if(tag.startsWith("S60")) beep60();
-  else if(tag.startsWith("S90")) beep90();
-  else beepOP();
-  renderBets(); persistLocal();
-}
-
-/* ==================== MOTORES ==================== */
-/* 1) Programado 60 (≥5x) */
-function engineS60(){
-  const inBlock = Math.max(0, rounds.length - S60.startIdx);
-  $("s60Prog").textContent = `${inBlock}/60`;
-  if(inBlock>=60){ S60.startIdx=rounds.length; S60.sent=false; }
-  if(S60.sent) return;
-
-  const H5=hazard(I5, since5, 80);
-  const rel=H5.q80? (H5.h/H5.q80):0;
-  const okCtx=contextOK(5);
-  // ventana principal por ETA o "catch-up" al final
-  const nearEnd = inBlock>=52;
-  const good = (etaOK(H5,since5,2,3) && rel>=0.92 && okCtx) || (nearEnd && ((H5.h>=H5.q70 && okCtx) || (since5 != null && since5 >= (median(I5.slice(-60).map(x=>x.gap))||10))));
-  if(good){
-    const reason=`S60_5x • rel=${rel.toFixed(2)} • eta=${H5.eta||"?"} • inBlock=${inBlock}`;
-    emitSignal(5, "S60_5x", reason, Math.min(rel/1.5,1));
-    S60.sent=true; S60.count++;
-  }
-}
-/* 2) Programado 90 (≥10x) */
-function engineS90(){
-  const inBlock = Math.max(0, rounds.length - S90.startIdx);
-  $("s90Prog").textContent = `${inBlock}/90`;
-  if(inBlock>=90){ S90.startIdx=rounds.length; S90.sent=false; }
-  if(S90.sent) return;
-
-  const H10=hazard(I10, since10, 60);
-  const rel=H10.q80? (H10.h/H10.q80):0;
-  const okCtx=contextOK(10);
-  const nearEnd=inBlock>=80;
-  const good=(etaOK(H10,since10,2,3) && rel>=0.95 && okCtx) || (nearEnd && ((H10.h>=H10.q70 && okCtx) || (since10!=null && since10 >= (median(I10.slice(-40).map(x=>x.gap))||12))));
-  if(good){
-    // Si la evidencia es muy fuerte, elevamos objetivo
-    let tgt=10, tag="S90_10x";
-    const H20=hazard(I20,since20,40), rel20=H20.q80?(H20.h/H20.q80):0;
-    const H30=hazard(I30,since30,30), rel30=H30.q80?(H30.h/H30.q80):0;
-    if(rel30>=1.00 && contextOK(30)) { tgt=30; tag="S90_30x"; }
-    else if(rel20>=0.98 && contextOK(20)) { tgt=20; tag="S90_20x"; }
-    const reason=`${tag} • rel10=${rel.toFixed(2)} • rel20=${rel20.toFixed(2)} • rel30=${rel30.toFixed(2)} • inBlock=${inBlock}`;
-    emitSignal(tgt, tag, reason, Math.min(Math.max(rel,rel20,rel30)/1.6,1));
-    S90.sent=true; S90.count++;
-  }
-}
-/* 3) Oportunista (20/30/50/100) + aviso 100x */
-function engineOpportunistic(){
-  if(coolDown>0){ coolDown--; return; }
-  // Evita doble disparo en la misma ronda
-  const roundIdx=rounds.length; if(roundIdx===lastEmitRound) return;
-
-  // Cálculo multi-nivel
-  const H20=hazard(I20,since20,40), rel20=H20.q80?(H20.h/H20.q80):0;
-  const H30=hazard(I30,since30,30), rel30=H30.q80?(H30.h/H30.q80):0;
-  const H50=hazard(I50,since50,25), rel50=H50.q80?(H50.h/H50.q80):0;
-  const H100=hazard(I100,since100,15),rel100=H100.q80?(H100.h/H100.q80):0;
-
-  // Alerta informativa de ventana 10x cuando exista
-  const H10=hazard(I10,since10,60);
-  if(H10.h>=H10.q75 && H10.eta){ const el=$("infoFlag"); el.style.display="inline-block"; el.textContent=`Ventana 10x ~${H10.eta} r`; setTimeout(()=>el.style.display="none", 4000); }
-
-  const cands=[
-    {k:100,rel:rel100,ok:contextOK(100),H:H100,tag:"ROSE100",wpre:3,wpost:4,scoreW:1.10},
-    {k:50, rel:rel50, ok:contextOK(50), H:H50, tag:"ROSE50", wpre:3, wpost:4, scoreW:1.05},
-    {k:30, rel:rel30, ok:contextOK(30), H:H30, tag:"ROSE30", wpre:2, wpost:3, scoreW:1.00},
-    {k:20, rel:rel20, ok:contextOK(20), H:H20, tag:"ROSE20", wpre:2, wpost:3, scoreW:1.00},
-  ].map(c=>({...c,score: logistic(c.rel)* (c.ok?1:0)})).sort((a,b)=> (b.score*b.scoreW) - (a.score*a.scoreW));
-
-  const best=cands[0];
-  // Umbral auto (más alto si mercado frío)
-  const dens60=rounds.slice(-60).filter(x=>x>=10).length;
-  let thr = 0.98 - (dens60>=8?0.06:(dens60>=6?0.03:0));  // relaja si hay densidad
-  thr = Math.max(0.90, thr);
-
-  if(best && best.score>=thr && etaOK(best.H, (best.k===100? since100 : best.k===50? since50 : best.k===30? since30 : since20), best.wpre, best.wpost)){
-    emitSignal(best.k, best.tag, `${best.tag} • rel=${best.rel.toFixed(2)} • thr=${thr.toFixed(2)}`, Math.min(best.rel/1.6,1));
-    lastEmitRound=roundIdx; coolDown = best.k>=50? 10 : (best.k>=30? 8 : 6);
-  }
-
-  // Beep especial si se observa ≥100x recientemente (no señal, solo aviso)
-  const lastV=rounds[rounds.length-1]||0; if(lastV>=100) beep100();
-}
-
-/* ==================== RENDER ==================== */
-function renderStats(){
-  $("rounds").textContent = `${rounds.length} (base ${baseCount})`;
-  const ma10=movingAverage(rounds,10); $("ma10").textContent=isNaN(ma10)?"–":ma10.toFixed(2)+"x";
-  $("rose10Lbl").textContent=R10.length;
-  $("rose1000Lbl").textContent=R1000.length;
-  $("last1000Lbl").textContent=last1000?(`${last1000.v.toFixed(2)}x • ${HHmm(last1000.ts)}`):"–";
-  $("signals").textContent=signalsCount;
-
-  // WRs
-  $("s60WR").textContent = S60.count? Math.round(100*S60.wins/Math.max(1,(S60.wins+S60.losses)))+"%" : "0%";
-  $("s90WR").textContent = S90.count? Math.round(100*S90.wins/Math.max(1,(S90.wins+S90.losses)))+"%" : "0%";
-
-  // últimas rondas
-  const cont=$("lastRounds"); cont.innerHTML="";
-  lastShown.forEach(x=>{ const d=document.createElement("span"); d.className="pill"; d.textContent=x.toFixed(2)+"x"; cont.appendChild(d); });
-}
-function renderBets(){
-  const tb=$("betsTbody"); tb.innerHTML="";
-  bets.concat(pendings).forEach((b,i)=>{
-    const st=b.state==="win"?"win":b.state==="lose"?"lose":"pend";
-    const tr=document.createElement("tr");
-    tr.title=b.reason||"";
-    tr.innerHTML=`<td>${i+1}</td><td>${b.tag||"-"}</td><td>${b.target}x</td><td>$${(b.stake?.toFixed?b.stake.toFixed(2):b.stake)||"1.00"}</td><td>${b.crash?b.crash.toFixed(2)+"x":"—"}</td><td>${st}</td><td>${b.pl||"—"}</td>`;
-    tb.appendChild(tr);
-  });
-}
-function renderRoseHistory(){
-  const cont=$("roseHistory"); cont.innerHTML="";
-  const items=I10.slice(-60).reverse();
-  if(!items.length){ const d=document.createElement("div"); d.className="muted"; d.textContent="Aún no hay enlaces suficientes (≥10x)."; cont.appendChild(d); return; }
-  items.forEach(it=>{
-    const row=document.createElement("div"); row.className="pill"; row.style.display="flex"; row.style.gap="8px"; row.style.alignItems="center";
-    row.innerHTML = `<b>${it.from.v.toFixed(2)}x</b> ${HHmm(it.from.ts)} <span class="muted">→</span> <b>${it.to.v.toFixed(2)}x</b> ${HHmm(it.to.ts)} <span class="muted">en</span> <b>${it.gap}</b>`;
-    cont.appendChild(row);
-  });
-}
-
-/* ==================== ACTUALIZACIÓN POR RONDA ==================== */
-function pushEvt(v,ts,list,listInt,thr,label){
-  if(v>=thr){
-    const idx=rounds.length-1, ev={idx,v,ts}; list.push(ev);
-    if(list.length>=2){ const prev=list[list.length-2]; listInt.push({from:prev,to:ev,gap:ev.idx-prev.idx}); if(listInt.length>240) listInt.shift(); }
-    if(label===10){ last10=ev; since10=0; }
-    if(label===1000){ last1000=ev; since1000=0; }
-    if(label===5) since5=0;
-    if(label===20) since20=0;
-    if(label===30) since30=0;
-    if(label===50) since50=0;
-    if(label===100) since100=0;
-  }else{
-    if(label===5)   since5   = (since5==null?1:since5+1);
-    if(label===10)  since10  = (since10==null?1:since10+1);
-    if(label===20)  since20  = (since20==null?1:since20+1);
-    if(label===30)  since30  = (since30==null?1:since30+1);
-    if(label===50)  since50  = (since50==null?1:since50+1);
-    if(label===100) since100 = (since100==null?1:since100+1);
-    if(label===1000)since1000= (since1000==null?1:since1000+1);
-  }
-}
-function handleOnValue(v,ts){
-  pushEvt(v,ts,R1000,I1000,1000,1000);
-  pushEvt(v,ts,R100, I100, 100, 100);
-  pushEvt(v,ts,R50,  I50,  50,  50);
-  pushEvt(v,ts,R30,  I30,  30,  30);
-  pushEvt(v,ts,R20,  I20,  20,  20);
-  pushEvt(v,ts,R10,  I10,  10,  10);
-  pushEvt(v,ts,R5,   I5,   5,   5);
-
-  // recortes de tamaño para no crecer infinito
-  if(R10.length>260) R10.shift(); if(R20.length>200) R20.shift();
-  if(R30.length>180) R30.shift(); if(R50.length>160) R50.shift();
-  if(R100.length>120)R100.shift(); if(R1000.length>80)R1000.shift();
-
-  renderRoseHistory();
-}
-
-function onNewCrash(v, ts, base=false){
-  rounds.push(v); roundsMeta.push({v,ts}); if(rounds.length>3000){ rounds.shift(); roundsMeta.shift(); }
-  lastShown.unshift(v); if(lastShown.length>60) lastShown.pop();
-
-  // liquidación de pendientes
-  if(!base && pendings.length && session.active){
-    const bet=pendings.shift(); const win=(v>bet.target);
-    bet.crash=v; bet.state=win?"win":"lose"; bet.pl=win?"+1":"−1";
-    // stats de bloques
-    if((bet.tag||"").startsWith("S60")){ if(win) S60.wins++; else S60.losses++; }
-    if((bet.tag||"").startsWith("S90")){ if(win) S90.wins++; else S90.losses++; }
-    bets.push(bet); if(bets.length>600) bets.splice(0,bets.length-600);
-    renderBets(); persistLocal();
-  }else if(!session.active){ pendings=[]; }
-
-  handleOnValue(v, ts);
-  renderStats();
-
-  if(!base){
-    engineS60();
-    engineS90();
-    engineOpportunistic();
-  }
-}
-
-/* ==================== CONEXIÓN FEED ==================== */
-let liveRef=null, liveCb=null, lastKey=null, lastTs=null, lastActivity=null, watchdog=null;
-
-function nodeToVT(node){
-  const raw = (node && typeof node==='object' && ('raw' in node || 'v' in node)) ? (node.raw ?? node.v) : node;
-  const v = parseCrashValue(raw);
-  const ts = Number(node?.ts) || now();
-  return {v,ts};
-}
-async function connectFeed(){
-  if(connected) return;
-  const fb=$("statusFeedback"); FEED_ID=($("feedId").value||"gocho").trim();
-  fb&&(fb.textContent=`Conectando…`);
-  try{ await auth.signInAnonymously(); }catch(_){}
-  const ref=db.ref(`feeds/${FEED_ID}/crashes`);
-
-  fb&&(fb.textContent="Cargando historial…");
-  let snap=null, method="key";
-  try{ const s=await ref.orderByChild("ts").limitToLast(800).once("value"); if(s && s.val()) { snap=s; method="ts"; } }catch(_){}
-  if(!snap){ try{ const s=await ref.orderByKey().limitToLast(800).once("value"); if(s && s.val()) { snap=s; method="key"; } }catch(_){}
-  if(!snap||!snap.val()){ fb&&(fb.textContent="Sin datos."); return; }
-
-  // reset buffers (pero NO historial de señales)
-  rounds=[]; roundsMeta=[]; lastShown=[];
-  [R5,R10,R20,R30,R50,R100,R1000].forEach(a=>a.length=0); [I5,I10,I20,I30,I50,I100,I1000].forEach(a=>a.length=0);
-  since5=since10=since20=since30=since50=since100=since1000=null; last10=last1000=null;
-  baseCount = Object.keys(snap.val()).length;
-  coolDown=0; lastEmitRound=-1;
-
-  // bloques se inician desde el final del historial
-  S60.startIdx=0; S60.sent=false;
-  S90.startIdx=0; S90.sent=false;
-
-  const data=snap.val(), keys=Object.keys(data).sort();
-  keys.forEach(k=>{ const {v,ts}=nodeToVT(data[k]); if(v!==null) onNewCrash(v,ts,true); lastKey=k; lastTs=Number(data[k]?.ts||k)||now(); lastActivity=now(); });
-
-  S60.startIdx=rounds.length; S60.sent=false;
-  S90.startIdx=rounds.length; S90.sent=false;
-  renderStats();
-
-  // vivo
-  if(method==="ts"){
-    liveRef=ref.orderByChild("ts").startAt(lastTs);
-    liveCb=s=>{ const key=s.key, d=s.val(); const {v,ts}=nodeToVT(d); if(lastTs && ts<=lastTs && key===lastKey) return; lastKey=key; lastTs=ts; lastActivity=now(); if(v!==null) onNewCrash(v,ts,false); };
-  }else{
-    liveRef=ref.orderByKey().startAt(lastKey||"");
-    liveCb=s=>{ const key=s.key, d=s.val(); if(lastKey && key<=lastKey) return; lastKey=key; const {v,ts}=nodeToVT(d); lastTs=ts; lastActivity=now(); if(v!==null) onNewCrash(v,ts,false); };
-  }
-  liveRef.on("child_added", liveCb);
-
-  if(watchdog) clearInterval(watchdog);
-  watchdog=setInterval(()=>{ if(!connected) return; const dt=Date.now()-(lastActivity||0); if(dt>300000){ disconnectFeed(true); connectFeed(); } }, 30000);
-
-  connected=true; fb&&(fb.textContent="Conectado.");
-}
-function disconnectFeed(silent=false){
-  if(!connected) return;
-  if(liveRef && liveCb) liveRef.off("child_added", liveCb);
-  liveRef=liveCb=null; lastKey=lastTs=lastActivity=null; connected=false;
-  if(watchdog){ clearInterval(watchdog); watchdog=null; }
-  if(!silent){ const fb=$("statusFeedback"); fb&&(fb.textContent="Desconectado."); }
-}
-
-/* ==================== PERSISTENCIA LOCAL ==================== */
-function persistLocal(){
-  try{
-    localStorage.setItem(PERSIST_KEY, JSON.stringify({
-      bets, pendings, signalsCount, session,
-      S60, S90
-    }));
-  }catch(_){}
-}
-function restoreLocal(){
-  try{
-    const raw=localStorage.getItem(PERSIST_KEY); if(!raw) return;
-    const p=JSON.parse(raw);
-    if(Array.isArray(p.bets)) bets=p.bets;
-    if(Array.isArray(p.pendings)) pendings=p.pendings;
-    if(typeof p.signalsCount==="number") signalsCount=p.signalsCount;
-    if(p.session && typeof p.session.active==="boolean"){ session.active=p.session.active; session.startTs=p.session.startTs||null; }
-    if(p.S60) Object.assign(S60,p.S60);
-    if(p.S90) Object.assign(S90,p.S90);
-  }catch(_){}
-}
-
-/* ==================== UI ==================== */
-document.getElementById("connectBtn").addEventListener("click", connectFeed);
-document.getElementById("disconnectBtn").addEventListener("click", ()=>disconnectFeed(false));
-document.getElementById("startBtn").addEventListener("click", ()=>{ session.active=true; session.startTs=now(); bets=[]; pendings=[]; signalsCount=0; renderBets(); renderStats(); persistLocal(); beeper(660,90,0.03); });
-document.getElementById("stopBtn").addEventListener("click",  ()=>{ session.active=false; persistLocal(); });
-setInterval(()=>{ $("clockNow").textContent=new Date().toLocaleTimeString(); }, 1000);
-
-/* Bootstrap */
-(function(){
-  restoreLocal(); renderBets(); renderStats();
-  setInterval(()=>persistLocal(), 2000);
-})();
-</script>
+        console.log('Dashboard iniciado.');
+    </script>
 </body>
 </html>
