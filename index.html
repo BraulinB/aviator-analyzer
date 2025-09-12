@@ -1,571 +1,198 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v9.0 (Optimizado: B60/90 + Rosas Altas + Automático)</title>
-<style>
-  :root{
-    --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5;
-    --ok:#2ecc71; --warn:#e67e22; --bad:#e74c3c; --brand:#8ab4ff; --pink:#ff5ac3;
-  }
-  html,body{background:var(--bg);color:var(--text);font:14px/1.4 system-ui,Inter,Segoe UI,Roboto,Arial,sans-serif;margin:0}
-  .wrap{max-width:1120px;margin:20px auto;padding:0 12px}
-  .card{background:var(--panel);border-radius:12px;padding:14px;margin:10px 0;border:1px solid #222836}
-  h1{font-size:18px;margin:0 0 8px 0;display:flex;gap:8px;align-items:center}
-  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .btn{background:#2a3042;color:var(--text);border:0;border-radius:8px;padding:8px 12px;cursor:pointer}
-  .btn.ok{background:#2ecc71;color:#0c0f12;font-weight:700}
-  .btn.bad{background:#e74c3c}
-  .muted{color:var(--muted)}
-  input[type="number"],input[type="text"],select{
-    background:#0f121a;color:var(--text);border:1px solid #2a3144;border-radius:6px;padding:6px
-  }
-  input[type="number"]{width:72px}
-  input[type="text"]{width:140px}
-  .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#1c2130;margin:2px}
-  .pill.pink{background:rgba(255,90,195,.14);color:#ffb2e3;border:1px solid rgba(255,90,195,.32)}
-  .table{width:100%;border-collapse:collapse;font-size:13px}
-  .table th,.table td{padding:8px;border-bottom:1px solid #22283a;text-align:left}
-  .kpi{display:flex;gap:16px;flex-wrap:wrap}
-  .kpi .box{background:#0f121a;border:1px solid #22283a;border-radius:10px;padding:10px 12px}
-  .flag{padding:4px 8px;border-radius:6px;background:#22283a}
-  .flag.ok{background:rgba(46,204,113,.15);color:#7ff5b0}
-  .flag.warn{background:rgba(230,126,34,.12);color:#ffbf7a}
-  .flag.info{background:#1f2432;color:#cbd5e1;border:1px dashed #2a3144}
-  .clock{font-variant-numeric:tabular-nums}
-  .hour-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:8px}
-  .hour-cell{padding:6px 8px;border:1px solid #22283a;border-radius:8px;background:#0f121a;display:flex;justify-content:space-between;align-items:center}
-  .hour-cell.top{border-color:#ff5ac3}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analizador de Aviator - Dashboard Avanzado de Análisis</title>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #121212; color: #ffffff; }
+        #chart { max-width: 800px; margin: 20px auto; }
+        #predictions { margin: 20px; padding: 10px; border: 1px solid #ccc; background-color: #1e1e1e; }
+        #signals { list-style-type: none; padding: 0; }
+        #signals li { padding: 10px; background: #333; margin: 10px 0; border-radius: 5px; }
+        #stats { margin: 20px; padding: 10px; background-color: #1e1e1e; border: 1px solid #ccc; }
+        button { background-color: #4CAF50; color: white; padding: 10px; border: none; cursor: pointer; }
+        button:hover { background-color: #45a049; }
+    </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v9.0</span>
-    <span id="statusFeedback" class="muted" style="margin-left:8px"></span>
-    <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
-  </h1>
-
-  <div class="card">
-    <div class="row">
-      <button id="startBtn" class="btn ok">Iniciar</button>
-      <button id="stopBtn" class="btn">Detener</button>
-      <button id="resetBtn" class="btn">Reset</button>
-      <span class="muted">CoolDown:</span><input id="cooldown" type="number" min="0" max="50" value="5"/>
-      <label class="row"><span class="muted">Modo:</span>
-        <select id="modeSel">
-          <option value="balanced" selected>Balanceado</option>
-          <option value="aggressive">Agresivo</option>
-          <option value="conservative">Conservador</option>
-        </select>
-      </label>
-      <div class="row" style="margin-left:auto">
-        <span class="muted">Feed:</span>
-        <input id="feedId" type="text" value="gocho"/>
-        <button id="connectBtn" class="btn">Conectar</button>
-      </div>
+    <h1>Dashboard Avanzado de Análisis para Aviator</h1>
+    <p>Esta herramienta avanzada analiza datos históricos de multiplicadores en tiempo real para identificar patrones estadísticos y sugerir momentos potenciales donde el multiplicador podría superar 3x, 5x o 10x. Basado en un modelo LSTM con TensorFlow.js para predicciones más precisas en series temporales. Recuerda: esto es solo para estudio y maximizar tu tiempo; el juego es aleatorio (RNG) y no garantiza ganancias. Usa estrategias como observación de rachas, gestión de bankroll (Martingala) y análisis de volatilidad.</p>
+    
+    <canvas id="multiplierChart"></canvas>
+    <div id="stats">
+        <h2>Estadísticas Históricas</h2>
+        <p id="avgMultiplier">Multiplicador promedio: Calculando...</p>
+        <p id="highCount">Rondas >5x: Calculando...</p>
+        <p id="streakInfo">Racha actual de altos: Calculando...</p>
     </div>
-  </div>
-
-  <div class="card">
-    <div class="kpi">
-      <div class="box">Rondas: <b id="rounds">0</b></div>
-      <div class="box">Rosas (≥10x): <b id="roseCountLbl">0</b></div>
-      <div class="box">≥1000x: <b id="rose1000Lbl">0</b><br><span class="muted">Últ.: <span id="last1000Lbl">–</span></span></div>
-      <div class="box">Desde última Rosa: <b id="sinceRose">–</b> <span class="muted">r</span><br><span class="muted">Últ.: <span id="lastRoseLbl">–</span></span></div>
-      <div class="box">Señales: <b id="signals">0</b></div>
-      <div class="box">CoolDown: <b id="cdLeft">0</b></div>
-      <div class="box">MA10: <b id="ma10">–</b></div>
+    <div id="predictions">
+        <h2>Predicciones y Señales Mejoradas</h2>
+        <ul id="signals"></ul>
+        <button id="retrainButton">Reentrenar Modelo</button>
     </div>
 
-    <div class="row" style="margin-top:10px;gap:8px">
-      <span id="roseAlert" class="flag info" style="display:none">Alerta Rosa próxima</span>
-      <span id="lastSignal" class="flag ok" style="display:none">Señal emitida</span>
-    </div>
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
+            authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
+            databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com",
+            projectId: "aviator-analyzer-b29a7",
+            storageBucket: "aviator-analyzer-b29a7.firebasestorage.app",
+            messagingSenderId: "575063626276",
+            appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
+            measurementId: "G-325QCBSQMH"
+        };
 
-    <div style="margin-top:12px">
-      <div class="muted" style="margin-bottom:6px">Últimas rondas</div>
-      <div id="lastRounds"></div>
-    </div>
-  </div>
+        // Inicializar Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const database = firebase.database(app);
+        const crashesRef = database.ref('crashes');
 
-  <div class="card">
-    <div class="row">
-      <h3 style="margin:0">Mapa horario ≥100x</h3>
-      <span class="muted" style="margin-left:auto">Top horas</span>
-    </div>
-    <div id="hourSummary" class="muted" style="margin-top:6px">Sin datos.</div>
-    <div id="hourGrid" class="hour-grid"></div>
-  </div>
+        // Configuración avanzada
+        const minHistoryForPrediction = 50;  // Más datos para mejor precisión
+        const lookbackForPrediction = 10;  // Mirar atrás 10 rondas para secuencias
+        const predictionThresholds = [3, 5, 10];  // Señales para >3x, >5x, >10x
+        const sequenceThresholds = { high: 5, veryHigh: 10 };  // Detectar rachas
+        let localCrashes = [];
+        let model;
+        let chart;
 
-  <!-- B60 (≥5x) -->
-  <div class="card">
-    <div class="row">
-      <h3 style="margin:0">Señal ≥5x cada 60 rondas (B60)</h3>
-      <button id="b60ResetStats" class="btn">Reset B60</button>
-    </div>
-    <div class="kpi" style="margin-top:10px">
-      <div class="box">Bloque: <b id="b60InBlock">0/60</b></div>
-      <div class="box">Señales: <b id="b60Count">0</b></div>
-      <div class="box">Winrate: <b id="b60WR">0%</b></div>
-      <div class="box">Última: <b id="b60Last">–</b></div>
-    </div>
-    <div class="row" style="margin-top:8px;gap:8px">
-      <span id="b60Flag" class="flag info" style="display:none"></span>
-      <span id="b60Shot" class="flag ok" style="display:none">B60 emitida</span>
-    </div>
-  </div>
+        // Normalizar y preparar datos para LSTM (escala Min-Max + features)
+        function normalize(data) {
+            const min = Math.min(...data);
+            const max = Math.max(...data);
+            return data.map(value => (value - min) / (max - min));
+        }
 
-  <!-- B90 (≥10x) -->
-  <div class="card">
-    <div class="row">
-      <h3 style="margin:0">Señal ≥10x cada 90 rondas (B90)</h3>
-      <button id="b90ResetStats" class="btn">Reset B90</button>
-    </div>
-    <div class="kpi" style="margin-top:10px">
-      <div class="box">Bloque: <b id="b90InBlock">0/90</b></div>
-      <div class="box">Señales: <b id="b90Count">0</b></div>
-      <div class="box">Winrate: <b id="b90WR">0%</b></div>
-      <div class="box">Última: <b id="b90Last">–</b></div>
-    </div>
-    <div class="row" style="margin-top:8px;gap:8px">
-      <span id="b90Flag" class="flag info" style="display:none"></span>
-      <span id="b90Shot" class="flag ok" style="display:none">B90 emitida</span>
-    </div>
-  </div>
+        function createSequences(data, lookback) {
+            const sequences = [];
+            const targets = [];
+            for (let i = lookback; i < data.length; i++) {
+                sequences.push(data.slice(i - lookback, i));
+                targets.push(data[i]);
+            }
+            return { sequences: tf.tensor3d(sequences, [sequences.length, lookback, 1]), targets: tf.tensor2d(targets, [targets.length, 1]) };
+        }
 
-  <div class="card">
-    <div class="row"><h3 style="margin:0">Señales registradas</h3></div>
-    <table class="table" style="margin-top:8px">
-      <thead><tr><th>#</th><th>Tipo</th><th>Objetivo</th><th>Crash</th><th>Resultado</th></tr></thead>
-      <tbody id="betsTbody"></tbody>
-    </table>
-    <div class="row" style="margin-top:10px;gap:6px">
-      <button id="hardResetBtn" class="btn bad">Reset local</button>
-    </div>
-  </div>
+        // Crear modelo LSTM avanzado con TensorFlow.js
+        async function createModel(lookback) {
+            const model = tf.sequential();
+            model.add(tf.layers.lstm({ units: 50, returnSequences: true, inputShape: [lookback, 1] }));
+            model.add(tf.layers.lstm({ units: 50, returnSequences: false }));
+            model.add(tf.layers.dense({ units: 25 }));
+            model.add(tf.layers.dense({ units: 1 }));
+            model.compile({ optimizer: 'adam', loss: 'meanSquaredError' });
+            return model;
+        }
 
-  <div class="card muted" style="font-size:12px">
-    Análisis educativo. No garantiza ganancias. Optimizado para eficiencia.
-  </div>
-</div>
+        // Entrenar modelo LSTM
+        async function trainModel() {
+            if (localCrashes.length < minHistoryForPrediction + lookbackForPrediction) {
+                console.log('No hay suficientes datos para entrenar.');
+                return;
+            }
+            const normalizedData = normalize(localCrashes);
+            const { sequences, targets } = createSequences(normalizedData, lookbackForPrediction);
+            model = await createModel(lookbackForPrediction);
+            await model.fit(sequences, targets, { epochs: 100, batchSize: 32, validationSplit: 0.2 });
+            console.log('Modelo LSTM entrenado con éxito.');
+            sequences.dispose();
+            targets.dispose();
+        }
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+        // Predecir próximo multiplicador con LSTM
+        async function predictNext() {
+            if (localCrashes.length < lookbackForPrediction || !model) return [];
+            const lastSequence = normalize(localCrashes.slice(-lookbackForPrediction));
+            const input = tf.tensor3d([lastSequence], [1, lookbackForPrediction, 1]);
+            const prediction = model.predict(input).dataSync()[0];
+            const denormalizedPred = prediction * (Math.max(...localCrashes) - Math.min(...localCrashes)) + Math.min(...localCrashes);
+            input.dispose();
+            
+            const signals = predictionThresholds.map(threshold => {
+                const confidence = Math.min(1, denormalizedPred / threshold);  // Confianza aproximada
+                return confidence > 0.6 ? `Señal potencial para >${threshold}x (confianza: ${Math.round(confidence * 100)}%, pred: ${denormalizedPred.toFixed(2)}x)` : null;
+            }).filter(signal => signal);
+            return signals;
+        }
 
-<script>
-/*** ===== CONFIG ===== ***/
-const firebaseConfig = {
-  apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
-  authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
-  projectId: "aviator-analyzer-b29a7",
-  storageBucket: "aviator-analyzer-b29a7.appspot.com",
-  messagingSenderId: "575063626276",
-  appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
-  measurementId: "G-325QCBSQMH",
-  databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com"
-};
-firebase.initializeApp(firebaseConfig);
-const db  = firebase.database();
-const auth= firebase.auth();
+        // Calcular estadísticas avanzadas
+        function calculateStats() {
+            if (localCrashes.length === 0) return;
+            const avg = localCrashes.reduce((a, b) => a + b, 0) / localCrashes.length;
+            const highCount = localCrashes.filter(m => m > 5).length;
+            let currentStreak = 0;
+            localCrashes.forEach(m => { m > 5 ? currentStreak++ : currentStreak = 0; });
+            document.getElementById('avgMultiplier').textContent = `Multiplicador promedio: ${avg.toFixed(2)}x`;
+            document.getElementById('highCount').textContent = `Rondas >5x: ${highCount} (${((highCount / localCrashes.length) * 100).toFixed(1)}%)`;
+            document.getElementById('streakInfo').textContent = `Racha actual de >5x: ${currentStreak}`;
+        }
 
-/*** ===== HELPERS ===== ***/
-const $ = (id)=>document.getElementById(id);
-const on=(id,ev,fn)=>{ const el=$(id); if(el) el.addEventListener(ev,fn); };
-const now=()=>Date.now();
-const HHmm=ts=>new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-const clamp=(v,min,max)=>v<min?min:(v>max?max:v);
-const logistic=(x,k=8,x0=1)=>1/(1+Math.exp(-k*(x-x0)));
+        // Actualizar gráfico con Chart.js
+        function updateChart() {
+            const ctx = document.getElementById('multiplierChart').getContext('2d');
+            if (chart) chart.destroy();
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: localCrashes.map((_, i) => `Ronda ${i + 1}`),
+                    datasets: [{
+                        label: 'Multiplicadores Históricos',
+                        data: localCrashes,
+                        borderColor: 'cyan',
+                        fill: false
+                    }]
+                },
+                options: {
+                    scales: { y: { beginAtZero: true, grid: { color: '#444' } } },
+                    plugins: { legend: { labels: { color: '#fff' } } }
+                }
+            });
+        }
 
-/*** ===== PARSER ===== ***/
-function parseCrashValue(raw){
-  let s = String(raw).trim().replace(/[^\d.,]/g,'');
-  const lastDot=s.lastIndexOf('.'), lastComma=s.lastIndexOf(',');
-  let dec = (lastComma>lastDot)?',':'.';
-  if(dec===',') s=s.replace(/./g,'').replace(',', '.'); else s=s.replace(/,/g,'');
-  const v = Number(s);
-  return (isFinite(v)&&v>=1)?v:null;
-}
+        // Mostrar señales
+        async function showSignals() {
+            const signals = await predictNext();
+            const signalsList = document.getElementById('signals');
+            signalsList.innerHTML = '';
+            signals.forEach(signal => {
+                const li = document.createElement('li');
+                li.textContent = signal;
+                signalsList.appendChild(li);
+            });
+            if (signals.length === 0) {
+                const li = document.createElement('li');
+                li.textContent = 'No hay señales fuertes en este momento. Espera más datos o reentrena.';
+                signalsList.appendChild(li);
+            }
+        }
 
-/*** ===== ESTADO ===== ***/
-let FEED_ID="gocho", connected=false;
-let rounds=[], lastShown=[];
-let pendings=[], bets=[], signalsCount=0, cooldownLeft=0;
+        // Escuchar datos en tiempo real de Firebase
+        crashesRef.on('value', async (snapshot) => {
+            const data = snapshot.val();
+            localCrashes = data ? Object.values(data) : [];
+            console.log(`Datos cargados: ${localCrashes.length} rondas.`);
+            if (localCrashes.length >= minHistoryForPrediction) {
+                await trainModel();
+                updateChart();
+                calculateStats();
+                await showSignals();
+            }
+        });
 
-const PERSIST_KEY = "gocho_v90_state";
+        // Botón para reentrenar manualmente
+        document.getElementById('retrainButton').addEventListener('click', async () => {
+            await trainModel();
+            await showSignals();
+        });
 
-const session = { active:false };
-
-// Eventos
-const R5=[], I5=[], R10=[], I10=[], R20=[], I20=[], R50=[], I50=[], R100=[], I100=[], R1000=[], I1000=[];
-let since5=null, since10=null, since20=null, since50=null, since100=null, since1000=null;
-let last10=null, last1000=null;
-
-// Mapa horario
-const hour100 = new Array(24).fill(0);
-
-// Anti-spam
-let roseCD=0, roseLossStreak=0, lastRoseAttemptIdx = -1;
-
-/*** ===== AUDIO ===== */
-let audioCtx=null;
-function beep(freq=880, ms=120, gain=0.03){ beeper(freq,ms,gain); }
-function beeper(freq, ms, gain){
-  if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-  o.type="sine"; o.frequency.value=freq; g.gain.value=gain; o.connect(g); g.connect(audioCtx.destination);
-  o.start(); setTimeout(()=>{o.stop();}, ms);
-}
-const beepPink = ()=>{beep(520,160,0.035); setTimeout(()=>beep(980,80,0.03),110);};
-const beepB60  = ()=>{beep(360,140,0.035); setTimeout(()=>beep(540,120,0.035),150);};
-const beepB90  = ()=>{beep(450,120,0.035); setTimeout(()=>beep(700,120,0.030),140);};
-
-/*** ===== MÉTRICAS ===== */
-function movingAverage(arr,n){const L=Math.min(arr.length,n); let s=0; for(let i=arr.length-L;i<arr.length;i++) s+=arr[i]; return s/L;}
-function slopeMA10(){ const nowMA=movingAverage(rounds,10), prevMA=movingAverage(rounds.slice(0,-1),10); return nowMA-prevMA; }
-function blueDensity(n=15){const w=rounds.slice(-n); const b=w.filter(x=>x<2).length; return b/w.length;}
-function maxBlueRun(n=16){const w=rounds.slice(-n); let maxR=0,cur=0; for(const x of w){ if(x<2){cur++; maxR=Math.max(maxR,cur);} else cur=0; } return maxR; }
-function hasPurple(n=12){return rounds.slice(-n).some(x=>x>=5 && x<10);}
-function median(a){ const s=[...a].sort((x,y)=>x-y); const m=Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2; }
-function recentVolatility(n=20) { const w = rounds.slice(-n).map(x => Math.log(x)); const mean = w.reduce((a, b) => a + b, 0) / w.length; const variance = w.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (w.length - 1); return Math.sqrt(variance); }
-function momentum(n=15) { const w = rounds.slice(-n); let ema = w[0]; const alpha = 2 / (n + 1); for (let i = 1; i < w.length; i++) { ema = alpha * w[i] + (1 - alpha) * ema; } return (ema - movingAverage(w, n)) / n; }
-function markovProbHigh(n=50) { const states = rounds.slice(-n).map(x => x < 2 ? 'low' : (x < 10 ? 'mid' : 'high')); const transitions = { low: { low: 0, mid: 0, high: 0 }, mid: { low: 0, mid: 0, high: 0 }, high: { low: 0, mid: 0, high: 0 } }; for (let i = 0; i < states.length - 1; i++) { transitions[states[i]][states[i+1]]++; } const lastState = states[states.length - 1]; const totalFromLast = Object.values(transitions[lastState]).reduce((a, b) => a + b, 0); return totalFromLast > 0 ? (transitions[lastState].high / totalFromLast) : 0.1; }
-
-/*** ===== HAZARD ===== */
-function hazardBuilder(listIntervals, since, lastN){
-  const intervals = listIntervals.slice(-Math.max(3, lastN-1));
-  const gaps = intervals.map(x=>x.gap);
-  const maxG = Math.max(...gaps, 1);
-  const freq = new Map(); gaps.forEach(g=>freq.set(g,(freq.get(g)||0)+1));
-  const N = gaps.length;
-  const pdf=[], cdf=[]; let cum=0;
-  for(let t=1;t<=maxG+20;t++){ const p=(freq.get(t)||0)/N; pdf[t]=p; cum+=p; cdf[t]=cum; }
-  const hazards=[]; for(let t=1;t<=maxG+20;t++){ const S=1-(cdf[t-1]||0); hazards[t]=S>0? pdf[t]/S : 0; }
-  const hazVals = hazards.filter(x=>x>0).sort((a,b)=>a-b);
-  const q=(p)=> hazVals.length? hazVals[Math.floor(p*(hazVals.length-1))] : 0.1;
-  const q70=q(0.70), q75=q(0.75), q80=q(0.80), q90=q(0.90);
-  const tNext = since+1;
-  let eta=null,best=0;
-  for(let t=tNext;t<tNext+20;t++){ if(hazards[t]>q75 && hazards[t]>best){best=hazards[t]; eta=t-since;} }
-  return {h:hazards[tNext]||0, eta, q70, q75, q80, q90};
-}
-
-/*** ===== CLÚSTER ===== */
-function cluster10(){
-  const c60 = rounds.slice(-60).filter(x=>x>=10).length;
-  const c30 = rounds.slice(-30).filter(x=>x>=10).length;
-  const pur20 = rounds.slice(-20).filter(x=>x>=5 && x<10).length;
-  const b15 = blueDensity(15);
-  const sc = 0.6*Math.min(c60/8,1.5) + 0.2*Math.min(c30/4,1.2) + 0.2*Math.min(pur20/3,1) - 0.2*Math.min(b15,1);
-  return {score:Math.max(0,Math.min(sc,2))};
-}
-
-/*** ===== MODO ===== */
-function modeParams(){
-  const m = $("modeSel").value||"balanced";
-  if(m==="aggressive")   return {thrBase:0.90, etaPre:3, etaPost:4, relax30:0.08, relax60:0.15, ctxFlex:1.2};
-  if(m==="conservative") return {thrBase:1.10, etaPre:1, etaPost:2, relax30:0.00, relax60:0.00, ctxFlex:0.0};
-  return {thrBase:0.95, etaPre:2, etaPost:3, relax30:0.04, relax60:0.08, ctxFlex:0.6};
-}
-function contextOK(level="10", flex=0){
-  const sl=slopeMA10(), b15=blueDensity(15), br=maxBlueRun(16);
-  const purple = hasPurple(12);
-  const vol = recentVolatility(20);
-  const mom = momentum(15);
-  const volPenalty = (vol > 1.5) ? 0.8 : (vol < 0.5 ? 1.2 : 1.0);
-  const momBoost = (mom > 0.05) ? 1.1 : (mom < -0.05 ? 0.9 : 1.0);
-  if(level==="100") return (sl>=0) && (b15<=0.42) && (br<=3) && purple && (volPenalty * momBoost >= 1.0);
-  if(level==="50")  return (sl>=-0.001) && (b15<=0.45) && (br<=3) && (volPenalty * momBoost >= 0.95);
-  if(level==="20")  return (sl>=-0.003) && (b15<=0.48) && (br<=4) && (volPenalty * momBoost >= 0.95);
-  if(level==="5")   return (sl>=-0.005) && (b15<=0.55) && (br<=5) && (volPenalty * momBoost >= 0.9);
-  return (sl>=-0.004) && (b15<=0.50) && (br<=4) && (volPenalty * momBoost >= 0.95);
-}
-
-/*** ===== EMISIÓN ===== */
-function emitSignal(target, tag, reason, conf){
-  const id="S"+now();
-  if(session.active){
-    pendings.push({id, target, ts:now(), state:"pend", tag, reason, conf});
-  }
-  signalsCount++; cooldownLeft=Number($("cooldown").value)||5;
-  const sig=$("lastSignal"); sig.style.display="inline-block"; sig.textContent=`Señal ${tag}: ${target}x`;
-  setTimeout(()=>sig.style.display="none", 3500);
-  if(tag.startsWith("B60")) beepB60();
-  else if(tag.startsWith("B90")) beepB90();
-  else beepPink();
-  renderBets(); persistAll();
-}
-
-/*** ===== MOTOR ROSAS ===== */
-function roseEngine(){
-  if(roseCD>0) roseCD--;
-  const H10= hazardBuilder(I10, since10, 60);
-  const H20= hazardBuilder(I20, since20, 40);
-  const H50= hazardBuilder(I50, since50, 25);
-  const H100=hazardBuilder(I100,since100,15);
-
-  if(H10.h>=H10.q75){
-    $("roseAlert").style.display="inline-block";
-    $("roseAlert").textContent = H10.eta ? `Alerta (~${H10.eta} r)` : `Alerta próxima`;
-  }else $("roseAlert").style.display="none";
-
-  const CL = cluster10();
-  const mp = modeParams();
-
-  const rel=(H,Q)=> Q?Math.min(H/Q,2.5):0;
-  const S20 = logistic(rel(H20.h,H20.q80)) * (contextOK("20",mp.ctxFlex)?1:0);
-  const S50 = logistic(rel(H50.h,H50.q80)) * (contextOK("50",mp.ctxFlex)?1:0)*0.9;
-  const S100= logistic(rel(H100.h,H100.q80))*(contextOK("100",mp.ctxFlex)?1:0)*0.8;
-
-  const lastV = rounds[rounds.length-1]||0;
-  const anti = (k)=> (lastV>k?0.65:1);
-  const cand = [
-    {tag:"ROSE100",k:100,score:S100*anti(100)},
-    {tag:"ROSE50", k:50, score:S50*anti(50)},
-    {tag:"ROSE20", k:20, score:S20*anti(20)}
-  ].sort((a,b)=>b.score-a.score);
-
-  const best=cand[0];
-
-  let scoreThr = mp.thrBase;
-  const noSigRounds = (lastRoseAttemptIdx<0)? 999 : (rounds.length - lastRoseAttemptIdx);
-  if(noSigRounds>30) scoreThr -= mp.relax30;
-  if(noSigRounds>60) scoreThr -= mp.relax60;
-  scoreThr = Math.max(0.78, scoreThr);
-
-  const vol = recentVolatility(20);
-  const markovHigh = markovProbHigh(50);
-  scoreThr *= (vol > 1.2 ? 1.1 : 0.95); 
-  scoreThr -= markovHigh * 0.05;
-
-  const cdOK = (cooldownLeft<=0) && (roseCD<=0);
-  const gapOK = (lastRoseAttemptIdx<0) ? true : ((rounds.length - lastRoseAttemptIdx) >= 4);
-  const lossOK = (roseLossStreak<2);
-  const mom = momentum(15);
-  const momentumOK = (mom > -0.02);
-
-  if(cdOK && gapOK && lossOK && best.score>=scoreThr && momentumOK && markovHigh >= 0.15){
-    const reason = `${best.tag} • thr=${scoreThr.toFixed(2)} • score=${best.score.toFixed(2)}`;
-    emitSignal(best.k, best.tag, reason, Math.min(best.score/1.6,1));
-    roseCD=8; lastRoseAttemptIdx=rounds.length; roseLossStreak=0;
-  }
-}
-
-/*** ===== B60 (≥5x) ===== */
-const b60={startIdx:0,sent:false,count:0,wins:0,losses:0,lastTxt:"–"};
-function b60Render(){
-  const inBlock = rounds.length - b60.startIdx;
-  $("b60InBlock").textContent = `${inBlock}/60`;
-  $("b60Count").textContent   = b60.count;
-  $("b60WR").textContent      = b60.count? `${Math.round(100*b60.wins/b60.count)}%`:"0%";
-  $("b60Last").textContent    = b60.lastTxt;
-}
-function b60Engine(){
-  const inBlock = rounds.length - b60.startIdx;
-  if(inBlock>=60){ b60.startIdx=rounds.length; b60.sent=false; $("b60Flag").style.display="none"; }
-  if(b60.sent) return;
-
-  const H5=hazardBuilder(I5,since5,80);
-  const rel = H5.q80? (H5.h/H5.q80):0;
-  const ctx = contextOK("5",0.6);
-  const markovHigh = markovProbHigh(50);
-  const vol = recentVolatility(20);
-  const adjustedRel = rel * (markovHigh > 0.15 ? 1.1 : 1.0) * (vol > 1.5 ? 0.9 : 1.0);
-  const medGap5 = median(I5.slice(-60).map(x=>x.gap))||10;
-  const latePush = (inBlock>=50) && ( (H5.h>=H5.q70 && ctx) || (since5>=medGap5) );
-
-  if( (adjustedRel>=0.92 && ctx) || latePush ){
-    const reason=`B60 ≥5x • rel=${adjustedRel.toFixed(2)}`;
-    emitSignal(5,"B60",reason,Math.min(adjustedRel/1.6,1));
-    b60.sent=true; b60.count++; b60.lastTxt=`${HHmm(now())} • ${inBlock}`;
-    const s=$("b60Shot"); s.style.display="inline-block"; setTimeout(()=>s.style.display="none",3500);
-    persistAll();
-  }
-}
-
-/*** ===== B90 (≥10x) ===== */
-const b90={startIdx:0,sent:false,count:0,wins:0,losses:0,lastTxt:"–"};
-function b90Render(){
-  const inBlock = rounds.length - b90.startIdx;
-  $("b90InBlock").textContent = `${inBlock}/90`;
-  $("b90Count").textContent   = b90.count;
-  $("b90WR").textContent      = b90.count? `${Math.round(100*b90.wins/b90.count)}%`:"0%";
-  $("b90Last").textContent    = b90.lastTxt;
-}
-function b90Engine(){
-  const inBlock = rounds.length - b90.startIdx;
-  if(inBlock>=90){ b90.startIdx=rounds.length; b90.sent=false; $("b90Flag").style.display="none"; }
-  if(b90.sent) return;
-
-  const H10=hazardBuilder(I10,since10,60);
-  const rel = H10.q80? (H10.h/H10.q80):0;
-  const ctx = contextOK("10",0.5);
-  const markovHigh = markovProbHigh(50);
-  const vol = recentVolatility(20);
-  const adjustedRel = rel * (markovHigh > 0.2 ? 1.1 : 1.0) * (vol > 1.5 ? 0.9 : 1.0);
-  const medGap10 = median(I10.slice(-40).map(x=>x.gap))||12;
-  const latePush = (inBlock>=75) && ( (H10.h>=H10.q70 && ctx) || (since10>=medGap10) );
-
-  if( (adjustedRel>=0.95 && ctx) || latePush ){
-    const reason=`B90 ≥10x • rel=${adjustedRel.toFixed(2)}`;
-    emitSignal(10,"B90",reason,Math.min(adjustedRel/1.6,1));
-    b90.sent=true; b90.count++; b90.lastTxt=`${HHmm(now())} • ${inBlock}`;
-    const s=$("b90Shot"); s.style.display="inline-block"; setTimeout(()=>s.style.display="none",3500);
-    persistAll();
-  }
-}
-
-/*** ===== RENDER ===== */
-function renderStats(){
-  $("rounds").textContent = rounds.length;
-  const ma10 = movingAverage(rounds,10); $("ma10").textContent = isNaN(ma10)?"–":ma10.toFixed(2)+"x";
-  $("roseCountLbl").textContent = R10.length;
-  $("sinceRose").textContent = since10==null?"–":since10;
-  $("lastRoseLbl").textContent  = last10?`${last10.v.toFixed(2)}x • ${HHmm(last10.ts)}`:"–";
-  $("signals").textContent = signalsCount;
-  $("cdLeft").textContent = cooldownLeft;
-  $("rose1000Lbl").textContent = R1000.length;
-  $("last1000Lbl").textContent = last1000?`${last1000.v.toFixed(2)}x • ${HHmm(last1000.ts)}`:"–";
-
-  const cont=$("lastRounds"); cont.innerHTML="";
-  lastShown.forEach(x=>{ const d=document.createElement("span"); d.className="pill"; d.textContent=x.toFixed(2)+"x"; cont.appendChild(d); });
-
-  b60Render(); b90Render();
-}
-function renderBets(){
-  const tb=$("betsTbody"); tb.innerHTML="";
-  bets.concat(pendings).forEach((b,idx)=>{
-    const st = b.state==="win"?"win": b.state==="lose"?"lose":"pend";
-    const tr=document.createElement("tr");
-    tr.innerHTML = `<td>${idx+1}</td><td>${b.tag||"ROSE"}</td><td>${b.target}x</td><td>${b.crash? b.crash.toFixed(2)+"x":"—"}</td><td>${st}</td>`;
-    tb.appendChild(tr);
-  });
-}
-function renderHourGrid(){
-  const g=$("hourGrid"); g.innerHTML="";
-  const total = hour100.reduce((a,b)=>a+b,0);
-  const topIdx = [...hour100.keys()].sort((a,b)=>hour100[b]-hour100[a]).slice(0,3);
-  $("hourSummary").textContent = total? `Total ≥100x: ${total}. Top: ${topIdx.map(h=>String(h).padStart(2,"0")+":00").join(", ")}.` : "Sin datos.";
-  for(let h=0;h<24;h++){
-    const cell=document.createElement("div"); cell.className="hour-cell"+(topIdx.includes(h)?" top":"");
-    cell.innerHTML = `<span>${String(h).padStart(2,"0")}:00</span><b>${hour100[h]}</b>`;
-    g.appendChild(cell);
-  }
-}
-
-/*** ===== ACTUALIZACIÓN ===== */
-function pushEvt(v, ts, list, listInt, thr, sinceRef, lastRef, markHour=false){
-  if(v>=thr){
-    const ev={v,ts}; list.push(ev);
-    if(markHour) hour100[new Date(ts).getHours()]++;
-    if(list.length>=2){ const prev=list[list.length-2]; listInt.push({from:prev,to:ev,gap:rounds.length-prev.idx-1}); }
-    if(lastRef==="10") last10=ev, since10=0;
-    if(lastRef==="1000") last1000=ev, since1000=0;
-    if(lastRef==="5") since5=0;
-    if(lastRef==="20") since20=0;
-    if(lastRef==="50") since50=0;
-    if(lastRef==="100") since100=0;
-  }else{
-    if(sinceRef==="5") since5++;
-    if(sinceRef==="10") since10++;
-    if(sinceRef==="20") since20++;
-    if(sinceRef==="50") since50++;
-    if(sinceRef==="100") since100++;
-    if(sinceRef==="1000") since1000++;
-  }
-}
-function onNewCrash(v, ts, isBase=false){
-  rounds.push(v); if(rounds.length>2000) rounds.shift();
-  if(!isBase && cooldownLeft>0) cooldownLeft--;
-
-  if(!isBase && pendings.length && session.active){
-    const bet=pendings.shift(); const win=(v>bet.target);
-    bet.crash=v; bet.state=win?"win":"lose";
-    if(bet.tag==="B60"){ win?b60.wins++:b60.losses++; b60.lastTxt=`${win?"GANADA":"PERDIDA"} • ${v.toFixed(2)}x`;}
-    if(bet.tag==="B90"){ win?b90.wins++:b90.losses++; b90.lastTxt=`${win?"GANADA":"PERDIDA"} • ${v.toFixed(2)}x`;}
-    if(bet.tag.startsWith("ROSE")) win?roseLossStreak=0:roseLossStreak++;
-    bets.push(bet); if(bets.length>300) bets.shift();
-    renderBets(); persistAll();
-  }
-
-  lastShown.unshift(v); if(lastShown.length>40) lastShown.pop();
-
-  pushEvt(v,ts,R1000,I1000,1000,"1000","1000");
-  pushEvt(v,ts,R100,I100,100,"100","100",true);
-  pushEvt(v,ts,R50,I50,50,"50","50");
-  pushEvt(v,ts,R20,I20,20,"20","20");
-  pushEvt(v,ts,R10,I10,10,"10","10");
-  pushEvt(v,ts,R5,I5,5,"5","5");
-
-  renderStats(); renderHourGrid();
-
-  if(!isBase){
-    roseEngine();
-    b60Engine();
-    b90Engine();
-    b60Render(); b90Render();
-  }
-}
-
-/*** ===== CONEXIÓN ===== */
-async function connectFeed(){
-  if(connected) return;
-  const fb=$("statusFeedback"); fb.textContent="Conectando...";
-  await auth.signInAnonymously();
-  const ref=db.ref(`feeds/${FEED_ID}/crashes`);
-  const snap=await ref.orderByKey().limitToLast(800).once("value");
-  const data=snap.val(); const keys=Object.keys(data).sort();
-
-  rounds=[]; lastShown=[];
-  [R5,R10,R20,R50,R100,R1000].forEach(a=>a.length=0); [I5,I10,I20,I50,I100,I1000].forEach(a=>a.length=0);
-  since5=since10=since20=since50=since100=since1000=0;
-
-  keys.forEach(k=>{
-    const node=data[k]; const v=parseCrashValue(node.v||node.raw||node); if(v) onNewCrash(v, Number(node.ts||now()), true);
-  });
-
-  b60.startIdx=rounds.length; b90.startIdx=rounds.length;
-
-  const liveRef=ref.orderByKey().startAt(keys[keys.length-1]||"");
-  liveRef.on("child_added", s=>{
-    const d=s.val(); const v=parseCrashValue(d.v||d.raw||d); if(v) onNewCrash(v, Number(d.ts||now()), false);
-  });
-
-  connected=true; fb.textContent="Conectado.";
-  renderStats(); renderHourGrid(); renderBets();
-}
-
-/*** ===== PERSIST ===== */
-function persistAll(){
-  localStorage.setItem(PERSIST_KEY, JSON.stringify({bets, pendings, signalsCount, cooldownLeft, session, ui:{cooldown:Number($("cooldown").value)||5, mode:$("modeSel").value}, b60, b90}));
-}
-function restoreAll(){
-  const raw = localStorage.getItem(PERSIST_KEY); if(!raw) return;
-  const p = JSON.parse(raw);
-  bets=p.bets||[]; pendings=p.pendings||[]; signalsCount=p.signalsCount||0; cooldownLeft=p.cooldownLeft||0;
-  session.active=p.session?.active||false;
-  $("cooldown").value = p.ui?.cooldown||5; $("modeSel").value = p.ui?.mode||"balanced";
-  Object.assign(b60, p.b60||{}); Object.assign(b90, p.b90||{});
-}
-
-/*** ===== UI ===== */
-on("connectBtn","click", connectFeed);
-on("startBtn","click", ()=>{ session.active=true; signalsCount=0; cooldownLeft=0; bets=[]; pendings=[]; renderBets(); renderStats(); persistAll(); beep(660,90,0.03); });
-on("stopBtn","click",  ()=>{ session.active=false; persistAll(); renderBets(); renderStats(); });
-on("resetBtn","click", ()=>{ localStorage.clear(); location.reload(); });
-on("hardResetBtn","click", ()=>{ localStorage.clear(); location.reload(); });
-on("b60ResetStats","click", ()=>{ b60.count=b60.wins=b60.losses=0; b60.lastTxt="–"; persistAll(); b60Render(); });
-on("b90ResetStats","click", ()=>{ b90.count=b90.wins=b90.losses=0; b90.lastTxt="–"; persistAll(); b90Render(); });
-
-setInterval(()=>{ $("clockNow").textContent=new Date().toLocaleTimeString(); }, 1000);
-
-// Bootstrap
-(function bootstrap(){
-  restoreAll(); renderBets(); b60Render(); b90Render(); connectFeed();
-  setInterval(persistAll, 2000);
-})();
-</script>
+        console.log('Dashboard avanzado iniciado. Esperando datos...');
+    </script>
 </body>
 </html>
