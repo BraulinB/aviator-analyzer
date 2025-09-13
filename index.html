@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v10.0 (Sniper 3/60 + 10x)</title>
+<title>Aviator Analyzer • Gocho v10.1 (Sniper 3x/5x/10x)</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5;
@@ -17,10 +17,9 @@
   .btn{background:#2a3042;color:var(--text);border:0;border-radius:8px;padding:8px 12px;cursor:pointer}
   .btn.ok{background:#2ecc71;color:#0c0f12;font-weight:700}
   .muted{color:var(--muted)}
-  input[type="text"],input[type="number"]{background:#0f121a;color:var(--text);border:1px solid #2a3144;border-radius:6px;padding:6px}
   input[type="text"]{width:140px}
+  input[type="text"],input[type="number"]{background:#0f121a;color:var(--text);border:1px solid #2a3144;border-radius:6px;padding:6px}
   .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:#1c2130;margin:4px 6px 0 0}
-  .pill b{font-variant-numeric:tabular-nums}
   .pill.small{padding:4px 8px;font-size:12px}
   .table{width:100%;border-collapse:collapse;font-size:13px}
   .table th,.table td{padding:8px;border-bottom:1px solid #22283a;text-align:left}
@@ -29,13 +28,13 @@
   .flag{padding:4px 8px;border-radius:6px;background:#22283a}
   .flag.ok{background:rgba(46,204,113,.15);color:#7ff5b0}
   .clock{font-variant-numeric:tabular-nums}
-  .tag3{background:#20334a} .tag10{background:#3b2a3b}
+  .tag3{background:#20334a} .tag5{background:#2c3344} .tag10{background:#3b2a3b}
   .status-pend{color:#e5e7eb} .status-fired{color:#8ab4ff} .status-win{color:#7ff5b0} .status-lose{color:#ff9b9b}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v10.0</span>
+  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v10.1</span>
     <span id="statusFeedback" class="muted" style="margin-left:8px"></span>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
   </h1>
@@ -61,7 +60,7 @@
   <div class="card">
     <div class="kpi">
       <div class="box">Rondas: <b id="rounds">0</b> <span class="muted">(base)</span></div>
-      <div class="box">MA10: <b id="ma10">–</b> &nbsp; • &nbsp; since3: <b id="since3Lbl">–</b> &nbsp; • &nbsp; since10: <b id="since10Lbl">–</b></div>
+      <div class="box">MA10: <b id="ma10">–</b> &nbsp; • &nbsp; since3: <b id="since3Lbl">–</b> • since5: <b id="since5Lbl">–</b> • since10: <b id="since10Lbl">–</b></div>
       <div class="box">Bloque: <b id="blockProg">0/60</b><br><span class="muted">Inicio: <span id="blockStartLbl">–</span></span></div>
       <div class="box">Señales: <b id="signals">0</b></div>
     </div>
@@ -81,7 +80,7 @@
   <div class="card">
     <div class="row"><h3 style="margin:0">Señales registradas</h3></div>
     <table class="table" style="margin-top:8px">
-      <thead><tr><th>#</th><th>Tipo</th><th>Objetivo</th><th>Stake</th><th>Crash</th><th>Resultado</th><th>P/L</th></tr></thead>
+      <thead><tr><th>#</th><th>Tipo</th><th>Objetivo</th><th>Hora</th><th>Stake</th><th>Crash</th><th>Resultado</th><th>P/L</th></tr></thead>
       <tbody id="betsTbody"></tbody>
     </table>
   </div>
@@ -116,17 +115,16 @@ const auth= firebase.auth();
 const $ = (id)=>document.getElementById(id);
 const now=()=>Date.now();
 const HHmm = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-
+const HHmmss = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
 function movingAverage(arr,n){const L=Math.min(arr.length,n); if(!L) return NaN; let s=0; for(let i=arr.length-L;i<arr.length;i++) s+=arr[i]; return s/L;}
 function clamp(v,a,b){return v<a?a:(v>b?b:v);}
 
-/* Parser robusto: maneja miles/decimales y rescata >=1000x recortados */
+/* Parser robusto + rescate ≥1000x */
 function parseCrashValue(raw){
   if(raw===null||raw===undefined) return null;
   if(typeof raw==="number") return (raw>=1 && isFinite(raw))? raw : null;
   let sRaw = String((typeof raw==="object" && raw && ("raw" in raw || "v" in raw)) ? (raw.raw ?? raw.v) : raw);
 
-  // 1) patrón con separador de miles explícito
   const rx=/(\d{1,3}(?:[.,\u00A0\u2009]\d{3})+(?:[.,]\d+)?)/;
   const m=sRaw.match(rx);
   if(m){
@@ -138,7 +136,6 @@ function parseCrashValue(raw){
     const v=Number(t); return (isFinite(v)&&v>=1)?v:null;
   }
 
-  // 2) normalización genérica
   let s=sRaw.replace(/[^\d.,+-]+/g,'').trim();
   if(!s) return null;
   const lastDot=s.lastIndexOf('.'), lastComma=s.lastIndexOf(',');
@@ -146,7 +143,6 @@ function parseCrashValue(raw){
   if(dec===','){ s=s.replace(/\./g,''); s=s.replace(',', '.'); } else { s=s.replace(/,/g,''); }
   let v=Number(s); if(!(isFinite(v)&&v>=1)) return null;
 
-  // 3) rescate heurístico 1,xxx
   if($("fix1k")?.checked && v>=300 && v<450){
     const ma10 = movingAverage(rounds,10);
     const recentHuge = rounds.slice(-8).some(x=>x>=200);
@@ -157,21 +153,21 @@ function parseCrashValue(raw){
 
 /* ======== ESTADO ======== */
 const BLOCK = 60;
-
 let FEED_ID="gocho", connected=false;
 let rounds=[], roundsMeta=[], lastShown=[];
 let baseCount=0;
 
 let pendings=[], bets=[], signalsCount=0;
-const PERSIST_KEY="gocho_v100_sniper";
+const PERSIST_KEY="gocho_v101_sniper";
 const session = {active:false, startTs:null};
 
-/* umbrales: sólo 3x y 10x */
+/* Umbrales */
 const R3=[], I3=[];  let since3=null;
+const R5=[], I5=[];  let since5=null;
 const R10=[],I10=[]; let since10=null;
 
-/* Plan de disparos del bloque */
-let schedule = null; // {startIdx, shots3:[{id,offset,low,high,state}], shot10:{...}}
+/* Plan francotirador */
+let schedule=null; // {startIdx, shot3:{}, shot5:{}, shot10:{}}
 let blockStartIdx=0;
 
 /* ======== AUDIO ======== */
@@ -186,135 +182,119 @@ function beep(freq=880, ms=120, gain=0.03){
   }catch(_){}
 }
 const beep3  = ()=>{ beep(540,120,0.035); setTimeout(()=>beep(820,90,0.03),150); };
-const beep10 = ()=>{ beep(360,150,0.04); setTimeout(()=>beep(980,100,0.035),200); };
+const beep5  = ()=>{ beep(620,130,0.035); setTimeout(()=>beep(900,100,0.03),160); };
+const beep10 = ()=>{ beep(360,150,0.04);  setTimeout(()=>beep(980,100,0.035),200); };
 
-/* ======== MÉTRICAS BÁSICAS ======== */
+/* ======== MÉTRICAS ======== */
 function blueDensity(n=15){const w=rounds.slice(-n); if(!w.length) return 1; return w.filter(x=>x<2).length/w.length;}
 function maxBlueRun(n=16){const w=rounds.slice(-n); let m=0,c=0; for(const x of w){ if(x<2){c++; m=Math.max(m,c);} else c=0; } return m;}
 function hasPurple(n=12){return rounds.slice(-n).some(x=>x>=5 && x<10);}
 function slopeMA10(){ if(rounds.length<11) return 0; const a=movingAverage(rounds,10), b=movingAverage(rounds.slice(0,-1),10); return a-b; }
 
-/* ======== HAZARD DISCRETO (para planificar) ======== */
+/* ======== HAZARD ======== */
 function hazardCurve(listIntervals, horizonT){
-  // Construye hazards[t] para t=1..T, y cuantiles q70..q90 del conjunto de hazards>0
   const gaps = listIntervals.map(x=>x.gap);
   const T = Math.max(horizonT, 40);
   if(!gaps.length){
-    const hz=Array(T+1).fill(0); for(let t=1;t<=T;t++) hz[t]=1/T; // plano
+    const hz=Array(T+1).fill(0); for(let t=1;t<=T;t++) hz[t]=1/T;
     return {hazards:hz,q70:0.01,q75:0.015,q80:0.02,q90:0.03};
   }
-  const maxG = Math.max(...gaps, 1);
-  const freq=new Map(); gaps.forEach(g=>freq.set(g,(freq.get(g)||0)+1));
-  const N = gaps.length;
-  const pdf=[], cdf=[]; let cum=0;
-  const limit = Math.max(T, maxG+20);
+  const maxG=Math.max(...gaps,1), freq=new Map(); gaps.forEach(g=>freq.set(g,(freq.get(g)||0)+1));
+  const N=gaps.length, pdf=[], cdf=[]; let cum=0;
+  const limit=Math.max(T,maxG+20);
   for(let t=1;t<=limit;t++){ const p=(freq.get(t)||0)/N; pdf[t]=p; cum+=p; cdf[t]=cum; }
-  const hazards=[]; const vals=[];
-  for(let t=1;t<=limit;t++){ const S=1-(cdf[t-1]||0); const h=S>0? pdf[t]/S : 0; hazards[t]=h; if(h>0) vals.push(h); }
+  const hazards=[],vals=[]; for(let t=1;t<=limit;t++){ const S=1-(cdf[t-1]||0); const h=S>0?pdf[t]/S:0; hazards[t]=h; if(h>0) vals.push(h); }
   vals.sort((a,b)=>a-b);
   const pick=p=> vals.length? vals[Math.floor(p*(vals.length-1))] : 0.01;
   return {hazards, q70:pick(0.70), q75:pick(0.75), q80:pick(0.80), q90:pick(0.90)};
 }
-
-/* ======== PLANIFICACIÓN DE BLOQUE ======== */
-function pickSlots(hzObj, since, horizon, count, minGap, qPrefer=0.80){
+function pickOneSlot(hzObj, since, horizon, qPref, reserved=[], minGap=10){
   const {hazards,q70,q75,q80,q90}=hzObj;
-  const thr = (qPrefer===0.90)?q90:(qPrefer===0.75)?q75:(qPrefer===0.70)?q70:q80;
-  // Construir candidatos t -> offset dentro del bloque
+  const thr = (qPref>=0.9)?q90:(qPref>=0.8)?q80:(qPref>=0.75)?q75:q70;
   const cand=[];
-  for(let t=since+1; t<=since+horizon; t++){
-    const off=t-since; if(!hazards[t]) continue;
-    cand.push({off:off, score:hazards[t]});
+  for(let t=(since??0)+1; t<=(since??0)+horizon; t++){
+    const off=t-(since??0); if(!hazards[t]) continue;
+    cand.push({off,score:hazards[t]});
   }
   cand.sort((a,b)=>b.score-a.score);
-  // Primero, los que superan el umbral elegido
-  const primary = cand.filter(c=>c.score>=thr);
-  const chosen=[];
-  const used = [];
-  function farEnough(x){ return used.every(u=>Math.abs(u-x)>=minGap); }
-  for(const c of primary){ if(farEnough(c.off)){ chosen.push(c.off); used.push(c.off); if(chosen.length>=count) break; } }
-  // Si faltan, aflojar (q75 -> q70) y completar
-  if(chosen.length<count){
-    const extra = cand.filter(c=>c.score>=q75 && !chosen.includes(c.off));
-    for(const c of extra){ if(farEnough(c.off)){ chosen.push(c.off); used.push(c.off); if(chosen.length>=count) break; } }
-  }
-  if(chosen.length<count){
-    const more = cand.filter(c=>c.score>=q70 && !chosen.includes(c.off));
-    for(const c of more){ if(farEnough(c.off)){ chosen.push(c.off); used.push(c.off); if(chosen.length>=count) break; } }
-  }
-  // Fallback: posiciones razonables
-  const defaults = [Math.round(horizon*0.2), Math.round(horizon*0.5), Math.round(horizon*0.8)];
-  for(const d of defaults){ if(chosen.length>=count) break; if(d>=2 && d<=horizon-1 && farEnough(d)){ chosen.push(d); used.push(d); } }
-  // Ordenar asc
-  chosen.sort((a,b)=>a-b);
-  return chosen;
+  const far=(x)=>reserved.every(r=>Math.abs(r-x)>=minGap);
+
+  // primaria
+  for(const c of cand){ if(c.score>=thr && far(c.off)) return c.off; }
+  // secundaria q75
+  for(const c of cand){ if(c.score>=q75 && far(c.off)) return c.off; }
+  // terciaria q70
+  for(const c of cand){ if(c.score>=q70 && far(c.off)) return c.off; }
+
+  // fallback: tercio razonable
+  const defaults=[Math.round(horizon*0.25), Math.round(horizon*0.55), Math.round(horizon*0.8)];
+  for(const d of defaults){ if(d>=2 && d<=horizon-1 && far(d)) return d; }
+  return Math.max(3, Math.min(horizon-2, Math.round(horizon*0.6)));
 }
 
+/* ======== PLANIFICACIÓN ======== */
 function buildSchedule(){
   const startIdx = rounds.length;
   const horizon = BLOCK;
-  // Curvas
-  const cur3  = hazardCurve(I3,  since3 + horizon + 20);
-  const cur10 = hazardCurve(I10, since10 + horizon + 20);
 
-  // Elegir slots
-  const offs3  = pickSlots(cur3,  since3??0, horizon, /*count*/3, /*minGap*/12, 0.80);
-  const off10a = pickSlots(cur10, since10??0, horizon, /*count*/1, /*minGap*/18, 0.90);
-  const off10  = off10a.length? off10a[0] : Math.round(horizon*0.7);
+  const cur3  = hazardCurve(I3,  (since3 ?? 0)  + horizon + 20);
+  const cur5  = hazardCurve(I5,  (since5 ?? 0)  + horizon + 20);
+  const cur10 = hazardCurve(I10, (since10 ?? 0) + horizon + 20);
 
-  // Ventanas (±2 para 3x, ±3 para 10x)
-  const shots3 = offs3.map((o,i)=>({
-    id:`S3-${Date.now()}-${i+1}`, off:o, low:Math.max(1,o-2), high:Math.min(horizon,o+2),
-    state:"pend", firedAt:null, target:3
-  }));
-  const shot10 = { id:`S10-${Date.now()}`, off:off10, low:Math.max(1,off10-3), high:Math.min(horizon,off10+3),
-                   state:"pend", firedAt:null, target:10 };
+  const reserved=[];
+  const off10 = pickOneSlot(cur10, since10??0, horizon, 0.90, reserved, 14); reserved.push(off10);
+  const off5  = pickOneSlot(cur5 , since5 ??0, horizon, 0.85, reserved, 12); reserved.push(off5);
+  const off3  = pickOneSlot(cur3 , since3 ??0, horizon, 0.80, reserved, 10); reserved.push(off3);
 
-  schedule = { startIdx, shots3, shot10 };
-  blockStartIdx = startIdx;
+  const mk=(o,halfWin,target)=>({ id:`S${target}-${Date.now()}-${o}`, off:o, low:Math.max(1,o-halfWin), high:Math.min(horizon,o+halfWin), state:"pend", firedAt:null, target });
+  const shot10 = mk(off10,3,10);
+  const shot5  = mk(off5 ,3,5);
+  const shot3  = mk(off3 ,2,3);
+
+  schedule={ startIdx, shot3, shot5, shot10 };
+  blockStartIdx=startIdx;
+  $("blockStartLbl").textContent=HHmm(now());
   renderPlan();
 }
 
-/* ======== DISPARO PROGRAMADO ======== */
+/* ======== GATE DE CONTEXTO ======== */
 function gateContext(level){
-  // filtro sencillo para no tirar en azul extremo; al final de ventana dispara igual
-  const b15 = blueDensity(15), br=maxBlueRun(16), sl=slopeMA10();
-  if(level===10) return (b15<=0.52) && (br<=5) && (sl>=-0.002);
-  return (b15<=0.58) && (br<=6);
+  const b15=blueDensity(15), br=maxBlueRun(16), sl=slopeMA10(), purple=hasPurple(12);
+  if(level>=10) return (b15<=0.52) && (br<=5) && purple && (sl>=0);
+  if(level>=5)  return (b15<=0.54) && (br<=5) && (purple || sl>=-0.001);
+  return (b15<=0.58) && (br<=6); // 3x
 }
+
+/* ======== DISPARO EN VENTANA ======== */
 function tryFirePlanned(){
   if(!schedule) return;
   const pos = rounds.length - schedule.startIdx; // 1..60
   $("blockProg").textContent = `${clamp(pos,0,BLOCK)}/${BLOCK}`;
+
+  function atEdge(s){ return pos>=s.high; }
+  function inWindow(s){ return pos>=s.low && pos<=s.high; }
+
   // 3x
-  for(const s of schedule.shots3){
-    if(s.state!=="pend") continue;
-    if(pos < s.low) continue;
-    if(pos > s.high){ // última oportunidad ya pasó: disparo tardío (cumplir 3 por bloque)
-      fireShot(s, 3, "SNIPER_3x (late)");
-      continue;
-    }
-    // Dentro de ventana
-    if(gateContext(3)) { fireShot(s, 3, "SNIPER_3x"); }
-    else if(pos===s.high){ fireShot(s, 3, "SNIPER_3x (edge)"); }
+  const s3=schedule.shot3;
+  if(s3 && s3.state==="pend"){
+    if(inWindow(s3) && (gateContext(3) || pos===s3.high)){ fireShot(s3,3,"SNIPER_3x"); }
+    else if(atEdge(s3)){ fireShot(s3,3,"SNIPER_3x (late)"); }
+  }
+  // 5x
+  const s5=schedule.shot5;
+  if(s5 && s5.state==="pend"){
+    if(inWindow(s5) && (gateContext(5) || pos===s5.high)){ fireShot(s5,5,"SNIPER_5x"); }
+    else if(atEdge(s5)){ fireShot(s5,5,"SNIPER_5x (late)"); }
   }
   // 10x
-  const s10 = schedule.shot10;
+  const s10=schedule.shot10;
   if(s10 && s10.state==="pend"){
-    if(pos >= s10.low && pos <= s10.high){
-      if(gateContext(10) || pos===s10.high){ fireShot(s10, 10, "SNIPER_10x"); }
-    } else if(pos > s10.high){
-      // ventana pasó: disparo por compromiso si no se tiró aún
-      fireShot(s10, 10, "SNIPER_10x (late)");
-    }
+    if(inWindow(s10) && (gateContext(10) || pos===s10.high)){ fireShot(s10,10,"SNIPER_10x"); }
+    else if(atEdge(s10)){ fireShot(s10,10,"SNIPER_10x (late)"); }
   }
 
   // ¿cerró bloque?
-  if(pos>=BLOCK){
-    // al cerrar el bloque planificamos el siguiente con lo aprendido
-    buildSchedule();
-  }
-
+  if(pos>=BLOCK){ buildSchedule(); }
   renderPlan();
 }
 
@@ -322,7 +302,7 @@ function fireShot(shot, target, tag){
   if(shot.state!=="pend") return;
   shot.state="fired"; shot.firedAt=now();
   emitSignal(target, tag, `Plan@+${shot.off} [${shot.low}-${shot.high}]`, 0.8, shot.id);
-  if(target===3) beep3(); else beep10();
+  if(target===3) beep3(); else if(target===5) beep5(); else beep10();
 }
 
 /* ======== UI: Plan ======== */
@@ -340,28 +320,29 @@ function renderPlan(){
     if(pos>=shot.low && pos<=shot.high && shot.state==="pend"){ s.style.outline="1px solid #8ab4ff"; }
     box.appendChild(s);
   };
-  schedule.shots3.forEach((s,i)=>mk(s,`3x#${i+1}`,"tag3"));
+  mk(schedule.shot3,"3x","tag3");
+  mk(schedule.shot5,"5x","tag5");
   mk(schedule.shot10,"10x","tag10");
 }
 
 /* ======== EMISIÓN & LOG ======== */
 function emitSignal(target, tag, reason, conf, shotId=null){
   if(!$("autoSignal").checked) return;
-  const id="S"+now();
+  const id="S"+now(); const ts=now();
   if(session.active){
-    pendings.push({id,target,stake:1,ts:now(),state:"pend",tag,reason,conf, shotId});
+    pendings.push({id,target,stake:1,ts,emittedAt:HHmmss(ts),state:"pend",tag,reason,conf, shotId});
   }
   signalsCount++; $("signals").textContent=signalsCount;
-  const flag=$("statusFeedback"); flag.textContent=`Señal ${tag} ${target}x emitida`;
+  const flag=$("statusFeedback"); flag.textContent=`Señal ${tag} ${target}x emitida @ ${HHmmss(ts)}`;
   setTimeout(()=>{ const f=$("statusFeedback"); if(f && f.textContent.startsWith("Señal")) f.textContent=""; }, 3000);
   renderBets(); persistLocal();
 }
 
-/* ======== RENDER ======== */
 function renderStats(){
   $("rounds").textContent = `${rounds.length} (base ${baseCount})`;
   const ma10=movingAverage(rounds,10); $("ma10").textContent=isNaN(ma10)?"–":ma10.toFixed(2)+"x";
   $("since3Lbl").textContent = since3==null?"–":since3;
+  $("since5Lbl").textContent = since5==null?"–":since5;
   $("since10Lbl").textContent= since10==null?"–":since10;
 
   const cont=$("lastRounds"); cont.innerHTML="";
@@ -373,7 +354,7 @@ function renderBets(){
     const st=b.state==="win"?"win":b.state==="lose"?"lose":"pend";
     const tr=document.createElement("tr");
     tr.title=b.reason||"";
-    tr.innerHTML=`<td>${i+1}</td><td>${b.tag||"-"}</td><td>${b.target}x</td><td>$${(b.stake?.toFixed?b.stake.toFixed(2):b.stake)||"1.00"}</td><td>${b.crash?b.crash.toFixed(2)+"x":"—"}</td><td>${st}</td><td>${b.pl||"—"}</td>`;
+    tr.innerHTML=`<td>${i+1}</td><td>${b.tag||"-"}</td><td>${b.target}x</td><td>${b.emittedAt||"—"}</td><td>$${(b.stake?.toFixed?b.stake.toFixed(2):b.stake)||"1.00"}</td><td>${b.crash?b.crash.toFixed(2)+"x":"—"}</td><td>${st}</td><td>${b.pl||"—"}</td>`;
     tb.appendChild(tr);
   });
 }
@@ -384,9 +365,11 @@ function pushEvt(v,ts,list,listInt,thr,label){
     const idx=rounds.length-1, ev={idx,v,ts}; list.push(ev);
     if(list.length>=2){ const prev=list[list.length-2]; listInt.push({from:prev,to:ev,gap:ev.idx-prev.idx}); if(listInt.length>240) listInt.shift(); }
     if(label===3)  since3=0;
+    if(label===5)  since5=0;
     if(label===10) since10=0;
   }else{
     if(label===3)  since3 =(since3 ==null?1:since3 +1);
+    if(label===5)  since5 =(since5 ==null?1:since5 +1);
     if(label===10) since10=(since10==null?1:since10+1);
   }
 }
@@ -394,21 +377,22 @@ function onNewCrash(v, ts, base=false){
   rounds.push(v); roundsMeta.push({v,ts}); if(rounds.length>3000){ rounds.shift(); roundsMeta.shift(); }
   lastShown.unshift(v); if(lastShown.length>60) lastShown.pop();
 
-  // liquidar pendientes
+  // Resolver pendientes
   if(!base && pendings.length && session.active){
     const bet=pendings.shift(); const win=(v>bet.target);
     bet.crash=v; bet.state=win?"win":"lose"; bet.pl=win?"+1":"−1";
     bets.push(bet); if(bets.length>800) bets.splice(0,bets.length-800);
-    // marcar estado en el plan
+    // actualizar estado visual del plan
     if(schedule && bet.shotId){
-      const upd = schedule.shots3.find(s=>s.id===bet.shotId) || (schedule.shot10 && schedule.shot10.id===bet.shotId && schedule.shot10);
+      let upd=[schedule.shot3, schedule.shot5, schedule.shot10].find(s=>s && s.id===bet.shotId);
       if(upd) upd.state = win? "win" : "lose";
     }
     renderBets(); persistLocal();
   }else if(!session.active){ pendings=[]; }
 
-  // eventos 3x / 10x
+  // Actualizar eventos
   pushEvt(v,ts,R10,I10,10,10);
+  pushEvt(v,ts,R5 ,I5 ,5 ,5);
   pushEvt(v,ts,R3 ,I3 ,3 ,3);
 
   renderStats();
@@ -440,18 +424,17 @@ async function connectFeed(){
   if(!snap){ try{ const s=await ref.orderByKey().limitToLast(800).once("value"); if(s && s.val()) { snap=s; method="key"; } }catch(e){} }
   if(!snap||!snap.val()){ fb&&(fb.textContent="Sin datos en el feed."); return; }
 
-  // reset (NO borramos histórico de señales/bets)
+  // reset buffers (no borro histórico de señales)
   rounds=[]; roundsMeta=[]; lastShown=[];
-  [R3,R10].forEach(a=>a.length=0); [I3,I10].forEach(a=>a.length=0);
-  since3=since10=null; baseCount=Object.keys(snap.val()).length;
+  [R3,R5,R10].forEach(a=>a.length=0); [I3,I5,I10].forEach(a=>a.length=0);
+  since3=since5=since10=null; baseCount=Object.keys(snap.val()).length;
   schedule=null; blockStartIdx=rounds.length;
 
   const data=snap.val(), keys=Object.keys(data).sort();
   keys.forEach(k=>{ const {v,ts}=nodeToVT(data[k]); if(v!==null) onNewCrash(v,ts,true); lastKey=k; lastTs=Number(data[k]?.ts||k)||now(); lastActivity=now(); });
 
-  // planificar primer bloque para las próximas 60
+  // Plan inicial
   buildSchedule();
-  $("blockStartLbl").textContent = HHmm(now());
   renderStats(); renderPlan();
 
   // vivo
