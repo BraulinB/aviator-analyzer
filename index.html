@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v13.0 (Rosa 10× One‑Shot)</title>
+<title>Aviator Analyzer • Gocho v14.0 (Rosa 10× One‑Shot • Phase Sniper)</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5;
@@ -47,8 +47,8 @@
 <div class="wrap">
   <div id="signalBanner" class="banner">🎯 Señal ROSA 10× → Entrar próxima ronda</div>
 
-  <h1>✈️ Aviator Analyzer • <span style="color:var(--brand)">Gocho v13.0</span>
-    <span class="muted">Rosa 10× One‑Shot</span>
+  <h1>✈️ Aviator Analyzer • <span style="color:var(--brand)">Gocho v14.0</span>
+    <span class="muted">Rosa 10× One‑Shot • Phase Sniper</span>
     <span id="statusFeedback" class="muted" style="margin-left:8px"></span>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
   </h1>
@@ -86,6 +86,7 @@
       <div class="box">MA10: <b id="ma10">–</b><br><span class="muted">since10:</span> <b id="since10Lbl">–</b></div>
       <div class="box">Sesión: <b id="sessProg">0/60</b><br><span class="muted">Armado:</span> <b id="armedLbl">no</b></div>
       <div class="box">Señal: <b id="signalLbl">—</b><br><span class="muted">Objetivo:</span> <b>ROSA ≥10×</b></div>
+      <div class="box">Predicción: <b id="predLbl">—</b><br><span class="muted">tol:</span> <b id="tolLbl">—</b></div>
     </div>
 
     <div style="margin-top:8px">
@@ -110,7 +111,7 @@
   </div>
 
   <div class="card muted" style="font-size:12px">
-    Uso educativo/análisis. No garantiza resultados. “Ganada” = crash &gt; objetivo. No se fuerzan tiros al cierre de ventana.
+    Uso educativo/análisis. No garantiza resultados. “Ganada” = crash &gt; objetivo. No se fuerza señal al final del bloque.
   </div>
 </div>
 
@@ -142,9 +143,11 @@ const HHmm = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2
 const HHmmss = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
 function movingAverage(arr,n){const L=Math.min(arr.length,n); if(!L) return NaN; let s=0; for(let i=arr.length-L;i<arr.length;i++) s+=arr[i]; return s/L;}
 function clamp(v,a,b){return v<a?a:(v>b?b:v);}
-function avg(arr){if(!arr.length) return 0; return arr.reduce((a,b)=>a+b,0)/arr.length;}
+function median(a){ if(!a.length) return NaN; const s=[...a].sort((x,y)=>x-y); const m=Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2; }
+function mad(a){ if(a.length<2) return 1; const m=median(a); const dev=a.map(x=>Math.abs(x-m)); return Math.max(1, median(dev)); }
+function avg(a){ return a.length? a.reduce((p,c)=>p+c,0)/a.length : 0; }
 
-/* ======== AUDIO (beep fuerte) ======== */
+/* ======== AUDIO ======== */
 let audioCtx=null;
 function beep(freq=880, ms=140, gain=0.05){
   if(!$("beepToggle").checked) return;
@@ -155,11 +158,39 @@ function beep(freq=880, ms=140, gain=0.05){
     o.start(); setTimeout(()=>o.stop(), ms);
   }catch(_){}
 }
-function alarmPre(){ beep(780,140,0.06); setTimeout(()=>beep(980,120,0.05),170); }
-function alarmFire(){ for(let k=0;k<3;k++){ setTimeout(()=>{ beep(580,180,0.07); setTimeout(()=>beep(1100,140,0.07),160); }, k*260); } }
+function alarmPre(){ beep(820,140,0.06); setTimeout(()=>beep(1020,120,0.05),170); }
+function alarmFire(){ for(let k=0;k<3;k++){ setTimeout(()=>{ beep(580,180,0.075); setTimeout(()=>beep(1150,140,0.075),160); }, k*260); } }
+
+/* ======== ESTADO ======== */
+const PERSIST_KEY="gocho_v140_phase_oneshot";
+let rounds=[], roundsMeta=[], lastShown=[], baseCount=0;
+let FEED_ID="gocho", connected=false;
+
+const R10=[], I10=[]; let since10=null;
+
+const Session = {
+  active:false, startIdx:0, limit:60, pos:0,
+  shotMade:false, armed:false, armOffset:0,       // 1=próxima, 2=la siguiente
+  lastEmitIdx:-999, phase:{med:NaN,tol:NaN,dist:NaN}
+};
+
+let bets=[], pendings=[];
+
+/* ======== UI ======== */
+function colorClassFor(v){
+  if(v>=10) return "c-pink";
+  if(v>=5)  return "c-purple";
+  if(v>=2)  return "c-green";
+  return "c-blue";
+}
+function setBanner(show,msg){
+  const el=$("signalBanner");
+  if(show){ el.textContent=msg||"🎯 Señal ROSA 10× → Entrar próxima ronda"; el.classList.add("show"); }
+  else el.classList.remove("show");
+}
+function pushReview(txt){ const box=$("reviewBox"); const line=`[${HHmmss(now())}] ${txt}`; box.textContent=(box.textContent==="—"?line:(box.textContent+"\n"+line)); }
 
 /* ======== PARSER crash + Auto‑1k ======== */
-let rounds=[], roundsMeta=[], lastShown=[]; // globales
 function parseCrashValue(raw){
   if(raw===null||raw===undefined) return null;
   if(typeof raw==="number") return (raw>=1 && isFinite(raw))? raw : null;
@@ -182,95 +213,107 @@ function parseCrashValue(raw){
   return v;
 }
 
-/* ======== ESTADO SESIÓN (one‑shot) ======== */
-const PERSIST_KEY="gocho_v130_oneshot";
-let FEED_ID="gocho", connected=false, baseCount=0;
-
-const R10=[], I10=[]; let since10=null;
-
-const Session = {
-  active:false, startIdx:0, limit:60, pos:0,
-  shotMade:false, armed:false, armOffset:0, // 1=próxima, 2=la siguiente
-  lastEmitIdx:-999
-};
-
-let bets=[], pendings=[];
-
-/* ======== UI ======== */
-function colorClassFor(v){
-  if(v>=10) return "c-pink";
-  if(v>=5)  return "c-purple";
-  if(v>=2)  return "c-green";
-  return "c-blue";
+/* ======== AGRESIVIDAD (solo 2 knobs) ======== */
+function getAggConf(){
+  const m=($("aggr")?.value||"EQ");
+  if(m==="CONS") return { tolBase:1, tolMax:3, qFloorLast:1.40, qFloorAvg3:1.55 };
+  if(m==="AGR")  return { tolBase:2, tolMax:4, qFloorLast:1.28, qFloorAvg3:1.45 };
+  return { tolBase:2, tolMax:3, qFloorLast:1.34, qFloorAvg3:1.52 };
 }
-function setBanner(show,msg){
-  const el=$("signalBanner");
-  if(show){ el.textContent=msg||"🎯 Señal ROSA 10× → Entrar próxima ronda"; el.classList.add("show"); }
-  else el.classList.remove("show");
+function renderExplain(){
+  const c=getAggConf();
+  $("aggrExplain").textContent=`One‑Shot: predice por fase de rosas (gap mediano). Pre‑arma T+2/T+1 con alarma. tol ${c.tolBase}→${c.tolMax} según sesión, piso calidad ${c.qFloorLast}/${c.qFloorAvg3}.`;
 }
-function pushReview(txt){ const box=$("reviewBox"); const line=`[${HHmmss(now())}] ${txt}`; box.textContent=(box.textContent==="—"?line:(box.textContent+"\n"+line)); }
 
-/* ======== MÉTRICAS sencillas ======== */
+/* ======== MÉTRICAS BÁSICAS ======== */
 function blueDensity(n=20){const w=rounds.slice(-n); if(!w.length) return 1; return w.filter(x=>x<2).length/w.length;}
 function maxBlueRun(n=18){const w=rounds.slice(-n); let m=0,c=0; for(const x of w){ if(x<2){c++; m=Math.max(m,c);} else c=0; } return m;}
 function hasPurple(n=12){return rounds.slice(-n).some(x=>x>=5 && x<10);}
-function slopeMA10(){ if(rounds.length<11) return 0; const a=movingAverage(rounds,10), b=movingAverage(rounds.slice(0,-1),10); return a-b; }
-
-/* ======== HAZARD 10× (muy simple) ======== */
-function hazardCurve(listIntervals, horizonT){
-  const gaps=listIntervals.map(x=>x.gap); const T=Math.max(horizonT,40);
-  if(!gaps.length){ const hz=Array(T+1).fill(0); for(let t=1;t<=T;t++) hz[t]=1/T; return {hazards:hz, q85:0.02}; }
-  const freq=new Map(); const N=gaps.length; const alpha=0.06;
-  for(let i=0;i<N;i++){ const g=gaps[i], w=Math.pow(1-alpha, N-1-i); freq.set(g,(freq.get(g)||0)+w); }
-  let total=0; for(const v of freq.values()) total+=v;
-  const pdf=[], cdf=[]; let cum=0; const limit=Math.max(T, Math.max(...gaps)+20);
-  for(let t=1;t<=limit;t++){ const p=(freq.get(t)||0)/Math.max(total,1); pdf[t]=p; cum+=p; cdf[t]=cum; }
-  const hazards=[],vals=[]; for(let t=1;t<=limit;t++){ const S=1-(cdf[t-1]||0); const h=S>0?pdf[t]/S:0; hazards[t]=h; if(h>0) vals.push(h); }
-  vals.sort((a,b)=>a-b); const q=(p)=>vals[Math.floor(p*(vals.length-1))]||0.02;
-  return {hazards, q85:q(0.85)};
+function lastIndexWhere(pred, fromEnd=rounds.length-1){
+  for(let i=fromEnd;i>=0;i--) if(pred(rounds[i])) return i;
+  return -1;
 }
 
-/* ======== GATES y UMBRALES (muy directos) ======== */
-function getAggConf(){
-  const m=($("aggr")?.value||"EQ");
-  if(m==="CONS") return {thrMin:0.90, preGap:0.06};
-  if(m==="AGR")  return {thrMin:0.78, preGap:0.08};
-  return {thrMin:0.85, preGap:0.07};
+/* ======== FASE DE ROSAS (predicción simple) ======== */
+function phaseModel(){
+  // gaps 10×
+  const gaps = I10.map(x=>x.gap);
+  const L = gaps.length;
+  if(L<2){
+    return {ok:false, med:NaN, mad:NaN, tol:NaN, dist:NaN, reliable:false, reason:"sin historial de gaps"};
+  }
+  const recent = gaps.slice(-Math.min(8,L));
+  const med = median(recent);
+  const mdev = mad(recent);       // robustez
+  let tol = Math.max(getAggConf().tolBase, Math.min(Math.round(mdev*1.2), getAggConf().tolMax));
+  // algo más permisivo si ya vamos tarde en la sesión
+  const pos = Session.active ? (rounds.length-Session.startIdx) : 0;
+  if(pos>=40) tol = Math.min(getAggConf().tolMax, Math.max(tol, getAggConf().tolBase+1));
+  if(pos>=50) tol = getAggConf().tolMax;
+
+  const dist = med - (since10 ?? 0); // cuántas rondas faltan aproximadas
+  const reliable = (mdev/Math.max(1,med)) <= 0.45; // dispersión razonable
+  return {ok:true, med, mad:mdev, tol, dist, reliable, reason:"ok"};
 }
+
+/* ======== GATES SENCILLOS ======== */
 function qualityFloorOK(){
+  const conf=getAggConf();
   const a=rounds.slice(-3); if(!a.length) return false;
   const last=a[a.length-1], aavg=avg(a);
-  const br=maxBlueRun(16);
-  // Evita entrar pegado a 1.20 – pide algo de “respiración”
-  if(last<1.35) return false;
-  if(aavg<1.50 && last<1.80) return false;
-  if(br>=9 && last<1.80) return false;
+  const br=maxBlueRun(12);
+  if(last<conf.qFloorLast) return false;
+  if(aavg<conf.qFloorAvg3) return false;
+  if(br>=10 && last<1.80) return false;
   return true;
 }
 function contextGate(){
-  const b20=blueDensity(20), b30=blueDensity(30), br=maxBlueRun(18), sl=slopeMA10();
-  const purple=hasPurple(12);
-  // Gate simple: no entrar en pantanos de azules y pedir algo de vida (púrpura o pendiente ≳ plana)
-  return (b20<=0.63) && (b30<=0.65) && (br<=9) && (purple || sl>=-0.004);
+  const b20=blueDensity(20), b30=blueDensity(30), br=maxBlueRun(18);
+  // Evita pantanos extremos de azul
+  return (b20<=0.68) && (b30<=0.70) && (br<=10);
+}
+function fallbackPulseOK(){
+  // Morado reciente + algo de vida verde: dispara ventanas cortas
+  const lastPurple = lastIndexWhere(v => v>=5 && v<10);
+  if(lastPurple<0) return false;
+  const sinceP = rounds.length - 1 - lastPurple;
+  const greens = rounds.slice(-5).filter(v=>v>=2 && v<5).length;
+  return sinceP<=3 && greens>=1;
 }
 
-/* ======== DECISOR one‑shot ======== */
-function computeShotDecision(){
-  const s10 = since10 ?? 0;
-  const H = hazardCurve(I10, s10+30);
-  const h1=(H.hazards[s10+1]||0), h2=(H.hazards[s10+2]||0), q=H.q85||0.02;
-  let rel1 = q>0? h1/q : 0, rel2 = q>0? h2/q : 0;
-
-  // Umbral dinámico simple: baja con sequía (cuanto más tiempo sin 10×, menos exigencia)
-  const dry = clamp((s10-12)/18, 0, 1);
-  const conf=getAggConf();
-  const thrFire = clamp(1.00 - dry*0.22, conf.thrMin, 1.05);
-  const thrPre  = clamp(thrFire - conf.preGap, conf.thrMin-0.10, 1.02);
+/* ======== DECISOR ONE‑SHOT ======== */
+function decide(){
+  const ph=phaseModel();
+  Session.phase = ph;
+  $("predLbl").textContent = ph.ok? `~${ph.med.toFixed(0)} (dist T+${Math.max(-9,Math.min(9,Math.round(ph.dist)))})` : "—";
+  $("tolLbl").textContent  = ph.ok? `${ph.tol}` : "—";
 
   const gateOK = contextGate();
-  const qfloor = qualityFloorOK();
+  const floorOK= qualityFloorOK();
 
-  return {rel1,rel2,thrFire,thrPre,gateOK,qfloor,s10};
+  // Si no hay fase fiable, revisar fallback por púrpura-impulso
+  if(!(ph.ok && ph.reliable)){
+    return {shouldArm:false, offset:0, why: gateOK&&floorOK&&fallbackPulseOK() ? "fallback" : "no-phase"};
+  }
+
+  // Ventana por fase: si estamos a 2 o 1 rondas del mediano (±tol), armamos.
+  const dist = ph.dist; // rondas hasta el mediano estimado
+  const within = Math.abs(dist) <= ph.tol;
+
+  if(within && gateOK && floorOK){
+    // Preferir T+2 sobre T+1 si todavía falta 2 con claridad
+    if(dist>=2) return {shouldArm:true, offset:2, why:"phase-early"};
+    if(dist>=1) return {shouldArm:true, offset:1, why:"phase-now"};
+    // si ya estamos justo en el mediano (dist≈0), arma para T+1
+    return {shouldArm:true, offset:1, why:"phase-imminent"};
+  }
+
+  // Si no entra por fase, pero hay pulso morado y el gate/floor dan ok, arma corto
+  if(gateOK && floorOK && fallbackPulseOK()){
+    return {shouldArm:true, offset:1, why:"fallback-pulse"};
+  }
+
+  return {shouldArm:false, offset:0, why:"waiting"};
 }
 
 /* ======== RENDER ======== */
@@ -297,61 +340,60 @@ function renderBets(){
   bets.concat(pendings).forEach((b,i)=>{
     const st=b.state==="win"?"win":b.state==="lose"?"lose":"pend";
     const tr=document.createElement("tr");
-    tr.innerHTML=`<td>${i+1}</td><td>${b.tag||"ROSA_10x"}</td><td>${b.target}x</td><td>${b.emittedAt||"—"}</td><td>${b.crash?b.crash.toFixed(2)+"x":"—"}</td><td>${st}</td>`;
+    tr.innerHTML=`<td>${i+1}</td><td>${b.tag||"ROSA_10x"}</td><td>${b.target||10}x</td><td>${b.emittedAt||"—"}</td><td>${b.crash?b.crash.toFixed(2)+"x":"—"}</td><td>${st}</td>`;
     tb.appendChild(tr);
   });
 }
 
-/* ======== DISPARO ======== */
-function armFor(offset){ // 1 = próxima, 2 = la siguiente
+/* ======== ARMADO / DISPARO ======== */
+function armFor(offset){
   Session.armed=true; Session.armOffset=offset;
   $("armedLbl").textContent=`sí (T+${offset})`;
-  alarmPre(); setBanner(true, offset===1?"🎯 Ventana detectada → Posible entrada próxima ronda":"🎯 Ventana detectada → Preparar T+2");
-  pushReview(`Armo para T+${offset}.`);
+  alarmPre(); setBanner(true, offset===1?"🎯 Ventana → posible entrada próxima ronda":"🎯 Ventana → preparar T+2");
+  pushReview(`Arma para T+${offset} [${Session.phase.reason}] med~${isNaN(Session.phase.med)?"?":Session.phase.med.toFixed(0)} tol±${isNaN(Session.phase.tol)?"?":Session.phase.tol}.`);
 }
-function disarm(msg){ Session.armed=false; Session.armOffset=0; $("armedLbl").textContent="no"; if(msg) pushReview(msg); setBanner(false); }
+function disarm(msg){
+  Session.armed=false; Session.armOffset=0; $("armedLbl").textContent="no"; if(msg) pushReview(msg); setBanner(false);
+}
 function fireShot(tag){
   if(!$("autoSignal").checked || Session.shotMade) return;
   const ts=now();
   pendings.push({id:"S"+ts,target:10,ts,emittedAt:HHmmss(ts),state:"pend",tag});
   Session.shotMade=true; Session.lastEmitIdx=rounds.length;
-  $("signalLbl").textContent="EMITIDA (T+1)"; alarmFire(); setBanner(true,"🚨 ENTRAR AHORA → Próxima ronda (ROSA 10×)");
+  $("signalLbl").textContent="EMITIDA (T+1)";
+  alarmFire(); setBanner(true,"🚨 ENTRAR AHORA → Próxima ronda (ROSA 10×)");
   pushReview("Señal emitida: entrar en la próxima ronda (T+1) objetivo ≥10×.");
   renderBets();
 }
 
-/* ======== LOOP de sesión ======== */
+/* ======== CICLO DE SESIÓN ======== */
 function onTickOneShot(){
   if(!Session.active) return;
   Session.pos = rounds.length - Session.startIdx;
 
-  // cerrar sin forzar
+  // cierre sin forzar
   if(Session.pos>=Session.limit || Session.shotMade){
     if(!Session.shotMade) pushReview("Sesión terminó sin señal: no hubo ventana confiable.");
     Session.active=false; setBanner(false);
     return;
   }
 
-  // decidir
-  const D = computeShotDecision();
-  // Pre‑armado (elige T+2 si es claramente mejor)
   if(!Session.armed){
-    if(D.gateOK && D.qfloor){
-      if(D.rel2>=D.thrFire && D.rel2>D.rel1*1.08){ armFor(2); }
-      else if(D.rel1>=D.thrPre){ armFor(1); }
-    }
+    const dec=decide();
+    if(dec.shouldArm){ armFor(dec.offset); }
   }else{
-    // cuenta atrás del armado
     if(Session.armOffset>1){
       Session.armOffset--; $("armedLbl").textContent=`sí (T+${Session.armOffset})`;
       setBanner(true, `🎯 Preparado → T+${Session.armOffset}`);
     }else{
-      // toca T+1: ¿Disparar?
-      const D2 = computeShotDecision();
-      if(D2.gateOK && D2.qfloor && D2.rel1>=D2.thrFire){
+      // tocaría disparar en T+1 si confirma gate/piso o si estamos en la fase
+      const qOK=qualityFloorOK(), gOK=contextGate();
+      const ph=Session.phase;
+      const inPhase = ph.ok && Math.abs((since10??0) - ph.med) <= ph.tol + 0; // en ventana
+      if(qOK && gOK && inPhase){
         fireShot("ONE_SHOT_ROSA_10x");
       }else{
-        disarm("Se desarma: ventana no confirmó en T+1.");
+        disarm("Se desarma: la ventana no confirmó en T+1.");
       }
     }
   }
@@ -390,18 +432,17 @@ function onNewCrash(v, ts, base=false){
 
 /* ======== CONEXIÓN FEED ======== */
 let liveRef=null, liveCb=null, lastKey=null, lastTs=null, lastActivity=null, watchdog=null;
-
 function nodeToVT(node){
   const raw = (node && typeof node==='object' && ('raw' in node || 'v' in node)) ? (node.raw ?? node.v) : node;
   const v = parseCrashValue(raw);
   const ts = Number(node?.ts) || now();
   return {v,ts};
 }
-
 async function connectFeed(){
   if(connected) return;
+  const fb=$("statusFeedback");
   FEED_ID=($("feedId").value||"gocho").trim();
-  const fb=$("statusFeedback"); fb&&(fb.textContent=`Conectando a feeds/${FEED_ID}/crashes…`);
+  fb&&(fb.textContent=`Conectando a feeds/${FEED_ID}/crashes…`);
   try{ await auth.signInAnonymously(); }catch(e){}
 
   const ref=db.ref(`feeds/${FEED_ID}/crashes`);
@@ -412,8 +453,9 @@ async function connectFeed(){
   if(!snap){ try{ const s=await ref.orderByKey().limitToLast(800).once("value"); if(s && s.val()) { snap=s; method="key"; } }catch(e){} }
   if(!snap||!snap.val()){ fb&&(fb.textContent="Sin datos en el feed."); return; }
 
-  rounds=[]; roundsMeta=[]; lastShown=[]; [R10].forEach(a=>a.length=0); [I10].forEach(a=>a.length=0);
-  since10=null; baseCount=Object.keys(snap.val()).length;
+  // reset buffers
+  rounds=[]; roundsMeta=[]; lastShown=[];
+  R10.length=0; I10.length=0; since10=null; baseCount=Object.keys(snap.val()).length;
 
   const data=snap.val(), keys=Object.keys(data).sort();
   keys.forEach(k=>{ const {v,ts}=nodeToVT(data[k]); if(v!==null) onNewCrash(v,ts,true); lastKey=k; lastTs=Number(data[k]?.ts||k)||now(); lastActivity=now(); });
@@ -445,7 +487,7 @@ function disconnectFeed(silent=false){
 /* ======== PERSISTENCIA ======== */
 function persistLocal(){
   try{
-    localStorage.setItem(PERSIST_KEY, JSON.stringify({bets, pendings, session:Session, aggr:$("aggr").value}));
+    localStorage.setItem(PERSIST_KEY, JSON.stringify({bets, aggr:$("aggr").value}));
   }catch(_){}
 }
 function restoreLocal(){
@@ -453,16 +495,11 @@ function restoreLocal(){
     const raw=localStorage.getItem(PERSIST_KEY); if(!raw) return;
     const p=JSON.parse(raw);
     if(Array.isArray(p.bets)) bets=p.bets;
-    if(Array.isArray(p.pendings)) pendings=p.pendings;
     if(p.aggr) $("aggr").value=p.aggr;
   }catch(_){}
 }
 
 /* ======== UI ======== */
-function renderExplain(){
-  const c=getAggConf();
-  $("aggrExplain").textContent=`Modo ${($("aggr").value||"EQ")} → Umbral mín. ${c.thrMin.toFixed(2)} (baja con sequía). Pre‑armado ~${c.preGap.toFixed(2)} por debajo. Una sola señal por sesión en 60 rondas.`;
-}
 $("connectBtn").addEventListener("click", connectFeed);
 $("disconnectBtn").addEventListener("click", ()=>disconnectFeed(false));
 $("startBtn").addEventListener("click", ()=>{
