@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v15.0 (Rosa 10× One‑Shot • Phase Sniper)</title>
+<title>Aviator Analyzer • Gocho v16.0 (≥2×/≥3× Auto)</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5;
-    --ok:#2ecc71; --warn:#e67e22; --bad:#e74c3c; --brand:#f7a1ff;
+    --ok:#2ecc71; --warn:#e67e22; --bad:#e74c3c; --brand:#8ab4ff;
     --blue:#4ea1ff; --green:#53d26b; --purple:#aa8bff; --pink:#ff7ad9;
   }
   html,body{background:var(--bg);color:var(--text);font:14px/1.45 system-ui,Inter,Segoe UI,Roboto,Arial,sans-serif;margin:0}
@@ -35,9 +35,9 @@
   /* Banner de señal */
   .banner{
     position:fixed; left:50%; top:18px; transform:translateX(-50%);
-    background:#1f0c1a; border:2px solid var(--pink); color:#ffd6ef;
+    background:#0f2015; border:2px solid var(--green); color:#d8ffe6;
     padding:10px 16px; border-radius:12px; font-weight:800; z-index:9999;
-    box-shadow:0 10px 30px rgba(255,122,217,.25); display:none
+    box-shadow:0 10px 30px rgba(83,210,107,.25); display:none
   }
   .banner.show{display:block; animation:pop .18s ease-out both}
   @keyframes pop{0%{transform:translateX(-50%) scale(.92)}100%{transform:translateX(-50%) scale(1)}}
@@ -45,10 +45,10 @@
 </head>
 <body>
 <div class="wrap">
-  <div id="signalBanner" class="banner">🎯 Señal ROSA 10× → Entrar próxima ronda</div>
+  <div id="signalBanner" class="banner">🎯 Señal ≥2× → Entrar próxima ronda</div>
 
-  <h1>✈️ Aviator Analyzer • <span style="color:var(--brand)">Gocho v15.0</span>
-    <span class="muted">Rosa 10× One‑Shot • Phase Sniper</span>
+  <h1>✈️ Aviator Analyzer • <span style="color:var(--brand)">Gocho v16.0</span>
+    <span class="muted">Objetivo ≥2×/≥3× • 1–2 señales/60 • Auto‑reinicio</span>
     <span id="statusFeedback" class="muted" style="margin-left:8px"></span>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
   </h1>
@@ -56,17 +56,24 @@
   <!-- Controles -->
   <div class="card">
     <div class="row">
-      <button id="startBtn" class="btn ok">Iniciar sesión (one‑shot)</button>
+      <button id="startBtn" class="btn ok">Iniciar sesión</button>
       <button id="pauseBtn" class="btn">Pausar</button>
       <label class="row"><input id="autoSignal" type="checkbox" checked> Auto‑señal</label>
       <label class="row"><input id="beepToggle" type="checkbox" checked> Beep</label>
       <label class="row"><input id="fix1k" type="checkbox" checked> Auto‑1k</label>
+      <label class="row"><input id="autoRestart" type="checkbox"> Auto‑reinicio</label>
 
       <span class="muted">Agresividad:</span>
       <select id="aggr">
         <option value="EQ" selected>Equilibrado</option>
         <option value="CONS">Conservador</option>
         <option value="AGR">Agresivo</option>
+      </select>
+
+      <span class="muted">Objetivo:</span>
+      <select id="targetSel">
+        <option value="2" selected>≥2× (verde)</option>
+        <option value="3">≥3× (morado)</option>
       </select>
 
       <div class="row" style="margin-left:auto">
@@ -83,10 +90,9 @@
   <div class="card">
     <div class="kpi">
       <div class="box">Rondas: <b id="rounds">0</b> <span class="muted">(base)</span></div>
-      <div class="box">MA10: <b id="ma10">–</b><br><span class="muted">since10:</span> <b id="since10Lbl">–</b></div>
+      <div class="box">MA10: <b id="ma10">–</b><br><span class="muted">since≥T:</span> <b id="sinceGLbl">–</b></div>
       <div class="box">Sesión: <b id="sessProg">0/60</b><br><span class="muted">Armado:</span> <b id="armedLbl">no</b></div>
-      <div class="box">Señal: <b id="signalLbl">—</b><br><span class="muted">Objetivo:</span> <b>ROSA ≥10×</b></div>
-      <div class="box">Predicción: <b id="predLbl">—</b><br><span class="muted">tol:</span> <b id="tolLbl">—</b></div>
+      <div class="box">Señales: <b id="shotsLbl">0/2</b><br><span class="muted">Objetivo:</span> <b id="goalLbl">≥2×</b></div>
     </div>
 
     <div style="margin-top:8px">
@@ -97,7 +103,7 @@
 
   <!-- Log -->
   <div class="card">
-    <div class="row"><h3 style="margin:0">Señales (máx. 1 por sesión)</h3></div>
+    <div class="row"><h3 style="margin:0">Señales (máx. 2 por sesión)</h3></div>
     <table class="table" style="margin-top:8px">
       <thead><tr><th>#</th><th>Tag</th><th>Objetivo</th><th>Hora</th><th>Crash</th><th>Estado</th></tr></thead>
       <tbody id="betsTbody"></tbody>
@@ -143,11 +149,10 @@ const HHmm = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2
 const HHmmss = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
 function movingAverage(arr,n){const L=Math.min(arr.length,n); if(!L) return NaN; let s=0; for(let i=arr.length-L;i<arr.length;i++) s+=arr[i]; return s/L;}
 function clamp(v,a,b){return v<a?a:(v>b?b:v);}
-function median(a){if(!a.length) return 0; const b=[...a].sort((x,y)=>x-y); const m=Math.floor(b.length/2); return b.length%2?b[m]:(b[m-1]+b[m])/2;}
-function mad(a){ if(a.length<3) return 1; const m=median(a); const d=a.map(x=>Math.abs(x-m)); return median(d)||1; }
 function avg(a){return a.length? a.reduce((s,v)=>s+v,0)/a.length : 0;}
+function median(a){if(!a.length) return 0; const b=[...a].sort((x,y)=>x-y); const m=Math.floor(b.length/2); return b.length%2?b[m]:(b[m-1]+b[m])/2;}
 
-/* ============ AUDIO (beep fuerte) ============ */
+/* ============ AUDIO (alarma fuerte) ============ */
 let audioCtx=null;
 function beep(freq=880, ms=140, gain=0.05){
   if(!$("beepToggle").checked) return;
@@ -158,8 +163,8 @@ function beep(freq=880, ms=140, gain=0.05){
     o.start(); setTimeout(()=>o.stop(), ms);
   }catch(_){}
 }
-function alarmPre(){ beep(780,150,0.06); setTimeout(()=>beep(980,130,0.05),170); }
-function alarmFire(){ for(let k=0;k<3;k++){ setTimeout(()=>{ beep(580,180,0.07); setTimeout(()=>beep(1100,140,0.07),160); }, k*260); } }
+function alarmPre(){ beep(760,150,0.06); setTimeout(()=>beep(980,130,0.05),170); }
+function alarmFire(){ for(let k=0;k<3;k++){ setTimeout(()=>{ beep(560,180,0.07); setTimeout(()=>beep(1100,140,0.07),160); }, k*260); } }
 
 /* ============ PARSER crash + Auto‑1k ============ */
 let rounds=[], roundsMeta=[], lastShown=[];
@@ -185,15 +190,17 @@ function parseCrashValue(raw){
   return v;
 }
 
-/* ============ ESTADO SESIÓN (one‑shot) ============ */
-const PERSIST_KEY="gocho_v150_oneshot_dedupe";
+/* ============ ESTADO SESIÓN ============ */
+const PERSIST_KEY="gocho_v160_green_auto";
 let FEED_ID="gocho", connected=false, baseCount=0;
 
-const R10=[], I10=[]; let since10=null;
+let TARGET=2;                 // 2 o 3
+let eventsG=[], intervalsG=[]; // eventos >=TARGET y sus gaps
+let sinceG=null;
 
 const Session = {
   active:false, startIdx:0, limit:60, pos:0,
-  shotMade:false, armed:false, armOffset:0, // 1 = próxima ronda, 2 = la siguiente
+  shotMade:0, maxShots:2, armed:false, armOffset:0, // 1 = próxima
   lastEmitIdx:-999
 };
 let bets=[], pendings=[];
@@ -207,8 +214,7 @@ function colorClassFor(v){
 }
 function renderLast60(){
   const cont=$("lastRounds"); cont.innerHTML="";
-  const arr=lastShown.slice(0,60);
-  arr.forEach(v=>{
+  lastShown.slice(0,60).forEach(v=>{
     const sp=document.createElement("span");
     sp.className="pill small "+colorClassFor(v);
     sp.textContent=v.toFixed(2)+"x";
@@ -217,22 +223,24 @@ function renderLast60(){
 }
 function setBanner(show,msg){
   const el=$("signalBanner");
-  if(show){ el.textContent=msg||"🎯 Señal ROSA 10× → Entrar próxima ronda"; el.classList.add("show"); }
-  else el.classList.remove("show");
+  if(show){
+    el.textContent=msg || (TARGET===2?"🎯 Señal ≥2× → Entrar próxima ronda":"🎯 Señal ≥3× → Entrar próxima ronda");
+    el.classList.add("show");
+  } else el.classList.remove("show");
 }
 function pushReview(txt){ const box=$("reviewBox"); const line=`[${HHmmss(now())}] ${txt}`; box.textContent=(box.textContent==="—"?line:(box.textContent+"\n"+line)); }
 
-/* ============ MÉTRICAS sencillas ============ */
+/* ============ MÉTRICAS ============ */
 function blueDensity(n=20){const w=rounds.slice(-n); if(!w.length) return 1; return w.filter(x=>x<2).length/w.length;}
 function maxBlueRun(n=18){const w=rounds.slice(-n); let m=0,c=0; for(const x of w){ if(x<2){c++; m=Math.max(m,c);} else c=0; } return m;}
 function hasPurple(n=12){return rounds.slice(-n).some(x=>x>=5 && x<10);}
 function slopeMA10(){ if(rounds.length<11) return 0; const a=movingAverage(rounds,10), b=movingAverage(rounds.slice(0,-1),10); return a-b; }
 
-/* ============ HAZARD 10× (simple) ============ */
+/* ============ HAZARD >=TARGET ============ */
 function hazardCurve(listIntervals, horizonT){
-  const gaps=listIntervals.map(x=>x.gap); const T=Math.max(horizonT,40);
-  if(!gaps.length){const hz=Array(T+1).fill(0); for(let t=1;t<=T;t++) hz[t]=1/T; return {hazards:hz, q85:0.02};}
-  const freq=new Map(); const N=gaps.length; const alpha=0.06;
+  const gaps=listIntervals.map(x=>x.gap); const T=Math.max(horizonT,30);
+  if(!gaps.length){ const hz=Array(T+1).fill(0); for(let t=1;t<=T;t++) hz[t]=1/T; return {hazards:hz, q80:0.02, q85:0.03}; }
+  const freq=new Map(); const N=gaps.length; const alpha=0.06; // peso a recientes
   for(let i=0;i<N;i++){ const g=gaps[i], w=Math.pow(1-alpha, N-1-i); freq.set(g,(freq.get(g)||0)+w); }
   let total=0; for(const v of freq.values()) total+=v;
   const pdf=[], cdf=[]; let cum=0; const limit=Math.max(T, Math.max(...gaps)+20);
@@ -240,68 +248,70 @@ function hazardCurve(listIntervals, horizonT){
   const hazards=[],vals=[]; for(let t=1;t<=limit;t++){ const S=1-(cdf[t-1]||0); const h=S>0?pdf[t]/S:0; hazards[t]=h; if(h>0) vals.push(h); }
   vals.sort((a,b)=>a-b);
   const pick=p=> vals.length? vals[Math.floor(p*(vals.length-1))] : 0.02;
-  return {hazards, q85:pick(0.85)};
+  return {hazards, q80:pick(0.80), q85:pick(0.85)};
 }
 
-/* ============ UMBRALES y PISOS ============ */
+/* ============ UMBRALES & PISOS ============ */
 function getAggConf(){
   const m=($("aggr")?.value||"EQ");
-  if(m==="CONS") return {thrMin:0.90, preGap:0.06, tolBase:2};
-  if(m==="AGR")  return {thrMin:0.78, preGap:0.08, tolBase:3};
-  return {thrMin:0.85, preGap:0.07, tolBase:3};
+  if(m==="CONS") return {thrMin:0.92, preGap:0.06, floorLast:1.40, floorAvg3:1.52};
+  if(m==="AGR")  return {thrMin:0.78, preGap:0.08, floorLast:1.32, floorAvg3:1.45};
+  return {thrMin:0.85, preGap:0.07, floorLast:1.35, floorAvg3:1.48};
 }
 function qualityFloorOK(){
-  const a=rounds.slice(-3); if(!a.length) return false;
+  const a=rounds.slice(-3); if(a.length<1) return false;
   const last=a[a.length-1], aavg=avg(a);
+  const conf=getAggConf();
   const br=maxBlueRun(16);
-  if(last<1.35) return false;
-  if(aavg<1.50 && last<1.80) return false;
-  if(br>=9 && last<1.80) return false;
+  // evita entradas pegadas a 1.20/1.30 y rachas muy largas de azules
+  if(last<conf.floorLast) return false;
+  if(aavg<conf.floorAvg3 && last<conf.floorAvg3) return false;
+  if(br>=10 && last<1.80) return false;
   return true;
 }
 function contextGate(){
   const b20=blueDensity(20), b30=blueDensity(30), br=maxBlueRun(18), sl=slopeMA10();
-  const purple=hasPurple(12);
-  return (b20<=0.63) && (b30<=0.66) && (br<=9) && (purple || sl>=-0.004);
+  if(TARGET===2){
+    return (b20<=0.66) && (b30<=0.68) && (br<=10) && (sl>=-0.005);
+  }else{ // ≥3× pide algo más de “vida”
+    return (b20<=0.62) && (b30<=0.65) && (br<=9) && (hasPurple(12) || sl>=0);
+  }
 }
 
-/* ============ FASE (gap mediano de rosas) ============ */
+/* ============ FASE por gap mediano (>=TARGET) ============ */
 function phasePredict(){
-  const gaps=I10.map(x=>x.gap);
-  const gMed = Math.max(8, Math.min(30, Math.round(median(gaps)||14)));
-  const dispersion = mad(gaps);
-  const conf = getAggConf();
-  // tolerancia 2..5 según dispersión
-  const tol = clamp(Math.round(conf.tolBase + Math.min(2, Math.max(0, (dispersion-2)*0.6))), 2, 5);
-  const dist = gMed - (since10 ?? 0); // T+dist
-  return {gMed, tol, dist};
+  const gaps=intervalsG.map(x=>x.gap);
+  const gMed = Math.max(4, Math.min(20, Math.round(median(gaps)|| (TARGET===2?8:10) )));
+  const dist = gMed - (sinceG ?? 0);
+  const tol  = (TARGET===2?2:3); // tolerancia fija simple
+  return {gMed, dist, tol};
 }
 
-/* ============ DECISOR one‑shot ============ */
+/* ============ DECISOR para >=TARGET ============ */
 function computeDecision(){
-  const s10 = since10 ?? 0;
-  const H = hazardCurve(I10, s10+30);
-  const h1=(H.hazards[s10+1]||0), h2=(H.hazards[s10+2]||0), q=H.q85||0.02;
-  let rel1 = q>0? h1/q : 0, rel2 = q>0? h2/q : 0;
-  const dry = clamp((s10-12)/18, 0, 1);
+  const s = sinceG ?? 0;
+  const H = hazardCurve(intervalsG, s+30);
+  const qRef = H.q85; // normalización
+  const h1=(H.hazards[s+1]||0), rel1=qRef>0? h1/qRef : 0;
   const conf=getAggConf();
+  const dry=clamp((s-(TARGET===2?6:8))/(TARGET===2?12:14),0,1);
   const thrFire = clamp(1.00 - dry*0.22, conf.thrMin, 1.05);
   const thrPre  = clamp(thrFire - conf.preGap, conf.thrMin-0.10, 1.02);
-  const gateOK = contextGate();
-  const qfloor = qualityFloorOK();
-  const phase = phasePredict();
-  $("predLbl").textContent = `~${phase.gMed} (dist T+${phase.dist>=0?phase.dist:"—"})`;
-  $("tolLbl").textContent  = `${phase.tol}`;
-  return {rel1,rel2,thrFire,thrPre,gateOK,qfloor,s10,phase};
+  const gateOK  = contextGate();
+  const qfloor  = qualityFloorOK();
+  const phase   = phasePredict();
+  return {rel1, thrFire, thrPre, gateOK, qfloor, s, phase};
 }
 
 /* ============ RENDER ============ */
 function renderStats(){
   $("rounds").textContent = `${rounds.length} (base ${baseCount})`;
   const ma10=movingAverage(rounds,10); $("ma10").textContent=isNaN(ma10)?"–":ma10.toFixed(2)+"x";
-  $("since10Lbl").textContent= since10==null?"–":since10;
+  $("sinceGLbl").textContent= sinceG==null?"–":sinceG;
   $("sessProg").textContent = Session.active?`${Session.pos}/${Session.limit}`:"0/60";
-  $("armedLbl").textContent = Session.armed ? `sí (T+${Session.armOffset})` : "no";
+  $("armedLbl").textContent = Session.armed ? `sí (T+1)` : "no";
+  $("shotsLbl").textContent = `${Session.shotMade}/${Session.maxShots}`;
+  $("goalLbl").textContent  = `≥${TARGET}×`;
   renderLast60();
 }
 function renderBets(){
@@ -309,117 +319,118 @@ function renderBets(){
   bets.concat(pendings).forEach((b,i)=>{
     const st=b.state==="win"?"win":b.state==="lose"?"lose":"pend";
     const tr=document.createElement("tr");
-    tr.innerHTML=`<td>${i+1}</td><td>${b.tag||"ROSA_10x"}</td><td>${b.target}x</td><td>${b.emittedAt||"—"}</td><td>${b.crash?b.crash.toFixed(2)+"x":"—"}</td><td>${st}</td>`;
+    tr.innerHTML=`<td>${i+1}</td><td>${b.tag||"OBJ"}</td><td>${b.target}x</td><td>${b.emittedAt||"—"}</td><td>${b.crash?b.crash.toFixed(2)+"x":"—"}</td><td>${st}</td>`;
     tb.appendChild(tr);
   });
 }
 
 /* ============ DISPARO ============ */
-function armFor(offset){ // 1 = próxima, 2 = la siguiente
+function armNow(){
   if(Session.armed) return;
-  Session.armed=true; Session.armOffset=offset;
-  $("armedLbl").textContent=`sí (T+${offset})`;
-  alarmPre(); setBanner(true, offset===1?"🎯 Ventana → posible entrada T+1":"🎯 Ventana → preparar T+2");
-  pushReview(`Armo para T+${offset}.`);
+  Session.armed=true; $("armedLbl").textContent=`sí (T+1)`;
+  alarmPre(); setBanner(true, TARGET===2?"🎯 Señal posible ≥2× (T+1)":"🎯 Señal posible ≥3× (T+1)");
+  pushReview("Armo para T+1.");
 }
-function disarm(msg){ Session.armed=false; Session.armOffset=0; $("armedLbl").textContent="no"; if(msg) pushReview(msg); setBanner(false); }
-function fireShot(tag){
-  if(!$("autoSignal").checked || Session.shotMade) return;
+function disarm(msg){ Session.armed=false; $("armedLbl").textContent="no"; if(msg) pushReview(msg); setBanner(false); }
+function fireShot(){
+  if(!$("autoSignal").checked || Session.shotMade>=Session.maxShots) return;
   const ts=now();
-  pendings.push({id:"S"+ts,target:10,ts,emittedAt:HHmmss(ts),state:"pend",tag});
-  Session.shotMade=true; Session.lastEmitIdx=rounds.length;
-  $("signalLbl").textContent="EMITIDA (T+1)"; alarmFire(); setBanner(true,"🚨 ENTRAR AHORA → Próxima ronda (ROSA 10×)");
-  pushReview("Señal emitida: entrar en la próxima ronda (T+1) objetivo ≥10×.");
+  pendings.push({id:"S"+ts,target:TARGET,ts,emittedAt:HHmmss(ts),state:"pend",tag:`ONE_SHOT_${TARGET}x`});
+  Session.shotMade++; Session.lastEmitIdx=rounds.length;
+  $("shotsLbl").textContent = `${Session.shotMade}/${Session.maxShots}`;
+  alarmFire(); setBanner(true, `🚨 ENTRAR AHORA → Próxima ronda (≥${TARGET}×)`);
+  pushReview(`Señal emitida: entrar en la próxima ronda (≥${TARGET}×).`);
   renderBets();
 }
 
-/* ============ LOOP de sesión (una única bala) ============ */
-function onTickOneShot(){
+/* ============ LOOP sesion ============ */
+function onTickSession(){
   if(!Session.active) return;
   Session.pos = rounds.length - Session.startIdx;
 
-  if(Session.pos>=Session.limit || Session.shotMade){
-    if(!Session.shotMade) pushReview("Sesión terminó sin señal: no hubo ventana confiable.");
+  // cierre si se alcanza límite o se hicieron maxShots
+  const ended = (Session.pos>=Session.limit) || (Session.shotMade>=Session.maxShots);
+  if(ended){
+    if(Session.pos>=Session.limit && Session.shotMade===0) pushReview("Cierra sesión sin señal: no hubo ventana confiable.");
+    const auto = $("autoRestart").checked;
     Session.active=false; setBanner(false);
+    if(auto){
+      pushReview("Auto‑reinicio en 1s.");
+      setTimeout(()=>{ startSession(); }, 1000);
+    }
     return;
   }
 
+  // decidir
   const D = computeDecision();
+  const inPhaseSoon = (D.phase.dist<=D.phase.tol+1);
 
-  // Pre‑armado por fase y/o hazard
   if(!Session.armed){
-    if(D.gateOK && D.qfloor){
-      // Si estamos entrando en la zona de fase (dist <= tol+1) → arma
-      if(D.phase.dist<=D.phase.tol+1 && D.phase.dist>=1){
-        armFor( Math.min(2, D.phase.dist) ); // si dist=2 → T+2; si 1 → T+1
-      }else if(D.rel1>=D.thrPre){
-        armFor(1);
-      }else if(D.rel2>=D.thrPre && D.rel2>D.rel1*1.08){
-        armFor(2);
-      }
+    if(D.gateOK && D.qfloor && inPhaseSoon && D.rel1>=D.thrPre){
+      armNow();
     }
   }else{
-    if(Session.armOffset>1){
-      Session.armOffset--; $("armedLbl").textContent=`sí (T+${Session.armOffset})`;
-      setBanner(true, `🎯 Preparado → T+${Session.armOffset}`);
-    }else{
-      // Confirmación en T+1: fase dentro de tolerancia y hazard ok
-      const C = computeDecision();
-      const inPhase = (C.phase.dist>=0 && C.phase.dist<=C.phase.tol);
-      if(C.gateOK && C.qfloor && ( (inPhase && C.rel1>=C.thrPre) || C.rel1>=C.thrFire )){
-        fireShot("ONE_SHOT_ROSA_10x");
-      }else{
-        disarm("Se desarma: la ventana no confirmó en T+1.");
-      }
-    }
+    // T+1: confirmar
+    const C = computeDecision();
+    const ok = C.gateOK && C.qfloor && (C.rel1>=C.thrFire || (C.phase.dist>=0 && C.phase.dist<=C.phase.tol && C.rel1>=C.thrPre));
+    if(ok) fireShot(); else disarm("Se desarma: no confirmó en T+1.");
   }
 }
 
 /* ============ EVENTOS por ronda ============ */
-function pushEvt10(v,ts){
-  if(v>=10){
-    const idx=rounds.length-1, ev={idx,v,ts}; R10.push(ev);
-    if(R10.length>=2){
-      const prev=R10[R10.length-2]; I10.push({from:prev,to:ev,gap:ev.idx-prev.idx}); if(I10.length>240) I10.shift();
+function rebuildTarget(){
+  eventsG.length=0; intervalsG.length=0; sinceG=null;
+  for(let i=0;i<rounds.length;i++){
+    const v=rounds[i];
+    if(v>=TARGET){
+      eventsG.push({idx:i,v,ts:roundsMeta[i]?.ts||0});
+      const L=eventsG.length;
+      if(L>=2){ const prev=eventsG[L-2]; intervalsG.push({from:prev,to:eventsG[L-1],gap:eventsG[L-1].idx-prev.idx}); if(intervalsG.length>500) intervalsG.shift(); }
+      sinceG=0;
+    }else{
+      sinceG = (sinceG==null?1:sinceG+1);
     }
-    since10=0;
+  }
+}
+function pushEvtG(v,ts){
+  if(v>=TARGET){
+    const idx=rounds.length-1, ev={idx,v,ts}; eventsG.push(ev);
+    if(eventsG.length>=2){
+      const prev=eventsG[eventsG.length-2]; intervalsG.push({from:prev,to:ev,gap:ev.idx-prev.idx}); if(intervalsG.length>500) intervalsG.shift();
+    }
+    sinceG=0;
   }else{
-    since10 = (since10==null?1:since10+1);
+    sinceG = (sinceG==null?1:sinceG+1);
   }
 }
 function onNewCrash(v, ts, base=false){
   rounds.push(v); roundsMeta.push({v,ts}); if(rounds.length>3000){rounds.shift(); roundsMeta.shift();}
   lastShown.unshift(v); if(lastShown.length>60) lastShown.pop();
 
-  // resolver (solo una vez) si hay pendiente
+  // resolver pendientes (solo cuando llega un evento NUEVO)
   if(!base && pendings.length){
     const bet=pendings.shift(); const win=(v>bet.target);
     bet.crash=v; bet.state=win?"win":"lose";
     bets.push(bet); renderBets(); setBanner(false);
-    $("signalLbl").textContent = win?"GANADA":"PERDIDA";
     pushReview(`Resultado: ${win?"GANADA":"PERDIDA"} con crash ${v.toFixed(2)}x.`);
   }
 
-  pushEvt10(v,ts);
+  pushEvtG(v,ts);
   renderStats();
 
-  if(!base){ onTickOneShot(); }
+  if(!base){ onTickSession(); }
 }
 
 /* ============ CONEXIÓN FEED (con ANTIDUP) ============ */
 let liveRef=null, liveCb=null, lastKey=null, lastTs=null, lastActivity=null, watchdog=null;
 const seenSigs=new Set(); const sigOrder=[];
-function rememberSig(sig){
-  seenSigs.add(sig); sigOrder.push(sig);
-  if(sigOrder.length>1200){ const old=sigOrder.shift(); seenSigs.delete(old); }
-}
+function rememberSig(sig){ seenSigs.add(sig); sigOrder.push(sig); if(sigOrder.length>1500){ const old=sigOrder.shift(); seenSigs.delete(old); } }
 function nodeToVT(node){
   const raw = (node && typeof node==='object' && ('raw' in node || 'v' in node)) ? (node.raw ?? node.v) : node;
   const v = parseCrashValue(raw);
   const ts = Number(node?.ts) || now();
   return {v,ts};
 }
-
 async function connectFeed(){
   if(connected) return;
   FEED_ID=($("feedId").value||"gocho").trim();
@@ -434,40 +445,35 @@ async function connectFeed(){
   if(!snap){ try{ const s=await ref.orderByKey().limitToLast(800).once("value"); if(s && s.val()) { snap=s; method="key"; } }catch(e){} }
   if(!snap||!snap.val()){ fb&&(fb.textContent="Sin datos en el feed."); return; }
 
-  rounds=[]; roundsMeta=[]; lastShown=[]; [R10].forEach(a=>a.length=0); [I10].forEach(a=>a.length=0);
-  since10=null; baseCount=Object.keys(snap.val()).length;
+  rounds=[]; roundsMeta=[]; lastShown=[];
+  eventsG=[]; intervalsG=[]; sinceG=null;
+  baseCount=Object.keys(snap.val()).length;
 
   const data=snap.val(), keys=Object.keys(data).sort();
   keys.forEach(k=>{
-    const d=data[k]; const {v,ts}=nodeToVT(d);
-    const sig=`${k}|${ts}|${v}`;
+    const d=data[k]; const {v,ts}=nodeToVT(d); const sig=`${k}|${ts}|${v}`;
     if(v!==null){ onNewCrash(v,ts,true); rememberSig(sig); }
     lastKey=k; lastTs=Number(d?.ts||k)||now(); lastActivity=now();
   });
+  rebuildTarget(); renderStats(); renderBets(); renderExplain();
 
-  renderStats(); renderBets(); renderExplain();
-
-  // Live con dedupe fuerte
+  // Live con dedupe fuerte (por ts)
   if(method==="ts"){
-    liveRef=ref.orderByChild("ts").startAt((lastTs||0) + 1); // evita repetir último
+    liveRef=ref.orderByChild("ts").startAt((lastTs||0) + 1);
     liveCb=s=>{
-      const key=s.key, d=s.val(); const {v,ts}=nodeToVT(d);
-      const sig=`${key}|${ts}|${v}`;
+      const key=s.key, d=s.val(); const {v,ts}=nodeToVT(d); const sig=`${key}|${ts}|${v}`;
       if(seenSigs.has(sig)) return;
-      if(lastTs && ts<=lastTs) return; // guard adicional
-      rememberSig(sig);
-      lastKey=key; lastTs=ts; lastActivity=now();
+      if(lastTs && ts<=lastTs) return;
+      rememberSig(sig); lastKey=key; lastTs=ts; lastActivity=now();
       if(v!==null) onNewCrash(v,ts,false);
     };
   }else{
     liveRef=ref.orderByKey().startAt(lastKey||"");
     liveCb=s=>{
-      const key=s.key, d=s.val(); const {v,ts}=nodeToVT(d);
-      const sig=`${key}|${ts}|${v}`;
+      const key=s.key, d=s.val(); const {v,ts}=nodeToVT(d); const sig=`${key}|${ts}|${v}`;
       if(seenSigs.has(sig)) return;
       if(lastKey && key<=lastKey) return;
-      rememberSig(sig);
-      lastKey=key; lastTs=ts; lastActivity=now();
+      rememberSig(sig); lastKey=key; lastTs=ts; lastActivity=now();
       if(v!==null) onNewCrash(v,ts,false);
     };
   }
@@ -486,10 +492,10 @@ function disconnectFeed(silent=false){
   if(!silent){ const fb=$("statusFeedback"); fb&&(fb.textContent="Desconectado."); }
 }
 
-/* ============ PERSISTENCIA / UI ============ */
+/* ============ PERSISTENCIA / EXPLICACIÓN ============ */
 function persistLocal(){
   try{
-    localStorage.setItem(PERSIST_KEY, JSON.stringify({bets, pendings, aggr:$("aggr").value}));
+    localStorage.setItem(PERSIST_KEY, JSON.stringify({bets, pendings, aggr:$("aggr").value, target:TARGET, autoRestart:$("autoRestart").checked}));
   }catch(_){}
 }
 function restoreLocal(){
@@ -499,32 +505,41 @@ function restoreLocal(){
     if(Array.isArray(p.bets)) bets=p.bets;
     if(Array.isArray(p.pendings)) pendings=p.pendings;
     if(p.aggr) $("aggr").value=p.aggr;
+    if(p.target){ TARGET=Number(p.target); $("targetSel").value=String(TARGET); $("goalLbl").textContent=`≥${TARGET}×`; }
+    if(typeof p.autoRestart==="boolean") $("autoRestart").checked=p.autoRestart;
   }catch(_){}
 }
 function renderExplain(){
   const c=getAggConf();
   $("aggrExplain").textContent=
-    `One‑Shot: predice por fase de rosas (gap mediano). Pre‑arma T+2/T+1 con alarma. tol ${c.tolBase}–5 según dispersión. `+
-    `Piso calidad 1.28/1.45. Umbral mín. ${c.thrMin.toFixed(2)}.`;
+    `Sesión 60 rondas · máx 2 señales · objetivo ${TARGET}× · Pre‑arma T+1 con hazard+fase · `+
+    `Piso calidad ${c.floorLast.toFixed(2)}/${c.floorAvg3.toFixed(2)} · Umbral mín. ${c.thrMin.toFixed(2)}.`;
 }
 
 /* ============ UI HANDLERS ============ */
+function startSession(){
+  Session.active=true; Session.startIdx=rounds.length; Session.pos=0; Session.shotMade=0; disarm();
+  bets=[]; pendings=[];
+  $("sessProg").textContent="0/60"; $("shotsLbl").textContent=`0/${Session.maxShots}`; setBanner(false);
+  pushReview("Empieza sesión (60 rondas, máx. 2 señales).");
+  alarmPre();
+}
 $("connectBtn").addEventListener("click", connectFeed);
 $("disconnectBtn").addEventListener("click", ()=>disconnectFeed(false));
-$("startBtn").addEventListener("click", ()=>{
-  Session.active=true; Session.startIdx=rounds.length; Session.pos=0; Session.shotMade=false; disarm();
-  bets=[]; pendings=[];
-  $("signalLbl").textContent="—"; $("sessProg").textContent="0/60"; setBanner(false);
-  pushReview("Empieza sesión one‑shot. Ventana = 60 rondas.");
-  alarmPre();
-});
+$("startBtn").addEventListener("click", startSession);
 $("pauseBtn").addEventListener("click",  ()=>{ Session.active=false; disarm("Sesión en pausa."); });
-$("aggr").addEventListener("change", renderExplain);
+$("aggr").addEventListener("change", ()=>{ renderExplain(); });
+$("targetSel").addEventListener("change", ()=>{
+  TARGET = Number($("targetSel").value);
+  $("goalLbl").textContent=`≥${TARGET}×`;
+  rebuildTarget(); renderExplain(); renderStats();
+});
 
 setInterval(()=>{ $("clockNow").textContent=new Date().toLocaleTimeString(); persistLocal(); }, 1000);
 
 /* ============ BOOT ============ */
 (function(){
+  renderExplain();
   restoreLocal(); renderBets(); renderStats(); renderExplain();
 })();
 </script>
