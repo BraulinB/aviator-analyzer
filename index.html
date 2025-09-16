@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v17.0 (≥2×/≥3× Auto)</title>
+<title>Aviator Analyzer • Gocho v18.0 (≥2×/≥3× • Rosa‑Guard)</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5;
@@ -32,6 +32,9 @@
   .table{width:100%;border-collapse:collapse;font-size:13px}
   .table th,.table td{padding:8px;border-bottom:1px solid #22283a;text-align:left}
   .review{white-space:pre-line;font-size:12px;color:#cbd5e1}
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #2a3144;margin-left:6px}
+  .badge.ok{background:#163422;color:#9df8bf;border-color:#1f4b32}
+  .badge.no{background:#3a1f29;color:#ffb2b2;border-color:#5b2a3a}
   /* Banner de señal */
   .banner{
     position:fixed; left:50%; top:18px; transform:translateX(-50%);
@@ -47,8 +50,8 @@
 <div class="wrap">
   <div id="signalBanner" class="banner">🎯 Señal ≥2× → Entrar próxima ronda</div>
 
-  <h1>✈️ Aviator Analyzer • <span style="color:var(--brand)">Gocho v17.0</span>
-    <span class="muted">≥2×/≥3× • disparo inmediato • historial persistente</span>
+  <h1>✈️ Aviator Analyzer • <span style="color:var(--brand)">Gocho v18.0</span>
+    <span class="muted">≥2×/≥3× • disparo inmediato • Rosa‑Guard • historial persistente</span>
     <span id="statusFeedback" class="muted" style="margin-left:8px"></span>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
   </h1>
@@ -94,6 +97,7 @@
       <div class="box">MA10: <b id="ma10">–</b><br><span class="muted">since≥T:</span> <b id="sinceGLbl">–</b></div>
       <div class="box">Sesión: <b id="sessProg">0/60</b><br><span class="muted">Señales:</span> <b id="shotsLbl">0/2</b></div>
       <div class="box">Objetivo actual: <b id="goalLbl">≥2×</b><br><span class="muted">Sep. mín:</span> <b id="sepLbl">—</b></div>
+      <div class="box">Rosa‑Guard: <b id="rosaLbl">—</b><br><span class="muted">p(T+1):</span> <b id="rosaStatsLbl">—</b></div>
     </div>
 
     <div style="margin-top:8px">
@@ -102,7 +106,7 @@
     </div>
   </div>
 
-  <!-- Log (global, persistente) -->
+  <!-- Log (global persistente) -->
   <div class="card">
     <div class="row"><h3 style="margin:0">Señales (historial persistente)</h3></div>
     <table class="table" style="margin-top:8px">
@@ -128,7 +132,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script>
-/* ============ FIREBASE ============ */
+/* ===== FIREBASE ===== */
 const firebaseConfig = {
   apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
   authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
@@ -143,7 +147,7 @@ firebase.initializeApp(firebaseConfig);
 const db  = firebase.database();
 const auth= firebase.auth();
 
-/* ============ HELPERS ============ */
+/* ===== HELPERS ===== */
 const $ = (id)=>document.getElementById(id);
 const now=()=>Date.now();
 const HHmm = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
@@ -152,8 +156,9 @@ function movingAverage(arr,n){const L=Math.min(arr.length,n); if(!L) return NaN;
 function clamp(v,a,b){return v<a?a:(v>b?b:v);}
 function avg(a){return a.length? a.reduce((s,v)=>s+v,0)/a.length : 0;}
 function median(a){if(!a.length) return 0; const b=[...a].sort((x,y)=>x-y); const m=Math.floor(b.length/2); return b.length%2?b[m]:(b[m-1]+b[m])/2;}
+function pct(x){return (x*100).toFixed(0)+"%";}
 
-/* ============ AUDIO ============ */
+/* ===== AUDIO ===== */
 let audioCtx=null;
 function beep(freq=880, ms=140, gain=0.05){
   if(!$("beepToggle").checked) return;
@@ -166,7 +171,7 @@ function beep(freq=880, ms=140, gain=0.05){
 }
 function alarmFire(){ for(let k=0;k<3;k++){ setTimeout(()=>{ beep(560,180,0.07); setTimeout(()=>beep(1100,140,0.07),160); }, k*260); } }
 
-/* ============ PARSER crash + Auto‑1k ============ */
+/* ===== PARSER crash + Auto‑1k ===== */
 let rounds=[], roundsMeta=[], lastShown=[];
 function parseCrashValue(raw){
   if(raw===null||raw===undefined) return null;
@@ -190,8 +195,8 @@ function parseCrashValue(raw){
   return v;
 }
 
-/* ============ ESTADO SESIÓN ============ */
-const PERSIST_KEY="gocho_v170_green_persist";
+/* ===== ESTADO SESIÓN ===== */
+const PERSIST_KEY="gocho_v180_green_rosaguard";
 let FEED_ID="gocho", connected=false, baseCount=0;
 
 let TARGET=2;                 // 2 o 3
@@ -201,27 +206,55 @@ let sinceG=null;
 const Session = {
   id:null,
   active:false, startIdx:0, limit:60, pos:0,
-  shotMade:0, maxShots:2, sepMin:8, lastEmitIdx:-999
+  shotMade:0, maxShots:2, sepMin:9, lastEmitIdx:-999,
+  lastResultLose:false
 };
 
-let bets=[];      // historial global (persistente)
-let pendings=[];  // la(s) señal(es) pendientes de resolución
+let bets=[]; // historial global (persistente)
+let pendings=[];
 
-/* ============ UI ============ */
+/* ===== ROSA‑GUARD (aprendizaje simple post‑rosa) ===== */
+const Rosa = {
+  lastIdx:null, lastV:null, since:null,
+  // listas 0/1 con límite para media deslizante
+  ge2:{1:[],2:[],3:[]}, ge3:{1:[],2:[],3:[]}, lt2:{1:[],2:[],3:[]}, cap:120
+};
+function rosaPush(dt, v){
+  // dt = distancia desde la ROSA (1..3) para el crash actual v
+  const push=(arr,val)=>{ arr.push(val?1:0); if(arr.length>Rosa.cap) arr.shift(); };
+  push(Rosa.lt2[dt], v<2);
+  push(Rosa.ge2[dt], v>=2);
+  push(Rosa.ge3[dt], v>=3);
+}
+function rosaProb(arr){ if(!arr||!arr.length) return 0.5; return avg(arr); }
+function rosaGuardOK(rel1, thrFire){
+  if(Rosa.since==null || Rosa.since>=3) return {ok:true, info:"—"};
+  const dtNext = Rosa.since+1; // la ronda a la que entraríamos
+  const pLt2 = rosaProb(Rosa.lt2[dtNext]);
+  const pGe2 = rosaProb(Rosa.ge2[dtNext]);
+  const pGe3 = rosaProb(Rosa.ge3[dtNext]);
+  const pGeT = (TARGET===2? pGe2 : pGe3);
+  let margin = pLt2 - pGeT;
+
+  // rosas grandes → más cautela
+  if((Rosa.lastV||0) >= 20) margin += 0.05;
+
+  // si el hazard es sobresaliente, puede romper el bloqueo
+  const override = rel1 >= (thrFire + 0.12);
+
+  const ok = (margin < 0.12) || override;
+  return {
+    ok,
+    info:`sinceRosa:${Rosa.since} · p<2:${pct(pLt2)} · p≥2:${pct(pGe2)} · p≥3:${pct(pGe3)}${override?" · override":""}`
+  };
+}
+
+/* ===== UI ===== */
 function colorClassFor(v){
   if(v>=10) return "c-pink";
   if(v>=5)  return "c-purple";
   if(v>=2)  return "c-green";
   return "c-blue";
-}
-function renderLast60(){
-  const cont=$("lastRounds"); cont.innerHTML="";
-  lastShown.slice(0,60).forEach(v=>{
-    const sp=document.createElement("span");
-    sp.className="pill small "+colorClassFor(v);
-    sp.textContent=v.toFixed(2)+"x";
-    cont.appendChild(sp);
-  });
 }
 function setBanner(show,msg){
   const el=$("signalBanner");
@@ -232,7 +265,7 @@ function setBanner(show,msg){
 }
 function pushReview(txt){ const box=$("reviewBox"); const line=`[${HHmmss(now())}] ${txt}`; box.textContent=(box.textContent==="—"?line:(box.textContent+"\n"+line)); }
 
-/* ============ MÉTRICAS ============ */
+/* ===== MÉTRICAS ===== */
 function blueDensity(n=20){const w=rounds.slice(-n); if(!w.length) return 1; return w.filter(x=>x<2).length/w.length;}
 function maxBlueRun(n=18){const w=rounds.slice(-n); let m=0,c=0; for(const x of w){ if(x<2){c++; m=Math.max(m,c);} else c=0; } return m;}
 function hasPurple(n=12){return rounds.slice(-n).some(x=>x>=5 && x<10);}
@@ -240,7 +273,7 @@ function slopeMA10(){ if(rounds.length<11) return 0; const a=movingAverage(round
 function runGE(n=2){ let c=0; for(let i=rounds.length-1;i>=0;i--){ if(rounds[i]>=n) c++; else break; } return c; }
 function ratioGE(n=2, w=7){ const a=rounds.slice(-w); if(!a.length) return 0; return a.filter(x=>x>=n).length/a.length; }
 
-/* ============ HAZARD >=TARGET ============ */
+/* ===== HAZARD >=TARGET ===== */
 function hazardCurve(listIntervals, horizonT){
   const gaps=listIntervals.map(x=>x.gap); const T=Math.max(horizonT,30);
   if(!gaps.length){ const hz=Array(T+1).fill(0); for(let t=1;t<=T;t++) hz[t]=1/T; return {hazards:hz, q85:0.03}; }
@@ -255,18 +288,17 @@ function hazardCurve(listIntervals, horizonT){
   return {hazards, q85:pick(0.85)};
 }
 
-/* ============ UMBRALES & PISOS ============ */
+/* ===== UMBRALES & PISOS ===== */
 function getAggConf(){
   const m=($("aggr")?.value||"EQ");
-  if(m==="CONS") return {thrMin:0.92, preGap:0.06, floorLast:1.40, floorAvg3:1.52, sepMin:10};
-  if(m==="AGR")  return {thrMin:0.78, preGap:0.08, floorLast:1.32, floorAvg3:1.45, sepMin:6};
-  return {thrMin:0.85, preGap:0.07, floorLast:1.35, floorAvg3:1.48, sepMin:8};
+  if(m==="CONS") return {thrMin:0.94, preGap:0.06, floorLast:1.42, floorAvg3:1.54, sepMin:10};
+  if(m==="AGR")  return {thrMin:0.80, preGap:0.08, floorLast:1.33, floorAvg3:1.46, sepMin:7};
+  return {thrMin:0.87, preGap:0.07, floorLast:1.36, floorAvg3:1.49, sepMin:9};
 }
 function qualityFloorOK(){
   const a=rounds.slice(-3); if(a.length<1) return false;
   const last=a[a.length-1], aavg=avg(a);
-  const conf=getAggConf();
-  const br=maxBlueRun(16);
+  const conf=getAggConf(); const br=maxBlueRun(16);
   if(last<conf.floorLast) return false;
   if(aavg<conf.floorAvg3 && last<conf.floorAvg3) return false;
   if(br>=10 && last<1.80) return false;
@@ -276,12 +308,12 @@ function contextGate(){
   const b20=blueDensity(20), b30=blueDensity(30), br=maxBlueRun(18), sl=slopeMA10();
   if(TARGET===2){
     return (b20<=0.68) && (b30<=0.70) && (br<=10) && (sl>=-0.006);
-  }else{ // ≥3×
+  }else{ // ≥3× más exigente
     return (b20<=0.64) && (b30<=0.66) && (br<=9) && (hasPurple(10) || sl>=-0.002);
   }
 }
 
-/* ============ DECISOR simple (disparo inmediato) ============ */
+/* ===== DECISOR (disparo inmediato + Rosa‑Guard) ===== */
 function decisionNow(){
   const s = sinceG ?? 0;
   const H = hazardCurve(intervalsG, s+30);
@@ -290,23 +322,37 @@ function decisionNow(){
 
   const conf=getAggConf();
   const dry=clamp((s-(TARGET===2?6:8))/(TARGET===2?12:14),0,1);
-  const thrFire = clamp(1.00 - dry*0.22, conf.thrMin, 1.05);      // umbral para disparar
-  const thrPre  = clamp(thrFire - conf.preGap, conf.thrMin-0.10, 1.02); // pre‑umbral
+  let thrFire = clamp(1.00 - dry*0.22, conf.thrMin, 1.06);
+  const thrPre  = clamp(thrFire - conf.preGap, conf.thrMin-0.10, 1.02);
+
+  // Gobernador por racha de pérdidas recientes
+  if(Session.lastResultLose){ thrFire += 0.02; }
 
   const gateOK  = contextGate();
   const qfloor  = qualityFloorOK();
 
-  // Carril Hot‑streak
+  // Hot‑streak (ahora sólo habilita si va junto con relatividad ≥ pre‑umbral)
   const runOk   = runGE(TARGET)>=3;
   const ratioOk = ratioGE(TARGET,7)>=0.57;
   const blueBreak = (maxBlueRun(12)>=5 && rounds[rounds.length-1]>=TARGET);
-
   const hotLane = (runOk || ratioOk || blueBreak);
 
-  return {rel1, thrFire, thrPre, gateOK, qfloor, hotLane, s};
+  // Rosa‑Guard
+  const RG = rosaGuardOK(rel1, thrFire);
+
+  return {rel1, thrFire, thrPre, gateOK, qfloor, hotLane, rosaOK:RG.ok, rosaInfo:RG.info};
 }
 
-/* ============ RENDER ============ */
+/* ===== RENDER ===== */
+function renderLast60(){
+  const cont=$("lastRounds"); cont.innerHTML="";
+  lastShown.slice(0,60).forEach(v=>{
+    const sp=document.createElement("span");
+    sp.className="pill small "+colorClassFor(v);
+    sp.textContent=v.toFixed(2)+"x";
+    cont.appendChild(sp);
+  });
+}
 function renderStats(){
   $("rounds").textContent = `${rounds.length} (base ${baseCount})`;
   const ma10=movingAverage(rounds,10); $("ma10").textContent=isNaN(ma10)?"–":ma10.toFixed(2)+"x";
@@ -315,8 +361,7 @@ function renderStats(){
   $("shotsLbl").textContent = `${Session.shotMade}/${Session.maxShots}`;
   $("goalLbl").textContent  = `≥${TARGET}×`;
   $("sepLbl").textContent   = Session.sepMin;
-  const cont=$("lastRounds"); cont.innerHTML="";
-  lastShown.slice(0,60).forEach(v=>{ const sp=document.createElement("span"); sp.className="pill small "+colorClassFor(v); sp.textContent=v.toFixed(2)+"x"; cont.appendChild(sp); });
+  renderLast60();
 }
 function renderBets(){
   const tb=$("betsTbody"); tb.innerHTML="";
@@ -328,7 +373,7 @@ function renderBets(){
   });
 }
 
-/* ============ DISPARO INMEDIATO (entra T+1) ============ */
+/* ===== DISPARO ===== */
 function fireNow(){
   if(!$("autoSignal").checked) return;
   if(Session.shotMade>=Session.maxShots) return;
@@ -337,36 +382,40 @@ function fireNow(){
   const ts=now();
   const entry = {id:"S"+ts, sessionId:Session.id, target:TARGET, ts, emittedAt:HHmmss(ts), state:"pend", tag:`AUTO_${TARGET}x`};
   pendings.push(entry);
-  bets.push(entry); if(bets.length>800) bets.splice(0,bets.length-800);
+  bets.push(entry); if(bets.length>1000) bets.splice(0,bets.length-1000);
   Session.shotMade++; Session.lastEmitIdx=rounds.length;
+  Session.lastResultLose=false; // aún no se sabe, pero evita penalizar hasta resolver
   $("shotsLbl").textContent = `${Session.shotMade}/${Session.maxShots}`;
   alarmFire(); setBanner(true, `🚨 ENTRAR AHORA → Próxima ronda (≥${TARGET}×)`);
-  pushReview(`Señal emitida: entrar en la próxima ronda (≥${TARGET}×).`);
+  pushReview(`Señal emitida: próxima ronda (≥${TARGET}×).`);
   renderBets();
 }
 
-/* ============ LOOP de sesión ============ */
+/* ===== LOOP sesión ===== */
 function onTickSession(){
   if(!Session.active) return;
   Session.pos = rounds.length - Session.startIdx;
 
-  // cierre si se alcanza límite o se hicieron maxShots
   if(Session.pos>=Session.limit || Session.shotMade>=Session.maxShots){
     const auto=$("autoRestart").checked;
-    if(Session.pos>=Session.limit && Session.shotMade===0) pushReview("Cierra sesión sin señal: no hubo ventana confiable.");
+    if(Session.pos>=Session.limit && Session.shotMade===0) pushReview("Cierra sesión sin señal.");
     Session.active=false; setBanner(false);
-    if(auto){ pushReview("Auto‑reinicio en 1s."); setTimeout(()=>startSession(), 1000); }
+    if(auto){ pushReview("Auto‑reinicio en 1s."); setTimeout(()=>startSession(),1000); }
     return;
   }
 
-  // evaluación y disparo (mismo tick -> entra T+1)
   const D = decisionNow();
-  if(D.gateOK && D.qfloor && (D.rel1>=D.thrFire || (D.rel1>=D.thrPre && D.hotLane))){
-    fireNow();
+  $("rosaLbl").textContent = (Rosa.since==null?"—":Rosa.since)+" ("+(D.rosaOK? "OK":"hold")+")";
+  $("rosaStatsLbl").textContent = D.rosaInfo;
+
+  // Disparo: requiere gate + piso + rosaOK + (rel≥thrFire o (rel≥pre y hot‑lane))
+  if(D.gateOK && D.qfloor && D.rosaOK){
+    const ready = (D.rel1>=D.thrFire) || (D.rel1>=D.thrPre && D.hotLane);
+    if(ready) fireNow();
   }
 }
 
-/* ============ EVENTOS por ronda ============ */
+/* ===== EVENTOS por ronda ===== */
 function rebuildTarget(){
   eventsG.length=0; intervalsG.length=0; sinceG=null;
   for(let i=0;i<rounds.length;i++){
@@ -381,36 +430,51 @@ function rebuildTarget(){
     }
   }
 }
-function pushEvtG(v,ts){
+function onNewCrash(v, ts, base=false){
+  // actualizar arrays principales
+  rounds.push(v); roundsMeta.push({v,ts}); if(rounds.length>3000){rounds.shift(); roundsMeta.shift();}
+  lastShown.unshift(v); if(lastShown.length>60) lastShown.pop();
+
+  // actualizar Rosa model (si hay una ROSA reciente)
+  if(Rosa.lastIdx!=null){
+    const dt = rounds.length-1 - Rosa.lastIdx;
+    if(dt>=1 && dt<=3){ rosaPush(dt, v); }
+    Rosa.since = dt;
+  }else{
+    Rosa.since = null;
+  }
+  // si este crash es una ROSA, resetea referencia
+  if(v>=10){ Rosa.lastIdx = rounds.length-1; Rosa.lastV=v; Rosa.since=0; }
+
+  // resolver pendientes SOLO en evento nuevo
+  if(!base && pendings.length){
+    const bet=pendings.shift();
+    const win=(v>bet.target);
+    bet.crash=v; bet.state=win?"win":"lose";
+    Session.lastResultLose = !win;
+    // subida temporal de separación tras pérdida
+    if(!win) Session.sepMin = Math.min(Session.sepMin+2, 14); else Session.sepMin = getAggConf().sepMin;
+    renderBets(); setBanner(false);
+    pushReview(`Resultado: ${win?"GANADA":"PERDIDA"} con crash ${v.toFixed(2)}x.`);
+  }
+
+  // actualizar para objetivo
   if(v>=TARGET){
     const idx=rounds.length-1, ev={idx,v,ts}; eventsG.push(ev);
     if(eventsG.length>=2){
-      const prev=eventsG[eventsG.length-2]; intervalsG.push({from:prev,to:ev,gap:ev.idx-prev.idx}); if(intervalsG.length>600) intervalsG.shift();
+      const prev=eventsG[eventsG.length-2];
+      intervalsG.push({from:prev,to:ev,gap:ev.idx-prev.idx}); if(intervalsG.length>600) intervalsG.shift();
     }
     sinceG=0;
   }else{
     sinceG = (sinceG==null?1:sinceG+1);
   }
-}
-function onNewCrash(v, ts, base=false){
-  rounds.push(v); roundsMeta.push({v,ts}); if(rounds.length>3000){rounds.shift(); roundsMeta.shift();}
-  lastShown.unshift(v); if(lastShown.length>60) lastShown.pop();
 
-  // resolver pendientes (solo cuando llega un evento NUEVO válido)
-  if(!base && pendings.length){
-    const bet=pendings.shift(); const win=(v>bet.target);
-    bet.crash=v; bet.state=win?"win":"lose";
-    renderBets(); setBanner(false);
-    pushReview(`Resultado: ${win?"GANADA":"PERDIDA"} con crash ${v.toFixed(2)}x.`);
-  }
-
-  pushEvtG(v,ts);
   renderStats();
-
   if(!base){ onTickSession(); persistLocal(); }
 }
 
-/* ============ CONEXIÓN FEED (ANTI‑DUPLICADOS) ============ */
+/* ===== FEED (ANTI‑DUPLICADOS) ===== */
 let liveRef=null, liveCb=null, lastKey=null, lastTs=null, lastActivity=null, watchdog=null;
 const seenSigs=new Set(); const sigOrder=[];
 function rememberSig(sig){ seenSigs.add(sig); sigOrder.push(sig); if(sigOrder.length>1500){ const old=sigOrder.shift(); seenSigs.delete(old); } }
@@ -436,6 +500,7 @@ async function connectFeed(){
 
   rounds=[]; roundsMeta=[]; lastShown=[];
   eventsG=[]; intervalsG=[]; sinceG=null;
+  Rosa.lastIdx=null; Rosa.lastV=null; Rosa.since=null;
   baseCount=Object.keys(snap.val()).length;
 
   const data=snap.val(), keys=Object.keys(data).sort();
@@ -480,7 +545,7 @@ function disconnectFeed(silent=false){
   if(!silent){ const fb=$("statusFeedback"); fb&&(fb.textContent="Desconectado."); }
 }
 
-/* ============ PERSISTENCIA ============ */
+/* ===== PERSISTENCIA ===== */
 function persistLocal(){
   try{
     localStorage.setItem(PERSIST_KEY, JSON.stringify({
@@ -501,18 +566,20 @@ function restoreLocal(){
   }catch(_){}
 }
 
-/* ============ EXPLICACIÓN Y UI ============ */
+/* ===== EXPLICACIÓN / UI ===== */
 function renderExplain(){
   const c=getAggConf(); Session.sepMin=c.sepMin;
   $("aggrExplain").textContent=
-    `Sesión 60 rondas · máx 2 señales · objetivo ${TARGET}× · disparo inmediato (entra T+1) `+
-    `· piso calidad ${c.floorLast.toFixed(2)}/${c.floorAvg3.toFixed(2)} · umbral mín. ${c.thrMin.toFixed(2)} · sep mín ${c.sepMin}.`;
+    `Sesión 60 rondas · máx 2 señales · objetivo ${TARGET}× · disparo inmediato (T+1) `+
+    `· Rosa‑Guard activado (aprende p<2/p≥2/p≥3 tras ROSA) · `+
+    `piso ${c.floorLast.toFixed(2)}/${c.floorAvg3.toFixed(2)} · umbral mín. ${c.thrMin.toFixed(2)} · sep mín ${c.sepMin}.`;
   $("goalLbl").textContent=`≥${TARGET}×`; $("sepLbl").textContent=Session.sepMin;
 }
 
-/* ============ ARRANQUE/PAUSA ============ */
+/* ===== ARRANQUE/PAUSA ===== */
 function startSession(){
   if($("clearOnStart").checked){ bets=[]; renderBets(); }
+  const c=getAggConf(); Session.sepMin=c.sepMin;
   Session.active=true; Session.startIdx=rounds.length; Session.pos=0; Session.shotMade=0; Session.lastEmitIdx=-999; Session.id=HHmmss(now());
   setBanner(false);
   pushReview(`Empieza sesión ${Session.id} (60 rondas, máx. 2 señales).`);
@@ -526,7 +593,7 @@ $("targetSel").addEventListener("change", ()=>{ TARGET = Number($("targetSel").v
 
 setInterval(()=>{ $("clockNow").textContent=new Date().toLocaleTimeString(); persistLocal(); }, 1000);
 
-/* ============ BOOT ============ */
+/* ===== BOOT ===== */
 (function(){
   restoreLocal(); renderBets(); renderExplain(); renderStats();
 })();
