@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v16.0 (≥2×/≥3× Auto)</title>
+<title>Aviator Analyzer • Gocho v17.0 (≥2×/≥3× Auto)</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5;
@@ -47,8 +47,8 @@
 <div class="wrap">
   <div id="signalBanner" class="banner">🎯 Señal ≥2× → Entrar próxima ronda</div>
 
-  <h1>✈️ Aviator Analyzer • <span style="color:var(--brand)">Gocho v16.0</span>
-    <span class="muted">Objetivo ≥2×/≥3× • 1–2 señales/60 • Auto‑reinicio</span>
+  <h1>✈️ Aviator Analyzer • <span style="color:var(--brand)">Gocho v17.0</span>
+    <span class="muted">≥2×/≥3× • disparo inmediato • historial persistente</span>
     <span id="statusFeedback" class="muted" style="margin-left:8px"></span>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
   </h1>
@@ -56,12 +56,13 @@
   <!-- Controles -->
   <div class="card">
     <div class="row">
-      <button id="startBtn" class="btn ok">Iniciar sesión</button>
+      <button id="startBtn" class="btn ok">Iniciar sesión (60)</button>
       <button id="pauseBtn" class="btn">Pausar</button>
       <label class="row"><input id="autoSignal" type="checkbox" checked> Auto‑señal</label>
       <label class="row"><input id="beepToggle" type="checkbox" checked> Beep</label>
       <label class="row"><input id="fix1k" type="checkbox" checked> Auto‑1k</label>
       <label class="row"><input id="autoRestart" type="checkbox"> Auto‑reinicio</label>
+      <label class="row"><input id="clearOnStart" type="checkbox"> Limpiar señales al iniciar</label>
 
       <span class="muted">Agresividad:</span>
       <select id="aggr">
@@ -91,8 +92,8 @@
     <div class="kpi">
       <div class="box">Rondas: <b id="rounds">0</b> <span class="muted">(base)</span></div>
       <div class="box">MA10: <b id="ma10">–</b><br><span class="muted">since≥T:</span> <b id="sinceGLbl">–</b></div>
-      <div class="box">Sesión: <b id="sessProg">0/60</b><br><span class="muted">Armado:</span> <b id="armedLbl">no</b></div>
-      <div class="box">Señales: <b id="shotsLbl">0/2</b><br><span class="muted">Objetivo:</span> <b id="goalLbl">≥2×</b></div>
+      <div class="box">Sesión: <b id="sessProg">0/60</b><br><span class="muted">Señales:</span> <b id="shotsLbl">0/2</b></div>
+      <div class="box">Objetivo actual: <b id="goalLbl">≥2×</b><br><span class="muted">Sep. mín:</span> <b id="sepLbl">—</b></div>
     </div>
 
     <div style="margin-top:8px">
@@ -101,18 +102,18 @@
     </div>
   </div>
 
-  <!-- Log -->
+  <!-- Log (global, persistente) -->
   <div class="card">
-    <div class="row"><h3 style="margin:0">Señales (máx. 2 por sesión)</h3></div>
+    <div class="row"><h3 style="margin:0">Señales (historial persistente)</h3></div>
     <table class="table" style="margin-top:8px">
-      <thead><tr><th>#</th><th>Tag</th><th>Objetivo</th><th>Hora</th><th>Crash</th><th>Estado</th></tr></thead>
+      <thead><tr><th>#</th><th>Sesión</th><th>Tag</th><th>Objetivo</th><th>Hora</th><th>Crash</th><th>Estado</th></tr></thead>
       <tbody id="betsTbody"></tbody>
     </table>
   </div>
 
   <!-- Reseñas -->
   <div class="card">
-    <div class="row"><h3 style="margin:0">Reseña de sesión</h3></div>
+    <div class="row"><h3 style="margin:0">Reseña</h3></div>
     <div id="reviewBox" class="review muted">—</div>
   </div>
 
@@ -152,7 +153,7 @@ function clamp(v,a,b){return v<a?a:(v>b?b:v);}
 function avg(a){return a.length? a.reduce((s,v)=>s+v,0)/a.length : 0;}
 function median(a){if(!a.length) return 0; const b=[...a].sort((x,y)=>x-y); const m=Math.floor(b.length/2); return b.length%2?b[m]:(b[m-1]+b[m])/2;}
 
-/* ============ AUDIO (alarma fuerte) ============ */
+/* ============ AUDIO ============ */
 let audioCtx=null;
 function beep(freq=880, ms=140, gain=0.05){
   if(!$("beepToggle").checked) return;
@@ -163,7 +164,6 @@ function beep(freq=880, ms=140, gain=0.05){
     o.start(); setTimeout(()=>o.stop(), ms);
   }catch(_){}
 }
-function alarmPre(){ beep(760,150,0.06); setTimeout(()=>beep(980,130,0.05),170); }
 function alarmFire(){ for(let k=0;k<3;k++){ setTimeout(()=>{ beep(560,180,0.07); setTimeout(()=>beep(1100,140,0.07),160); }, k*260); } }
 
 /* ============ PARSER crash + Auto‑1k ============ */
@@ -191,19 +191,21 @@ function parseCrashValue(raw){
 }
 
 /* ============ ESTADO SESIÓN ============ */
-const PERSIST_KEY="gocho_v160_green_auto";
+const PERSIST_KEY="gocho_v170_green_persist";
 let FEED_ID="gocho", connected=false, baseCount=0;
 
 let TARGET=2;                 // 2 o 3
-let eventsG=[], intervalsG=[]; // eventos >=TARGET y sus gaps
+let eventsG=[], intervalsG=[]; // eventos >=TARGET y gaps
 let sinceG=null;
 
 const Session = {
+  id:null,
   active:false, startIdx:0, limit:60, pos:0,
-  shotMade:0, maxShots:2, armed:false, armOffset:0, // 1 = próxima
-  lastEmitIdx:-999
+  shotMade:0, maxShots:2, sepMin:8, lastEmitIdx:-999
 };
-let bets=[], pendings=[];
+
+let bets=[];      // historial global (persistente)
+let pendings=[];  // la(s) señal(es) pendientes de resolución
 
 /* ============ UI ============ */
 function colorClassFor(v){
@@ -235,12 +237,14 @@ function blueDensity(n=20){const w=rounds.slice(-n); if(!w.length) return 1; ret
 function maxBlueRun(n=18){const w=rounds.slice(-n); let m=0,c=0; for(const x of w){ if(x<2){c++; m=Math.max(m,c);} else c=0; } return m;}
 function hasPurple(n=12){return rounds.slice(-n).some(x=>x>=5 && x<10);}
 function slopeMA10(){ if(rounds.length<11) return 0; const a=movingAverage(rounds,10), b=movingAverage(rounds.slice(0,-1),10); return a-b; }
+function runGE(n=2){ let c=0; for(let i=rounds.length-1;i>=0;i--){ if(rounds[i]>=n) c++; else break; } return c; }
+function ratioGE(n=2, w=7){ const a=rounds.slice(-w); if(!a.length) return 0; return a.filter(x=>x>=n).length/a.length; }
 
 /* ============ HAZARD >=TARGET ============ */
 function hazardCurve(listIntervals, horizonT){
   const gaps=listIntervals.map(x=>x.gap); const T=Math.max(horizonT,30);
-  if(!gaps.length){ const hz=Array(T+1).fill(0); for(let t=1;t<=T;t++) hz[t]=1/T; return {hazards:hz, q80:0.02, q85:0.03}; }
-  const freq=new Map(); const N=gaps.length; const alpha=0.06; // peso a recientes
+  if(!gaps.length){ const hz=Array(T+1).fill(0); for(let t=1;t<=T;t++) hz[t]=1/T; return {hazards:hz, q85:0.03}; }
+  const freq=new Map(); const N=gaps.length; const alpha=0.06;
   for(let i=0;i<N;i++){ const g=gaps[i], w=Math.pow(1-alpha, N-1-i); freq.set(g,(freq.get(g)||0)+w); }
   let total=0; for(const v of freq.values()) total+=v;
   const pdf=[], cdf=[]; let cum=0; const limit=Math.max(T, Math.max(...gaps)+20);
@@ -248,22 +252,21 @@ function hazardCurve(listIntervals, horizonT){
   const hazards=[],vals=[]; for(let t=1;t<=limit;t++){ const S=1-(cdf[t-1]||0); const h=S>0?pdf[t]/S:0; hazards[t]=h; if(h>0) vals.push(h); }
   vals.sort((a,b)=>a-b);
   const pick=p=> vals.length? vals[Math.floor(p*(vals.length-1))] : 0.02;
-  return {hazards, q80:pick(0.80), q85:pick(0.85)};
+  return {hazards, q85:pick(0.85)};
 }
 
 /* ============ UMBRALES & PISOS ============ */
 function getAggConf(){
   const m=($("aggr")?.value||"EQ");
-  if(m==="CONS") return {thrMin:0.92, preGap:0.06, floorLast:1.40, floorAvg3:1.52};
-  if(m==="AGR")  return {thrMin:0.78, preGap:0.08, floorLast:1.32, floorAvg3:1.45};
-  return {thrMin:0.85, preGap:0.07, floorLast:1.35, floorAvg3:1.48};
+  if(m==="CONS") return {thrMin:0.92, preGap:0.06, floorLast:1.40, floorAvg3:1.52, sepMin:10};
+  if(m==="AGR")  return {thrMin:0.78, preGap:0.08, floorLast:1.32, floorAvg3:1.45, sepMin:6};
+  return {thrMin:0.85, preGap:0.07, floorLast:1.35, floorAvg3:1.48, sepMin:8};
 }
 function qualityFloorOK(){
   const a=rounds.slice(-3); if(a.length<1) return false;
   const last=a[a.length-1], aavg=avg(a);
   const conf=getAggConf();
   const br=maxBlueRun(16);
-  // evita entradas pegadas a 1.20/1.30 y rachas muy largas de azules
   if(last<conf.floorLast) return false;
   if(aavg<conf.floorAvg3 && last<conf.floorAvg3) return false;
   if(br>=10 && last<1.80) return false;
@@ -272,35 +275,35 @@ function qualityFloorOK(){
 function contextGate(){
   const b20=blueDensity(20), b30=blueDensity(30), br=maxBlueRun(18), sl=slopeMA10();
   if(TARGET===2){
-    return (b20<=0.66) && (b30<=0.68) && (br<=10) && (sl>=-0.005);
-  }else{ // ≥3× pide algo más de “vida”
-    return (b20<=0.62) && (b30<=0.65) && (br<=9) && (hasPurple(12) || sl>=0);
+    return (b20<=0.68) && (b30<=0.70) && (br<=10) && (sl>=-0.006);
+  }else{ // ≥3×
+    return (b20<=0.64) && (b30<=0.66) && (br<=9) && (hasPurple(10) || sl>=-0.002);
   }
 }
 
-/* ============ FASE por gap mediano (>=TARGET) ============ */
-function phasePredict(){
-  const gaps=intervalsG.map(x=>x.gap);
-  const gMed = Math.max(4, Math.min(20, Math.round(median(gaps)|| (TARGET===2?8:10) )));
-  const dist = gMed - (sinceG ?? 0);
-  const tol  = (TARGET===2?2:3); // tolerancia fija simple
-  return {gMed, dist, tol};
-}
-
-/* ============ DECISOR para >=TARGET ============ */
-function computeDecision(){
+/* ============ DECISOR simple (disparo inmediato) ============ */
+function decisionNow(){
   const s = sinceG ?? 0;
   const H = hazardCurve(intervalsG, s+30);
-  const qRef = H.q85; // normalización
+  const qRef = H.q85;
   const h1=(H.hazards[s+1]||0), rel1=qRef>0? h1/qRef : 0;
+
   const conf=getAggConf();
   const dry=clamp((s-(TARGET===2?6:8))/(TARGET===2?12:14),0,1);
-  const thrFire = clamp(1.00 - dry*0.22, conf.thrMin, 1.05);
-  const thrPre  = clamp(thrFire - conf.preGap, conf.thrMin-0.10, 1.02);
+  const thrFire = clamp(1.00 - dry*0.22, conf.thrMin, 1.05);      // umbral para disparar
+  const thrPre  = clamp(thrFire - conf.preGap, conf.thrMin-0.10, 1.02); // pre‑umbral
+
   const gateOK  = contextGate();
   const qfloor  = qualityFloorOK();
-  const phase   = phasePredict();
-  return {rel1, thrFire, thrPre, gateOK, qfloor, s, phase};
+
+  // Carril Hot‑streak
+  const runOk   = runGE(TARGET)>=3;
+  const ratioOk = ratioGE(TARGET,7)>=0.57;
+  const blueBreak = (maxBlueRun(12)>=5 && rounds[rounds.length-1]>=TARGET);
+
+  const hotLane = (runOk || ratioOk || blueBreak);
+
+  return {rel1, thrFire, thrPre, gateOK, qfloor, hotLane, s};
 }
 
 /* ============ RENDER ============ */
@@ -309,33 +312,32 @@ function renderStats(){
   const ma10=movingAverage(rounds,10); $("ma10").textContent=isNaN(ma10)?"–":ma10.toFixed(2)+"x";
   $("sinceGLbl").textContent= sinceG==null?"–":sinceG;
   $("sessProg").textContent = Session.active?`${Session.pos}/${Session.limit}`:"0/60";
-  $("armedLbl").textContent = Session.armed ? `sí (T+1)` : "no";
   $("shotsLbl").textContent = `${Session.shotMade}/${Session.maxShots}`;
   $("goalLbl").textContent  = `≥${TARGET}×`;
-  renderLast60();
+  $("sepLbl").textContent   = Session.sepMin;
+  const cont=$("lastRounds"); cont.innerHTML="";
+  lastShown.slice(0,60).forEach(v=>{ const sp=document.createElement("span"); sp.className="pill small "+colorClassFor(v); sp.textContent=v.toFixed(2)+"x"; cont.appendChild(sp); });
 }
 function renderBets(){
   const tb=$("betsTbody"); tb.innerHTML="";
-  bets.concat(pendings).forEach((b,i)=>{
+  bets.forEach((b,i)=>{
     const st=b.state==="win"?"win":b.state==="lose"?"lose":"pend";
     const tr=document.createElement("tr");
-    tr.innerHTML=`<td>${i+1}</td><td>${b.tag||"OBJ"}</td><td>${b.target}x</td><td>${b.emittedAt||"—"}</td><td>${b.crash?b.crash.toFixed(2)+"x":"—"}</td><td>${st}</td>`;
+    tr.innerHTML=`<td>${i+1}</td><td>${b.sessionId||"—"}</td><td>${b.tag||"OBJ"}</td><td>${b.target}x</td><td>${b.emittedAt||"—"}</td><td>${b.crash?b.crash.toFixed(2)+"x":"—"}</td><td>${st}</td>`;
     tb.appendChild(tr);
   });
 }
 
-/* ============ DISPARO ============ */
-function armNow(){
-  if(Session.armed) return;
-  Session.armed=true; $("armedLbl").textContent=`sí (T+1)`;
-  alarmPre(); setBanner(true, TARGET===2?"🎯 Señal posible ≥2× (T+1)":"🎯 Señal posible ≥3× (T+1)");
-  pushReview("Armo para T+1.");
-}
-function disarm(msg){ Session.armed=false; $("armedLbl").textContent="no"; if(msg) pushReview(msg); setBanner(false); }
-function fireShot(){
-  if(!$("autoSignal").checked || Session.shotMade>=Session.maxShots) return;
+/* ============ DISPARO INMEDIATO (entra T+1) ============ */
+function fireNow(){
+  if(!$("autoSignal").checked) return;
+  if(Session.shotMade>=Session.maxShots) return;
+  if(rounds.length - Session.lastEmitIdx < Session.sepMin) return;
+
   const ts=now();
-  pendings.push({id:"S"+ts,target:TARGET,ts,emittedAt:HHmmss(ts),state:"pend",tag:`ONE_SHOT_${TARGET}x`});
+  const entry = {id:"S"+ts, sessionId:Session.id, target:TARGET, ts, emittedAt:HHmmss(ts), state:"pend", tag:`AUTO_${TARGET}x`};
+  pendings.push(entry);
+  bets.push(entry); if(bets.length>800) bets.splice(0,bets.length-800);
   Session.shotMade++; Session.lastEmitIdx=rounds.length;
   $("shotsLbl").textContent = `${Session.shotMade}/${Session.maxShots}`;
   alarmFire(); setBanner(true, `🚨 ENTRAR AHORA → Próxima ronda (≥${TARGET}×)`);
@@ -343,37 +345,24 @@ function fireShot(){
   renderBets();
 }
 
-/* ============ LOOP sesion ============ */
+/* ============ LOOP de sesión ============ */
 function onTickSession(){
   if(!Session.active) return;
   Session.pos = rounds.length - Session.startIdx;
 
   // cierre si se alcanza límite o se hicieron maxShots
-  const ended = (Session.pos>=Session.limit) || (Session.shotMade>=Session.maxShots);
-  if(ended){
+  if(Session.pos>=Session.limit || Session.shotMade>=Session.maxShots){
+    const auto=$("autoRestart").checked;
     if(Session.pos>=Session.limit && Session.shotMade===0) pushReview("Cierra sesión sin señal: no hubo ventana confiable.");
-    const auto = $("autoRestart").checked;
     Session.active=false; setBanner(false);
-    if(auto){
-      pushReview("Auto‑reinicio en 1s.");
-      setTimeout(()=>{ startSession(); }, 1000);
-    }
+    if(auto){ pushReview("Auto‑reinicio en 1s."); setTimeout(()=>startSession(), 1000); }
     return;
   }
 
-  // decidir
-  const D = computeDecision();
-  const inPhaseSoon = (D.phase.dist<=D.phase.tol+1);
-
-  if(!Session.armed){
-    if(D.gateOK && D.qfloor && inPhaseSoon && D.rel1>=D.thrPre){
-      armNow();
-    }
-  }else{
-    // T+1: confirmar
-    const C = computeDecision();
-    const ok = C.gateOK && C.qfloor && (C.rel1>=C.thrFire || (C.phase.dist>=0 && C.phase.dist<=C.phase.tol && C.rel1>=C.thrPre));
-    if(ok) fireShot(); else disarm("Se desarma: no confirmó en T+1.");
+  // evaluación y disparo (mismo tick -> entra T+1)
+  const D = decisionNow();
+  if(D.gateOK && D.qfloor && (D.rel1>=D.thrFire || (D.rel1>=D.thrPre && D.hotLane))){
+    fireNow();
   }
 }
 
@@ -385,7 +374,7 @@ function rebuildTarget(){
     if(v>=TARGET){
       eventsG.push({idx:i,v,ts:roundsMeta[i]?.ts||0});
       const L=eventsG.length;
-      if(L>=2){ const prev=eventsG[L-2]; intervalsG.push({from:prev,to:eventsG[L-1],gap:eventsG[L-1].idx-prev.idx}); if(intervalsG.length>500) intervalsG.shift(); }
+      if(L>=2){ const prev=eventsG[L-2]; intervalsG.push({from:prev,to:eventsG[L-1],gap:eventsG[L-1].idx-prev.idx}); if(intervalsG.length>600) intervalsG.shift(); }
       sinceG=0;
     }else{
       sinceG = (sinceG==null?1:sinceG+1);
@@ -396,7 +385,7 @@ function pushEvtG(v,ts){
   if(v>=TARGET){
     const idx=rounds.length-1, ev={idx,v,ts}; eventsG.push(ev);
     if(eventsG.length>=2){
-      const prev=eventsG[eventsG.length-2]; intervalsG.push({from:prev,to:ev,gap:ev.idx-prev.idx}); if(intervalsG.length>500) intervalsG.shift();
+      const prev=eventsG[eventsG.length-2]; intervalsG.push({from:prev,to:ev,gap:ev.idx-prev.idx}); if(intervalsG.length>600) intervalsG.shift();
     }
     sinceG=0;
   }else{
@@ -407,21 +396,21 @@ function onNewCrash(v, ts, base=false){
   rounds.push(v); roundsMeta.push({v,ts}); if(rounds.length>3000){rounds.shift(); roundsMeta.shift();}
   lastShown.unshift(v); if(lastShown.length>60) lastShown.pop();
 
-  // resolver pendientes (solo cuando llega un evento NUEVO)
+  // resolver pendientes (solo cuando llega un evento NUEVO válido)
   if(!base && pendings.length){
     const bet=pendings.shift(); const win=(v>bet.target);
     bet.crash=v; bet.state=win?"win":"lose";
-    bets.push(bet); renderBets(); setBanner(false);
+    renderBets(); setBanner(false);
     pushReview(`Resultado: ${win?"GANADA":"PERDIDA"} con crash ${v.toFixed(2)}x.`);
   }
 
   pushEvtG(v,ts);
   renderStats();
 
-  if(!base){ onTickSession(); }
+  if(!base){ onTickSession(); persistLocal(); }
 }
 
-/* ============ CONEXIÓN FEED (con ANTIDUP) ============ */
+/* ============ CONEXIÓN FEED (ANTI‑DUPLICADOS) ============ */
 let liveRef=null, liveCb=null, lastKey=null, lastTs=null, lastActivity=null, watchdog=null;
 const seenSigs=new Set(); const sigOrder=[];
 function rememberSig(sig){ seenSigs.add(sig); sigOrder.push(sig); if(sigOrder.length>1500){ const old=sigOrder.shift(); seenSigs.delete(old); } }
@@ -457,7 +446,6 @@ async function connectFeed(){
   });
   rebuildTarget(); renderStats(); renderBets(); renderExplain();
 
-  // Live con dedupe fuerte (por ts)
   if(method==="ts"){
     liveRef=ref.orderByChild("ts").startAt((lastTs||0) + 1);
     liveCb=s=>{
@@ -492,10 +480,13 @@ function disconnectFeed(silent=false){
   if(!silent){ const fb=$("statusFeedback"); fb&&(fb.textContent="Desconectado."); }
 }
 
-/* ============ PERSISTENCIA / EXPLICACIÓN ============ */
+/* ============ PERSISTENCIA ============ */
 function persistLocal(){
   try{
-    localStorage.setItem(PERSIST_KEY, JSON.stringify({bets, pendings, aggr:$("aggr").value, target:TARGET, autoRestart:$("autoRestart").checked}));
+    localStorage.setItem(PERSIST_KEY, JSON.stringify({
+      bets, aggr:$("aggr").value, target:TARGET,
+      autoRestart:$("autoRestart").checked, clearOnStart:$("clearOnStart").checked
+    }));
   }catch(_){}
 }
 function restoreLocal(){
@@ -503,44 +494,41 @@ function restoreLocal(){
     const raw=localStorage.getItem(PERSIST_KEY); if(!raw) return;
     const p=JSON.parse(raw);
     if(Array.isArray(p.bets)) bets=p.bets;
-    if(Array.isArray(p.pendings)) pendings=p.pendings;
     if(p.aggr) $("aggr").value=p.aggr;
-    if(p.target){ TARGET=Number(p.target); $("targetSel").value=String(TARGET); $("goalLbl").textContent=`≥${TARGET}×`; }
+    if(p.target){ TARGET=Number(p.target); $("targetSel").value=String(TARGET); }
     if(typeof p.autoRestart==="boolean") $("autoRestart").checked=p.autoRestart;
+    if(typeof p.clearOnStart==="boolean") $("clearOnStart").checked=p.clearOnStart;
   }catch(_){}
 }
+
+/* ============ EXPLICACIÓN Y UI ============ */
 function renderExplain(){
-  const c=getAggConf();
+  const c=getAggConf(); Session.sepMin=c.sepMin;
   $("aggrExplain").textContent=
-    `Sesión 60 rondas · máx 2 señales · objetivo ${TARGET}× · Pre‑arma T+1 con hazard+fase · `+
-    `Piso calidad ${c.floorLast.toFixed(2)}/${c.floorAvg3.toFixed(2)} · Umbral mín. ${c.thrMin.toFixed(2)}.`;
+    `Sesión 60 rondas · máx 2 señales · objetivo ${TARGET}× · disparo inmediato (entra T+1) `+
+    `· piso calidad ${c.floorLast.toFixed(2)}/${c.floorAvg3.toFixed(2)} · umbral mín. ${c.thrMin.toFixed(2)} · sep mín ${c.sepMin}.`;
+  $("goalLbl").textContent=`≥${TARGET}×`; $("sepLbl").textContent=Session.sepMin;
 }
 
-/* ============ UI HANDLERS ============ */
+/* ============ ARRANQUE/PAUSA ============ */
 function startSession(){
-  Session.active=true; Session.startIdx=rounds.length; Session.pos=0; Session.shotMade=0; disarm();
-  bets=[]; pendings=[];
-  $("sessProg").textContent="0/60"; $("shotsLbl").textContent=`0/${Session.maxShots}`; setBanner(false);
-  pushReview("Empieza sesión (60 rondas, máx. 2 señales).");
-  alarmPre();
+  if($("clearOnStart").checked){ bets=[]; renderBets(); }
+  Session.active=true; Session.startIdx=rounds.length; Session.pos=0; Session.shotMade=0; Session.lastEmitIdx=-999; Session.id=HHmmss(now());
+  setBanner(false);
+  pushReview(`Empieza sesión ${Session.id} (60 rondas, máx. 2 señales).`);
 }
 $("connectBtn").addEventListener("click", connectFeed);
 $("disconnectBtn").addEventListener("click", ()=>disconnectFeed(false));
 $("startBtn").addEventListener("click", startSession);
-$("pauseBtn").addEventListener("click",  ()=>{ Session.active=false; disarm("Sesión en pausa."); });
-$("aggr").addEventListener("change", ()=>{ renderExplain(); });
-$("targetSel").addEventListener("change", ()=>{
-  TARGET = Number($("targetSel").value);
-  $("goalLbl").textContent=`≥${TARGET}×`;
-  rebuildTarget(); renderExplain(); renderStats();
-});
+$("pauseBtn").addEventListener("click",  ()=>{ Session.active=false; setBanner(false); pushReview("Sesión en pausa."); });
+$("aggr").addEventListener("change", ()=>{ renderExplain(); persistLocal(); });
+$("targetSel").addEventListener("change", ()=>{ TARGET = Number($("targetSel").value); rebuildTarget(); renderExplain(); renderStats(); persistLocal(); });
 
 setInterval(()=>{ $("clockNow").textContent=new Date().toLocaleTimeString(); persistLocal(); }, 1000);
 
 /* ============ BOOT ============ */
 (function(){
-  renderExplain();
-  restoreLocal(); renderBets(); renderStats(); renderExplain();
+  restoreLocal(); renderBets(); renderExplain(); renderStats();
 })();
 </script>
 </body>
