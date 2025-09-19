@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v20.0 (30→2× & 30→3×)</title>
+<title>Aviator Analyzer • Gocho v21.0 (n‑gramas + hazard • 30→2× & 30→3×)</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5;
@@ -46,8 +46,8 @@
 <div class="wrap">
   <div id="signalBanner" class="banner">🎯 Señal → Entrar próxima ronda</div>
 
-  <h1>✈️ Aviator Analyzer • <span style="color:var(--brand)">Gocho v20.0</span>
-    <span class="muted">30→2× & 30→3× • score + deadline seguro • historial persistente</span>
+  <h1>✈️ Aviator Analyzer • <span style="color:var(--brand)">Gocho v21.0</span>
+    <span class="muted">n‑gramas + hazard • 30→2× & 30→3× • deadline seguro • historial persistente</span>
     <span id="statusFeedback" class="muted" style="margin-left:8px"></span>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
   </h1>
@@ -99,7 +99,7 @@
   <div class="card">
     <div class="row"><h3 style="margin:0">Señales (historial persistente)</h3></div>
     <table class="table" style="margin-top:8px">
-      <thead><tr><th>#</th><th>Sesión</th><th>Mitad</th><th>Tag</th><th>Objetivo</th><th>Hora</th><th>Crash</th><th>Estado</th></tr></thead>
+      <thead><tr><th>#</th><th>Sesión</th><th>Mitad</th><th>Tag</th><th>Objetivo</th><th>Hora</th><th>Crash</</th><th>Estado</th></tr></thead>
       <tbody id="betsTbody"></tbody>
     </table>
   </div>
@@ -144,7 +144,6 @@ const HHmmss = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:
 function movingAverage(arr,n){const L=Math.min(arr.length,n); if(!L) return NaN; let s=0; for(let i=arr.length-L;i<arr.length;i++) s+=arr[i]; return s/L;}
 function clamp(v,a,b){return v<a?a:(v>b?b:v);}
 function avg(a){return a.length? a.reduce((s,v)=>s+v,0)/a.length : 0;}
-function median(a){if(!a.length) return 0; const b=[...a].sort((x,y)=>x-y); const m=Math.floor(b.length/2); return b.length%2?b[m]:(b[m-1]+b[m])/2;}
 function pct(x){return (x*100).toFixed(0)+"%";}
 
 /* ===== AUDIO ===== */
@@ -185,7 +184,7 @@ function parseCrashValue(raw){
 }
 
 /* ===== ESTADO / PLAN 30+30 ===== */
-const PERSIST_KEY="gocho_v200_plan3030_score";
+const PERSIST_KEY="gocho_v210_ngram_score";
 let FEED_ID="gocho", connected=false, baseCount=0;
 
 // seguimiento por objetivo
@@ -208,21 +207,47 @@ const Session = {
 let bets=[];      // historial global persistente
 let pendings=[];  // señales pendientes (máx. 1)
 
-/* ===== UI ===== */
-function colorClassFor(v){
-  if(v>=10) return "c-pink";
-  if(v>=5)  return "c-purple";
-  if(v>=2)  return "c-green";
-  return "c-blue";
+/* ====== PATTERN‑LEARNER (n‑gramas 1–3) ====== */
+const cats=[]; // B,G,M,P
+const PL = { // mapas por longitud -> pattern -> {tot,n2,n3}
+  maps:{1:new Map(),2:new Map(),3:new Map()},
+  global:{tot:0,n2:0,n3:0}
+};
+function catOf(v){ return (v<2)?"B": (v<3)?"G": (v<5)?"M":"P"; }
+function key(len,pat){ return len+":"+pat; }
+function plGet(len,pat){ const m=PL.maps[len]; let r=m.get(pat); if(!r){ r={tot:0,n2:0,n3:0}; m.set(pat,r); } return r; }
+function plUpdateWithNewCrash(v){
+  // actualizar con el crash recién llegado; usamos patrones PREVIOS
+  const outcome2 = (v>=2)?1:0, outcome3=(v>=3)?1:0;
+  for(let len=1; len<=3; len++){
+    if(cats.length>=len){
+      const pat=cats.slice(cats.length-len).join("");
+      const rec=plGet(len,pat); rec.tot++; rec.n2+=outcome2; rec.n3+=outcome3;
+    }
+  }
+  PL.global.tot++; PL.global.n2+=outcome2; PL.global.n3+=outcome3;
 }
-function setBanner(show,msg){
-  const el=$("signalBanner");
-  if(show){ el.textContent=msg||"🎯 Señal → Entrar próxima ronda"; el.classList.add("show"); }
-  else el.classList.remove("show");
-}
-function pushReview(txt){ const box=$("reviewBox"); const line=`[${HHmmss(now())}] ${txt}`; box.textContent=(box.textContent==="—"?line:(box.textContent+"\n"+line)); }
-function planText(){
-  return `${Session.halves[0].label} ≥2× (${Session.halves[0].fired?"ok":"pend"}) · ${Session.halves[1].label} ≥3× (${Session.halves[1].fired?"ok":"pend"})`;
+function plProbNext(T){
+  // estima P(next >= T) con backoff (1,2,3) y pesos
+  const ws=[0.2,0.3,0.5]; // l=1,2,3
+  let num=0, den=0;
+  for(let len=1; len<=3; len++){
+    const w=ws[len-1];
+    if(cats.length>=len){
+      const pat=cats.slice(cats.length-len).join("");
+      const rec=PL.maps[len].get(pat);
+      if(rec && rec.tot>0){
+        const nT = (T===2?rec.n2:rec.n3);
+        const p  = (nT + 1) / (rec.tot + 2); // Laplace
+        num+=w*p; den+=w;
+      }
+    }
+  }
+  if(den===0){
+    const g=PL.global; const p=(T===2?g.n2:g.n3) / Math.max(1,g.tot);
+    return p||0.5;
+  }
+  return num/den;
 }
 
 /* ===== MÉTRICAS ===== */
@@ -255,19 +280,22 @@ function getAggConf(){
     sepMin:10,
     floor2:{last:1.45, avg3:1.57}, floor3:{last:1.52, avg3:1.60},
     thrMin2:0.94, thrMin3:0.96, preGap:0.06,
-    scoreThr2:0.90, scoreThr3:0.96
+    scoreThr2:0.90, scoreThr3:0.96,
+    pThr2:0.62, pThr3:0.46, pDL2:0.56, pDL3:0.42
   };
   if(m==="AGR") return {
     sepMin:7,
     floor2:{last:1.34, avg3:1.47}, floor3:{last:1.46, avg3:1.54},
     thrMin2:0.84, thrMin3:0.90, preGap:0.08,
-    scoreThr2:0.78, scoreThr3:0.86
+    scoreThr2:0.78, scoreThr3:0.86,
+    pThr2:0.54, pThr3:0.40, pDL2:0.50, pDL3:0.36
   };
   return {
     sepMin:9,
     floor2:{last:1.38, avg3:1.50}, floor3:{last:1.48, avg3:1.57},
     thrMin2:0.90, thrMin3:0.93, preGap:0.07,
-    scoreThr2:0.84, scoreThr3:0.92
+    scoreThr2:0.84, scoreThr3:0.92,
+    pThr2:0.58, pThr3:0.42, pDL2:0.52, pDL3:0.40
   };
 }
 
@@ -290,47 +318,33 @@ function contextGate(T){
 }
 function rosaBlocked(rel1, thrFire){
   if(Rosa.since==null || Rosa.since>=2) return false;
-  const big = (Rosa.lastV||0)>=20 ? 0.20 : 0.16;
-  return !(rel1 >= (thrFire + big)); // sólo se permite si hazard es claramente superior
+  const big=(Rosa.lastV||0)>=20 ? 0.20 : 0.16;
+  return !(rel1 >= (thrFire + big));
 }
 
-/* ===== SCORE por objetivo (más flexible) =====
-   - Combina hazard relativo + ratio + run + agotamiento de azules + pendiente + “purple nearby”.
-   - Devuelve score 0..1.5 aprox y si supera el umbral del modo (scoreThr2/3). */
-function scoreFor(T, rel, ratio, run, br, slope, purple){
-  const conf=getAggConf();
-  const thrMin = (T===2?conf.thrMin2:conf.thrMin3);
-  const base = thrMin; // referencia para normalizar
-  const normRel = clamp((rel - base)/0.35, 0, 1);                // fuerza de hazard
-  const need = (T===2?0.45:0.32);
-  const span = (T===2?0.28:0.25);
-  const normRatio = clamp((ratio - need)/span, 0, 1);            // momentum
-  const bonusRun = (run>=3? (T===2?0.12:0.10):0);
-  const bonusBlue= (br>=5?0.10:0);
-  const bonusSlope=(slope>=0?0.10:0);
-  const bonusPurp = (purple?0.06:0);
-
-  let score = 0.55*normRel + 0.45*normRatio + bonusRun + bonusBlue + bonusSlope + bonusPurp;
-  score = clamp(score, 0, 1.6);
-  return score;
+/* ===== SCORE híbrido ===== */
+function scoreFor(T, rel, pN, run, br, slope, purple){
+  const bonusRun = (run>=3? (T===2?0.10:0.08):0);
+  const bonusBlue= (br>=5?0.08:0);
+  const bonusSlope=(slope>=0?0.06:0);
+  const bonusPurp = (purple && T===3 ? 0.04:0);
+  let sc = 0.6*pN + 0.4*clamp(rel,0,1.5) + bonusRun + bonusBlue + bonusSlope + bonusPurp;
+  return clamp(sc,0,1.6);
 }
 
-/* ===== DEADLINE seguro por mitad =====
-   H1: rondas 22–29; H2: 52–59. Requisitos mínimos para no quedarte sin tiro. */
-function deadlineReady(T, pos, rel, ratio){
-  const inWindow = (T===2? (pos>=22 && pos<=29) : (pos>=52 && pos<=59));
-  if(!inWindow) return false;
-  if(Rosa.since!=null && Rosa.since<=1) return false; // evitar justo tras ROSA
-
-  const conf=getAggConf();
-  const thrMin = (T===2?conf.thrMin2:conf.thrMin3);
-  const needRatio = (T===2?0.50:0.38);
-
-  const ok = floorOK(T) && contextGate(T) && (rel >= (thrMin-0.03)) && (ratio >= needRatio);
-  return ok;
+/* ===== DEADLINE seguro ===== */
+function deadlineReady(T, pos, rel, pN){
+  const cf=getAggConf();
+  const inWin = (T===2? (pos>=22 && pos<=29): (pos>=52 && pos<=59));
+  if(!inWin) return false;
+  if(Rosa.since!=null && Rosa.since<=1) return false;
+  const thrMin=(T===2?cf.thrMin2:cf.thrMin3);
+  const pNeed=(T===2?cf.pDL2:cf.pDL3);
+  return floorOK(T) && contextGate(T) && (pN>=pNeed) && (rel>=(thrMin-0.02));
 }
 
 /* ===== RENDER ===== */
+function colorClassFor(v){ if(v>=10) return "c-pink"; if(v>=5) return "c-purple"; if(v>=3) return "c-purple"; if(v>=2) return "c-green"; return "c-blue"; }
 function renderLast60(){
   const cont=$("lastRounds"); cont.innerHTML="";
   lastShown.slice(0,60).forEach(v=>{
@@ -365,65 +379,54 @@ function renderBets(){
 function fireNow(T, halfLabel, reason){
   if(!$("autoSignal").checked) return;
   if(rounds.length - Session.lastEmitIdx < Session.sepMin) return;
-
   const ts=now();
-  const entry = {id:"S"+ts, sessionId:Session.id, half:halfLabel, target:T, ts, emittedAt:HHmmss(ts), state:"pend", tag:`AUTO_${T}x`};
+  const entry={id:"S"+ts, sessionId:Session.id, half:halfLabel, target:T, ts, emittedAt:HHmmss(ts), state:"pend", tag:`AUTO_${T}x`};
   pendings.push(entry);
   bets.push(entry); if(bets.length>1500) bets.splice(0,bets.length-1500);
   Session.lastEmitIdx=rounds.length;
   alarmFire(); setBanner(true, `🚨 ENTRAR AHORA → Próxima ronda (≥${T}×)`);
-  pushReview(`Señal emitida ${halfLabel} (${reason}): próxima ronda (≥${T}×).`);
+  pushReview(`Señal emitida ${halfLabel} (${reason}).`);
   renderBets();
 }
 
 /* ===== DECISOR por mitad ===== */
 function decideHalf(T){
-  const s   = (T===2? since2 : since3) ?? 0;
-  const I   = (T===2? intervals2 : intervals3);
-  const H   = hazardCurve(I, s+30);
-  const q   = H.q85;
-  const rel = q>0 ? (H.hazards[s+1]||0)/q : 0;
+  const s=(T===2?since2:since3) ?? 0;
+  const I=(T===2?intervals2:intervals3);
+  const H=hazardCurve(I, s+30);
+  const q=H.q85, rel=q>0? (H.hazards[s+1]||0)/q : 0;
 
-  const r7    = ratioGE(T,7);
-  const run   = runGE(T);
-  const br    = maxBlueRun(12);
-  const slope = slopeMA10();
-  const purple= hasPurple(10);
+  const pN = plProbNext(T);
+  const r7 = ratioGE(T,7);
+  const run= runGE(T);
+  const br = maxBlueRun(12);
+  const sl = slopeMA10();
+  const purp=hasPurple(10);
 
-  const sc = scoreFor(T, rel, r7, run, br, slope, purple);
-  const cf = getAggConf();
-  const thrScore = (T===2?cf.scoreThr2:cf.scoreThr3);
-  const thrMin   = (T===2?cf.thrMin2:cf.thrMin3);
+  const sc = scoreFor(T, rel, pN, run, br, sl, purp);
+  const cf=getAggConf();
+  const thrScore=(T===2?cf.scoreThr2:cf.scoreThr3);
+  const pThr=(T===2?cf.pThr2:cf.pThr3);
+  const thrMin=(T===2?cf.thrMin2:cf.thrMin3);
 
-  const okFloor  = floorOK(T);
-  const okGate   = contextGate(T);
-  const rosaBlk  = rosaBlocked(rel, clamp(1.00, thrMin, 1.06)); // usa 1.00 como base de fire antes de sequía
+  const okFloor=floorOK(T), okGate=contextGate(T);
+  const rosaBlk=rosaBlocked(rel, 1.00);
 
-  const scoreTxt = `rel:${rel.toFixed(2)} r7:${(r7*100).toFixed(0)}% run:${run} br:${br} sl:${slope.toFixed(3)} sc:${sc.toFixed(2)} thr:${thrScore.toFixed(2)}${rosaBlk?" (rosaHold)":""}`;
+  const pos=Session.pos;
+  const ruleScore = (sc>=thrScore && pN>=pThr && okFloor && okGate && !rosaBlk);
+  const ruleDL    = deadlineReady(T, pos, rel, pN);
 
-  // Reglas de disparo:
-  // 1) Score >= umbral del modo + piso + gate + no bloqueado por ROSA.
-  const ruleScore = sc >= thrScore && okFloor && okGate && !rosaBlk;
-
-  // 2) Deadline seguro cerca del cierre de la mitad.
-  const pos = Session.pos;
-  const ruleDeadline = deadlineReady(T, pos, rel, r7);
-
-  return {fire: ruleScore || ruleDeadline, scoreTxt, ruleScore, ruleDeadline, rel, r7};
+  const txt = `pN:${(pN*100).toFixed(0)}% rel:${rel.toFixed(2)} sc:${sc.toFixed(2)} thr:${thrScore.toFixed(2)}${ruleDL?" (deadline)":""}${rosaBlk?" (rosaHold)":""}`;
+  return {fire:(ruleScore||ruleDL), scoreTxt:txt};
 }
 
 /* ===== LOOP sesión ===== */
-function currentHalf(){
-  if(Session.pos<30) return Session.halves[0];
-  if(Session.pos<60) return Session.halves[1];
-  return null;
-}
+function currentHalf(){ if(Session.pos<30) return Session.halves[0]; if(Session.pos<60) return Session.halves[1]; return null; }
 function onTickSession(){
   if(!Session.active) return;
   Session.pos = rounds.length - Session.startIdx;
 
-  // cierre
-  const bothDone = Session.halves[0].fired && Session.halves[1].fired;
+  const bothDone=Session.halves[0].fired && Session.halves[1].fired;
   if(Session.pos>=Session.limit || bothDone){
     const auto=$("autoRestart").checked;
     Session.active=false; setBanner(false);
@@ -431,28 +434,26 @@ function onTickSession(){
     return;
   }
 
-  const half = currentHalf();
+  const half=currentHalf();
   if(!half || half.fired) return;
 
-  const T = half.target;
-  const D = decideHalf(T);
+  const T=half.target;
+  const D=decideHalf(T);
   renderStats(D.scoreTxt);
 
   if(D.fire){
-    fireNow(T, half.label, D.ruleDeadline?"deadline":"score");
+    fireNow(T, half.label, D.scoreTxt.includes("deadline")?"deadline":"score");
     half.fired=true;
   }
 }
 
 /* ===== EVENTOS por ronda ===== */
 function pushEvtTargets(v,ts){
-  // 2×
   if(v>=2){
     const idx=rounds.length-1, ev={idx,v,ts}; events2.push(ev);
     if(events2.length>=2){ const prev=events2[events2.length-2]; intervals2.push({from:prev,to:ev,gap:ev.idx-prev.idx}); if(intervals2.length>800) intervals2.shift(); }
     since2=0;
   }else{ since2 = (since2==null?1:since2+1); }
-  // 3×
   if(v>=3){
     const idx=rounds.length-1, ev3={idx,v,ts}; events3.push(ev3);
     if(events3.length>=2){ const prev=events3[events3.length-2]; intervals3.push({from:prev,to:ev3,gap:ev3.idx-prev.idx}); if(intervals3.length>800) intervals3.shift(); }
@@ -460,28 +461,34 @@ function pushEvtTargets(v,ts){
   }else{ since3 = (since3==null?1:since3+1); }
 }
 function onNewCrash(v, ts, base=false){
+  // 1) antes de añadir el símbolo actual, actualizamos el learner con el outcome
+  plUpdateWithNewCrash(v);
+
+  // 2) actualizar buffers
   rounds.push(v); roundsMeta.push({v,ts}); if(rounds.length>4000){rounds.shift(); roundsMeta.shift();}
   lastShown.unshift(v); if(lastShown.length>60) lastShown.pop();
+  cats.push(catOf(v)); if(cats.length>5000) cats.shift();
 
-  // Track ROSA
-  if(Rosa.lastIdx!=null){ Rosa.since = (rounds.length-1) - Rosa.lastIdx; }
+  // 3) ROSA tracking
+  if(Rosa.lastIdx!=null){ Rosa.since=(rounds.length-1)-Rosa.lastIdx; }
   if(v>=10){ Rosa.lastIdx=rounds.length-1; Rosa.lastV=v; Rosa.since=0; }
 
-  // resolver pendiente
+  // 4) resolver pendiente
   if(!base && pendings.length){
     const bet=pendings.shift(); const win=(v>bet.target);
     bet.crash=v; bet.state=win?"win":"lose";
     renderBets(); setBanner(false);
     pushReview(`Resultado ${bet.half}: ${win?"GANADA":"PERDIDA"} con crash ${v.toFixed(2)}x.`);
-    // endurecer/relajar separación según resultado
     const baseSep=getAggConf().sepMin;
     Session.sepMin = win ? baseSep : Math.min(baseSep+2, 14);
   }
 
+  // 5) actualizar objetivos
   pushEvtTargets(v,ts);
-  onTickSession();
+
+  // 6) decide si no es base
+  if(!base){ onTickSession(); persistLocal(); }
   renderStats();
-  persistLocal();
 }
 
 /* ===== CONEXIÓN FEED (anti‑duplicados) ===== */
@@ -499,7 +506,6 @@ async function connectFeed(){
   FEED_ID=($("feedId").value||"gocho").trim();
   const fb=$("statusFeedback"); fb&&(fb.textContent=`Conectando a feeds/${FEED_ID}/crashes…`);
   try{ await auth.signInAnonymously(); }catch(e){}
-
   const ref=db.ref(`feeds/${FEED_ID}/crashes`);
   fb&&(fb.textContent="Cargando historial…");
 
@@ -508,10 +514,12 @@ async function connectFeed(){
   if(!snap){ try{ const s=await ref.orderByKey().limitToLast(800).once("value"); if(s && s.val()) { snap=s; method="key"; } }catch(e){} }
   if(!snap||!snap.val()){ fb&&(fb.textContent="Sin datos en el feed."); return; }
 
+  // reset
   rounds=[]; roundsMeta=[]; lastShown=[];
   events2=[]; intervals2=[]; since2=null;
   events3=[]; intervals3=[]; since3=null;
   Rosa.lastIdx=null; Rosa.lastV=null; Rosa.since=null;
+  cats.length=0; PL.maps={1:new Map(),2:new Map(),3:new Map()}; PL.global={tot:0,n2:0,n3:0};
   baseCount=Object.keys(snap.val()).length;
 
   const data=snap.val(), keys=Object.keys(data).sort();
@@ -577,10 +585,10 @@ function restoreLocal(){
 function renderExplain(){
   const c=getAggConf(); Session.sepMin=c.sepMin;
   $("aggrExplain").textContent=
-    `Plan 60: H1 (1–30) ≥2×, H2 (31–60) ≥3× · Score + deadline seguro · Pisos 2× ${c.floor2.last.toFixed(2)}/${c.floor2.avg3.toFixed(2)} · 3× ${c.floor3.last.toFixed(2)}/${c.floor3.avg3.toFixed(2)} · `+
-    `Umbrales min 2× ${c.thrMin2.toFixed(2)} / 3× ${c.thrMin3.toFixed(2)} · ScoreThr 2× ${c.scoreThr2.toFixed(2)} / 3× ${c.scoreThr3.toFixed(2)} · Sep mín ${c.sepMin}.`;
+    `Plan: H1(1–30) ≥2×, H2(31–60) ≥3× · n‑gramas+hazard · ScoreThr 2× ${c.scoreThr2.toFixed(2)} / 3× ${c.scoreThr3.toFixed(2)} · `+
+    `PThr 2× ${c.pThr2.toFixed(2)} / 3× ${c.pThr3.toFixed(2)} · Pisos 2× ${c.floor2.last.toFixed(2)}/${c.floor2.avg3.toFixed(2)} · 3× ${c.floor3.last.toFixed(2)}/${c.floor3.avg3.toFixed(2)} · Sep mín ${c.sepMin}.`;
   $("sepLbl").textContent=Session.sepMin;
-  $("planLbl").textContent=planText();
+  $("planLbl").textContent= `${Session.halves[0].label} ≥2× (${Session.halves[0].fired?"ok":"pend"}) · ${Session.halves[1].label} ≥3× (${Session.halves[1].fired?"ok":"pend"})`;
 }
 
 /* ===== ARRANQUE/PAUSA ===== */
