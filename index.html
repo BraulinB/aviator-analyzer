@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v22.0 (auto-sesión • n-gramas + hazard)</title>
+<title>Aviator Analyzer • Gocho v23.0 (auto-sesión • 1×30→2×/3× + 3×≥1.70)</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5;
@@ -46,35 +46,29 @@
 <div class="wrap">
   <div id="signalBanner" class="banner">🎯 Señal → Entrar próxima ronda</div>
 
-  <h1>✈️ Aviator Analyzer • <span style="color:var(--brand)">Gocho v22.0</span>
-    <span class="muted">auto-sesión • n-gramas + hazard • 30→2× & 30→3× • deadline seguro • historial persistente</span>
+  <h1>✈️ Aviator Analyzer • <span style="color:var(--brand)">Gocho v23.0</span>
+    <span class="muted">auto-sesión indefinida • 30→2×/3× + micro ≥1.70 • n-gramas + hazard • historial persistente</span>
     <span id="statusFeedback" class="muted" style="margin-left:8px"></span>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
   </h1>
 
-  <!-- Controles -->
+  <!-- Controles (simplificado: al Conectar inicia solo y encadena) -->
   <div class="card">
     <div class="row">
-      <button id="startBtn" class="btn ok">Iniciar sesión (60)</button>
-      <button id="pauseBtn" class="btn">Pausar</button>
       <label class="row"><input id="autoSignal" type="checkbox" checked> Auto-señal</label>
       <label class="row"><input id="beepToggle" type="checkbox" checked> Beep</label>
       <label class="row"><input id="fix1k" type="checkbox" checked> Auto-1k</label>
-      <label class="row"><input id="autoRestart" type="checkbox" checked> Auto-reinicio</label>
-      <label class="row"><input id="autoStart" type="checkbox" checked> Auto-sesión</label>
       <label class="row"><input id="clearOnStart" type="checkbox"> Limpiar señales al iniciar</label>
-
       <span class="muted">Agresividad:</span>
       <select id="aggr">
         <option value="EQ" selected>Equilibrado</option>
         <option value="CONS">Conservador</option>
         <option value="AGR">Agresivo</option>
       </select>
-
       <div class="row" style="margin-left:auto">
         <span class="muted">Feed:</span>
         <input id="feedId" type="text" value="gocho"/>
-        <button id="connectBtn" class="btn">Conectar</button>
+        <button id="connectBtn" class="btn ok">Conectar</button>
         <button id="disconnectBtn" class="btn">Desconectar</button>
       </div>
     </div>
@@ -85,11 +79,10 @@
   <div class="card">
     <div class="kpi">
       <div class="box">Rondas: <b id="rounds">0</b> <span class="muted">(base)</span></div>
-      <div class="box">MA10: <b id="ma10">–</b><br><span class="muted">since≥2:</span> <b id="since2Lbl">–</b> · <span class="muted">since≥3:</span> <b id="since3Lbl">–</b></div>
+      <div class="box">MA10: <b id="ma10">–</b><br><span class="muted">since≥1.70:</span> <b id="since17Lbl">–</b> · <span class="muted">since≥2:</span> <b id="since2Lbl">–</b> · <span class="muted">since≥3:</span> <b id="since3Lbl">–</b></div>
       <div class="box">Sesión: <b id="sessProg">0/60</b><br><span class="muted">Plan:</span> <b id="planLbl">—</b></div>
       <div class="box">Sep. mín: <b id="sepLbl">—</b><br><span class="muted">Score:</span> <b id="scoreLbl">—</b></div>
     </div>
-
     <div style="margin-top:8px">
       <div class="muted" style="margin-bottom:6px">Últimas 60 rondas (más reciente primero)</div>
       <div id="lastRounds"></div>
@@ -145,7 +138,8 @@ const HHmmss = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:
 function movingAverage(arr,n){const L=Math.min(arr.length,n); if(!L) return NaN; let s=0; for(let i=arr.length-L;i<arr.length;i++) s+=arr[i]; return s/L;}
 function clamp(v,a,b){return v<a?a:(v>b?b:v);}
 function avg(a){return a.length? a.reduce((s,v)=>s+v,0)/a.length : 0;}
-function pct(x){return (x*100).toFixed(0)+"%";}
+function setBanner(show,txt){const el=$("signalBanner"); if(!el) return; if(txt) el.textContent=txt; el.className="banner"+(show?" show":"");}
+function pushReview(t){const el=$("reviewBox"); const ts=HHmmss(now()); el.textContent=`[${ts}] ${t}\n`+(el.textContent||"");}
 
 /* ================= AUDIO ================= */
 let audioCtx=null;
@@ -184,24 +178,26 @@ function parseCrashValue(raw){
   return v;
 }
 
-/* ============ ESTADO / PLAN 30+30 ============ */
-const PERSIST_KEY="gocho_v220_autosession";
-let FEED_ID="gocho", connected=false, baseCount=0;
+/* ============ ESTADO / PLAN 30+30 + micro ============ */
+const PERSIST_KEY="gocho_v230_autorun";
+let FEED_ID="gocho", connected=false, keepRunning=false, baseCount=0;
 
 // seguimiento por objetivo
-let events2=[], intervals2=[], since2=null;
-let events3=[], intervals3=[], since3=null;
+let events17=[], intervals17=[], since17=null;
+let events2=[],  intervals2=[],  since2=null;
+let events3=[],  intervals3=[],  since3=null;
 
 // ROSA reciente
 const Rosa = { lastIdx:null, lastV:null, since:null };
 
-// Sesión 60 con dos mitades
+// Sesión 60 con dos mitades + micro 1.70
 const Session = {
   id:null, active:false, startIdx:0, pos:0, limit:60,
   halves:[
-    {label:"H1", start:0, end:30, target:2, fired:false},
+    {label:"H1", start:0,  end:30, target:2, fired:false},
     {label:"H2", start:30, end:60, target:3, fired:false}
   ],
+  micro:{quota:3, fired:0, lastIdx:-999, sepMin:12}, // ≥1.70; máx 3; mín 1 cada 15 aprox (sep 12)
   lastEmitIdx:-999, sepMin:9
 };
 
@@ -209,42 +205,34 @@ let bets=[];      // historial global persistente
 let pendings=[];  // señales pendientes (máx. 1)
 
 /* ====== PATTERN-LEARNER (n-gramas 1–3) ====== */
-const cats=[]; // B,G,M,P
-const PL = { // mapas por longitud -> pattern -> {tot,n2,n3}
-  maps:{1:new Map(),2:new Map(),3:new Map()},
-  global:{tot:0,n2:0,n3:0}
-};
+const cats=[]; // B(<2), G(2–2.99), M(3–4.99), P(≥5)
+const PL = { maps:{1:new Map(),2:new Map(),3:new Map()}, global:{tot:0,n17:0,n2:0,n3:0} };
 function catOf(v){ return (v<2)?"B": (v<3)?"G": (v<5)?"M":"P"; }
-function plGet(len,pat){ const m=PL.maps[len]; let r=m.get(pat); if(!r){ r={tot:0,n2:0,n3:0}; m.set(pat,r); } return r; }
+function plGet(len,pat){ const m=PL.maps[len]; let r=m.get(pat); if(!r){ r={tot:0,n17:0,n2:0,n3:0}; m.set(pat,r); } return r; }
 function plUpdateWithNewCrash(v){
-  const outcome2 = (v>=2)?1:0, outcome3=(v>=3)?1:0;
+  const o17=(v>=1.70)?1:0, o2=(v>=2)?1:0, o3=(v>=3)?1:0;
   for(let len=1; len<=3; len++){
     if(cats.length>=len){
       const pat=cats.slice(cats.length-len).join("");
-      const rec=plGet(len,pat); rec.tot++; rec.n2+=outcome2; rec.n3+=outcome3;
+      const r=plGet(len,pat); r.tot++; r.n17+=o17; r.n2+=o2; r.n3+=o3;
     }
   }
-  PL.global.tot++; PL.global.n2+=outcome2; PL.global.n3+=outcome3;
+  PL.global.tot++; PL.global.n17+=o17; PL.global.n2+=o2; PL.global.n3+=o3;
 }
 function plProbNext(T){
   const ws=[0.2,0.3,0.5];
-  let num=0, den=0;
+  let num=0, den=0, key=(T===1.7?"n17":T===2?"n2":"n3");
   for(let len=1; len<=3; len++){
     const w=ws[len-1];
     if(cats.length>=len){
       const pat=cats.slice(cats.length-len).join("");
       const rec=PL.maps[len].get(pat);
       if(rec && rec.tot>0){
-        const nT = (T===2?rec.n2:rec.n3);
-        const p  = (nT + 1) / (rec.tot + 2); // Laplace
-        num+=w*p; den+=w;
+        const p=(rec[key]+1)/(rec.tot+2); num+=w*p; den+=w;
       }
     }
   }
-  if(den===0){
-    const g=PL.global; const p=(T===2?g.n2:g.n3) / Math.max(1,g.tot);
-    return p||0.5;
-  }
+  if(!den){ const g=PL.global; const p=g[key]/Math.max(1,g.tot); return p||0.5; }
   return num/den;
 }
 
@@ -254,7 +242,6 @@ function maxBlueRun(n=18){const w=rounds.slice(-n); let m=0,c=0; for(const x of 
 function hasPurple(n=12){return rounds.slice(-n).some(x=>x>=5 && x<10);}
 function slopeMA10(){ if(rounds.length<11) return 0; const a=movingAverage(rounds,10), b=movingAverage(rounds.slice(0,-1),10); return a-b; }
 function runGE(n=2){ let c=0; for(let i=rounds.length-1;i>=0;i--){ if(rounds[i]>=n) c++; else break; } return c; }
-function ratioGE(n=2, w=7){ const a=rounds.slice(-w); if(!a.length) return 0; return a.filter(x=>x>=n).length/a.length; }
 
 /* ============ HAZARD >=T ============ */
 function hazardCurve(listIntervals, horizonT){
@@ -271,83 +258,71 @@ function hazardCurve(listIntervals, horizonT){
   return {hazards, q85:pick(0.85)};
 }
 
-/* ============ CONFIG por agresividad ============ */
+/* ============ CONFIG ============ */
 function getAggConf(){
   const m=($("aggr")?.value||"EQ");
   if(m==="CONS") return {
-    sepMin:10,
-    floor2:{last:1.45, avg3:1.57}, floor3:{last:1.52, avg3:1.60},
-    thrMin2:0.94, thrMin3:0.96,
-    scoreThr2:0.90, scoreThr3:0.96,
-    pThr2:0.62, pThr3:0.46, pDL2:0.56, pDL3:0.42
+    sepMin:10, microSep:14,
+    floor17:{last:1.36, avg3:1.46}, floor2:{last:1.45, avg3:1.57}, floor3:{last:1.52, avg3:1.60},
+    thrMin17:0.92, thrMin2:0.94, thrMin3:0.96,
+    scoreThr17:0.84, scoreThr2:0.90, scoreThr3:0.96,
+    pThr17:0.66, pThr2:0.62, pThr3:0.46
   };
   if(m==="AGR") return {
-    sepMin:7,
-    floor2:{last:1.34, avg3:1.47}, floor3:{last:1.46, avg3:1.54},
-    thrMin2:0.84, thrMin3:0.90,
-    scoreThr2:0.78, scoreThr3:0.86,
-    pThr2:0.54, pThr3:0.40, pDL2:0.50, pDL3:0.36
+    sepMin:7, microSep:10,
+    floor17:{last:1.30, avg3:1.42}, floor2:{last:1.34, avg3:1.47}, floor3:{last:1.46, avg3:1.54},
+    thrMin17:0.84, thrMin2:0.84, thrMin3:0.90,
+    scoreThr17:0.74, scoreThr2:0.78, scoreThr3:0.86,
+    pThr17:0.58, pThr2:0.54, pThr3:0.40
   };
   return {
-    sepMin:9,
-    floor2:{last:1.38, avg3:1.50}, floor3:{last:1.48, avg3:1.57},
-    thrMin2:0.90, thrMin3:0.93,
-    scoreThr2:0.84, scoreThr3:0.92,
-    pThr2:0.58, pThr3:0.42, pDL2:0.52, pDL3:0.40
+    sepMin:9, microSep:12,
+    floor17:{last:1.32, avg3:1.45}, floor2:{last:1.38, avg3:1.50}, floor3:{last:1.48, avg3:1.57},
+    thrMin17:0.88, thrMin2:0.90, thrMin3:0.93,
+    scoreThr17:0.79, scoreThr2:0.84, scoreThr3:0.92,
+    pThr17:0.62, pThr2:0.58, pThr3:0.42
   };
 }
 
-/* ============ PISOS, GATES y COOLDOWN ROSA ============ */
+/* ============ Pisos + gates + Rosa cooldown ============ */
 function floorOK(T){
   const a=rounds.slice(-3); if(a.length<1) return false;
-  const last=a[a.length-1], aavg=avg(a);
-  const conf=getAggConf();
-  const f=(T===2?conf.floor2:conf.floor3);
-  const br=maxBlueRun(16);
+  const last=a[a.length-1], aavg=avg(a); const c=getAggConf();
+  const f=(T===1.7?c.floor17:(T===2?c.floor2:c.floor3));
   if(last<f.last) return false;
   if(aavg<f.avg3 && last<f.avg3) return false;
-  if(br>=10 && last<1.80) return false;
+  if(maxBlueRun(16)>=10 && last<1.80) return false;
   return true;
 }
 function contextGate(T){
   const b20=blueDensity(20), b30=blueDensity(30), br=maxBlueRun(18), sl=slopeMA10();
-  if(T===2) return (b20<=0.69) && (b30<=0.71) && (br<=10) && (sl>=-0.007);
-  return (b20<=0.65) && (b30<=0.67) && (br<=9) && (hasPurple(10) || sl>=-0.003);
+  if(T===1.7) return (b20<=0.75)&&(b30<=0.77)&&(br<=11)&&(sl>=-0.010);
+  if(T===2)   return (b20<=0.69)&&(b30<=0.71)&&(br<=10)&&(sl>=-0.007);
+  return (b20<=0.65)&&(b30<=0.67)&&(br<=9)&&(hasPurple(10) || sl>=-0.003);
 }
-function rosaBlocked(rel1){
-  if(Rosa.since==null || Rosa.since>=2) return false;
-  const add=(Rosa.lastV||0)>=20 ? 0.20 : 0.16;
-  return !(rel1 >= (1.00 + add));
+function rosaHold(){
+  if(Rosa.since==null) return false;
+  return Rosa.since<=1; // evita disparar justo tras rosa
 }
 
-/* ============ Calibración dinámica por desempeño ============ */
-const Perf={2:{last:[]},3:{last:[]}}; // últimos 12 resultados por T; true=win
+/* ============ Calibración por desempeño ============ */
+const Perf={17:{last:[]},2:{last:[]},3:{last:[]}};
 function perfAdj(T){
   const arr=Perf[T].last||[]; const n=arr.length; if(n<6) return {score:0,p:0};
   const wins=arr.reduce((s,x)=>s+(x?1:0),0); const hit=wins/n;
   if(hit<0.35) return {score:+0.06, p:+0.04};
   if(hit>0.65) return {score:-0.03, p:-0.02};
-  return {score:0, p:0};
+  return {score:0,p:0};
 }
 
 /* ============ SCORE híbrido ============ */
 function scoreFor(T, rel, pN, run, br, slope, purple){
-  const bonusRun = (run>=3? (T===2?0.10:0.08):0);
+  const bonusRun = (run>=3? (T===2?0.10: T===3?0.08:0.06):0);
   const bonusBlue= (br>=5?0.08:0);
   const bonusSlope=(slope>=0?0.06:0);
   const bonusPurp = (purple && T===3 ? 0.04:0);
   let sc = 0.6*pN + 0.4*clamp(rel,0,1.5) + bonusRun + bonusBlue + bonusSlope + bonusPurp;
   return clamp(sc,0,1.6);
-}
-
-/* ============ DEADLINE seguro ============ */
-function deadlineReady(T, pos, rel, pN){
-  const cf=getAggConf();
-  const inWin = (T===2? (pos>=22 && pos<=29): (pos>=52 && pos<=59));
-  if(!inWin) return false;
-  if(Rosa.since!=null && Rosa.since<=1) return false;
-  const pNeed=(T===2?cf.pDL2:cf.pDL3);
-  return floorOK(T) && contextGate(T) && (pN>=pNeed) && (rel>= (T===2? cf.thrMin2-0.02 : cf.thrMin3-0.02));
 }
 
 /* ============ RENDER ============ */
@@ -364,11 +339,12 @@ function renderLast60(){
 function renderStats(scoreText="—"){
   $("rounds").textContent = `${rounds.length} (base ${baseCount})`;
   const ma10=movingAverage(rounds,10); $("ma10").textContent=isNaN(ma10)?"–":ma10.toFixed(2)+"x";
+  $("since17Lbl").textContent= since17==null?"–":since17;
   $("since2Lbl").textContent= since2==null?"–":since2;
   $("since3Lbl").textContent= since3==null?"–":since3;
   $("sessProg").textContent = Session.active?`${Session.pos}/${Session.limit}`:"0/60";
-  $("planLbl").textContent  = `${Session.halves[0].label} ≥2× (${Session.halves[0].fired?"ok":"pend"}) · ${Session.halves[1].label} ≥3× (${Session.halves[1].fired?"ok":"pend"})`;
-  $("sepLbl").textContent   = Session.sepMin;
+  $("planLbl").textContent  = `${Session.halves[0].label}:${Session.halves[0].target}× (${Session.halves[0].fired?"ok":"pend"}) · ${Session.halves[1].label}:${Session.halves[1].target}× (${Session.halves[1].fired?"ok":"pend"}) · micro≥1.70 ${Session.micro.fired}/${Session.micro.quota}`;
+  $("sepLbl").textContent   = `${Session.sepMin} / micro ${Session.micro.sepMin}`;
   $("scoreLbl").textContent = scoreText;
   renderLast60();
 }
@@ -383,99 +359,135 @@ function renderBets(){
 }
 
 /* ============ DISPARO (T+1) ============ */
-function fireNow(T, halfLabel, reason){
+function fireNow(T, halfLabel, reason, tag){
   if(!$("autoSignal").checked) return;
-  if(rounds.length - Session.lastEmitIdx < Session.sepMin) return;
+  // separación específica
+  const sepNeed = (tag==="AUTO_1p7"? Session.micro.sepMin : Session.sepMin);
+  if(rounds.length - Session.lastEmitIdx < sepNeed) return;
+
   const ts=now();
-  const entry={id:"S"+ts, sessionId:Session.id, half:halfLabel, target:T, ts, emittedAt:HHmmss(ts), state:"pend", tag:`AUTO_${T}x`};
+  const entry={id:"S"+ts, sessionId:Session.id, half:halfLabel, target:T, ts, emittedAt:HHmmss(ts), state:"pend", tag:tag||`AUTO_${T}x`};
   pendings.push(entry);
-  bets.push(entry); if(bets.length>1500) bets.splice(0,bets.length-1500);
+  bets.push(entry); if(bets.length>2000) bets.splice(0,bets.length-2000);
   Session.lastEmitIdx=rounds.length;
   alarmFire(); setBanner(true, `🚨 ENTRAR AHORA → Próxima ronda (≥${T}×)`);
-  pushReview(`Señal emitida ${halfLabel} (${reason}).`);
+  pushReview(`Señal emitida ${halfLabel} (${tag||"auto"}) ${reason}.`);
   renderBets();
 }
 
-/* ============ DECISOR por mitad ============ */
-function decideHalf(T){
-  const s=(T===2?since2:since3) ?? 0;
-  const I=(T===2?intervals2:intervals3);
+/* ============ ESTADÍSTICA objetivos ============ */
+function sinceFor(T){ return T===1.7? since17 : (T===2? since2 : since3); }
+function listIntFor(T){ return T===1.7? intervals17 : (T===2? intervals2 : intervals3); }
+function eventsPush(T,v,ts){
+  const arrEv = T===1.7? events17 : (T===2? events2 : events3);
+  const arrIv = T===1.7? intervals17 : (T===2? intervals2 : intervals3);
+  const idx=rounds.length-1, ev={idx,v,ts}; arrEv.push(ev);
+  if(arrEv.length>=2){ const prev=arrEv[arrEv.length-2]; arrIv.push({from:prev,to:ev,gap:ev.idx-prev.idx}); if(arrIv.length>800) arrIv.shift(); }
+  if(T===1.7) since17=0; else if(T===2) since2=0; else since3=0;
+}
+function bumpSince(T){ if(T===1.7) since17=(since17==null?1:since17+1); else if(T===2) since2=(since2==null?1:since2+1); else since3=(since3==null?1:since3+1); }
+
+/* ============ DECISOR genérico ============ */
+function decideTarget(T){
+  const s=sinceFor(T) ?? 0;
+  const I=listIntFor(T);
   const H=hazardCurve(I, s+30);
   const q=H.q85, rel=q>0? (H.hazards[s+1]||0)/q : 0;
 
-  const pN = plProbNext(T);
-  const r7 = ratioGE(T,7);
-  const run= runGE(T);
+  const pN = plProbNext(T===1.7?1.7:T);
+  const run= runGE(T===1.7?2:T);             // racha de “>=T base” (para 1.7 usamos >=2 como referencia)
   const br = maxBlueRun(12);
   const sl = slopeMA10();
   const purp=hasPurple(10);
+  let sc = scoreFor(T===1.7?2:T, rel, pN, run, br, sl, purp); // reusa misma escala
 
-  // score base
-  let sc = scoreFor(T, rel, pN, run, br, sl, purp);
-  const cf=getAggConf();
-  let thrScore=(T===2?cf.scoreThr2:cf.scoreThr3);
-  let pThr=(T===2?cf.pThr2:cf.pThr3);
+  const c=getAggConf();
+  let thrScore = (T===1.7?c.scoreThr17:(T===2?c.scoreThr2:c.scoreThr3));
+  let pThr     = (T===1.7?c.pThr17:(T===2?c.pThr2:c.pThr3));
 
-  // ajuste por desempeño reciente
-  const adj=perfAdj(T);
-  thrScore = clamp(thrScore + adj.score, 0.70, 1.10);
-  pThr     = clamp(pThr + adj.p,      0.35, 0.80);
+  // ajuste por desempeño
+  const adj=perfAdj(T===1.7?17:T);
+  thrScore=clamp(thrScore+adj.score, 0.70, 1.10);
+  pThr    =clamp(pThr+adj.p,      0.35, 0.85);
 
-  const okFloor=floorOK(T), okGate=contextGate(T);
-  const rosaBlk=rosaBlocked(rel);
-  const pos=Session.pos;
+  const okFloor=floorOK(T===1.7?1.7:T), okGate=contextGate(T===1.7?1.7:T);
+  const holdRosa=rosaHold();
 
-  const ruleScore = (sc>=thrScore && pN>=pThr && okFloor && okGate && !rosaBlk);
-  const ruleDL    = deadlineReady(T, pos, rel, pN);
+  const ruleScore = (sc>=thrScore && pN>=pThr && okFloor && okGate && !holdRosa);
 
-  const txt = `pN:${(pN*100).toFixed(0)}% rel:${rel.toFixed(2)} sc:${sc.toFixed(2)} thr:${thrScore.toFixed(2)}${ruleDL?" (deadline)":""}${rosaBlk?" (rosaHold)":""}`;
-  return {fire:(ruleScore||ruleDL), scoreTxt:txt};
+  const txt = `T${T} p:${(pN*100).toFixed(0)}% rel:${rel.toFixed(2)} sc:${sc.toFixed(2)} thr:${thrScore.toFixed(2)}`+(holdRosa?" (rosaHold)":"");
+  return {ok:ruleScore, scoreTxt:txt};
+}
+
+/* ============ PLAN por mitad (puede invertir 2×/3×) ============ */
+function chooseHalfTargets(){
+  // Por defecto H1=2×, H2=3×. Si en el arranque de la mitad p3 supera a p2 por bastante, invertimos.
+  const p2=plProbNext(2), p3=plProbNext(3);
+  Session.halves[0].target = (p3 - p2 >= 0.08 ? 3 : 2);
+  Session.halves[1].target = (p2 - p3 >= 0.08 ? 2 : 3);
 }
 
 /* ============ LOOP sesión ============ */
 function currentHalf(){ if(Session.pos<30) return Session.halves[0]; if(Session.pos<60) return Session.halves[1]; return null; }
+
+function maybeMicro(){
+  if(Session.micro.fired>=Session.micro.quota) return;
+  if(rounds.length - Session.micro.lastIdx < Session.micro.sepMin) return;
+  const D=decideTarget(1.7);
+  if(D.ok){
+    fireNow(1.7, "MICRO", D.scoreTxt, "AUTO_1p7");
+    Session.micro.fired++; Session.micro.lastIdx=rounds.length;
+  }
+  renderStats(D.scoreTxt);
+}
+
 function onTickSession(){
   if(!Session.active) return;
   Session.pos = rounds.length - Session.startIdx;
-
+  const half=currentHalf();
   const bothDone=Session.halves[0].fired && Session.halves[1].fired;
-  if(Session.pos>=Session.limit || bothDone){
-    const auto=$("autoRestart").checked || $("autoStart").checked; // encadena si autoStart está activo
-    Session.active=false; setBanner(false);
-    if(auto){ pushReview("Auto-reinicio en 1s."); setTimeout(()=>startSession(),1000); }
-    return;
+
+  // micro independiente (cuando no acabó sesión)
+  if(Session.pos<Session.limit) maybeMicro();
+
+  // mitad principal
+  if(half && !half.fired){
+    // deadline seguro por mitad
+    const pos=Session.pos;
+    const Dmain=decideTarget(half.target);
+    const scoreTxt=Dmain.scoreTxt;
+    renderStats(scoreTxt);
+
+    let fire=false;
+    // ventana de deadline
+    const inDL = (half.label==="H1"? (pos>=22 && pos<=29) : (pos>=52 && pos<=59));
+    if(Dmain.ok) fire=true;
+    else if(inDL){
+      // si el objetivo va flojo, intenta el otro (inversión de emergencia)
+      const altT=(half.target===2?3:2);
+      const Dalt=decideTarget(altT);
+      if(Dalt.ok) { half.target=altT; fire=true; }
+      else fire=false;
+    }
+    if(fire){
+      fireNow(half.target, half.label, scoreTxt);
+      half.fired=true;
+    }
   }
 
-  const half=currentHalf();
-  if(!half || half.fired) return;
-
-  const T=half.target;
-  const D=decideHalf(T);
-  renderStats(D.scoreTxt);
-
-  if(D.fire){
-    fireNow(T, half.label, D.scoreTxt.includes("deadline")?"deadline":"score");
-    half.fired=true;
+  if(Session.pos>=Session.limit || bothDone){
+    Session.active=false; setBanner(false);
+    pushReview("Fin de sesión.");
+    if(keepRunning){ setTimeout(()=>startSession(), 1000); }
   }
 }
 
 /* ============ EVENTOS por ronda ============ */
-function pushEvtTargets(v,ts){
-  if(v>=2){
-    const idx=rounds.length-1, ev={idx,v,ts}; events2.push(ev);
-    if(events2.length>=2){ const prev=events2[events2.length-2]; intervals2.push({from:prev,to:ev,gap:ev.idx-prev.idx}); if(intervals2.length>800) intervals2.shift(); }
-    since2=0;
-  }else{ since2 = (since2==null?1:since2+1); }
-  if(v>=3){
-    const idx=rounds.length-1, ev3={idx,v,ts}; events3.push(ev3);
-    if(events3.length>=2){ const prev=events3[events3.length-2]; intervals3.push({from:prev,to:ev3,gap:ev3.idx-prev.idx}); if(intervals3.length>800) intervals3.shift(); }
-    since3=0;
-  }else{ since3 = (since3==null?1:since3+1); }
-}
 function onNewCrash(v, ts, base=false){
-  // actualizar learner con outcome
+  // learner
   plUpdateWithNewCrash(v);
 
+  // buffers
   rounds.push(v); roundsMeta.push({v,ts}); if(rounds.length>4000){rounds.shift(); roundsMeta.shift();}
   lastShown.unshift(v); if(lastShown.length>60) lastShown.pop();
   cats.push(catOf(v)); if(cats.length>5000) cats.shift();
@@ -487,16 +499,21 @@ function onNewCrash(v, ts, base=false){
   if(!base && pendings.length){
     const bet=pendings.shift(); const win=(v>bet.target);
     bet.crash=v; bet.state=win?"win":"lose";
-    // guardar desempeño por objetivo
-    const arr=Perf[bet.target].last; arr.push(win); if(arr.length>12) arr.shift();
+    const key=(bet.target===1.7?17:bet.target);
+    const arr=Perf[key].last; arr.push(win); if(arr.length>12) arr.shift();
     renderBets(); setBanner(false);
-    pushReview(`Resultado ${bet.half}: ${win?"GANADA":"PERDIDA"} con crash ${v.toFixed(2)}x.`);
+    pushReview(`Resultado ${bet.half}: ${win?"GANADA":"PERDIDA"} con ${v.toFixed(2)}x.`);
     const baseSep=getAggConf().sepMin;
     Session.sepMin = win ? baseSep : Math.min(baseSep+2, 14);
   }
 
-  pushEvtTargets(v,ts);
-  if(!base){ onTickSession(); persistLocal(); }
+  // objetivos
+  if(v>=1.70) eventsPush(1.7,v,ts); else bumpSince(1.7);
+  if(v>=2)    eventsPush(2,v,ts);   else bumpSince(2);
+  if(v>=3)    eventsPush(3,v,ts);   else bumpSince(3);
+
+  // tick
+  if(Session.active && !base){ onTickSession(); }
   renderStats();
 }
 
@@ -524,13 +541,14 @@ async function connectFeed(){
   if(!snap){ try{ const s=await ref.orderByKey().limitToLast(800).once("value"); if(s && s.val()) { snap=s; method="key"; } }catch(e){} }
   if(!snap||!snap.val()){ fb&&(fb.textContent="Sin datos en el feed."); return; }
 
-  // reset
+  // reset estado
   rounds=[]; roundsMeta=[]; lastShown=[];
-  events2=[]; intervals2=[]; since2=null;
-  events3=[]; intervals3=[]; since3=null;
+  events17=[]; intervals17=[]; since17=null;
+  events2=[];  intervals2=[];  since2=null;
+  events3=[];  intervals3=[];  since3=null;
   Rosa.lastIdx=null; Rosa.lastV=null; Rosa.since=null;
-  cats.length=0; PL.maps={1:new Map(),2:new Map(),3:new Map()}; PL.global={tot:0,n2:0,n3:0};
-  Perf[2].last=[]; Perf[3].last=[];
+  cats.length=0; PL.maps={1:new Map(),2:new Map(),3:new Map()}; PL.global={tot:0,n17:0,n2:0,n3:0};
+  Perf[17].last=[]; Perf[2].last=[]; Perf[3].last=[];
   baseCount=Object.keys(snap.val()).length;
 
   const data=snap.val(), keys=Object.keys(data).sort();
@@ -566,78 +584,59 @@ async function connectFeed(){
   if(watchdog) clearInterval(watchdog);
   watchdog=setInterval(()=>{ if(!connected) return; const dt=Date.now()-(lastActivity||0); if(dt>300000){ disconnectFeed(true); connectFeed(); } }, 30000);
 
-  connected=true; fb&&(fb.textContent="Conectado.");
-
-  // >>> Auto-sesión: arranca sola y sigue en loop hasta Desconectar <<<
-  if($("autoStart").checked && !Session.active){
-    pushReview("Auto-sesión: inicio automático.");
-    startSession();
-  }
+  connected=true; keepRunning=true; fb&&(fb.textContent="Conectado. Auto-sesión activa.");
+  // Auto-start inmediato y encadenado indefinido
+  startSession();
 }
 function disconnectFeed(silent=false){
   if(!connected) return;
   if(liveRef && liveCb) liveRef.off("child_added", liveCb);
-  liveRef=liveCb=null; lastKey=lastTs=lastActivity=null; connected=false;
-  if(watchdog){ clearInterval(watchdog); watchdog=null; }
+  liveRef=liveCb=null; lastKey=lastTs=lastActivity=null; connected=false; keepRunning=false;
   Session.active=false; setBanner(false); pendings.length=0;
   const fb=$("statusFeedback"); if(!silent && fb) fb.textContent="Desconectado.";
 }
 
-/* ============ PERSISTENCIA / EXPLICACIÓN ============ */
+/* ============ PERSISTENCIA / EXPLICACIÓN / ARRANQUE ============ */
 function persistLocal(){
-  try{
-    localStorage.setItem(PERSIST_KEY, JSON.stringify({
-      bets, aggr:$("aggr").value, autoRestart:$("autoRestart").checked, autoStart:$("autoStart").checked, clearOnStart:$("clearOnStart").checked
-    }));
-  }catch(_){}
+  try{ localStorage.setItem(PERSIST_KEY, JSON.stringify({bets, aggr:$("aggr").value})); }catch(_){}
 }
 function restoreLocal(){
-  try{
-    const raw=localStorage.getItem(PERSIST_KEY); if(!raw) return;
+  try{ const raw=localStorage.getItem(PERSIST_KEY); if(!raw) return;
     const p=JSON.parse(raw);
     if(Array.isArray(p.bets)) bets=p.bets;
     if(p.aggr) $("aggr").value=p.aggr;
-    if(typeof p.autoRestart==="boolean") $("autoRestart").checked=p.autoRestart;
-    if(typeof p.autoStart==="boolean") $("autoStart").checked=p.autoStart;
-    if(typeof p.clearOnStart==="boolean") $("clearOnStart").checked=p.clearOnStart;
   }catch(_){}
 }
 function renderExplain(){
-  const c=getAggConf(); Session.sepMin=c.sepMin;
+  const c=getAggConf(); Session.sepMin=c.sepMin; Session.micro.sepMin=c.microSep;
   $("aggrExplain").textContent=
-    `Plan: H1(1–30) ≥2×, H2(31–60) ≥3× · n-gramas+hazard + calibración dinámica · `+
-    `ScoreThr 2× ${c.scoreThr2.toFixed(2)} / 3× ${c.scoreThr3.toFixed(2)} · `+
-    `PThr 2× ${c.pThr2.toFixed(2)} / 3× ${c.pThr3.toFixed(2)} · `+
-    `Pisos 2× ${c.floor2.last.toFixed(2)}/${c.floor2.avg3.toFixed(2)} · 3× ${c.floor3.last.toFixed(2)}/${c.floor3.avg3.toFixed(2)} · `+
-    `Sep mín ${c.sepMin}. `+
-    `Auto-sesión: al Conectar inicia solo y encadena hasta Desconectar.`;
-  $("sepLbl").textContent=Session.sepMin;
-  $("planLbl").textContent= `${Session.halves[0].label} ≥2× (${Session.halves[0].fired?"ok":"pend"}) · ${Session.halves[1].label} ≥3× (${Session.halves[1].fired?"ok":"pend"})`;
+    `Auto-sesión: al Conectar inicia y encadena sesiones sin parar hasta Desconectar. `+
+    `Plan por sesión: H1/H2 con 1 tiro cada 30 rondas (2×/3× con inversión automática) + hasta 3 micro ≥1.70. `+
+    `Pisos 1.70 ${c.floor17.last.toFixed(2)}/${c.floor17.avg3.toFixed(2)} · 2× ${c.floor2.last.toFixed(2)}/${c.floor2.avg3.toFixed(2)} · 3× ${c.floor3.last.toFixed(2)}/${c.floor3.avg3.toFixed(2)} · `+
+    `Sep ${c.sepMin} (principal) / ${c.microSep} (micro).`;
+  $("sepLbl").textContent=`${Session.sepMin} / micro ${Session.micro.sepMin}`;
+  $("planLbl").textContent=`H1:${Session.halves[0].target}× · H2:${Session.halves[1].target}× · micro ${Session.micro.fired}/${Session.micro.quota}`;
 }
 
-/* ============ ARRANQUE/PAUSA ============ */
 function startSession(){
   if($("clearOnStart").checked){ bets=[]; renderBets(); }
-  const c=getAggConf(); Session.sepMin=c.sepMin;
+  const c=getAggConf(); Session.sepMin=c.sepMin; Session.micro.sepMin=c.microSep;
   Session.active=true; Session.startIdx=rounds.length; Session.pos=0; Session.lastEmitIdx=-999;
   Session.halves=[{label:"H1",start:0,end:30,target:2,fired:false},{label:"H2",start:30,end:60,target:3,fired:false}];
-  Session.id=HHmmss(now());
-  setBanner(false);
-  pushReview(`Empieza sesión ${Session.id} (Plan 30→2× & 30→3×).`);
-  renderStats();
+  Session.micro.fired=0; Session.micro.lastIdx=-999;
+  Session.id=HHmmss(now()); setBanner(false);
+  chooseHalfTargets();
+  pushReview(`Empieza sesión ${Session.id} · H1:${Session.halves[0].target}× · H2:${Session.halves[1].target}×`);
+  renderExplain(); renderStats();
 }
+
 $("connectBtn").addEventListener("click", connectFeed);
 $("disconnectBtn").addEventListener("click", ()=>disconnectFeed(false));
-$("startBtn").addEventListener("click", startSession);
-$("pauseBtn").addEventListener("click",  ()=>{ Session.active=false; setBanner(false); pushReview("Sesión en pausa."); });
 $("aggr").addEventListener("change", ()=>{ renderExplain(); persistLocal(); });
-
 setInterval(()=>{ $("clockNow").textContent=new Date().toLocaleTimeString(); persistLocal(); }, 1000);
 
 /* ============ BOOT ============ */
-(function(){
-  restoreLocal(); renderBets(); renderExplain(); renderStats();
-})();
+(function(){ restoreLocal(); renderBets(); renderExplain(); renderStats(); })();
 </script>
 </body>
 </html>
