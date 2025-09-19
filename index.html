@@ -3,56 +3,69 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v23.0 (auto-sesión • 1×30→2×/3× + 3×≥1.70)</title>
+<title>Aviator Analyzer • Gocho v23.1 (improved algorithms)</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5;
     --ok:#2ecc71; --warn:#e67e22; --bad:#e74c3c; --brand:#8ab4ff;
     --blue:#4ea1ff; --green:#53d26b; --purple:#aa8bff; --pink:#ff7ad9;
   }
-  html,body{background:var(--bg);color:var(--text);font:14px/1.45 system-ui,Inter,Segoe UI,Roboto,Arial,sans-serif;margin:0}
-  .wrap{max-width:1100px;margin:20px auto;padding:0 12px}
-  .card{background:var(--panel);border:1px solid #22283a;border-radius:12px;padding:14px;margin:10px 0}
-  h1{font-size:18px;margin:0 0 8px;display:flex;gap:8px;align-items:center}
-  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .btn{background:#2a3042;color:var(--text);border:0;border-radius:8px;padding:8px 12px;cursor:pointer}
-  .btn.ok{background:#2ecc71;color:#0c0f12;font-weight:700}
-  .muted{color:var(--muted)}
-  input[type="text"],select{background:#0f121a;color:var(--text);border:1px solid #2a3144;border-radius:6px;padding:6px}
-  input[type="text"]{width:140px}
-  .kpi{display:flex;gap:16px;flex-wrap:wrap}
-  .kpi .box{background:#0f121a;border:1px solid #22283a;border-radius:10px;padding:10px 12px}
-  .clock{font-variant-numeric:tabular-nums}
-  .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:#1c2130;margin:4px 6px 0 0;font-weight:600}
-  .pill.small{padding:4px 8px;font-size:12px}
-  .c-blue{color:#dbeafe;background:#142136;border:1px solid #1e3352}
-  .c-green{color:#dbffe8;background:#0f2d1a;border:1px solid #21492f}
-  .c-purple{color:#efe4ff;background:#271f3d;border:1px solid #3b2f5c}
-  .c-pink{color:#ffe7f7;background:#3a1f33;border:1px solid #5a2b4e}
-  .table{width:100%;border-collapse:collapse;font-size:13px}
-  .table th,.table td{padding:8px;border-bottom:1px solid #22283a;text-align:left}
-  .review{white-space:pre-line;font-size:12px;color:#cbd5e1}
-  .banner{
-    position:fixed; left:50%; top:18px; transform:translateX(-50%);
-    background:#0f2015; border:2px solid var(--green); color:#d8ffe6;
-    padding:10px 16px; border-radius:12px; font-weight:800; z-index:9999;
-    box-shadow:0 10px 30px rgba(83,210,107,.25); display:none
+  html, body { background: var(--bg); color: var(--text);
+    font: 14px/1.45 system-ui, Inter, Segoe UI, Roboto, Arial, sans-serif; margin: 0; }
+  .wrap { max-width: 1100px; margin: 20px auto; padding: 0 12px; }
+  .card { background: var(--panel); border: 1px solid #22283a;
+    border-radius: 12px; padding: 14px; margin: 10px 0; }
+  h1 { font-size: 18px; margin: 0 0 8px; display: flex; gap: 8px; align-items: center; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .btn { background: #2a3042; color: var(--text); border: 0;
+    border-radius: 8px; padding: 8px 12px; cursor: pointer; }
+  .btn.ok { background: #2ecc71; color: #0c0f12; font-weight: 700; }
+  .muted { color: var(--muted); }
+  input[type="text"], select {
+    background: #0f121a; color: var(--text); border: 1px solid #2a3144;
+    border-radius: 6px; padding: 6px;
   }
-  .banner.show{display:block; animation:pop .18s ease-out both}
-  @keyframes pop{0%{transform:translateX(-50%) scale(.92)}100%{transform:translateX(-50%) scale(1)}}
+  input[type="text"] { width: 140px; }
+  .kpi { display: flex; gap: 16px; flex-wrap: wrap; }
+  .kpi .box { background: #0f121a; border: 1px solid #22283a;
+    border-radius: 10px; padding: 10px 12px; }
+  .clock { font-variant-numeric: tabular-nums; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 10px; border-radius: 999px; background: #1c2130;
+    margin: 4px 6px 0 0; font-weight: 600;
+  }
+  .pill.small { padding: 4px 8px; font-size: 12px; }
+  .c-blue   { color: #dbeafe; background: #142136; border: 1px solid #1e3352; }
+  .c-green  { color: #dbffe8; background: #0f2d1a; border: 1px solid #21492f; }
+  .c-purple { color: #efe4ff; background: #271f3d; border: 1px solid #3b2f5c; }
+  .c-pink   { color: #ffe7f7; background: #3a1f33; border: 1px solid #5a2b4e; }
+  .table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .table th, .table td {
+    padding: 8px; border-bottom: 1px solid #22283a; text-align: left;
+  }
+  .review { white-space: pre-line; font-size: 12px; color: #cbd5e1; }
+  .banner {
+    position: fixed; left: 50%; top: 18px; transform: translateX(-50%);
+    background: #0f2015; border: 2px solid var(--green); color: #d8ffe6;
+    padding: 10px 16px; border-radius: 12px; font-weight: 800;
+    z-index: 9999; box-shadow: 0 10px 30px rgba(83,210,107,.25);
+    display: none;
+  }
+  .banner.show { display: block; animation: pop .18s ease-out both; }
+  @keyframes pop { 0% { transform: translateX(-50%) scale(.92); }
+                   100% { transform: translateX(-50%) scale(1); } }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div id="signalBanner" class="banner">🎯 Señal → Entrar próxima ronda</div>
-
-  <h1>✈️ Aviator Analyzer • <span style="color:var(--brand)">Gocho v23.0</span>
-    <span class="muted">auto-sesión indefinida • 30→2×/3× + micro ≥1.70 • n-gramas + hazard • historial persistente</span>
+  <h1>✈️ Aviator Analyzer • <span style="color:var(--brand)">Gocho v23.1</span>
+    <span class="muted">auto-sesión indefinida • 30→2×/3× + micro ≥1.70 (improved)</span>
     <span id="statusFeedback" class="muted" style="margin-left:8px"></span>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
   </h1>
-
-  <!-- Controles (simplificado: al Conectar inicia solo y encadena) -->
+  <!-- Controls -->
   <div class="card">
     <div class="row">
       <label class="row"><input id="autoSignal" type="checkbox" checked> Auto-señal</label>
@@ -74,48 +87,52 @@
     </div>
     <div id="aggrExplain" class="muted" style="margin-top:6px"></div>
   </div>
-
-  <!-- KPIs + Estado -->
+  <!-- KPIs + Status -->
   <div class="card">
     <div class="kpi">
       <div class="box">Rondas: <b id="rounds">0</b> <span class="muted">(base)</span></div>
-      <div class="box">MA10: <b id="ma10">–</b><br><span class="muted">since≥1.70:</span> <b id="since17Lbl">–</b> · <span class="muted">since≥2:</span> <b id="since2Lbl">–</b> · <span class="muted">since≥3:</span> <b id="since3Lbl">–</b></div>
-      <div class="box">Sesión: <b id="sessProg">0/60</b><br><span class="muted">Plan:</span> <b id="planLbl">—</b></div>
-      <div class="box">Sep. mín: <b id="sepLbl">—</b><br><span class="muted">Score:</span> <b id="scoreLbl">—</b></div>
+      <div class="box">MA10: <b id="ma10">–</b><br>
+        <span class="muted">since ≥1.70:</span> <b id="since17Lbl">–</b> · 
+        <span class="muted">since ≥2:</span> <b id="since2Lbl">–</b> · 
+        <span class="muted">since ≥3:</span> <b id="since3Lbl">–</b></div>
+      <div class="box">Sesión: <b id="sessProg">0/60</b><br>
+        <span class="muted">Plan:</span> <b id="planLbl">—</b></div>
+      <div class="box">Sep. mín: <b id="sepLbl">—</b><br>
+        <span class="muted">Score:</span> <b id="scoreLbl">—</b></div>
     </div>
     <div style="margin-top:8px">
-      <div class="muted" style="margin-bottom:6px">Últimas 60 rondas (más reciente primero)</div>
+      <div class="muted" style="margin-bottom:6px">
+        Últimas 60 rondas (más reciente primero)
+      </div>
       <div id="lastRounds"></div>
     </div>
   </div>
-
-  <!-- Log (global persistente) -->
+  <!-- Signals Log -->
   <div class="card">
     <div class="row"><h3 style="margin:0">Señales (historial persistente)</h3></div>
     <table class="table" style="margin-top:8px">
-      <thead><tr><th>#</th><th>Sesión</th><th>Mitad</th><th>Tag</th><th>Objetivo</th><th>Hora</th><th>Crash</th><th>Estado</th></tr></thead>
+      <thead>
+        <tr><th>#</th><th>Sesión</th><th>Mitad</th><th>Tag</th>
+            <th>Objetivo</th><th>Hora</th><th>Crash</th><th>Estado</th></tr>
+      </thead>
       <tbody id="betsTbody"></tbody>
     </table>
   </div>
-
-  <!-- Reseñas -->
+  <!-- Review Logs -->
   <div class="card">
     <div class="row"><h3 style="margin:0">Reseña</h3></div>
     <div id="reviewBox" class="review muted">—</div>
   </div>
-
   <div class="card muted" style="font-size:12px">
     Uso educativo/análisis. No garantiza resultados. “Ganada” = crash &gt; objetivo.
   </div>
 </div>
-
-<!-- Firebase -->
+<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-
 <script>
-/* ================= FIREBASE ================= */
+/* ======= FIREBASE INIT ======= */
 const firebaseConfig = {
   apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
   authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
@@ -127,516 +144,845 @@ const firebaseConfig = {
   databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com"
 };
 firebase.initializeApp(firebaseConfig);
-const db  = firebase.database();
-const auth= firebase.auth();
+const db = firebase.database();
+const auth = firebase.auth();
 
-/* ================= HELPERS ================= */
-const $ = (id)=>document.getElementById(id);
-const now=()=>Date.now();
-const HHmm = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-const HHmmss = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-function movingAverage(arr,n){const L=Math.min(arr.length,n); if(!L) return NaN; let s=0; for(let i=arr.length-L;i<arr.length;i++) s+=arr[i]; return s/L;}
-function clamp(v,a,b){return v<a?a:(v>b?b:v);}
-function avg(a){return a.length? a.reduce((s,v)=>s+v,0)/a.length : 0;}
-function setBanner(show,txt){const el=$("signalBanner"); if(!el) return; if(txt) el.textContent=txt; el.className="banner"+(show?" show":"");}
-function pushReview(t){const el=$("reviewBox"); const ts=HHmmss(now()); el.textContent=`[${ts}] ${t}\n`+(el.textContent||"");}
+/* ======= DOM HELPERS ======= */
+const $ = id => document.getElementById(id);
+const now = () => Date.now();
+const HHmm   = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+const HHmmss = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
 
-/* ================= AUDIO ================= */
-let audioCtx=null;
-function beep(freq=880, ms=140, gain=0.05){
-  if(!$("beepToggle").checked) return;
-  try{
-    if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-    o.type="square"; o.frequency.value=freq; g.gain.value=gain; o.connect(g); g.connect(audioCtx.destination);
-    o.start(); setTimeout(()=>o.stop(), ms);
-  }catch(_){}
+/* ======= UTILITIES ======= */
+function movingAverage(arr, n) {
+  const L = Math.min(arr.length, n);
+  if (!L) return NaN;
+  let s = 0;
+  for (let i = arr.length - L; i < arr.length; i++) s += arr[i];
+  return s / L;
 }
-function alarmFire(){ for(let k=0;k<3;k++){ setTimeout(()=>{ beep(560,180,0.07); setTimeout(()=>beep(1100,140,0.07),160); }, k*260); } }
+function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+function avg(a) { return a.length ? a.reduce((s, v) => s + v, 0) / a.length : 0; }
+function setBanner(show, txt) {
+  const el = $("signalBanner");
+  if (!el) return;
+  if (txt) el.textContent = txt;
+  el.className = "banner" + (show ? " show" : "");
+}
+function pushReview(text) {
+  const el = $("reviewBox");
+  const ts = HHmmss(now());
+  el.textContent = `[${ts}] ${text}\n` + (el.textContent || "");
+}
 
-/* ============ PARSER crash + Auto-1k ============ */
-let rounds=[], roundsMeta=[], lastShown=[];
-function parseCrashValue(raw){
-  if(raw===null||raw===undefined) return null;
-  if(typeof raw==="number") return (raw>=1 && isFinite(raw))? raw : null;
-  let sRaw = String((typeof raw==="object" && raw && ("raw" in raw || "v" in raw)) ? (raw.raw ?? raw.v) : raw);
-  const rx=/(\d{1,3}(?:[.,\u00A0\u2009]\d{3})+(?:[.,]\d+)?)/; const m=sRaw.match(rx);
-  if(m){
-    let t=m[1].replace(/[\u00A0\u2009]/g,' '); const lastDot=t.lastIndexOf('.'), lastComma=t.lastIndexOf(',');
-    const dec=(lastComma>lastDot)?',':'.'; if(dec===','){ t=t.replace(/\./g,'').replace(/ /g,'').replace(',', '.'); } else { t=t.replace(/,/g,'').replace(/ /g,''); }
-    const v=Number(t); return (isFinite(v)&&v>=1)?v:null;
+/* ======= AUDIO (Beep for signals) ======= */
+let audioCtx = null;
+function beep(freq = 880, ms = 140, gain = 0.05) {
+  if (!$("beepToggle").checked) return;
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = "square"; o.frequency.value = freq;
+    g.gain.value = gain; o.connect(g); g.connect(audioCtx.destination);
+    o.start(); setTimeout(() => o.stop(), ms);
+  } catch (_) { /* audio context not supported */ }
+}
+function alarmFire() {
+  for (let k = 0; k < 3; k++) {
+    setTimeout(() => {
+      beep(560, 180, 0.07);
+      setTimeout(() => beep(1100, 140, 0.07), 160);
+    }, k * 260);
   }
-  let s=sRaw.replace(/[^\d.,+-]+/g,'').trim(); if(!s) return null;
-  const lastDot=s.lastIndexOf('.'), lastComma=s.lastIndexOf(','); let dec=(lastComma>lastDot)?',':'.'; if(lastDot===-1&&lastComma===-1) dec='.';
-  if(dec===','){ s=s.replace(/\./g,''); s=s.replace(',', '.'); } else { s=s.replace(/,/g,''); }
-  let v=Number(s); if(!(isFinite(v)&&v>=1)) return null;
-  if($("fix1k")?.checked && v>=300 && v<450){
-    const ma10 = movingAverage(rounds,10);
-    const recentHuge = rounds.slice(-8).some(x=>x>=200);
-    if(recentHuge || (ma10 && ma10>20)) v+=1000;
+}
+
+/* ======= CRASH VALUE PARSER (Auto-1k fix) ======= */
+let rounds = [], roundsMeta = [], lastShown = [];
+function parseCrashValue(raw) {
+  if (raw === null || raw === undefined) return null;
+  if (typeof raw === "number") return (raw >= 1 && isFinite(raw)) ? raw : null;
+  // Some values may be nested objects or strings; extract numeric part
+  let sRaw = String((typeof raw === "object" && raw && ("raw" in raw || "v" in raw)) ? (raw.raw ?? raw.v) : raw);
+  const rx = /(\d{1,3}(?:[.,\u00A0\u2009]\d{3})+(?:[.,]\d+)?)/;
+  const m = sRaw.match(rx);
+  if (m) {
+    let t = m[1].replace(/[\u00A0\u2009]/g, ' ');
+    const lastDot = t.lastIndexOf('.'), lastComma = t.lastIndexOf(',');
+    const dec = (lastComma > lastDot) ? ',' : '.';
+    if (dec === ',') {
+      t = t.replace(/\./g, '').replace(/ /g, '').replace(',', '.');
+    } else {
+      t = t.replace(/,/g, '').replace(/ /g, '');
+    }
+    const v = Number(t);
+    return (isFinite(v) && v >= 1) ? v : null;
+  }
+  // Fallback: strip non-numeric characters and parse
+  let s = sRaw.replace(/[^\d.,+-]+/g, '').trim();
+  if (!s) return null;
+  const lastDot = s.lastIndexOf('.'), lastComma = s.lastIndexOf(',');
+  let dec = (lastComma > lastDot) ? ',' : '.';
+  if (lastDot === -1 && lastComma === -1) dec = '.';
+  if (dec === ',') {
+    s = s.replace(/\./g, '');
+    s = s.replace(',', '.');
+  } else {
+    s = s.replace(/,/g, '');
+  }
+  let v = Number(s);
+  if (!(isFinite(v) && v >= 1)) return null;
+  // Auto-1k fix: if fix1k is enabled and value is in [300,450), treat it as 1000+v (because likely it wrapped 1000)
+  if ($("fix1k")?.checked && v >= 300 && v < 450) {
+    const ma10 = movingAverage(rounds, 10);
+    const recentHuge = rounds.slice(-8).some(x => x >= 200);
+    if (recentHuge || (ma10 && ma10 > 20)) v += 1000;
   }
   return v;
 }
 
-/* ============ ESTADO / PLAN 30+30 + micro ============ */
-const PERSIST_KEY="gocho_v230_autorun";
-let FEED_ID="gocho", connected=false, keepRunning=false, baseCount=0;
+/* ======= SESSION STATE ======= */
+const PERSIST_KEY = "gocho_v230_autorun";
+let FEED_ID = "gocho", connected = false, keepRunning = false, baseCount = 0;
 
-// seguimiento por objetivo
-let events17=[], intervals17=[], since17=null;
-let events2=[],  intervals2=[],  since2=null;
-let events3=[],  intervals3=[],  since3=null;
+// Tracking events and intervals for targets
+let events17 = [], intervals17 = [], since17 = null;
+let events2  = [], intervals2  = [], since2  = null;
+let events3  = [], intervals3  = [], since3  = null;
 
-// ROSA reciente
-const Rosa = { lastIdx:null, lastV:null, since:null };
+// Big win ('Rosa') tracking
+const Rosa = { lastIdx: null, lastV: null, since: null };
 
-// Sesión 60 con dos mitades + micro 1.70
+// Session management (60 rounds with two halves + micro signals)
 const Session = {
-  id:null, active:false, startIdx:0, pos:0, limit:60,
-  halves:[
-    {label:"H1", start:0,  end:30, target:2, fired:false},
-    {label:"H2", start:30, end:60, target:3, fired:false}
+  id: null, active: false, startIdx: 0, pos: 0, limit: 60,
+  halves: [
+    { label: "H1", start: 0,  end: 30, target: 2, fired: false },
+    { label: "H2", start: 30, end: 60, target: 3, fired: false }
   ],
-  micro:{quota:3, fired:0, lastIdx:-999, sepMin:12}, // ≥1.70; máx 3; mín 1 cada 15 aprox (sep 12)
-  lastEmitIdx:-999, sepMin:9
+  micro: { quota: 3, fired: 0, lastIdx: -999, sepMin: 12 }, // allow up to 3 micro bets per session
+  lastEmitIdx: -999, sepMin: 9  // sepMin will be adjusted by aggressiveness
 };
 
-let bets=[];      // historial global persistente
-let pendings=[];  // señales pendientes (máx. 1)
+// Persistent bets log
+let bets = [];      // all bets history
+let pendings = [];  // pending (unresolved) signals (max 1 at a time typically)
 
-/* ====== PATTERN-LEARNER (n-gramas 1–3) ====== */
-const cats=[]; // B(<2), G(2–2.99), M(3–4.99), P(≥5)
-const PL = { maps:{1:new Map(),2:new Map(),3:new Map()}, global:{tot:0,n17:0,n2:0,n3:0} };
-function catOf(v){ return (v<2)?"B": (v<3)?"G": (v<5)?"M":"P"; }
-function plGet(len,pat){ const m=PL.maps[len]; let r=m.get(pat); if(!r){ r={tot:0,n17:0,n2:0,n3:0}; m.set(pat,r); } return r; }
-function plUpdateWithNewCrash(v){
-  const o17=(v>=1.70)?1:0, o2=(v>=2)?1:0, o3=(v>=3)?1:0;
-  for(let len=1; len<=3; len++){
-    if(cats.length>=len){
-      const pat=cats.slice(cats.length-len).join("");
-      const r=plGet(len,pat); r.tot++; r.n17+=o17; r.n2+=o2; r.n3+=o3;
+/* ======= PATTERN LEARNER (n-grams 1–3) ======= */
+const cats = [];  // recent outcomes categories (B, G, M, P)
+const PL = { maps: {1:new Map(), 2:new Map(), 3:new Map()}, global: { tot:0, n17:0, n2:0, n3:0 } };
+function catOf(v) {
+  return (v < 2) ? "B" : (v < 3) ? "G" : (v < 5) ? "M" : "P";
+}
+function plGet(len, pat) {
+  const m = PL.maps[len];
+  let rec = m.get(pat);
+  if (!rec) { rec = { tot:0, n17:0, n2:0, n3:0 }; m.set(pat, rec); }
+  return rec;
+}
+function plUpdateWithNewCrash(v) {
+  const outcome17 = (v >= 1.70) ? 1 : 0;
+  const outcome2  = (v >= 2)    ? 1 : 0;
+  const outcome3  = (v >= 3)    ? 1 : 0;
+  // Update pattern counts for last 1,2,3 categories
+  for (let len = 1; len <= 3; len++) {
+    if (cats.length >= len) {
+      const pat = cats.slice(cats.length - len).join("");
+      const rec = plGet(len, pat);
+      rec.tot++;
+      rec.n17 += outcome17;
+      rec.n2  += outcome2;
+      rec.n3  += outcome3;
     }
   }
-  PL.global.tot++; PL.global.n17+=o17; PL.global.n2+=o2; PL.global.n3+=o3;
+  // Update global counts
+  PL.global.tot++;
+  PL.global.n17 += outcome17;
+  PL.global.n2  += outcome2;
+  PL.global.n3  += outcome3;
 }
-function plProbNext(T){
-  const ws=[0.2,0.3,0.5];
-  let num=0, den=0, key=(T===1.7?"n17":T===2?"n2":"n3");
-  for(let len=1; len<=3; len++){
-    const w=ws[len-1];
-    if(cats.length>=len){
-      const pat=cats.slice(cats.length-len).join("");
-      const rec=PL.maps[len].get(pat);
-      if(rec && rec.tot>0){
-        const p=(rec[key]+1)/(rec.tot+2); num+=w*p; den+=w;
+function plProbNext(T) {
+  // Calculate probability of target event next, using weighted blend of n-gram stats
+  const weights = [0.2, 0.3, 0.5];  // weights for 1-gram, 2-gram, 3-gram (total 1.0)
+  let num = 0, den = 0;
+  const key = (T === 1.7 ? "n17" : T === 2 ? "n2" : "n3");
+  for (let len = 1; len <= 3; len++) {
+    const w = weights[len-1];
+    if (cats.length >= len) {
+      const pat = cats.slice(cats.length - len).join("");
+      const rec = PL.maps[len].get(pat);
+      if (rec && rec.tot > 0) {
+        // Laplace-smoothed probability for this pattern
+        const p = (rec[key] + 1) / (rec.tot + 2);
+        num += w * p;
+        den += w;
       }
     }
   }
-  if(!den){ const g=PL.global; const p=g[key]/Math.max(1,g.tot); return p||0.5; }
-  return num/den;
+  if (!den) {
+    // If no pattern data yet, use global frequency as fallback
+    const g = PL.global;
+    const p_global = g.tot ? (g[key] / g.tot) : 0;
+    return p_global || 0.5;  // if no info, assume 50% (neutral)
+  }
+  return num / den;
 }
 
-/* ============ MÉTRICAS ============ */
-function blueDensity(n=20){const w=rounds.slice(-n); if(!w.length) return 1; return w.filter(x=>x<2).length/w.length;}
-function maxBlueRun(n=18){const w=rounds.slice(-n); let m=0,c=0; for(const x of w){ if(x<2){c++; m=Math.max(m,c);} else c=0; } return m;}
-function hasPurple(n=12){return rounds.slice(-n).some(x=>x>=5 && x<10);}
-function slopeMA10(){ if(rounds.length<11) return 0; const a=movingAverage(rounds,10), b=movingAverage(rounds.slice(0,-1),10); return a-b; }
-function runGE(n=2){ let c=0; for(let i=rounds.length-1;i>=0;i--){ if(rounds[i]>=n) c++; else break; } return c; }
-
-/* ============ HAZARD >=T ============ */
-function hazardCurve(listIntervals, horizonT){
-  const gaps=listIntervals.map(x=>x.gap); const T=Math.max(horizonT,30);
-  if(!gaps.length){ const hz=Array(T+1).fill(0); for(let t=1;t<=T;t++) hz[t]=1/T; return {hazards:hz, q85:0.03}; }
-  const freq=new Map(); const N=gaps.length; const alpha=0.06;
-  for(let i=0;i<N;i++){ const g=gaps[i], w=Math.pow(1-alpha, N-1-i); freq.set(g,(freq.get(g)||0)+w); }
-  let total=0; for(const v of freq.values()) total+=v;
-  const pdf=[], cdf=[]; let cum=0; const limit=Math.max(T, Math.max(...gaps)+20);
-  for(let t=1;t<=limit;t++){ const p=(freq.get(t)||0)/Math.max(total,1); pdf[t]=p; cum+=p; cdf[t]=cum; }
-  const hazards=[],vals=[]; for(let t=1;t<=limit;t++){ const S=1-(cdf[t-1]||0); const h=S>0?pdf[t]/S:0; hazards[t]=h; if(h>0) vals.push(h); }
-  vals.sort((a,b)=>a-b);
-  const pick=p=> vals.length? vals[Math.floor(p*(vals.length-1))] : 0.02;
-  return {hazards, q85:pick(0.85)};
+/* ======= METRICS & HELPERS ======= */
+function blueDensity(n = 20) {
+  const window = rounds.slice(-n);
+  if (!window.length) return 1;
+  return window.filter(x => x < 2).length / window.length;
+}
+function maxBlueRun(n = 18) {
+  const window = rounds.slice(-n);
+  let maxRun = 0, curRun = 0;
+  for (const x of window) {
+    if (x < 2) { curRun++; maxRun = Math.max(maxRun, curRun); }
+    else { curRun = 0; }
+  }
+  return maxRun;
+}
+function hasPurple(n = 12) {
+  return rounds.slice(-n).some(x => x >= 5 && x < 10);
+}
+function slopeMA10() {
+  if (rounds.length < 11) return 0;
+  const a = movingAverage(rounds, 10);
+  const b = movingAverage(rounds.slice(0, -1), 10);
+  return a - b;
+}
+function runGE(n = 2) {
+  // count consecutive rounds (from last backwards) with result >= n
+  let count = 0;
+  for (let i = rounds.length - 1; i >= 0; i--) {
+    if (rounds[i] >= n) count++; else break;
+  }
+  return count;
 }
 
-/* ============ CONFIG ============ */
-function getAggConf(){
-  const m=($("aggr")?.value||"EQ");
-  if(m==="CONS") return {
-    sepMin:10, microSep:14,
-    floor17:{last:1.36, avg3:1.46}, floor2:{last:1.45, avg3:1.57}, floor3:{last:1.52, avg3:1.60},
-    thrMin17:0.92, thrMin2:0.94, thrMin3:0.96,
-    scoreThr17:0.84, scoreThr2:0.90, scoreThr3:0.96,
-    pThr17:0.66, pThr2:0.62, pThr3:0.46
-  };
-  if(m==="AGR") return {
-    sepMin:7, microSep:10,
-    floor17:{last:1.30, avg3:1.42}, floor2:{last:1.34, avg3:1.47}, floor3:{last:1.46, avg3:1.54},
-    thrMin17:0.84, thrMin2:0.84, thrMin3:0.90,
-    scoreThr17:0.74, scoreThr2:0.78, scoreThr3:0.86,
-    pThr17:0.58, pThr2:0.54, pThr3:0.40
-  };
+/* ======= HAZARD CURVE (interval distribution) ======= */
+function hazardCurve(listIntervals, horizonT) {
+  const gaps = listIntervals.map(x => x.gap);
+  const T = Math.max(horizonT, 30);
+  if (!gaps.length) {
+    // If no data, assume uniform hazard (1/T each, as placeholder)
+    const hz = Array(T + 1).fill(0);
+    for (let t = 1; t <= T; t++) hz[t] = 1 / T;
+    return { hazards: hz, q85: 0.03 };
+  }
+  // Weighted frequency of gaps (recent gaps weighted more via exponential decay)
+  const freq = new Map();
+  const N = gaps.length;
+  const alpha = 0.06;  // weight decay factor per older interval
+  for (let i = 0; i < N; i++) {
+    const g = gaps[i];
+    const w = Math.pow(1 - alpha, N - 1 - i);
+    freq.set(g, (freq.get(g) || 0) + w);
+  }
+  // Construct PDF and CDF up to a certain limit
+  let total = 0;
+  for (const v of freq.values()) total += v;
+  const pdf = [], cdf = [];
+  let cum = 0;
+  const limit = Math.max(T, Math.max(...gaps) + 20);
+  for (let t = 1; t <= limit; t++) {
+    const p = (freq.get(t) || 0) / Math.max(total, 1);
+    pdf[t] = p;
+    cum += p;
+    cdf[t] = cum;
+  }
+  // Compute hazard function h(t) = f(t)/S(t)
+  const hazards = [], vals = [];
+  for (let t = 1; t <= limit; t++) {
+    const S = 1 - (cdf[t-1] || 0);  // survival until t
+    const h = S > 0 ? pdf[t] / S : 0;
+    hazards[t] = h;
+    if (h > 0) vals.push(h);
+  }
+  vals.sort((a, b) => a - b);
+  // pick 85th percentile of hazard values as reference (or a default)
+  const pick = p => vals.length ? vals[Math.floor(p * (vals.length - 1))] : 0.02;
+  return { hazards, q85: pick(0.85) };
+}
+
+/* ======= AGGRESSIVENESS CONFIG ======= */
+function getAggConf() {
+  const mode = ($("aggr")?.value || "EQ");
+  if (mode === "CONS") {  // Conservative mode: highest thresholds, more caution
+    return {
+      sepMin: 10, microSep: 14,
+      floor17: { last: 1.36, avg3: 1.46 }, floor2: { last: 1.45, avg3: 1.57 }, floor3: { last: 1.52, avg3: 1.60 },
+      thrMin17: 0.92, thrMin2: 0.94, thrMin3: 0.96,   // require hazard rel to be very high (close to “due”)
+      scoreThr17: 0.84, scoreThr2: 0.90, scoreThr3: 0.96,  // high score thresholds
+      pThr17: 0.66, pThr2: 0.62, pThr3: 0.46            // high pattern probability thresholds
+    };
+  }
+  if (mode === "AGR") {  // Aggressive mode: lower thresholds, more risk
+    return {
+      sepMin: 7, microSep: 10,
+      floor17: { last: 1.30, avg3: 1.42 }, floor2: { last: 1.34, avg3: 1.47 }, floor3: { last: 1.46, avg3: 1.54 },
+      thrMin17: 0.84, thrMin2: 0.84, thrMin3: 0.90,
+      scoreThr17: 0.74, scoreThr2: 0.78, scoreThr3: 0.86,
+      pThr17: 0.58, pThr2: 0.54, pThr3: 0.40
+    };
+  }
+  // Balanced (Equilibrado) mode (default)
   return {
-    sepMin:9, microSep:12,
-    floor17:{last:1.32, avg3:1.45}, floor2:{last:1.38, avg3:1.50}, floor3:{last:1.48, avg3:1.57},
-    thrMin17:0.88, thrMin2:0.90, thrMin3:0.93,
-    scoreThr17:0.79, scoreThr2:0.84, scoreThr3:0.92,
-    pThr17:0.62, pThr2:0.58, pThr3:0.42
+    sepMin: 9, microSep: 12,
+    floor17: { last: 1.32, avg3: 1.45 }, floor2: { last: 1.38, avg3: 1.50 }, floor3: { last: 1.48, avg3: 1.57 },
+    thrMin17: 0.90, thrMin2: 0.90, thrMin3: 0.93,   // use hazard threshold (added in v23.1)
+    // Slightly increased score/p thresholds for more selectivity:
+    scoreThr17: 0.82, scoreThr2: 0.87, scoreThr3: 0.94,
+    pThr17: 0.64, pThr2: 0.60, pThr3: 0.44
   };
 }
 
-/* ============ Pisos + gates + Rosa cooldown ============ */
-function floorOK(T){
-  const a=rounds.slice(-3); if(a.length<1) return false;
-  const last=a[a.length-1], aavg=avg(a); const c=getAggConf();
-  const f=(T===1.7?c.floor17:(T===2?c.floor2:c.floor3));
-  if(last<f.last) return false;
-  if(aavg<f.avg3 && last<f.avg3) return false;
-  if(maxBlueRun(16)>=10 && last<1.80) return false;
+/* ======= FLOOR (minimum recent multipliers) and CONTEXT GATES ======= */
+function floorOK(T) {
+  // Ensure recent outcomes are not too low before signaling (avoid entering on a downward spike)
+  const recent = rounds.slice(-3);
+  if (recent.length < 1) return false;
+  const last = recent[recent.length - 1];
+  const avg3 = avg(recent);
+  const c = getAggConf();
+  const floor = (T === 1.7 ? c.floor17 : (T === 2 ? c.floor2 : c.floor3));
+  if (last < floor.last) return false;
+  if (avg3 < floor.avg3 && last < floor.avg3) return false;
+  // If a very long low streak just ended, and last is still not strong, skip (avoid betting right after a long run of blues unless a strong rebound)
+  if (maxBlueRun(16) >= 10 && last < 1.80) return false;
   return true;
 }
-function contextGate(T){
-  const b20=blueDensity(20), b30=blueDensity(30), br=maxBlueRun(18), sl=slopeMA10();
-  if(T===1.7) return (b20<=0.75)&&(b30<=0.77)&&(br<=11)&&(sl>=-0.010);
-  if(T===2)   return (b20<=0.69)&&(b30<=0.71)&&(br<=10)&&(sl>=-0.007);
-  return (b20<=0.65)&&(b30<=0.67)&&(br<=9)&&(hasPurple(10) || sl>=-0.003);
+function contextGate(T) {
+  // General contextual requirements based on recent volatility/trends
+  const b20 = blueDensity(20), b30 = blueDensity(30);
+  const br = maxBlueRun(18);
+  const sl = slopeMA10();
+  if (T === 1.7) {  // micro signal context
+    return (b20 <= 0.75) && (b30 <= 0.77) && (br <= 11) && (sl >= -0.010);
+  }
+  if (T === 2) {  // 2× signal context
+    return (b20 <= 0.69) && (b30 <= 0.71) && (br <= 10) && (sl >= -0.007);
+  }
+  // T === 3 (3× signal context)
+  return (b20 <= 0.65) && (b30 <= 0.67) && (br <= 9) && (hasPurple(10) || sl >= -0.003);
 }
-function rosaHold(){
-  if(Rosa.since==null) return false;
-  return Rosa.since<=1; // evita disparar justo tras rosa
-}
-
-/* ============ Calibración por desempeño ============ */
-const Perf={17:{last:[]},2:{last:[]},3:{last:[]}};
-function perfAdj(T){
-  const arr=Perf[T].last||[]; const n=arr.length; if(n<6) return {score:0,p:0};
-  const wins=arr.reduce((s,x)=>s+(x?1:0),0); const hit=wins/n;
-  if(hit<0.35) return {score:+0.06, p:+0.04};
-  if(hit>0.65) return {score:-0.03, p:-0.02};
-  return {score:0,p:0};
-}
-
-/* ============ SCORE híbrido ============ */
-function scoreFor(T, rel, pN, run, br, slope, purple){
-  const bonusRun = (run>=3? (T===2?0.10: T===3?0.08:0.06):0);
-  const bonusBlue= (br>=5?0.08:0);
-  const bonusSlope=(slope>=0?0.06:0);
-  const bonusPurp = (purple && T===3 ? 0.04:0);
-  let sc = 0.6*pN + 0.4*clamp(rel,0,1.5) + bonusRun + bonusBlue + bonusSlope + bonusPurp;
-  return clamp(sc,0,1.6);
+function rosaHold() {
+  // If a Rosa (>=10×) occurred very recently, hold off signals for one round
+  if (Rosa.since == null) return false;
+  return Rosa.since <= 1;
+  // Future: could extend hold for extremely large Rosa, e.g. if (Rosa.lastV >= 50) hold 2 rounds
 }
 
-/* ============ RENDER ============ */
-function colorClassFor(v){ if(v>=10) return "c-pink"; if(v>=5) return "c-purple"; if(v>=3) return "c-purple"; if(v>=2) return "c-green"; return "c-blue"; }
-function renderLast60(){
-  const cont=$("lastRounds"); cont.innerHTML="";
-  lastShown.slice(0,60).forEach(v=>{
-    const sp=document.createElement("span");
-    sp.className="pill small "+colorClassFor(v);
-    sp.textContent=v.toFixed(2)+"x";
+/* ======= PERFORMANCE-BASED ADJUSTMENT ======= */
+const Perf = { 17: { last: [] }, 2: { last: [] }, 3: { last: [] } };
+function perfAdj(targetKey) {
+  // Adjust thresholds based on recent performance (last ~12 signals for that target)
+  const arr = Perf[targetKey].last || [];
+  const n = arr.length;
+  if (n < 6) return { score: 0, p: 0 };  // not enough data to adjust
+  const wins = arr.reduce((s, x) => s + (x ? 1 : 0), 0);
+  const hitRate = wins / n;
+  if (hitRate < 0.35) { 
+    // If win rate is very low, increase thresholds to be more selective
+    return { score: +0.06, p: +0.04 };
+  }
+  if (hitRate > 0.65) { 
+    // If win rate is high, we can slightly lower thresholds to not miss opportunities
+    return { score: -0.03, p: -0.02 };
+  }
+  return { score: 0, p: 0 };
+}
+
+/* ======= SCORE CALCULATION ======= */
+function scoreFor(target, rel, pN, run, br, slope, purple) {
+  // target parameter here might be numeric 2 or 3, treat 1.7 similar to 2 for bonus logic
+  const T = (target === 1.7 ? 2 : target);
+  // Bonus for a streak of successes (run of >=T)
+  const bonusRun   = (run >= 3 ? (T === 2 ? 0.10 : T === 3 ? 0.08 : 0.06) : 0);
+  // Penalty/bonus for long blue streak (if br is high, maybe a slight bonus because a high might be due? or could skip; here originally bonusBlue was added if br>=5)
+  const bonusBlue  = (br >= 5 ? 0.08 : 0);
+  // Bonus if moving average is non-negative (no downtrend)
+  const bonusSlope = (slope >= 0 ? 0.06 : 0);
+  // Bonus if a purple appeared recently for T=3 (some indication of volatility that might allow a 3× soon)
+  const bonusPurp  = (purple && T === 3 ? 0.04 : 0);
+  let sc = 0.6 * pN + 0.4 * clamp(rel, 0, 1.5) + bonusRun + bonusBlue + bonusSlope + bonusPurp;
+  return clamp(sc, 0, 1.6);
+}
+
+/* ======= RENDERING ======= */
+function colorClassFor(v) {
+  if (v >= 10) return "c-pink";
+  if (v >= 5) return "c-purple";
+  if (v >= 3) return "c-purple";  // using purple for >=3× as well
+  if (v >= 2) return "c-green";
+  return "c-blue";
+}
+function renderLast60() {
+  const cont = $("lastRounds");
+  cont.innerHTML = "";
+  lastShown.slice(0, 60).forEach(v => {
+    const sp = document.createElement("span");
+    sp.className = "pill small " + colorClassFor(v);
+    sp.textContent = v.toFixed(2) + "x";
     cont.appendChild(sp);
   });
 }
-function renderStats(scoreText="—"){
+function renderStats(scoreText = "—") {
   $("rounds").textContent = `${rounds.length} (base ${baseCount})`;
-  const ma10=movingAverage(rounds,10); $("ma10").textContent=isNaN(ma10)?"–":ma10.toFixed(2)+"x";
-  $("since17Lbl").textContent= since17==null?"–":since17;
-  $("since2Lbl").textContent= since2==null?"–":since2;
-  $("since3Lbl").textContent= since3==null?"–":since3;
-  $("sessProg").textContent = Session.active?`${Session.pos}/${Session.limit}`:"0/60";
-  $("planLbl").textContent  = `${Session.halves[0].label}:${Session.halves[0].target}× (${Session.halves[0].fired?"ok":"pend"}) · ${Session.halves[1].label}:${Session.halves[1].target}× (${Session.halves[1].fired?"ok":"pend"}) · micro≥1.70 ${Session.micro.fired}/${Session.micro.quota}`;
-  $("sepLbl").textContent   = `${Session.sepMin} / micro ${Session.micro.sepMin}`;
+  const ma10 = movingAverage(rounds, 10);
+  $("ma10").textContent = isNaN(ma10) ? "–" : ma10.toFixed(2) + "x";
+  $("since17Lbl").textContent = since17 == null ? "–" : since17;
+  $("since2Lbl") .textContent = since2  == null ? "–" : since2;
+  $("since3Lbl") .textContent = since3  == null ? "–" : since3;
+  $("sessProg").textContent = Session.active ? `${Session.pos}/${Session.limit}` : "0/60";
+  $("planLbl").textContent = 
+    `${Session.halves[0].label}:${Session.halves[0].target}× (${Session.halves[0].fired?"ok":"pend"}) · ` + 
+    `${Session.halves[1].label}:${Session.halves[1].target}× (${Session.halves[1].fired?"ok":"pend"}) · ` + 
+    `micro≥1.70 ${Session.micro.fired}/${Session.micro.quota}`;
+  $("sepLbl").textContent = `${Session.sepMin} / micro ${Session.micro.sepMin}`;
   $("scoreLbl").textContent = scoreText;
   renderLast60();
 }
-function renderBets(){
-  const tb=$("betsTbody"); tb.innerHTML="";
-  bets.forEach((b,i)=>{
-    const st=b.state==="win"?"win":b.state==="lose"?"lose":"pend";
-    const tr=document.createElement("tr");
-    tr.innerHTML=`<td>${i+1}</td><td>${b.sessionId||"—"}</td><td>${b.half||"—"}</td><td>${b.tag||"OBJ"}</td><td>${b.target}x</td><td>${b.emittedAt||"—"}</td><td>${b.crash?b.crash.toFixed(2)+"x":"—"}</td><td>${st}</td>`;
+function renderBets() {
+  const tb = $("betsTbody");
+  tb.innerHTML = "";
+  bets.forEach((b, i) => {
+    const stClass = b.state === "win" ? "win" : b.state === "lose" ? "lose" : "pend";
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${i+1}</td><td>${b.sessionId || "—"}</td>` +
+                   `<td>${b.half || "—"}</td><td>${b.tag || "OBJ"}</td>` +
+                   `<td>${b.target}x</td><td>${b.emittedAt || "—"}</td>` +
+                   `<td>${b.crash ? b.crash.toFixed(2)+"x" : "—"}</td>` +
+                   `<td>${b.state}</td>`;
     tb.appendChild(tr);
   });
 }
 
-/* ============ DISPARO (T+1) ============ */
-function fireNow(T, halfLabel, reason, tag){
-  if(!$("autoSignal").checked) return;
-  // separación específica
-  const sepNeed = (tag==="AUTO_1p7"? Session.micro.sepMin : Session.sepMin);
-  if(rounds.length - Session.lastEmitIdx < sepNeed) return;
-
-  const ts=now();
-  const entry={id:"S"+ts, sessionId:Session.id, half:halfLabel, target:T, ts, emittedAt:HHmmss(ts), state:"pend", tag:tag||`AUTO_${T}x`};
+/* ======= SIGNAL DISPATCH ======= */
+function fireNow(targetMultiplier, halfLabel, reason, tag) {
+  if (!$("autoSignal").checked) return;
+  // Enforce separation between signals (global or micro specific)
+  const sepNeed = (tag === "AUTO_1p7" ? Session.micro.sepMin : Session.sepMin);
+  if (rounds.length - Session.lastEmitIdx < sepNeed) return;  // not enough gap since last signal
+  const ts = now();
+  const entry = {
+    id: "S" + ts,
+    sessionId: Session.id,
+    half: halfLabel,
+    target: targetMultiplier,
+    ts,
+    emittedAt: HHmmss(ts),
+    state: "pend",
+    tag: tag || `AUTO_${targetMultiplier}x`
+  };
   pendings.push(entry);
-  bets.push(entry); if(bets.length>2000) bets.splice(0,bets.length-2000);
-  Session.lastEmitIdx=rounds.length;
-  alarmFire(); setBanner(true, `🚨 ENTRAR AHORA → Próxima ronda (≥${T}×)`);
+  bets.push(entry);
+  if (bets.length > 2000) bets.splice(0, bets.length - 2000);
+  Session.lastEmitIdx = rounds.length;
+  alarmFire();
+  setBanner(true, `🚨 ENTRAR AHORA → Próxima ronda (≥${targetMultiplier}×)`);
   pushReview(`Señal emitida ${halfLabel} (${tag||"auto"}) ${reason}.`);
   renderBets();
 }
 
-/* ============ ESTADÍSTICA objetivos ============ */
-function sinceFor(T){ return T===1.7? since17 : (T===2? since2 : since3); }
-function listIntFor(T){ return T===1.7? intervals17 : (T===2? intervals2 : intervals3); }
-function eventsPush(T,v,ts){
-  const arrEv = T===1.7? events17 : (T===2? events2 : events3);
-  const arrIv = T===1.7? intervals17 : (T===2? intervals2 : intervals3);
-  const idx=rounds.length-1, ev={idx,v,ts}; arrEv.push(ev);
-  if(arrEv.length>=2){ const prev=arrEv[arrEv.length-2]; arrIv.push({from:prev,to:ev,gap:ev.idx-prev.idx}); if(arrIv.length>800) arrIv.shift(); }
-  if(T===1.7) since17=0; else if(T===2) since2=0; else since3=0;
+/* ======= EVENT INTERVAL TRACKING ======= */
+function sinceFor(T) {
+  return T === 1.7 ? since17 : (T === 2 ? since2 : since3);
 }
-function bumpSince(T){ if(T===1.7) since17=(since17==null?1:since17+1); else if(T===2) since2=(since2==null?1:since2+1); else since3=(since3==null?1:since3+1); }
+function listIntFor(T) {
+  return T === 1.7 ? intervals17 : (T === 2 ? intervals2 : intervals3);
+}
+function eventsPush(T, v, ts) {
+  // Log an event (target hit) and record interval since last
+  const evList = T === 1.7 ? events17 : (T === 2 ? events2 : events3);
+  const ivList = T === 1.7 ? intervals17 : (T === 2 ? intervals2 : intervals3);
+  const idx = rounds.length - 1;
+  const ev = { idx, v, ts };
+  evList.push(ev);
+  if (evList.length >= 2) {
+    const prev = evList[evList.length - 2];
+    ivList.push({ from: prev, to: ev, gap: ev.idx - prev.idx });
+    if (ivList.length > 800) ivList.shift();
+  }
+  // Reset since counter
+  if (T === 1.7) since17 = 0;
+  else if (T === 2) since2 = 0;
+  else since3 = 0;
+}
+function bumpSince(T) {
+  if (T === 1.7) since17 = (since17 == null ? 1 : since17 + 1);
+  else if (T === 2) since2 = (since2 == null ? 1 : since2 + 1);
+  else since3 = (since3 == null ? 1 : since3 + 1);
+}
 
-/* ============ DECISOR genérico ============ */
-function decideTarget(T){
-  const s=sinceFor(T) ?? 0;
-  const I=listIntFor(T);
-  const H=hazardCurve(I, s+30);
-  const q=H.q85, rel=q>0? (H.hazards[s+1]||0)/q : 0;
-
-  const pN = plProbNext(T===1.7?1.7:T);
-  const run= runGE(T===1.7?2:T);             // racha de “>=T base” (para 1.7 usamos >=2 como referencia)
+/* ======= DECISION LOGIC FOR A TARGET ======= */
+function decideTarget(T) {
+  const s = sinceFor(T) ?? 0;
+  const intervals = listIntFor(T);
+  const H = hazardCurve(intervals, s + 30);
+  const q85 = H.q85;
+  const rel = q85 > 0 ? (H.hazards[s+1] || 0) / q85 : 0;  // relative hazard compared to high benchmark
+  const pN = plProbNext(T === 1.7 ? 1.7 : T);
+  const run = runGE(T === 1.7 ? 2 : T);    // for 1.7, use run of >=2 as a proxy (since 1.7 is close to 2× category)
   const br = maxBlueRun(12);
   const sl = slopeMA10();
-  const purp=hasPurple(10);
-  let sc = scoreFor(T===1.7?2:T, rel, pN, run, br, sl, purp); // reusa misma escala
-
-  const c=getAggConf();
-  let thrScore = (T===1.7?c.scoreThr17:(T===2?c.scoreThr2:c.scoreThr3));
-  let pThr     = (T===1.7?c.pThr17:(T===2?c.pThr2:c.pThr3));
-
-  // ajuste por desempeño
-  const adj=perfAdj(T===1.7?17:T);
-  thrScore=clamp(thrScore+adj.score, 0.70, 1.10);
-  pThr    =clamp(pThr+adj.p,      0.35, 0.85);
-
-  const okFloor=floorOK(T===1.7?1.7:T), okGate=contextGate(T===1.7?1.7:T);
-  const holdRosa=rosaHold();
-
-  const ruleScore = (sc>=thrScore && pN>=pThr && okFloor && okGate && !holdRosa);
-
-  const txt = `T${T} p:${(pN*100).toFixed(0)}% rel:${rel.toFixed(2)} sc:${sc.toFixed(2)} thr:${thrScore.toFixed(2)}`+(holdRosa?" (rosaHold)":"");
-  return {ok:ruleScore, scoreTxt:txt};
+  const purp = hasPurple(10);
+  let sc = scoreFor(T, rel, pN, run, br, sl, purp);
+  const c = getAggConf();
+  // Base thresholds from config:
+  let thrScore = (T === 1.7 ? c.scoreThr17 : (T === 2 ? c.scoreThr2 : c.scoreThr3));
+  let pThr     = (T === 1.7 ? c.pThr17     : (T === 2 ? c.pThr2     : c.pThr3));
+  // Performance-based adjustment:
+  const targetKey = (T === 1.7 ? 17 : T);
+  const adj = perfAdj(targetKey);
+  thrScore = clamp(thrScore + adj.score, 0.70, 1.20);
+  pThr     = clamp(pThr + adj.p,      0.35, 0.85);
+  // Floors & gates & Rosa hold:
+  const okFloor = floorOK(T);
+  const okGate = contextGate(T);
+  const holdRosa = rosaHold();
+  // NEW: Hazard minimum threshold check (to avoid too-early signals)
+  const thrMin = (T === 1.7 ? c.thrMin17 : (T === 2 ? c.thrMin2 : c.thrMin3));
+  const okHazard = (rel >= thrMin);
+  // Determine final decision:
+  let ruleScore = (sc >= thrScore) && (pN >= pThr) && okFloor && okGate && !holdRosa && okHazard;
+  const debugTxt = `T${T} p:${(pN*100).toFixed(0)}% rel:${rel.toFixed(2)} sc:${sc.toFixed(2)} thr:${thrScore.toFixed(2)}` +
+                   (holdRosa ? " (rosaHold)" : "") + (!okHazard ? " (hazardLow)" : "");
+  return { ok: ruleScore, scoreTxt: debugTxt };
 }
 
-/* ============ PLAN por mitad (puede invertir 2×/3×) ============ */
-function chooseHalfTargets(){
-  // Por defecto H1=2×, H2=3×. Si en el arranque de la mitad p3 supera a p2 por bastante, invertimos.
-  const p2=plProbNext(2), p3=plProbNext(3);
+/* ======= SESSION PLAN (choosing targets for halves) ======= */
+function chooseHalfTargets() {
+  // Decide whether to swap 2×/3× between first and second half based on initial probabilities
+  const p2 = plProbNext(2);
+  const p3 = plProbNext(3);
   Session.halves[0].target = (p3 - p2 >= 0.08 ? 3 : 2);
   Session.halves[1].target = (p2 - p3 >= 0.08 ? 2 : 3);
 }
 
-/* ============ LOOP sesión ============ */
-function currentHalf(){ if(Session.pos<30) return Session.halves[0]; if(Session.pos<60) return Session.halves[1]; return null; }
+/* ======= MAIN SESSION LOOP/TICK ======= */
+function currentHalf() {
+  if (Session.pos < 30) return Session.halves[0];
+  if (Session.pos < 60) return Session.halves[1];
+  return null;
+}
 
-function maybeMicro(){
-  if(Session.micro.fired>=Session.micro.quota) return;
-  if(rounds.length - Session.micro.lastIdx < Session.micro.sepMin) return;
-  const D=decideTarget(1.7);
-  if(D.ok){
+function maybeMicro() {
+  if (Session.micro.fired >= Session.micro.quota) return;
+  if (rounds.length - Session.micro.lastIdx < Session.micro.sepMin) return;
+  const D = decideTarget(1.7);
+  if (D.ok) {
     fireNow(1.7, "MICRO", D.scoreTxt, "AUTO_1p7");
-    Session.micro.fired++; Session.micro.lastIdx=rounds.length;
+    Session.micro.fired++;
+    Session.micro.lastIdx = rounds.length;
   }
   renderStats(D.scoreTxt);
 }
 
-function onTickSession(){
-  if(!Session.active) return;
+function onTickSession() {
+  if (!Session.active) return;
   Session.pos = rounds.length - Session.startIdx;
-  const half=currentHalf();
-  const bothDone=Session.halves[0].fired && Session.halves[1].fired;
-
-  // micro independiente (cuando no acabó sesión)
-  if(Session.pos<Session.limit) maybeMicro();
-
-  // mitad principal
-  if(half && !half.fired){
-    // deadline seguro por mitad
-    const pos=Session.pos;
-    const Dmain=decideTarget(half.target);
-    const scoreTxt=Dmain.scoreTxt;
+  const half = currentHalf();
+  const bothDone = Session.halves[0].fired && Session.halves[1].fired;
+  // Micro signal check (independent of main halves, only if session not finished)
+  if (Session.pos < Session.limit) {
+    maybeMicro();
+  }
+  // Main half signal logic
+  if (half && !half.fired) {
+    const pos = Session.pos;
+    const Dmain = decideTarget(half.target);
+    const scoreTxt = Dmain.scoreTxt;
     renderStats(scoreTxt);
-
-    let fire=false;
-    // ventana de deadline
-    const inDL = (half.label==="H1"? (pos>=22 && pos<=29) : (pos>=52 && pos<=59));
-    if(Dmain.ok) fire=true;
-    else if(inDL){
-      // si el objetivo va flojo, intenta el otro (inversión de emergencia)
-      const altT=(half.target===2?3:2);
-      const Dalt=decideTarget(altT);
-      if(Dalt.ok) { half.target=altT; fire=true; }
-      else fire=false;
+    let doFire = false;
+    // “Deadline” window near end of half: consider alternate target if main not signaled yet
+    const inDeadline = (half.label === "H1" ? (pos >= 22 && pos <= 29) : (pos >= 52 && pos <= 59));
+    if (Dmain.ok) {
+      doFire = true;
+    } else if (inDeadline) {
+      const altT = (half.target === 2 ? 3 : 2);
+      const Dalt = decideTarget(altT);
+      if (Dalt.ok) {
+        half.target = altT;  // switch the target for this half
+        doFire = true;
+      }
     }
-    if(fire){
+    if (doFire) {
       fireNow(half.target, half.label, scoreTxt);
-      half.fired=true;
+      half.fired = true;
     }
   }
-
-  if(Session.pos>=Session.limit || bothDone){
-    Session.active=false; setBanner(false);
+  // End of session handling
+  if (Session.pos >= Session.limit || bothDone) {
+    Session.active = false;
+    setBanner(false);
     pushReview("Fin de sesión.");
-    if(keepRunning){ setTimeout(()=>startSession(), 1000); }
+    if (keepRunning) {
+      setTimeout(() => startSession(), 1000);
+    }
   }
 }
 
-/* ============ EVENTOS por ronda ============ */
-function onNewCrash(v, ts, base=false){
-  // learner
+/* ======= NEW ROUND EVENT HANDLER ======= */
+function onNewCrash(v, ts, base = false) {
+  // Update pattern learner with new value
   plUpdateWithNewCrash(v);
-
-  // buffers
-  rounds.push(v); roundsMeta.push({v,ts}); if(rounds.length>4000){rounds.shift(); roundsMeta.shift();}
-  lastShown.unshift(v); if(lastShown.length>60) lastShown.pop();
-  cats.push(catOf(v)); if(cats.length>5000) cats.shift();
-
-  if(Rosa.lastIdx!=null){ Rosa.since=(rounds.length-1)-Rosa.lastIdx; }
-  if(v>=10){ Rosa.lastIdx=rounds.length-1; Rosa.lastV=v; Rosa.since=0; }
-
-  // resolver pendiente
-  if(!base && pendings.length){
-    const bet=pendings.shift(); const win=(v>bet.target);
-    bet.crash=v; bet.state=win?"win":"lose";
-    const key=(bet.target===1.7?17:bet.target);
-    const arr=Perf[key].last; arr.push(win); if(arr.length>12) arr.shift();
-    renderBets(); setBanner(false);
-    pushReview(`Resultado ${bet.half}: ${win?"GANADA":"PERDIDA"} con ${v.toFixed(2)}x.`);
-    const baseSep=getAggConf().sepMin;
-    Session.sepMin = win ? baseSep : Math.min(baseSep+2, 14);
+  // Append to rounds history
+  rounds.push(v);
+  roundsMeta.push({ v, ts });
+  if (rounds.length > 4000) { rounds.shift(); roundsMeta.shift(); }
+  // Update display list of last rounds
+  lastShown.unshift(v);
+  if (lastShown.length > 60) lastShown.pop();
+  // Update Rosa tracker
+  if (Rosa.lastIdx != null) {
+    Rosa.since = (rounds.length - 1) - Rosa.lastIdx;
   }
-
-  // objetivos
-  if(v>=1.70) eventsPush(1.7,v,ts); else bumpSince(1.7);
-  if(v>=2)    eventsPush(2,v,ts);   else bumpSince(2);
-  if(v>=3)    eventsPush(3,v,ts);   else bumpSince(3);
-
-  // tick
-  if(Session.active && !base){ onTickSession(); }
+  if (v >= 10) {  // big win (pink)
+    Rosa.lastIdx = rounds.length - 1;
+    Rosa.lastV = v;
+    Rosa.since = 0;
+  }
+  // Resolve any pending bet signal
+  if (!base && pendings.length) {
+    const bet = pendings.shift();
+    const win = (v >= bet.target);  // note: win if crash point >= target
+    bet.crash = v;
+    bet.state = win ? "win" : "lose";
+    // Track performance for that target
+    const key = (bet.target === 1.7 ? 17 : bet.target);
+    const arr = Perf[key].last;
+    arr.push(win);
+    if (arr.length > 12) arr.shift();
+    renderBets();
+    setBanner(false);
+    pushReview(`Resultado ${bet.half}: ${win ? "GANADA" : "PERDIDA"} con ${v.toFixed(2)}x.`);
+    // Adjust separation if win or lose:
+    const baseSep = getAggConf().sepMin;
+    Session.sepMin = win ? baseSep : Math.min(baseSep + 2, 14);
+    // **New**: If a micro bet lost, increase micro separation to avoid rapid retries
+    if (!win && bet.tag === "AUTO_1p7") {
+      Session.micro.sepMin = Math.min(Session.micro.sepMin + 5, 30);
+      // We also could reduce micro.quota here if we want to stop after too many fails,
+      // e.g., Session.micro.quota = Session.micro.fired (stop further micros this session).
+    }
+  }
+  // Update since counters or event logs for thresholds
+  if (v >= 1.70) eventsPush(1.7, v, ts); else bumpSince(1.7);
+  if (v >= 2)    eventsPush(2, v, ts);   else bumpSince(2);
+  if (v >= 3)    eventsPush(3, v, ts);   else bumpSince(3);
+  // If session is active and this was a real-time (non-base history) update, run session logic
+  if (Session.active && !base) {
+    onTickSession();
+  }
   renderStats();
 }
 
-/* ============ CONEXIÓN FEED (anti-duplicados) ============ */
-let liveRef=null, liveCb=null, lastKey=null, lastTs=null, lastActivity=null, watchdog=null;
-const seenSigs=new Set(); const sigOrder=[];
-function rememberSig(sig){ seenSigs.add(sig); sigOrder.push(sig); if(sigOrder.length>2000){ const old=sigOrder.shift(); seenSigs.delete(old); } }
-function nodeToVT(node){
-  const raw = (node && typeof node==='object' && ('raw' in node || 'v' in node)) ? (node.raw ?? node.v) : node;
+/* ======= FEED (Firebase) HANDLING ======= */
+let liveRef = null, liveCb = null, lastKey = null, lastTs = null, lastActivity = null, watchdog = null;
+const seenSigs = new Set();
+const sigOrder = [];
+function rememberSig(sig) {
+  seenSigs.add(sig);
+  sigOrder.push(sig);
+  if (sigOrder.length > 2000) {
+    const old = sigOrder.shift();
+    seenSigs.delete(old);
+  }
+}
+function nodeToVT(node) {
+  // Extract value (multiplier) and timestamp from feed node
+  const raw = (node && typeof node === 'object' && ('raw' in node || 'v' in node)) ? (node.raw ?? node.v) : node;
   const v = parseCrashValue(raw);
   const ts = Number(node?.ts) || now();
-  return {v,ts};
+  return { v, ts };
 }
-async function connectFeed(){
-  if(connected) return;
-  FEED_ID=($("feedId").value||"gocho").trim();
-  const fb=$("statusFeedback"); fb&&(fb.textContent=`Conectando a feeds/${FEED_ID}/crashes…`);
-  try{ await auth.signInAnonymously(); }catch(e){}
-
-  const ref=db.ref(`feeds/${FEED_ID}/crashes`);
-  fb&&(fb.textContent="Cargando historial…");
-
-  let snap=null, method="key";
-  try{ const s=await ref.orderByChild("ts").limitToLast(800).once("value"); if(s && s.val()) { snap=s; method="ts"; } }catch(e){}
-  if(!snap){ try{ const s=await ref.orderByKey().limitToLast(800).once("value"); if(s && s.val()) { snap=s; method="key"; } }catch(e){} }
-  if(!snap||!snap.val()){ fb&&(fb.textContent="Sin datos en el feed."); return; }
-
-  // reset estado
-  rounds=[]; roundsMeta=[]; lastShown=[];
-  events17=[]; intervals17=[]; since17=null;
-  events2=[];  intervals2=[];  since2=null;
-  events3=[];  intervals3=[];  since3=null;
-  Rosa.lastIdx=null; Rosa.lastV=null; Rosa.since=null;
-  cats.length=0; PL.maps={1:new Map(),2:new Map(),3:new Map()}; PL.global={tot:0,n17:0,n2:0,n3:0};
-  Perf[17].last=[]; Perf[2].last=[]; Perf[3].last=[];
-  baseCount=Object.keys(snap.val()).length;
-
-  const data=snap.val(), keys=Object.keys(data).sort();
-  keys.forEach(k=>{
-    const d=data[k]; const {v,ts}=nodeToVT(d); const sig=`${k}|${ts}|${v}`;
-    if(v!==null){ onNewCrash(v,ts,true); rememberSig(sig); }
-    lastKey=k; lastTs=Number(d?.ts||k)||now(); lastActivity=now();
-  });
-  renderStats(); renderBets(); renderExplain();
-
-  // LIVE
-  if(method==="ts"){
-    liveRef=ref.orderByChild("ts").startAt((lastTs||0) + 1);
-    liveCb=s=>{
-      const key=s.key, d=s.val(); const {v,ts}=nodeToVT(d); const sig=`${key}|${ts}|${v}`;
-      if(seenSigs.has(sig)) return;
-      if(lastTs && ts<=lastTs) return;
-      rememberSig(sig); lastKey=key; lastTs=ts; lastActivity=now();
-      if(v!==null) onNewCrash(v,ts,false);
+async function connectFeed() {
+  if (connected) return;
+  FEED_ID = ($("feedId").value || "gocho").trim();
+  const fbStatus = $("statusFeedback");
+  if (fbStatus) fbStatus.textContent = `Conectando a feeds/${FEED_ID}/crashes…`;
+  try { await auth.signInAnonymously(); } catch(e) {}
+  const ref = db.ref(`feeds/${FEED_ID}/crashes`);
+  if (fbStatus) fbStatus.textContent = "Cargando historial…";
+  // Load last 800 entries of feed to build initial state
+  let snap = null, method = "key";
+  try {
+    const s = await ref.orderByChild("ts").limitToLast(800).once("value");
+    if (s && s.val()) { snap = s; method = "ts"; }
+  } catch(e) {}
+  if (!snap) {
+    try {
+      const s = await ref.orderByKey().limitToLast(800).once("value");
+      if (s && s.val()) { snap = s; method = "key"; }
+    } catch(e) {}
+  }
+  if (!snap || !snap.val()) {
+    if (fbStatus) fbStatus.textContent = "Sin datos en el feed.";
+    return;
+  }
+  // Reset state for new feed connection
+  rounds = []; roundsMeta = []; lastShown = [];
+  events17 = []; intervals17 = []; since17 = null;
+  events2  = []; intervals2  = []; since2 = null;
+  events3  = []; intervals3  = []; since3 = null;
+  Rosa.lastIdx = null; Rosa.lastV = null; Rosa.since = null;
+  cats.length = 0;
+  PL.maps = {1:new Map(), 2:new Map(), 3:new Map()};
+  PL.global = { tot:0, n17:0, n2:0, n3:0 };
+  Perf[17].last = []; Perf[2].last = []; Perf[3].last = [];
+  baseCount = Object.keys(snap.val()).length;
+  // Populate with historical data
+  const data = snap.val();
+  const keys = Object.keys(data).sort();
+  for (const k of keys) {
+    const d = data[k];
+    const { v, ts } = nodeToVT(d);
+    const sig = `${k}|${ts}|${v}`;
+    if (v !== null) {
+      onNewCrash(v, ts, true);
+    }
+    rememberSig(sig);
+    lastKey = k;
+    lastTs = Number(d?.ts || k) || now();
+    lastActivity = now();
+  }
+  renderStats();
+  renderBets();
+  renderExplain();
+  // Set up live listener for new rounds
+  if (method === "ts") {
+    liveRef = ref.orderByChild("ts").startAt((lastTs || 0) + 1);
+    liveCb = s => {
+      const key = s.key, d = s.val();
+      const { v, ts } = nodeToVT(d);
+      const sig = `${key}|${ts}|${v}`;
+      if (seenSigs.has(sig)) return;
+      if (lastTs && ts <= lastTs) return;
+      rememberSig(sig);
+      lastKey = key;
+      lastTs = ts;
+      lastActivity = now();
+      if (v !== null) onNewCrash(v, ts, false);
     };
-  }else{
-    liveRef=ref.orderByKey().startAt(lastKey||"");
-    liveCb=s=>{
-      const key=s.key, d=s.val(); const {v,ts}=nodeToVT(d); const sig=`${key}|${ts}|${v}`;
-      if(seenSigs.has(sig)) return;
-      if(lastKey && key<=lastKey) return;
-      rememberSig(sig); lastKey=key; lastTs=ts; lastActivity=now();
-      if(v!==null) onNewCrash(v,ts,false);
+  } else {
+    liveRef = ref.orderByKey().startAt(lastKey || "");
+    liveCb = s => {
+      const key = s.key, d = s.val();
+      const { v, ts } = nodeToVT(d);
+      const sig = `${key}|${ts}|${v}`;
+      if (seenSigs.has(sig)) return;
+      if (lastKey && key <= lastKey) return;
+      rememberSig(sig);
+      lastKey = key;
+      lastTs = ts;
+      lastActivity = now();
+      if (v !== null) onNewCrash(v, ts, false);
     };
   }
   liveRef.on("child_added", liveCb);
-
-  if(watchdog) clearInterval(watchdog);
-  watchdog=setInterval(()=>{ if(!connected) return; const dt=Date.now()-(lastActivity||0); if(dt>300000){ disconnectFeed(true); connectFeed(); } }, 30000);
-
-  connected=true; keepRunning=true; fb&&(fb.textContent="Conectado. Auto-sesión activa.");
-  // Auto-start inmediato y encadenado indefinido
+  // Start watchdog to reconnect if feed stalls
+  if (watchdog) clearInterval(watchdog);
+  watchdog = setInterval(() => {
+    if (!connected) return;
+    const dt = Date.now() - (lastActivity || 0);
+    if (dt > 300000) { // >5 minutes without new data
+      disconnectFeed(true);
+      connectFeed();
+    }
+  }, 30000);
+  connected = true;
+  keepRunning = true;
+  if (fbStatus) fbStatus.textContent = "Conectado. Auto-sesión activa.";
+  // Auto-start session loop immediately
   startSession();
 }
-function disconnectFeed(silent=false){
-  if(!connected) return;
-  if(liveRef && liveCb) liveRef.off("child_added", liveCb);
-  liveRef=liveCb=null; lastKey=lastTs=lastActivity=null; connected=false; keepRunning=false;
-  Session.active=false; setBanner(false); pendings.length=0;
-  const fb=$("statusFeedback"); if(!silent && fb) fb.textContent="Desconectado.";
+function disconnectFeed(silent = false) {
+  if (!connected) return;
+  if (liveRef && liveCb) liveRef.off("child_added", liveCb);
+  liveRef = liveCb = null;
+  lastKey = lastTs = lastActivity = null;
+  connected = false;
+  keepRunning = false;
+  Session.active = false;
+  setBanner(false);
+  pendings.length = 0;
+  const fbStatus = $("statusFeedback");
+  if (!silent && fbStatus) fbStatus.textContent = "Desconectado.";
 }
 
-/* ============ PERSISTENCIA / EXPLICACIÓN / ARRANQUE ============ */
-function persistLocal(){
-  try{ localStorage.setItem(PERSIST_KEY, JSON.stringify({bets, aggr:$("aggr").value})); }catch(_){}
+/* ======= PERSISTENCE & UI ======= */
+function persistLocal() {
+  try {
+    localStorage.setItem(PERSIST_KEY, JSON.stringify({ bets, aggr: $("aggr").value }));
+  } catch(_) {}
 }
-function restoreLocal(){
-  try{ const raw=localStorage.getItem(PERSIST_KEY); if(!raw) return;
-    const p=JSON.parse(raw);
-    if(Array.isArray(p.bets)) bets=p.bets;
-    if(p.aggr) $("aggr").value=p.aggr;
-  }catch(_){}
+function restoreLocal() {
+  try {
+    const raw = localStorage.getItem(PERSIST_KEY);
+    if (!raw) return;
+    const p = JSON.parse(raw);
+    if (Array.isArray(p.bets)) bets = p.bets;
+    if (p.aggr) $("aggr").value = p.aggr;
+  } catch(_) {}
 }
-function renderExplain(){
-  const c=getAggConf(); Session.sepMin=c.sepMin; Session.micro.sepMin=c.microSep;
-  $("aggrExplain").textContent=
-    `Auto-sesión: al Conectar inicia y encadena sesiones sin parar hasta Desconectar. `+
-    `Plan por sesión: H1/H2 con 1 tiro cada 30 rondas (2×/3× con inversión automática) + hasta 3 micro ≥1.70. `+
-    `Pisos 1.70 ${c.floor17.last.toFixed(2)}/${c.floor17.avg3.toFixed(2)} · 2× ${c.floor2.last.toFixed(2)}/${c.floor2.avg3.toFixed(2)} · 3× ${c.floor3.last.toFixed(2)}/${c.floor3.avg3.toFixed(2)} · `+
-    `Sep ${c.sepMin} (principal) / ${c.microSep} (micro).`;
-  $("sepLbl").textContent=`${Session.sepMin} / micro ${Session.micro.sepMin}`;
-  $("planLbl").textContent=`H1:${Session.halves[0].target}× · H2:${Session.halves[1].target}× · micro ${Session.micro.fired}/${Session.micro.quota}`;
+function renderExplain() {
+  const c = getAggConf();
+  Session.sepMin = c.sepMin;
+  Session.micro.sepMin = c.microSep;
+  $("aggrExplain").textContent =
+    `Auto-sesión: al Conectar inicia y encadena sesiones sin parar hasta Desconectar. ` +
+    `Plan por sesión: H1/H2 con 1 tiro cada 30 rondas (${Session.halves[0].target}× y ${Session.halves[1].target}×, con inversión automática según patrones) + hasta 3 micro ≥1.70 (intercalados). ` +
+    `Pisos mínimos: ≥1.70 = ${c.floor17.last.toFixed(2)}/${c.floor17.avg3.toFixed(2)} · ` +
+    `2× = ${c.floor2.last.toFixed(2)}/${c.floor2.avg3.toFixed(2)} · ` +
+    `3× = ${c.floor3.last.toFixed(2)}/${c.floor3.avg3.toFixed(2)}. ` +
+    `Separaciones: principal = ${c.sepMin} rondas, micro = ${c.microSep} rondas.`;
+  $("sepLbl").textContent = `${Session.sepMin} / micro ${Session.micro.sepMin}`;
+  $("planLbl").textContent = `H1:${Session.halves[0].target}× · H2:${Session.halves[1].target}× · micro ${Session.micro.fired}/${Session.micro.quota}`;
 }
 
-function startSession(){
-  if($("clearOnStart").checked){ bets=[]; renderBets(); }
-  const c=getAggConf(); Session.sepMin=c.sepMin; Session.micro.sepMin=c.microSep;
-  Session.active=true; Session.startIdx=rounds.length; Session.pos=0; Session.lastEmitIdx=-999;
-  Session.halves=[{label:"H1",start:0,end:30,target:2,fired:false},{label:"H2",start:30,end:60,target:3,fired:false}];
-  Session.micro.fired=0; Session.micro.lastIdx=-999;
-  Session.id=HHmmss(now()); setBanner(false);
+function startSession() {
+  if ($("clearOnStart").checked) {
+    bets = [];
+    renderBets();
+  }
+  const c = getAggConf();
+  Session.sepMin = c.sepMin;
+  Session.micro.sepMin = c.microSep;
+  Session.active = true;
+  Session.startIdx = rounds.length;
+  Session.pos = 0;
+  Session.lastEmitIdx = -999;
+  Session.halves = [
+    { label: "H1", start: 0, end: 30, target: 2, fired: false },
+    { label: "H2", start: 30, end: 60, target: 3, fired: false }
+  ];
+  Session.micro.fired = 0;
+  Session.micro.lastIdx = -999;
+  Session.id = HHmmss(now());
+  setBanner(false);
   chooseHalfTargets();
   pushReview(`Empieza sesión ${Session.id} · H1:${Session.halves[0].target}× · H2:${Session.halves[1].target}×`);
-  renderExplain(); renderStats();
+  renderExplain();
+  renderStats();
 }
 
+/* ======= EVENT LISTENERS ======= */
 $("connectBtn").addEventListener("click", connectFeed);
-$("disconnectBtn").addEventListener("click", ()=>disconnectFeed(false));
-$("aggr").addEventListener("change", ()=>{ renderExplain(); persistLocal(); });
-setInterval(()=>{ $("clockNow").textContent=new Date().toLocaleTimeString(); persistLocal(); }, 1000);
+$("disconnectBtn").addEventListener("click", () => disconnectFeed(false));
+$("aggr").addEventListener("change", () => { renderExplain(); persistLocal(); });
+setInterval(() => {
+  $("clockNow").textContent = new Date().toLocaleTimeString();
+  persistLocal();
+}, 1000);
 
-/* ============ BOOT ============ */
-(function(){ restoreLocal(); renderBets(); renderExplain(); renderStats(); })();
+/* ======= INITIALIZATION ======= */
+(function() {
+  restoreLocal();
+  renderBets();
+  renderExplain();
+  renderStats();
+})();
 </script>
 </body>
 </html>
