@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v25.4 (Perfil Preciso • ≥1.70 • pre-armado)</title>
+<title>Aviator Analyzer • Gocho v25.5 (Preciso ≥1.70 • pre-armado • Scout 10x opcional)</title>
 <style>
   :root{--bg:#0f1115;--panel:#171a20;--muted:#98a2b3;--text:#eaeef5;--ok:#2ecc71;--warn:#e67e22;--bad:#e74c3c;--brand:#8ab4ff}
   html,body{background:var(--bg);color:var(--text);font:14px/1.45 system-ui,Inter,Segoe UI,Roboto,Arial,sans-serif;margin:0}
@@ -31,6 +31,7 @@
   .banner{position:fixed;left:50%;top:18px;transform:translateX(-50%);background:#102c18;border:2px solid var(--ok);color:#d8ffe6;padding:10px 16px;border-radius:12px;font-weight:800;z-index:9999;box-shadow:0 10px 30px rgba(83,210,107,.25);display:none}
   .banner.show{display:block;animation:pop .18s ease-out both}
   .banner.pre{background:#12243a;border-color:#5aa2ff;color:#dff0ff}
+  .banner.pink{background:#3a1f33;border-color:#ff71c0;color:#ffe7f7}
   @keyframes pop{0%{transform:translateX(-50%) scale(.92)}100%{transform:translateX(-50%) scale(1)}}
 </style>
 </head>
@@ -38,7 +39,7 @@
 <div class="wrap">
   <div id="signalBanner" class="banner">🎯 Señal ≥1.70 → Entrar próxima ronda</div>
 
-  <h1>✈️ Aviator Analyzer • <span style="color:var(--brand)">Gocho v25.4</span>
+  <h1>✈️ Aviator Analyzer • <span style="color:var(--brand)">Gocho v25.5</span>
     <span class="muted">auto-sesión • objetivo ≥1.70 • perfil preciso</span>
     <span id="statusFeedback" class="muted" style="margin-left:8px"></span>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
@@ -63,6 +64,7 @@
         <option value="AGR">Agresivo</option>
       </select>
 
+      <label class="row"><input id="scoutPink" type="checkbox"> Scout 10x (1/60 opc.)</label>
       <label class="row"><input id="clearOnStart" type="checkbox"> Limpiar historial al conectar</label>
 
       <div class="row" style="margin-left:auto">
@@ -137,6 +139,7 @@ function beep(freq=880, ms=140, gain=0.05){
 }
 function alarmFire(){ for(let k=0;k<3;k++){ setTimeout(()=>{ beep(560,180,0.07); setTimeout(()=>beep(1100,140,0.07),160); }, k*260); } }
 function beepPre(){ beep(820,120,0.05); }
+function beepPink(){ beep(650,180,0.07); setTimeout(()=>beep(1350,160,0.07),170); }
 
 /* ===== parser ===== */
 let rounds=[], roundsMeta=[], lastShown=[];
@@ -161,23 +164,23 @@ function parseCrashValue(raw){
 }
 
 /* ===== estado ===== */
-const PERSIST_KEY="gocho_v254_dyn";
+const PKEY="gocho_v255_dyn";
 let FEED_ID="gocho", connected=false, keepRunning=false, baseCount=0;
 
 let events17=[], intervals17=[], since17=null;
 const Rosa={lastIdx:null,lastV:null,since:null};
 
-const Session={ id:null, active:false, startIdx:0, pos:0, limit:60, lastEmitIdx:-999, sepMin:10, sepHot:4, quota:3, fired:0 };
+const Session={ id:null, active:false, startIdx:0, pos:0, limit:60, lastEmitIdx:-999, baseSep:10, sepMin:10, sepHot:4, quota:3, fired:0, coolRounds:0 };
 let bets=[], pendings=[];
 
 /* perfiles */
-const Profile={ name:"PRECISE", thrBump:0.06, requireRel:1.02, requireN:0.56, quota:3 };
+const Profile={ name:"PRECISE", thrBump:0.03, reqRel:1.00, reqN:0.54, quota:3 };
 function applyProfile(){
   const p=getVal("profileSel","PRECISE");
-  if(p==="NORMAL"){ Profile.name="NORMAL"; Profile.thrBump=0.00; Profile.requireRel=0.98; Profile.requireN=0.50; Profile.quota=6; }
-  else{ Profile.name="PRECISE"; Profile.thrBump=0.06; Profile.requireRel=1.02; Profile.requireN=0.56; Profile.quota=3; }
+  if(p==="NORMAL"){ Profile.name="NORMAL"; Profile.thrBump=0.00; Profile.reqRel=0.96; Profile.reqN=0.50; Profile.quota=6; }
+  else{ Profile.name="PRECISE"; Profile.thrBump=0.03; Profile.reqRel=1.00; Profile.reqN=0.54; Profile.quota=3; }
   Session.quota=Profile.quota;
-  pushReview(`Perfil ${Profile.name}: cuota ${Profile.quota}/60, thrBump +${Profile.thrBump.toFixed(2)}, rel≥${Profile.requireRel.toFixed(2)}, nProb≥${Math.round(Profile.requireN*100)}%.`);
+  pushReview(`Perfil ${Profile.name}: cuota ${Profile.quota}/60, thrBump +${Profile.thrBump.toFixed(2)}, rel≥${Profile.reqRel.toFixed(2)}, nProb≥${Math.round(Profile.reqN*100)}%.`);
 }
 
 /* n-gramas */
@@ -207,8 +210,8 @@ const LR={ d:15, w:new Array(15).fill(0), G:new Array(15).fill(1e-6), eta:0.35, 
 const sigmoid=z=>1/(1+Math.exp(-clamp(z,-15,15)));
 function lrPredict(x){ let s=0; for(let i=0;i<LR.d;i++) s+=LR.w[i]*x[i]; return sigmoid(s); }
 function lrUpdate(x,y){ const p=lrPredict(x); for(let i=0;i<LR.d;i++){ const g=(p-y)*x[i] + LR.l2*LR.w[i]; LR.G[i]+=g*g; LR.w[i]-= LR.eta/Math.sqrt(LR.G[i]) * g; } saveLearner(); return p;}
-function saveLearner(){ try{ localStorage.setItem(PERSIST_KEY+"_w", JSON.stringify({w:LR.w,G:LR.G})); }catch(_){ } }
-function loadLearner(){ try{ const j=JSON.parse(localStorage.getItem(PERSIST_KEY+"_w")||"null"); if(j&&j.w&&j.G){ LR.w=j.w; LR.G=j.G; } }catch(_){ } }
+function saveLearner(){ try{ localStorage.setItem(PKEY+"_w", JSON.stringify({w:LR.w,G:LR.G})); }catch(_){ } }
+function loadLearner(){ try{ const j=JSON.parse(localStorage.getItem(PKEY+"_w")||"null"); if(j&&j.w&&j.G){ LR.w=j.w; LR.G=j.G; } }catch(_){ } }
 
 /* stats & contexto */
 function blueDensity(n=20){const w=rounds.slice(-n); if(!w.length) return 1; return w.filter(x=>x<2).length/w.length;}
@@ -225,7 +228,7 @@ function updateHeat(v){
 }
 function regime(){ return HEAT.score>=4.5?"very-hot": HEAT.score>=3?"hot": HEAT.score<1?"cold":"neutral"; }
 
-/* AGRESIVIDAD */
+/* agresividad */
 function getAgg(){
   const m=getVal('aggr','EQ');
   if(m==="CONS") return {sepMin:12, sepHot:5, floorLast:1.34, floorAvg3:1.46, bd10Max:0.70, bd20Max:0.74, thrAdj:+0.02};
@@ -290,7 +293,7 @@ function pocketOK(){
   return ps>=need;
 }
 
-/* perf/umbral */
+/* umbral adaptativo */
 const Perf={last:[]};
 function thrAdaptive(){
   const ag=getAgg()||{thrAdj:0};
@@ -304,6 +307,22 @@ function thrAdaptive(){
   if(remain<=15 && slack>=1) base-=0.06;
   if(remain<=8  && slack>=1) base-=0.10;
   return clamp(base, LR.thrMin, LR.thrMax);
+}
+function reqRelNow(){
+  let r=Profile.reqRel;
+  const reg=regime();
+  if(reg==="hot") r-=0.03; if(reg==="very-hot") r-=0.05;
+  if(Session.pos>20 && Session.fired===0) r-=0.02;
+  if(Session.pos>45 && Session.fired<1) r-=0.03;
+  if(Session.pos>55) r-=0.04;
+  return Math.max(0.92, r);
+}
+function reqNNow(){
+  let n=Profile.reqN;
+  if(regime()!=="cold") n-=0.02;
+  if(Session.pos>20 && Session.fired===0) n-=0.01;
+  if(Session.pos>45) n-=0.02;
+  return clamp(n,0.45,0.65);
 }
 
 /* render */
@@ -327,51 +346,89 @@ function renderBets(){ const tb=$("betsTbody"); tb.innerHTML=""; bets.forEach((b
 const PreArm={on:false, ts:0};
 function maybePrearm(txt){
   if(PreArm.on) return;
-  setBanner(true,"🟦 Pre-armado: posible entrada ≥1.70 en T+1", "pre"); beepPre();
+  setBanner(true,"🟦 Pre-armado: posible entrada ≥1.70 en T+1","pre"); beepPre();
   PreArm.on=true; PreArm.ts=now();
   pushReview("Pre-armado "+txt);
 }
 function clearPrearm(){ if(PreArm.on){ PreArm.on=false; setBanner(false); } }
 
-function fireNow(reasonTxt){
+function fire(type,target,reasonTxt,klass){
   if(!isChecked("autoSignal")) return;
   const sepNeed = regime().includes("hot") ? Session.sepHot : Session.sepMin;
   if(rounds.length - Session.lastEmitIdx < sepNeed) return;
-  if(Session.fired >= Session.quota) return;
-  const ts=now(); const entry={id:"S"+ts,sessionId:Session.id,target:1.7,ts,emittedAt:HHmmss(ts),state:"pend",tag:"AUTO_1p7"};
+  if(type==="MAIN" && Session.fired >= Session.quota) return;
+
+  const ts=now(); const entry={id:"S"+ts,sessionId:Session.id,target,ts,emittedAt:HHmmss(ts),state:"pend",tag:(type==="PINK"?"SCOUT_10x":"AUTO_1p7")};
   pendings.push(entry); bets.push(entry); if(bets.length>2500) bets.splice(0,bets.length-2500);
-  Session.lastEmitIdx=rounds.length; Session.fired++; alarmFire(); setBanner(true,"🚨 ENTRAR AHORA → Próxima ronda (≥1.70)");
-  pushReview(`Señal emitida. ${reasonTxt}`); renderBets();
+  Session.lastEmitIdx=rounds.length;
+  if(type==="MAIN") Session.fired++;
+  if(type==="PINK") Pink.fired++;
+
+  if(type==="PINK"){ beepPink(); setBanner(true,"💗 SCOUT 10x → Próxima ronda","pink"); }
+  else { alarmFire(); setBanner(true,"🚨 ENTRAR AHORA → Próxima ronda (≥1.70)"); }
+  pushReview(`Señal (${type}) emitida. ${reasonTxt}`); renderBets();
+}
+
+/* rosa scout opcional */
+const Pink={enabled:false, quota:1, sepMin:12, fired:0};
+function pinkPotential(){
+  const lastW=rounds.slice(-14);
+  const purp=lastW.filter(v=>v>=3 && v<10).length;
+  const pink=rounds.slice(-60).filter(v=>v>=10).length;
+  const ma10=movingAverage(rounds,10)||1.2;
+  const bd=blueDensity(12);
+  const sc = purp*0.9 + pink*0.6 + (ma10-1.3)*3 + (1-bd)*1.2 + (regime()==="very-hot"?1.2:regime()==="hot"?0.6:0);
+  return sc; // umbral ≈2.6
+}
+function maybePinkScout(f){
+  if(!Pink.enabled) return false;
+  if(Pink.fired>=Pink.quota) return false;
+  if(rounds.length - Session.lastEmitIdx < Pink.sepMin) return false;
+  if(!floorsOK() || !contextOK()) return false;
+  const sc=pinkPotential();
+  if(sc>=2.6){ fire("PINK",10,`pinkScore:${sc.toFixed(2)}`, "pink"); return true; }
+  return false;
 }
 
 /* sesión */
 function startSession(){
-  applyProfile();
+  applyProfile(); Pink.enabled=isChecked("scoutPink"); Pink.fired=0;
   const c=getAgg()||{sepMin:10,sepHot:4};
   Session.id=HHmmss(now()); Session.active=true; Session.startIdx=rounds.length; Session.pos=0;
-  Session.lastEmitIdx=-999; Session.sepMin=c.sepMin; Session.sepHot=c.sepHot; Session.fired=0;
+  Session.lastEmitIdx=-999; Session.baseSep=c.sepMin; Session.sepMin=c.sepMin; Session.sepHot=c.sepHot; Session.fired=0; Session.coolRounds=0;
   if(isChecked("clearOnStart")){ bets=[]; renderBets(); }
-  pushReview(`Empieza sesión ${Session.id} • perfil ${Profile.name} • objetivo ≥1.70 • tope ${Session.quota}/60.`);
-  renderStats();
+  pushReview(`Empieza sesión ${Session.id} • perfil ${Profile.name} • objetivo ≥1.70 • tope ${Session.quota}/60.`); renderStats();
 }
 
 function onTickSession(){
   if(!Session.active) return;
   Session.pos = rounds.length - Session.startIdx;
+  if(Session.coolRounds>0) Session.coolRounds--;
+
   const f=buildX(); const p=lrPredict(f.x), thr=thrAdaptive();
   const gates = floorsOK() && contextOK();
   const txt=`p:${(p*100).toFixed(0)}% thr:${thr.toFixed(2)} heat:${HEAT.score.toFixed(2)} rel:${f.rel.toFixed(2)} n:${(f.p_ng*100).toFixed(0)}%`;
   renderStats(txt);
 
-  const qualityOK = pocketOK() || (f.rel>=Profile.requireRel && f.p_ng>=Profile.requireN);
-  const sepNeed = regime().includes("hot") ? Session.sepHot : Session.sepMin;
-  const sepOK = (rounds.length - Session.lastEmitIdx) >= sepNeed && (Session.fired < Session.quota);
+  const relNeed=reqRelNow(), nNeed=reqNNow();
+  const qualityOK  = pocketOK() || (f.rel>=relNeed && f.p_ng>=nNeed);
+  const qualityLo  = pocketOK() || (f.rel>=relNeed-0.02 && f.p_ng>=nNeed-0.02);
+  const sepNeed    = regime().includes("hot") ? Session.sepHot : Session.sepMin;
+  const sepOK      = (rounds.length - Session.lastEmitIdx) >= sepNeed && (Session.fired < Session.quota);
 
-  if(gates && qualityOK && p>=thr && sepOK){
-    clearPrearm(); fireNow(txt);
-  }else if(gates && qualityOK && p>=thr-0.06 && sepOK){
-    // pre-armado temprano (avisa pero no dispara aún)
-    maybePrearm(txt);
+  // primero scout rosa opcional
+  if(maybePinkScout(f)) { /* disparó rosa */ }
+
+  if(gates && sepOK){
+    if(qualityOK && p>=thr){
+      clearPrearm(); fire("MAIN",1.7,txt);
+    }else if(qualityLo && p>=thr-0.05){
+      // pre-armado: si ya veníamos pre-armados, en el siguiente tick disparará con p≥thr−0.03
+      if(PreArm.on && p>=thr-0.03){ clearPrearm(); fire("MAIN",1.7,txt+" (arm)"); }
+      else { maybePrearm(txt); }
+    }else{
+      clearPrearm();
+    }
   }else{
     clearPrearm();
   }
@@ -386,16 +443,22 @@ function afterRound(v,base){
     bet.crash=v; bet.state=win?"win":"lose"; renderBets(); clearPrearm();
     const feat=buildX(); const y=win?1:0; const p=lrUpdate(feat.x,y);
     Perf.last.push(win); if(Perf.last.length>24) Perf.last.shift();
-    if(!win){ const L=Perf.last.slice(-3).filter(x=>x===false).length;
+    if(!win){
+      const L=Perf.last.slice(-3).filter(x=>x===false).length;
       LR.hotUps=(L>=2)?0.05:0;
-      Session.sepMin=Math.min(Session.sepMin+1,16);  // micro-cooldown
+      Session.sepMin=Math.min(Session.baseSep+2,14);
+      Session.coolRounds=6;
       HEAT.freeze=Math.max(HEAT.freeze,1);
-    }else{ LR.hotUps=0; const c=getAgg()||{sepMin:10}; Session.sepMin=c.sepMin; }
+    }else{
+      LR.hotUps=0;
+      Session.sepMin=Session.baseSep;
+      Session.coolRounds=0;
+    }
     pushReview(`Resultado ${win?"GANADA":"PERDIDA"} (${v.toFixed(2)}x). p_prev=${(p*100).toFixed(0)}%.`);
   }
 }
 
-/* eventos x ronda */
+/* eventos por ronda */
 function pushEvt17(v,ts){
   if(v>=1.70){
     const idx=rounds.length-1, ev={idx,v,ts}; events17.push(ev);
@@ -463,9 +526,9 @@ async function connectFeed(){
 
     loadLearner(); applyProfile();
     const c=getAgg()||{sepMin:10,sepHot:4};
-    Session.sepMin=c.sepMin; Session.sepHot=c.sepHot;
+    Session.baseSep=c.sepMin; Session.sepMin=c.sepMin; Session.sepHot=c.sepHot;
     setText("sepLbl", Session.sepMin);
-    setText("aggrExplain","Auto-sesión: al Conectar inicia y encadena sesiones (60). Objetivo ≥1.70. Perfil "+Profile.name+" ("+Profile.quota+"/60).");
+    setText("aggrExplain","Conectar: inicia y encadena sesiones (60). Objetivo ≥1.70. Perfil "+Profile.name+" ("+Profile.quota+"/60). Scout 10x opcional.");
     renderStats(); renderBets();
 
     // LIVE
@@ -494,20 +557,21 @@ function disconnectFeed(silent){
   if(!connected) return;
   if(liveRef && liveCb) liveRef.off("child_added", liveCb);
   liveRef=liveCb=null; lastKey=lastTs=lastActivity=null; connected=false; keepRunning=false;
-  Session.active=false; setBanner(false); pendings.length=0; PreArm.on=false;
+  Session.active=false; setBanner(false); pendings.length=0; PreArm.on=false; Pink.fired=0;
   if(!silent) setText("statusFeedback","Desconectado.");
 }
 
 /* UI */
 $("connectBtn").addEventListener("click", connectFeed);
 $("disconnectBtn").addEventListener("click", ()=>disconnectFeed(false));
-$("aggr").addEventListener("change", ()=>{ const c=getAgg()||{sepMin:10,sepHot:4}; Session.sepMin=c.sepMin; Session.sepHot=c.sepHot; setText("sepLbl", Session.sepMin); });
+$("aggr").addEventListener("change", ()=>{ const c=getAgg()||{sepMin:10,sepHot:4}; Session.baseSep=c.sepMin; Session.sepMin=c.sepMin; Session.sepHot=c.sepHot; setText("sepLbl", Session.sepMin); });
 $("profileSel").addEventListener("change", ()=>{ applyProfile(); });
+$("scoutPink").addEventListener("change", ()=>{ Pink.enabled=isChecked("scoutPink"); pushReview("Scout 10x "+(Pink.enabled?"ON":"OFF")); });
 
 setInterval(()=>{ setText("clockNow", new Date().toLocaleTimeString()); }, 1000);
 
 /* boot */
-(function(){ renderBets(); renderStats(); loadLearner(); applyProfile(); })();
+(function(){ renderBets(); renderStats(); loadLearner(); applyProfile(); Pink.enabled=isChecked("scoutPink"); })();
 </script>
 </body>
 </html>
