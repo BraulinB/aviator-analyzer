@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v25.5 (Preciso ≥1.70 • pre-armado • Scout 10x opcional)</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Aviator Analyzer • Libre v26.0 (EMA + Signals ≥1.70 + Scout 10x)</title>
 <style>
-  :root{--bg:#0f1115;--panel:#171a20;--muted:#98a2b3;--text:#eaeef5;--ok:#2ecc71;--warn:#e67e22;--bad:#e74c3c;--brand:#8ab4ff}
+  :root{--bg:#0f1115;--panel:#171a20;--muted:#98a2b3;--text:#eaeef5;--ok:#2ecc71;--warn:#e67e22;--bad:#e74c3c;--brand:#8ab4ff;--blue:#6aa8ff}
   html,body{background:var(--bg);color:var(--text);font:14px/1.45 system-ui,Inter,Segoe UI,Roboto,Arial,sans-serif;margin:0}
-  .wrap{max-width:1100px;margin:20px auto;padding:0 12px}
+  .wrap{max-width:1150px;margin:18px auto;padding:0 12px}
   .card{background:var(--panel);border:1px solid #22283a;border-radius:12px;padding:14px;margin:10px 0}
   h1{font-size:18px;margin:0 0 8px;display:flex;gap:8px;align-items:center}
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
@@ -15,11 +15,10 @@
   .btn.ok{background:#2ecc71;color:#0c0f12;font-weight:700}
   .muted{color:var(--muted)}
   input[type="text"],select{background:#0f121a;color:var(--text);border:1px solid #2a3144;border-radius:6px;padding:6px}
-  input[type="text"]{width:140px}
+  input[type="text"]{width:160px}
   .kpi{display:flex;gap:16px;flex-wrap:wrap}
   .kpi .box{background:#0f121a;border:1px solid #22283a;border-radius:10px;padding:10px 12px}
-  .clock{font-variant-numeric:tabular-nums}
-  .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:#1c2130;margin:4px 6px 0 0;font-weight:600}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;background:#1c2130;margin:3px 6px 0 0;font-weight:600}
   .pill.small{padding:4px 8px;font-size:12px}
   .c-blue{color:#dbeafe;background:#142136;border:1px solid #1e3352}
   .c-green{color:#dbffe8;background:#0f2d1a;border:1px solid #21492f}
@@ -32,17 +31,24 @@
   .banner.show{display:block;animation:pop .18s ease-out both}
   .banner.pre{background:#12243a;border-color:#5aa2ff;color:#dff0ff}
   .banner.pink{background:#3a1f33;border-color:#ff71c0;color:#ffe7f7}
+  .banner.down{background:#3a1f2b;border-color:#ff6b6b;color:#ffe1e1}
   @keyframes pop{0%{transform:translateX(-50%) scale(.92)}100%{transform:translateX(-50%) scale(1)}}
+
+  /* mini chart canvas */
+  #chartWrap{position:relative}
+  #chart{width:100%;height:260px;background:#0f121a;border:1px solid #22283a;border-radius:12px}
+  #legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+  #legend .dot{width:10px;height:10px;border-radius:50%}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div id="signalBanner" class="banner">🎯 Señal ≥1.70 → Entrar próxima ronda</div>
 
-  <h1>✈️ Aviator Analyzer • <span style="color:var(--brand)">Gocho v25.5</span>
-    <span class="muted">auto-sesión • objetivo ≥1.70 • perfil preciso</span>
-    <span id="statusFeedback" class="muted" style="margin-left:8px"></span>
-    <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
+  <h1>✈️ Aviator Analyzer • <span style="color:var(--brand)">Libre v26.0</span>
+    <span class="muted">EMA + Hazard + LR online • objetivo ≥1.70</span>
+    <span id="trendTxt" class="muted" style="margin-left:8px">Tendencia: —</span>
+    <span class="muted" style="margin-left:auto">🕒 <b id="clockNow">--:--:--</b></span>
   </h1>
 
   <div class="card">
@@ -85,9 +91,15 @@
       <div class="box">Sep: <b id="sepLbl">—</b><br><span class="muted">Heat:</span> <b id="heatLbl">—</b></div>
       <div class="box">p/Umbral: <b id="scoreLbl">—</b><br><span class="muted">Régimen:</span> <b id="regLbl">—</b></div>
     </div>
-    <div style="margin-top:8px">
-      <div class="muted" style="margin-bottom:6px">Últimas 60 rondas (más reciente primero)</div>
-      <div id="lastRounds"></div>
+    <div id="chartWrap" style="margin-top:10px">
+      <canvas id="chart" width="1100" height="260"></canvas>
+      <div id="legend" class="muted">
+        <div class="dot" style="background:#1e3352;border:1px solid #274a7a"></div> 1.00–1.99x
+        <div class="dot" style="background:#0f2d1a;border:1px solid #21492f"></div> 2.00–2.99x
+        <div class="dot" style="background:#271f3d;border:1px solid #3b2f5c"></div> 3.00–4.99x
+        <div class="dot" style="background:#3a1f33;border:1px solid #5a2b4e"></div> 5.00x+
+        <span class="muted">• Línea azul: EMA (tendencia) • Línea punteada: 1.70x</span>
+      </div>
     </div>
   </div>
 
@@ -105,18 +117,18 @@
   </div>
 
   <div class="card muted" style="font-size:12px">
-    Uso educativo/análisis. No garantiza resultados. “Ganada” = crash &gt; objetivo.
+    Uso educativo/analítico. No garantiza resultados. “Ganada” = crash &gt; objetivo. Aviator/crash es provably-fair; no existen predictores infalibles.
   </div>
 </div>
 
-<!-- Firebase -->
+<!-- Firebase (compat para RTDB) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script>
-/* ===== util ===== */
-window.addEventListener('error', e=>{const b=document.getElementById('reviewBox'); if(b){b.textContent='[JS] '+(e.message||'error')+'\n'+(b.textContent||'');}});
+/* ========= util ========= */
+window.addEventListener('error', e=>{const b=$('reviewBox'); if(b){b.textContent='[JS] '+(e.message||'error')+'\n'+(b.textContent||'');}});
 const $=id=>document.getElementById(id);
 const isChecked=id=>!!($(id)&&$(id).checked);
 const getVal=(id,def)=>($(id)&&typeof $(id).value!=='undefined')? $(id).value : def;
@@ -124,10 +136,11 @@ const setText=(id,txt)=>{const el=$(id); if(el) el.textContent=txt;};
 const now=()=>Date.now(), HHmmss=ts=>new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
 const clamp=(v,a,b)=>v<a?a:(v>b?b:v), avg=a=>a.length? a.reduce((s,v)=>s+v,0)/a.length : 0;
 function movingAverage(arr,n){const L=Math.min(arr.length,n); if(!L) return NaN; let s=0; for(let i=arr.length-L;i<arr.length;i++) s+=arr[i]; return s/L;}
+function ema(arr,alpha=0.18){let e=null; const out=[]; for(let i=0;i<arr.length;i++){ e=(e==null)?arr[i]: alpha*arr[i] + (1-alpha)*e; out.push(e);} return out;}
 function setBanner(show,txt,klass){const el=$("signalBanner"); if(!el) return; if(txt) el.textContent=txt; el.className="banner"+(klass?(" "+klass):"")+(show?" show":"");}
 function pushReview(t){const el=$("reviewBox"); const ts=HHmmss(now()); if(el){ el.textContent=`[${ts}] ${t}\n`+(el.textContent||""); }}
 
-/* ===== audio ===== */
+/* ========= audio ========= */
 let audioCtx=null;
 function beep(freq=880, ms=140, gain=0.05){
   if(!isChecked('beepToggle')) return;
@@ -141,7 +154,7 @@ function alarmFire(){ for(let k=0;k<3;k++){ setTimeout(()=>{ beep(560,180,0.07);
 function beepPre(){ beep(820,120,0.05); }
 function beepPink(){ beep(650,180,0.07); setTimeout(()=>beep(1350,160,0.07),170); }
 
-/* ===== parser ===== */
+/* ========= parser ========= */
 let rounds=[], roundsMeta=[], lastShown=[];
 function parseCrashValue(raw){
   if(raw===null||raw===undefined) return null;
@@ -163,8 +176,8 @@ function parseCrashValue(raw){
   return v;
 }
 
-/* ===== estado ===== */
-const PKEY="gocho_v255_dyn";
+/* ========= estado global ========= */
+const PKEY="libre_v260";
 let FEED_ID="gocho", connected=false, keepRunning=false, baseCount=0;
 
 let events17=[], intervals17=[], since17=null;
@@ -325,9 +338,60 @@ function reqNNow(){
   return clamp(n,0.45,0.65);
 }
 
-/* render */
+/* render: últimas 60 + EMA + 1.70 */
 function colorClassFor(v){ if(v>=10) return "c-pink"; if(v>=5) return "c-purple"; if(v>=3) return "c-purple"; if(v>=2) return "c-green"; return "c-blue"; }
-function renderLast60(){ const cont=$("lastRounds"); cont.innerHTML=""; lastShown.slice(0,60).forEach(v=>{ const sp=document.createElement("span"); sp.className="pill small "+colorClassFor(v); sp.textContent=v.toFixed(2)+"x"; cont.appendChild(sp); }); }
+function drawChart(){
+  const c=$('chart'); if(!c) return; const ctx=c.getContext('2d'); const W=c.width, H=c.height;
+  ctx.clearRect(0,0,W,H);
+  // grid leve
+  ctx.globalAlpha=0.3; ctx.strokeStyle='#20263a'; for(let y=0;y<=H;y+=52){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+  ctx.globalAlpha=1;
+
+  const L = Math.min(60, rounds.length); if(!L) return;
+  const wPad=14, hPad=10, plotW = W-2*wPad, plotH=H-2*hPad;
+
+  const data = rounds.slice(-L);
+  const maxV = Math.max(10, ...data.map(v=>Math.min(v,30)));
+  const yOf=v=> H-hPad - (Math.min(v,30)/maxV)*plotH;
+  const xOf=i=> wPad + (plotW*(L-1-i)/(L-1));
+
+  // línea 1.70 punteada
+  ctx.setLineDash([5,4]); ctx.strokeStyle='#7a8aa8'; ctx.globalAlpha=0.7;
+  ctx.beginPath(); ctx.moveTo(wPad, yOf(1.7)); ctx.lineTo(W-wPad, yOf(1.7)); ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha=1;
+
+  // puntos de rondas
+  for(let i=0;i<L;i++){
+    const v=data[L-1-i];
+    const x=xOf(i), y=yOf(v);
+    const cc=colorClassFor(v);
+    ctx.beginPath();
+    ctx.fillStyle = (cc==='c-blue')?'#1e3352':(cc==='c-green')?'#21492f':(cc==='c-purple')?'#3b2f5c':'#5a2b4e';
+    ctx.strokeStyle='#0b0e14';
+    ctx.arc(x,y,4,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  }
+
+  // EMA azul
+  const emaAll = ema(rounds, 0.18);
+  const emaData = emaAll.slice(-L);
+  ctx.beginPath(); ctx.lineWidth=2; ctx.strokeStyle= getComputedStyle(document.documentElement).getPropertyValue('--blue') || '#6aa8ff';
+  for(let i=0;i<L;i++){
+    const x=xOf(i), y=yOf(emaData[L-1-i]);
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+
+  // tendencia textual
+  const lastE=emaAll[emaAll.length-1], backE=emaAll[Math.max(0,emaAll.length-8)];
+  const slope= lastE - backE;
+  let trend='Neutra', klass=''; 
+  if(slope>0.05) { trend='Alcista'; klass=''; }
+  else if(slope<-0.05) { trend='Bajista'; klass='down'; }
+  setText('trendTxt', 'Tendencia: '+trend);
+  if(trend==='Bajista') setBanner(true,'⚠️ Tendencia bajista: prudencia', 'down'); else setBanner(false);
+}
+
+/* pintar KPIs y señales */
 function renderStats(scoreText){
   setText("rounds", rounds.length+" (base "+baseCount+")");
   const ma10=movingAverage(rounds,10); setText("ma10", isNaN(ma10)?"–":ma10.toFixed(2)+"x");
@@ -338,7 +402,7 @@ function renderStats(scoreText){
   setText("heatLbl", HEAT.score.toFixed(2));
   setText("regLbl", regime()+(HEAT.freeze>0?` (freeze ${HEAT.freeze})`:""));
   setText("scoreLbl", scoreText||"—");
-  renderLast60();
+  drawChart();
 }
 function renderBets(){ const tb=$("betsTbody"); tb.innerHTML=""; bets.forEach((b,i)=>{ const st=b.state==="win"?"win":b.state==="lose"?"lose":"pend"; const tr=document.createElement("tr"); tr.innerHTML=`<td>${i+1}</td><td>${b.sessionId||"—"}</td><td>${b.tag||"AUTO_1p7"}</td><td>${b.target}x</td><td>${b.emittedAt||"—"}</td><td>${b.crash?b.crash.toFixed(2)+"x":"—"}</td><td>${st}</td>`; tb.appendChild(tr); }); }
 
@@ -416,14 +480,13 @@ function onTickSession(){
   const sepNeed    = regime().includes("hot") ? Session.sepHot : Session.sepMin;
   const sepOK      = (rounds.length - Session.lastEmitIdx) >= sepNeed && (Session.fired < Session.quota);
 
-  // primero scout rosa opcional
-  if(maybePinkScout(f)) { /* disparó rosa */ }
+  // scout rosa opcional primero
+  if(maybePinkScout(f)) { /* fired pink */ }
 
   if(gates && sepOK){
     if(qualityOK && p>=thr){
       clearPrearm(); fire("MAIN",1.7,txt);
     }else if(qualityLo && p>=thr-0.05){
-      // pre-armado: si ya veníamos pre-armados, en el siguiente tick disparará con p≥thr−0.03
       if(PreArm.on && p>=thr-0.03){ clearPrearm(); fire("MAIN",1.7,txt+" (arm)"); }
       else { maybePrearm(txt); }
     }else{
@@ -437,8 +500,8 @@ function onTickSession(){
 }
 
 /* resultado + learning */
-function afterRound(v,base){
-  if(!base && pendings.length){
+function afterRound(v){
+  if(pendings.length){
     const bet=pendings.shift(); const win=(v>bet.target);
     bet.crash=v; bet.state=win?"win":"lose"; renderBets(); clearPrearm();
     const feat=buildX(); const y=win?1:0; const p=lrUpdate(feat.x,y);
@@ -450,9 +513,7 @@ function afterRound(v,base){
       Session.coolRounds=6;
       HEAT.freeze=Math.max(HEAT.freeze,1);
     }else{
-      LR.hotUps=0;
-      Session.sepMin=Session.baseSep;
-      Session.coolRounds=0;
+      LR.hotUps=0; Session.sepMin=Session.baseSep; Session.coolRounds=0;
     }
     pushReview(`Resultado ${win?"GANADA":"PERDIDA"} (${v.toFixed(2)}x). p_prev=${(p*100).toFixed(0)}%.`);
   }
@@ -477,11 +538,12 @@ function onNewCrash(v, ts, base=false){
   if(bd12>0.85 || br12>=11) HEAT.freeze=Math.max(HEAT.freeze,2);
   else if(HEAT.freeze>0) HEAT.freeze--;
   pushEvt17(v,ts);
-  if(!base){ afterRound(v,false); if(Session.active) onTickSession(); }
+  if(!base){ afterRound(v); if(Session.active) onTickSession(); }
   renderStats();
 }
 
-/* conexión */
+/* ====== Firebase ====== */
+/* ⚠️ Sustituye por TU proyecto si hace falta */
 const firebaseConfig = {
   apiKey:"AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
   authDomain:"aviator-analyzer-b29a7.firebaseapp.com",
@@ -503,14 +565,14 @@ function nodeToVT(node){ const raw=(node && typeof node==='object' && ('raw' in 
 async function connectFeed(){
   if(connected) return;
   try{
-    FEED_ID=getVal("feedId","gocho"); setText("statusFeedback","Autenticando…");
+    FEED_ID=getVal("feedId","gocho"); setText("scoreLbl","Autenticando…");
     try{ await auth.signInAnonymously(); }catch(e){ pushReview("Auth anónima falló (sigo): "+(e&&e.message?e.message:e)); }
-    setText("statusFeedback","Cargando historial…");
+    setText("scoreLbl","Cargando historial…");
     const ref=db.ref("feeds/"+FEED_ID+"/crashes");
     let snap=null, method="key";
     try{ const s=await ref.orderByChild("ts").limitToLast(800).once("value"); if(s && s.val()) { snap=s; method="ts"; } }catch(_){}
     if(!snap){ try{ const s2=await ref.orderByKey().limitToLast(800).once("value"); if(s2 && s2.val()) { snap=s2; method="key"; } }catch(_){} }
-    if(!snap||!snap.val()){ setText("statusFeedback","Sin datos en el feed."); pushReview("No hay datos en feeds/"+FEED_ID+"/crashes"); return; }
+    if(!snap||!snap.val()){ setText("scoreLbl","Sin datos en el feed."); pushReview("No hay datos en feeds/"+FEED_ID+"/crashes"); return; }
 
     // reset buffers
     rounds=[]; roundsMeta=[]; lastShown=[]; events17=[]; intervals17=[]; since17=null;
@@ -549,16 +611,16 @@ async function connectFeed(){
     if(watchdog) clearInterval(watchdog);
     watchdog=setInterval(()=>{ if(!connected) return; const dt=Date.now()-(lastActivity||0); if(dt>300000){ disconnectFeed(true); connectFeed(); } }, 30000);
 
-    connected=true; keepRunning=true; setText("statusFeedback","Conectado. Auto-sesión activa.");
+    connected=true; keepRunning=true; setText("scoreLbl","Conectado. Auto-sesión activa.");
     startSession();
-  }catch(err){ pushReview("Conectar error: "+(err && err.message ? err.message : err)); setText("statusFeedback","Error al conectar."); }
+  }catch(err){ pushReview("Conectar error: "+(err && err.message ? err.message : err)); setText("scoreLbl","Error al conectar."); }
 }
 function disconnectFeed(silent){
   if(!connected) return;
   if(liveRef && liveCb) liveRef.off("child_added", liveCb);
   liveRef=liveCb=null; lastKey=lastTs=lastActivity=null; connected=false; keepRunning=false;
   Session.active=false; setBanner(false); pendings.length=0; PreArm.on=false; Pink.fired=0;
-  if(!silent) setText("statusFeedback","Desconectado.");
+  if(!silent) setText("scoreLbl","Desconectado.");
 }
 
 /* UI */
@@ -567,7 +629,6 @@ $("disconnectBtn").addEventListener("click", ()=>disconnectFeed(false));
 $("aggr").addEventListener("change", ()=>{ const c=getAgg()||{sepMin:10,sepHot:4}; Session.baseSep=c.sepMin; Session.sepMin=c.sepMin; Session.sepHot=c.sepHot; setText("sepLbl", Session.sepMin); });
 $("profileSel").addEventListener("change", ()=>{ applyProfile(); });
 $("scoutPink").addEventListener("change", ()=>{ Pink.enabled=isChecked("scoutPink"); pushReview("Scout 10x "+(Pink.enabled?"ON":"OFF")); });
-
 setInterval(()=>{ setText("clockNow", new Date().toLocaleTimeString()); }, 1000);
 
 /* boot */
