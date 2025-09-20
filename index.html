@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v25.2 (dinámico ≥1.70 • ventanas calientes • pocket detector)</title>
+<title>Aviator Analyzer • Gocho v25.3 (dinámico ≥1.70 • ventanas calientes • pocket detector)</title>
 <style>
   :root{--bg:#0f1115;--panel:#171a20;--muted:#98a2b3;--text:#eaeef5;--ok:#2ecc71;--warn:#e67e22;--bad:#e74c3c;--brand:#8ab4ff}
   html,body{background:var(--bg);color:var(--text);font:14px/1.45 system-ui,Inter,Segoe UI,Roboto,Arial,sans-serif;margin:0}
@@ -37,7 +37,7 @@
 <div class="wrap">
   <div id="signalBanner" class="banner">🎯 Señal ≥1.70 → Entrar próxima ronda</div>
 
-  <h1>✈️ Aviator Analyzer • <span style="color:var(--brand)">Gocho v25.2</span>
+  <h1>✈️ Aviator Analyzer • <span style="color:var(--brand)">Gocho v25.3</span>
     <span class="muted">auto-sesión • objetivo ≥1.70 • ventanas calientes + pocket detector</span>
     <span id="statusFeedback" class="muted" style="margin-left:8px"></span>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
@@ -152,7 +152,7 @@ function parseCrashValue(raw){
 }
 
 /* ===== estado ===== */
-const PERSIST_KEY="gocho_v252_dyn";
+const PERSIST_KEY="gocho_v253_dyn";
 let FEED_ID="gocho", connected=false, keepRunning=false, baseCount=0;
 
 let events17=[], intervals17=[], since17=null;
@@ -168,7 +168,7 @@ function ngGet(n,pat){ const m=NGRAM[n]; let r=m.get(pat); if(!r){ r={tot:0,n17:
 function ngUpdate(v){ const o=v>=1.70?1:0; for(let n=1;n<=3;n++){ if(cats.length>=n){ const pat=cats.slice(cats.length-n).join(""); const r=ngGet(n,pat); r.tot++; r.n17+=o; } } NGRAM.global.tot++; NGRAM.global.n17+=o; }
 function ngProb(){ const ws=[0.2,0.3,0.5]; let num=0,den=0; for(let n=1;n<=3;n++){ if(cats.length>=n){ const pat=cats.slice(cats.length-n).join(""); const r=NGRAM[n].get(pat); if(r&&r.tot){ const p=(r.n17+1)/(r.tot+2); num+=ws[n-1]*p; den+=ws[n-1]; } } } if(!den){ const g=NGRAM.global; return g.tot? g.n17/g.tot : 0.5; } return num/den; }
 
-/* hazard ≥1.70 (q75 para menos conservador) */
+/* hazard ≥1.70 */
 function hazardCurve(listIntervals, horizonT){
   const gaps=listIntervals.map(x=>x.gap); const T=Math.max(horizonT,30);
   if(!gaps.length){ const hz=Array(T+1).fill(0); for(let t=1;t<=T;t++) hz[t]=1/T; return {hazards:hz, q75:0.03}; }
@@ -191,7 +191,7 @@ function lrUpdate(x,y){ const p=lrPredict(x); for(let i=0;i<LR.d;i++){ const g=(
 function saveLearner(){ try{ localStorage.setItem(PERSIST_KEY+"_w", JSON.stringify({w:LR.w,G:LR.G})); }catch(_){ } }
 function loadLearner(){ try{ const j=JSON.parse(localStorage.getItem(PERSIST_KEY+"_w")||"null"); if(j&&j.w&&j.G){ LR.w=j.w; LR.G=j.G; } }catch(_){ } }
 
-/* features, heat y gates */
+/* stats & contexto */
 function blueDensity(n=20){const w=rounds.slice(-n); if(!w.length) return 1; return w.filter(x=>x<2).length/w.length;}
 function maxBlueRun(n=18){const w=rounds.slice(-n); let m=0,c=0; for(const x of w){ if(x<2){c++; m=Math.max(m,c);} else c=0; } return m;}
 function hasPurple(n=12){return rounds.slice(-n).some(x=>x>=5 && x<10);}
@@ -206,14 +206,12 @@ function updateHeat(v){
 }
 function regime(){ return HEAT.score>=4.5?"very-hot": HEAT.score>=3?"hot": HEAT.score<1?"cold":"neutral"; }
 
+/* AGRESIVIDAD (única y válida) */
 function getAgg(){
   const m=getVal('aggr','EQ');
-  if(m==="CONS") return {sepMin:12, sepHot:5, floorLast:1.34, floorAvg3:1.46, bd10Max:0.70, bd20Max:0.74,
-                         thrAdj:+0.02};
-  if(m==="AGR")  return {sepMin:7,  sepHot:2, floorLast:1.28, floorAvg3:1.42, bd10Max:0.80, bd20Max:0.82,
-                         thrAdj:-0.04};
-  return {sepMin:10, sepHot:4, floorLast:1.32, floorAvg3:1.45, bd10Max:0.75, bd20Max:0.78,
-          thrAdj:0};
+  if(m==="CONS") return {sepMin:12, sepHot:5, floorLast:1.34, floorAvg3:1.46, bd10Max:0.70, bd20Max:0.74, thrAdj:+0.02};
+  if(m==="AGR")  return {sepMin:7,  sepHot:2, floorLast:1.28, floorAvg3:1.42, bd10Max:0.80, bd20Max:0.82, thrAdj:-0.04};
+  return {sepMin:10, sepHot:4, floorLast:1.32, floorAvg3:1.45, bd10Max:0.75, bd20Max:0.78, thrAdj:0};
 }
 function floorsOK(){
   const last=rounds[rounds.length-1]||1, a3=avg(rounds.slice(-3))||1;
@@ -229,7 +227,7 @@ function contextOK(){
   return true;
 }
 
-/* features x */
+/* features */
 function buildX(){
   const last = rounds[rounds.length-1]||1.0;
   const a3 = avg(rounds.slice(-3)); const ma10 = movingAverage(rounds,10)||1.5;
@@ -257,7 +255,7 @@ function buildX(){
   ], rel, p_ng:nprob};
 }
 
-/* pocket detector (reglas simples, captura ventanas) */
+/* pocket detector */
 function pocketScore(){
   const L6=rounds.slice(-6), L8=rounds.slice(-8);
   const c17=L6.filter(v=>v>=1.70).length;
@@ -273,22 +271,21 @@ function pocketOK(){
   return ps>=need;
 }
 
-/* perf y umbral adaptativo */
+/* perf/umbral */
+const LRcfg=LR;
 const Perf={last:[]};
 function thrAdaptive(){
-  let base=LR.thrBase + getAgg().thrAdj;
+  const ag=getAgg()||{thrAdj:0};
+  let base=LRcfg.thrBase + ag.thrAdj;
   const h=Perf.last.length? Perf.last.reduce((s,x)=>s+(x?1:0),0)/Perf.last.length : 0.6;
   if(h<0.45) base+=0.05; else if(h>0.7) base-=0.03;
   const reg=regime(); if(reg==="hot") base-=0.06; if(reg==="very-hot") base-=0.09; if(reg==="cold") base+=0.05;
-  base+= (LR.hotUps||0);
-
-  /* easing si faltan pocas rondas y vamos por debajo del tope */
+  base+= (LRcfg.hotUps||0);
   const remain = Math.max(0, Session.limit - Session.pos);
   const slack = Math.max(0, Session.quota - Session.fired);
   if(remain<=15 && slack>=1) base-=0.06;
   if(remain<=8  && slack>=1) base-=0.10;
-
-  return clamp(base, LR.thrMin, LR.thrMax);
+  return clamp(base, LRcfg.thrMin, LRcfg.thrMax);
 }
 
 /* render */
@@ -321,9 +318,8 @@ function fireNow(reasonTxt){
 }
 
 /* sesión */
-function getAgg(){ /* redef arriba; placeholder to satisfy hoisting */ }
 function startSession(){
-  const c=getAgg();
+  const c=getAgg()||{sepMin:10,sepHot:4};
   Session.id=HHmmss(now()); Session.active=true; Session.startIdx=rounds.length; Session.pos=0;
   Session.lastEmitIdx=-999; Session.quota=parseInt(getVal("quotaSel","6"),10);
   Session.sepMin=c.sepMin; Session.sepHot=c.sepHot; Session.fired=0;
@@ -350,12 +346,12 @@ function afterRound(v,base){
     const feat=buildX(); const y=win?1:0; const p=lrUpdate(feat.x,y);
     Perf.last.push(win); if(Perf.last.length>24) Perf.last.shift();
     if(!win){ const L=Perf.last.slice(-3).filter(x=>x===false).length; LR.hotUps=(L>=2)?0.05:0; Session.sepMin=Math.min(Session.sepMin+1,16); HEAT.freeze=Math.max(HEAT.freeze,1); }
-    else{ LR.hotUps=0; const c=getAgg(); Session.sepMin=c.sepMin; }
+    else{ LR.hotUps=0; const c=getAgg()||{sepMin:10}; Session.sepMin=c.sepMin; }
     pushReview(`Resultado ${win?"GANADA":"PERDIDA"} (${v.toFixed(2)}x). p_prev=${(p*100).toFixed(0)}%.`);
   }
 }
 
-/* eventos */
+/* eventos x ronda */
 function pushEvt17(v,ts){
   if(v>=1.70){
     const idx=rounds.length-1, ev={idx,v,ts}; events17.push(ev);
@@ -409,7 +405,7 @@ async function connectFeed(){
     if(!snap){ try{ const s2=await ref.orderByKey().limitToLast(800).once("value"); if(s2 && s2.val()) { snap=s2; method="key"; } }catch(_){} }
     if(!snap||!snap.val()){ setText("statusFeedback","Sin datos en el feed."); pushReview("No hay datos en feeds/"+FEED_ID+"/crashes"); return; }
 
-    // reset
+    // reset buffers
     rounds=[]; roundsMeta=[]; lastShown=[]; events17=[]; intervals17=[]; since17=null;
     Rosa.lastIdx=null; Rosa.lastV=null; Rosa.since=null; HEAT.score=0; HEAT.freeze=0;
     cats.length=0; NGRAM[1].clear(); NGRAM[2].clear(); NGRAM[3].clear(); NGRAM.global={tot:0,n17:0};
@@ -422,7 +418,8 @@ async function connectFeed(){
     });
 
     loadLearner();
-    const c=getAgg(); Session.sepMin=c.sepMin; Session.sepHot=c.sepHot;
+    const c=getAgg()||{sepMin:10,sepHot:4};
+    Session.sepMin=c.sepMin; Session.sepHot=c.sepHot;
     setText("sepLbl", Session.sepMin);
     setText("aggrExplain","Auto-sesión: al Conectar inicia y encadena sesiones (60). Objetivo ≥1.70. Señales por ventana; tope "+getVal("quotaSel","6")+"/60.");
     renderStats(); renderBets();
@@ -460,7 +457,7 @@ function disconnectFeed(silent){
 /* UI */
 $("connectBtn").addEventListener("click", connectFeed);
 $("disconnectBtn").addEventListener("click", ()=>disconnectFeed(false));
-$("aggr").addEventListener("change", ()=>{ const c=getAgg(); Session.sepMin=c.sepMin; Session.sepHot=c.sepHot; setText("sepLbl", Session.sepMin); });
+$("aggr").addEventListener("change", ()=>{ const c=getAgg()||{sepMin:10,sepHot:4}; Session.sepMin=c.sepMin; Session.sepHot=c.sepHot; setText("sepLbl", Session.sepMin); });
 $("quotaSel").addEventListener("change", ()=>{ Session.quota=parseInt(getVal("quotaSel","6"),10); });
 setInterval(()=>{ setText("clockNow", new Date().toLocaleTimeString()); }, 1000);
 
