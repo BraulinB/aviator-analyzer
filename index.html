@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v25.6 (Preciso ≥1.70 • 3/60 • pre-armado)</title>
+<title>Aviator Analyzer • Gocho v25.7 (≥1.70 • 3/60 • Streak Hunter)</title>
 <style>
   :root{--bg:#0f1115;--panel:#171a20;--muted:#98a2b3;--text:#eaeef5;--ok:#2ecc71;--warn:#e67e22;--bad:#e74c3c;--brand:#8ab4ff}
   html,body{background:var(--bg);color:var(--text);font:14px/1.45 system-ui,Inter,Segoe UI,Roboto,Arial,sans-serif;margin:0}
@@ -38,8 +38,8 @@
 <div class="wrap">
   <div id="signalBanner" class="banner">🎯 Señal ≥1.70 → Entrar próxima ronda</div>
 
-  <h1>✈️ Aviator Analyzer • <span style="color:var(--brand)">Gocho v25.6</span>
-    <span class="muted">auto-sesión • objetivo ≥1.70 • 3/60 • pre-armado</span>
+  <h1>✈️ Aviator Analyzer • <span style="color:var(--brand)">Gocho v25.7</span>
+    <span class="muted"> auto-sesión • objetivo ≥1.70 • 3/60 • Streak Hunter</span>
     <span id="statusFeedback" class="muted" style="margin-left:8px"></span>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
   </h1>
@@ -122,17 +122,12 @@ const setText=(id,txt)=>{const el=$(id); if(el) el.textContent=txt;};
 const now=()=>Date.now(), HHmmss=ts=>new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
 const clamp=(v,a,b)=>v<a?a:(v>b?b:v), avg=a=>a.length? a.reduce((s,v)=>s+v,0)/a.length : 0;
 function movingAverage(arr,n){const L=Math.min(arr.length,n); if(!L) return NaN; let s=0; for(let i=arr.length-L;i<arr.length;i++) s+=arr[i]; return s/L;}
-
-/* banner seguro (auto-oculta) */
-let bannerTimer=null;
 function setBanner(show,txt,klass,durationMs=0){
   const el=$("signalBanner"); if(!el) return;
-  if(bannerTimer){ clearTimeout(bannerTimer); bannerTimer=null; }
+  if(window._bnr){ clearTimeout(window._bnr); window._bnr=null; }
   if(txt) el.textContent=txt;
   el.className="banner"+(klass?(" "+klass):"")+(show?" show":"");
-  if(show && durationMs>0){
-    bannerTimer=setTimeout(()=>{ el.className="banner"; bannerTimer=null; }, durationMs);
-  }
+  if(show && durationMs>0){ window._bnr=setTimeout(()=>{ el.className="banner"; window._bnr=null; }, durationMs); }
 }
 function pushReview(t){const el=$("reviewBox"); const ts=HHmmss(now()); if(el){ el.textContent=`[${ts}] ${t}\n`+(el.textContent||""); }}
 
@@ -172,11 +167,11 @@ function parseCrashValue(raw){
 }
 
 /* ===== estado ===== */
-const PKEY="gocho_v256_dyn";
+const PKEY="gocho_v257_dyn";
 let FEED_ID="gocho", connected=false, keepRunning=false, baseCount=0;
 
 let events17=[], intervals17=[], since17=null;
-const Session={ id:null, active:false, startIdx:0, pos:0, limit:60, lastEmitIdx:-999, baseSep:10, sepMin:10, sepHot:4, quota:3, fired:0, coolRounds:0 };
+const Session={ id:null, active:false, startIdx:0, pos:0, limit:60, lastEmitIdx:-999, baseSep:10, sepMin:10, sepHot:3, sepVeryHot:2, quota:3, fired:0, coolRounds:0 };
 let bets=[], pendings=[];
 
 /* perfiles */
@@ -212,7 +207,7 @@ function hazardCurve(listIntervals, horizonT){
 
 /* logistic online */
 const LR={ d:15, w:new Array(15).fill(0), G:new Array(15).fill(1e-6), eta:0.35, l2:1e-4,
-           thrBase:0.62, thrMin:0.50, thrMax:0.84, hotUps:0 };
+           thrBase:0.62, thrMin:0.48, thrMax:0.86, hotUps:0 };
 const sigmoid=z=>1/(1+Math.exp(-clamp(z,-15,15)));
 function lrPredict(x){ let s=0; for(let i=0;i<LR.d;i++) s+=LR.w[i]*x[i]; return sigmoid(s); }
 function lrUpdate(x,y){ const p=lrPredict(x); for(let i=0;i<LR.d;i++){ const g=(p-y)*x[i] + LR.l2*LR.w[i]; LR.G[i]+=g*g; LR.w[i]-= LR.eta/Math.sqrt(LR.G[i]) * g; } saveLearner(); return p;}
@@ -239,7 +234,7 @@ function getAgg(){
   const m=getVal('aggr','EQ');
   if(m==="CONS") return {sepMin:12, sepHot:5, floorLast:1.34, floorAvg3:1.46, bd10Max:0.70, bd20Max:0.74, thrAdj:+0.02};
   if(m==="AGR")  return {sepMin:7,  sepHot:2, floorLast:1.28, floorAvg3:1.42, bd10Max:0.80, bd20Max:0.82, thrAdj:-0.04};
-  return {sepMin:10, sepHot:4, floorLast:1.32, floorAvg3:1.45, bd10Max:0.75, bd20Max:0.78, thrAdj:0};
+  return {sepMin:10, sepHot:3, floorLast:1.32, floorAvg3:1.45, bd10Max:0.75, bd20Max:0.78, thrAdj:0};
 }
 function floorsOK(){
   const last=rounds[rounds.length-1]||1, a3=avg(rounds.slice(-3))||1;
@@ -282,30 +277,36 @@ function buildX(){
   ], rel, p_ng:nprob};
 }
 
-/* bolsillo (ventana caliente) */
+/* “Streak Hunter” */
+function streakOK(){
+  const L8=rounds.slice(-8), L6=rounds.slice(-6);
+  const c2=L8.filter(v=>v>=2).length;
+  const r2=runGE2();
+  const ma10=movingAverage(rounds,10)||1.5;
+  const bd10=blueDensity(10);
+  const np=ngProb();
+  const reg=regime();
+  const score = c2*0.7 + r2*0.9 + Math.max(0,(ma10-1.4))*2 + Math.max(0,(0.9-bd10))*1.2 + (np-0.5)*1.4 + (reg==="very-hot"?0.8:(reg==="hot"?0.4:0));
+  return score>=2.6;
+}
 function pocketScore(){
   const L6=rounds.slice(-6), L8=rounds.slice(-8);
   const c17=L6.filter(v=>v>=1.70).length;
   const c2 =L8.filter(v=>v>=2).length;
   const r2 =runGE2();
   const I=hazardCurve(intervals17,(since17||0)+30); const rel=(I.q75>0)? (I.hazards[(since17||0)+1]||0)/I.q75 : 0;
-  const ps = c17*0.7 + c2*0.6 + r2*0.8 + rel*1.0 + (1-blueDensity(10))*0.5 + HEAT.score*0.6;
+  const ps = c17*0.7 + c2*0.6 + r2*0.8 + rel*0.9 + (1-blueDensity(10))*0.4 + HEAT.score*0.6;
   return ps;
-}
-function pocketOK(){
-  const reg=regime(); const ps=pocketScore();
-  const need = reg==="very-hot"? 2.2 : reg==="hot"? 2.8 : 3.3;
-  return ps>=need;
 }
 
 /* umbral + requisitos dinámicos */
 const Perf={last:[]};
 function thrAdaptive(){
   const ag=getAgg()||{thrAdj:0};
-  let base=LR.thrBase + ag.thrAdj + 0.03; // thrBump Preciso
+  let base=LR.thrBase + ag.thrAdj + 0.03;
   const h=Perf.last.length? Perf.last.reduce((s,x)=>s+(x?1:0),0)/Perf.last.length : 0.6;
   if(h<0.45) base+=0.05; else if(h>0.7) base-=0.03;
-  const reg=regime(); if(reg==="hot") base-=0.06; if(reg==="very-hot") base-=0.09; if(reg==="cold") base+=0.05;
+  const reg=regime(); if(reg==="hot") base-=0.08; if(reg==="very-hot") base-=0.12; if(reg==="cold") base+=0.05;
   base+= (LR.hotUps||0);
   const remain = Math.max(0, Session.limit - Session.pos);
   const slack = Math.max(0, Session.quota - Session.fired);
@@ -314,19 +315,19 @@ function thrAdaptive(){
   return clamp(base, LR.thrMin, LR.thrMax);
 }
 function reqRelNow(){
-  let r=1.00;
-  const reg=regime();
-  if(reg==="hot") r-=0.03; if(reg==="very-hot") r-=0.05;
+  let r=Profile.reqRel;
+  const reg=regime(); if(reg!=="cold") r-=0.03; if(reg==="very-hot") r-=0.05;
   if(Session.pos>20 && Session.fired===0) r-=0.02;
   if(Session.pos>45 && Session.fired<1) r-=0.03;
-  if(Session.pos>55) r-=0.04;
-  return Math.max(0.92, r);
+  if(streakOK()) r-=0.05;
+  return Math.max(0.90, r);
 }
 function reqNNow(){
-  let n=0.54;
+  let n=Profile.reqN;
   if(regime()!=="cold") n-=0.02;
   if(Session.pos>20 && Session.fired===0) n-=0.01;
   if(Session.pos>45) n-=0.02;
+  if(streakOK()) n-=0.03;
   return clamp(n,0.45,0.65);
 }
 
@@ -339,9 +340,10 @@ function renderStats(scoreText){
   setText("since17Lbl", since17==null?"–":since17);
   setText("sessProg", Session.active? (Session.pos+"/"+Session.limit) : "0/60");
   setText("firedLbl", String(Session.fired));
-  setText("sepLbl", (regime().includes("hot")? Session.sepHot:Session.sepMin));
+  const reg=regime(); const sepNeed = reg==="very-hot"? Session.sepVeryHot : reg==="hot"? Session.sepHot : Session.sepMin;
+  setText("sepLbl", sepNeed);
   setText("heatLbl", HEAT.score.toFixed(2));
-  setText("regLbl", regime()+(HEAT.freeze>0?` (freeze ${HEAT.freeze})`:""));
+  setText("regLbl", reg+(HEAT.freeze>0?` (freeze ${HEAT.freeze})`:""));
   setText("scoreLbl", scoreText||"—");
   renderLast60();
 }
@@ -349,35 +351,34 @@ function renderBets(){ const tb=$("betsTbody"); tb.innerHTML=""; bets.forEach((b
 
 /* pre-armado + disparo (solo ≥1.70) */
 const PreArm={on:false, ts:0};
+function clearPrearm(){ if(PreArm.on){ PreArm.on=false; setBanner(false); } }
 function maybePrearm(txt){
   if(PreArm.on) return;
-  setBanner(true,"🟦 Pre-armado: posible entrada ≥1.70 en T+1","pre",2500); // auto-hide 2.5s
+  setBanner(true,"🟦 Pre-armado: posible entrada ≥1.70 en T+1","pre",2800);
   beepPre(); PreArm.on=true; PreArm.ts=now();
   pushReview("Pre-armado "+txt);
 }
-function clearPrearm(){ if(PreArm.on){ PreArm.on=false; setBanner(false); } }
-
 function fireNow(reasonTxt){
   if(!isChecked("autoSignal")) return;
-  const sepNeed = regime().includes("hot") ? Session.sepHot : Session.sepMin;
+  const reg=regime(); const sepNeed = reg==="very-hot"? Session.sepVeryHot : reg==="hot"? Session.sepHot : Session.sepMin;
   if(rounds.length - Session.lastEmitIdx < sepNeed) return;
   if(Session.fired >= Session.quota) return;
-
   const ts=now(); const entry={id:"S"+ts,sessionId:Session.id,target:1.7,ts,emittedAt:HHmmss(ts),state:"pend",tag:"AUTO_1p7"};
   pendings.push(entry); bets.push(entry); if(bets.length>2500) bets.splice(0,bets.length-2500);
   Session.lastEmitIdx=rounds.length; Session.fired++; alarmFire();
-  setBanner(true,"🚨 ENTRAR AHORA → Próxima ronda (≥1.70)", "", 6000); // auto-hide 6s para no “quedar arriba”
+  setBanner(true,"🚨 ENTRAR AHORA → Próxima ronda (≥1.70)", "", 6000);
   pushReview(`Señal emitida. ${reasonTxt}`); renderBets();
 }
 
 /* sesión */
 function startSession(){
   applyProfile();
-  const c=getAgg()||{sepMin:10,sepHot:4};
+  const c=getAgg()||{sepMin:10,sepHot:3};
   Session.id=HHmmss(now()); Session.active=true; Session.startIdx=rounds.length; Session.pos=0;
   Session.lastEmitIdx=-999; Session.baseSep=c.sepMin; Session.sepMin=c.sepMin; Session.sepHot=c.sepHot; Session.fired=0; Session.coolRounds=0;
   if(isChecked("clearOnStart")){ bets=[]; renderBets(); }
-  pushReview(`Empieza sesión ${Session.id} • perfil ${Profile.name} • objetivo ≥1.70 • tope ${Session.quota}/60.`); renderStats();
+  pushReview(`Empieza sesión ${Session.id} • perfil ${Profile.name} • objetivo ≥1.70 • tope ${Session.quota}/60.`);
+  renderStats();
 }
 
 function onTickSession(){
@@ -387,21 +388,22 @@ function onTickSession(){
 
   const f=buildX(); const p=lrPredict(f.x), thr=thrAdaptive();
   const gates = floorsOK() && contextOK();
-  const txt=`p:${(p*100).toFixed(0)}% thr:${thr.toFixed(2)} heat:${HEAT.score.toFixed(2)} rel:${f.rel.toFixed(2)} n:${(f.p_ng*100).toFixed(0)}%`;
-  renderStats(txt);
+  const reg=regime(); const streak = streakOK();
+  const txt=`p:${(p*100).toFixed(0)}% thr:${thr.toFixed(2)} heat:${HEAT.score.toFixed(2)} rel:${f.rel.toFixed(2)} n:${(f.p_ng*100).toFixed(0)}% streak:${streak}`;
 
   const relNeed=reqRelNow(), nNeed=reqNNow();
-  const qualityOK  = pocketOK() || (f.rel>=relNeed && f.p_ng>=nNeed);
-  const qualityLo  = pocketOK() || (f.rel>=relNeed-0.02 && f.p_ng>=nNeed-0.02);
-  const sepNeed    = regime().includes("hot") ? Session.sepHot : Session.sepMin;
+  const qualityOK  = streak ? true : (f.rel>=relNeed && f.p_ng>=nNeed);
+  const qualityLo  = streak ? (p>=thr-0.10) : (f.rel>=relNeed-0.02 && f.p_ng>=nNeed-0.02);
+  const sepNeed    = reg==="very-hot"? Session.sepVeryHot : reg==="hot"? Session.sepHot : Session.sepMin;
   const sepOK      = (rounds.length - Session.lastEmitIdx) >= sepNeed && (Session.fired < Session.quota);
 
+  renderStats(txt);
+
   if(gates && sepOK){
-    if(qualityOK && p>=thr){
-      clearPrearm(); fireNow(txt);
-    }else if(qualityLo && p>=thr-0.05){
-      if(PreArm.on && p>=thr-0.03){ clearPrearm(); fireNow(txt+" (arm)"); }
-      else { maybePrearm(txt); }
+    if( (qualityOK && p>=thr) || (streak && p>=thr-0.08) ){
+      clearPrearm(); fireNow(txt+(streak?" [streak]":""));
+    }else if( (qualityLo && p>=thr-0.05) || (streak && p>=thr-0.10) ){
+      maybePrearm(txt+(streak?" [pre-streak]":""));
     }else{
       clearPrearm();
     }
@@ -414,8 +416,7 @@ function onTickSession(){
 
 /* resultado + aprendizaje */
 function afterRound(v,base){
-  // Siempre ocultamos cualquier banner residual al cerrar ronda
-  setBanner(false);
+  setBanner(false); // por si un banner quedó en pantalla
 
   if(!base && pendings.length){
     const bet=pendings.shift(); const win=(v>bet.target);
@@ -502,7 +503,7 @@ async function connectFeed(){
     });
 
     loadLearner(); applyProfile();
-    const c=getAgg()||{sepMin:10,sepHot:4};
+    const c=getAgg()||{sepMin:10,sepHot:3};
     Session.baseSep=c.sepMin; Session.sepMin=c.sepMin; Session.sepHot=c.sepHot;
     setText("sepLbl", Session.sepMin);
     setText("aggrExplain","Conectar: inicia y encadena sesiones (60). Objetivo ≥1.70. Perfil "+Profile.name+" ("+Profile.quota+"/60).");
@@ -534,15 +535,15 @@ function disconnectFeed(silent){
   if(!connected) return;
   if(liveRef && liveCb) liveRef.off("child_added", liveCb);
   liveRef=liveCb=null; lastKey=lastTs=lastActivity=null; connected=false; keepRunning=false;
-  Session.active=false; setBanner(false); if(bannerTimer){ clearTimeout(bannerTimer); bannerTimer=null; }
-  pendings.length=0; 
+  Session.active=false; setBanner(false); if(window._bnr){ clearTimeout(window._bnr); window._bnr=null; }
+  pendings.length=0;
   if(!silent) setText("statusFeedback","Desconectado.");
 }
 
 /* UI */
 $("connectBtn").addEventListener("click", connectFeed);
 $("disconnectBtn").addEventListener("click", ()=>disconnectFeed(false));
-$("aggr").addEventListener("change", ()=>{ const c=getAgg()||{sepMin:10,sepHot:4}; Session.baseSep=c.sepMin; Session.sepMin=c.sepMin; Session.sepHot=c.sepHot; setText("sepLbl", Session.sepMin); });
+$("aggr").addEventListener("change", ()=>{ const c=getAgg()||{sepMin:10,sepHot:3}; Session.baseSep=c.sepMin; Session.sepMin=c.sepMin; Session.sepHot=c.sepHot; setText("sepLbl", Session.sepMin); });
 $("profileSel").addEventListener("change", ()=>{ applyProfile(); });
 
 setInterval(()=>{ setText("clockNow", new Date().toLocaleTimeString()); }, 1000);
