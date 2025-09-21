@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v25.8 (≥1.70 • 3/60 • Streak Hunter + Smart Pacing)</title>
+<title>Aviator Analyzer • Gocho v26.0 (≥1.70 • 3/60 • Smart Pacing v3)</title>
 <style>
   :root{--bg:#0f1115;--panel:#171a20;--muted:#98a2b3;--text:#eaeef5;--ok:#2ecc71;--warn:#e67e22;--bad:#e74c3c;--brand:#8ab4ff}
   html,body{background:var(--bg);color:var(--text);font:14px/1.45 system-ui,Inter,Segoe UI,Roboto,Arial,sans-serif;margin:0}
@@ -38,8 +38,8 @@
 <div class="wrap">
   <div id="signalBanner" class="banner">🎯 Señal ≥1.70 → Entrar próxima ronda</div>
 
-  <h1>✈️ Aviator Analyzer • <span style="color:var(--brand)">Gocho v25.8</span>
-    <span class="muted"> auto-sesión • objetivo ≥1.70 • 3/60 • Streak Hunter + Smart Pacing</span>
+  <h1>✈️ Aviator Analyzer • <span style="color:var(--brand)">Gocho v26.0</span>
+    <span class="muted"> auto-sesión • objetivo ≥1.70 • 3/60 • Smart Pacing v3</span>
     <span id="statusFeedback" class="muted" style="margin-left:8px"></span>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
   </h1>
@@ -113,7 +113,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script>
-/* ===== util ===== */
+/* ===== utils ===== */
 window.addEventListener('error', e=>{const b=document.getElementById('reviewBox'); if(b){b.textContent='[JS] '+(e.message||'error')+'\n'+(b.textContent||'');}});
 const $=id=>document.getElementById(id);
 const isChecked=id=>!!($(id)&&$(id).checked);
@@ -122,25 +122,12 @@ const setText=(id,txt)=>{const el=$(id); if(el) el.textContent=txt;};
 const now=()=>Date.now(), HHmmss=ts=>new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
 const clamp=(v,a,b)=>v<a?a:(v>b?b:v), avg=a=>a.length? a.reduce((s,v)=>s+v,0)/a.length : 0;
 function movingAverage(arr,n){const L=Math.min(arr.length,n); if(!L) return NaN; let s=0; for(let i=arr.length-L;i<arr.length;i++) s+=arr[i]; return s/L;}
-function setBanner(show,txt,klass,durationMs=0){
-  const el=$("signalBanner"); if(!el) return;
-  if(window._bnr){ clearTimeout(window._bnr); window._bnr=null; }
-  if(txt) el.textContent=txt;
-  el.className="banner"+(klass?(" "+klass):"")+(show?" show":"");
-  if(show && durationMs>0){ window._bnr=setTimeout(()=>{ el.className="banner"; window._bnr=null; }, durationMs); }
-}
+function setBanner(show,txt,klass,d=0){ const el=$("signalBanner"); if(!el) return; if(window._bnr){clearTimeout(window._bnr);window._bnr=null;}
+  if(txt) el.textContent=txt; el.className="banner"+(klass?(" "+klass):"")+(show?" show":""); if(show&&d>0){window._bnr=setTimeout(()=>{el.className="banner";window._bnr=null;},d);} }
 function pushReview(t){const el=$("reviewBox"); const ts=HHmmss(now()); if(el){ el.textContent=`[${ts}] ${t}\n`+(el.textContent||""); }}
 
 /* ===== audio ===== */
-let audioCtx=null;
-function beep(freq=880, ms=140, gain=0.05){
-  if(!isChecked('beepToggle')) return;
-  try{ if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-    o.type="square"; o.frequency.value=freq; g.gain.value=gain; o.connect(g); g.connect(audioCtx.destination);
-    o.start(); setTimeout(()=>o.stop(), ms);
-  }catch(_){}
-}
+let audioCtx=null; function beep(f=880,ms=140,g=0.05){ if(!isChecked('beepToggle')) return; try{ if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)(); const o=audioCtx.createOscillator(),g1=audioCtx.createGain(); o.type="square"; o.frequency.value=f; g1.gain.value=g; o.connect(g1); g1.connect(audioCtx.destination); o.start(); setTimeout(()=>o.stop(),ms);}catch(_){ }}
 function alarmFire(){ for(let k=0;k<3;k++){ setTimeout(()=>{ beep(560,180,0.07); setTimeout(()=>beep(1100,140,0.07),160); }, k*260); } }
 function beepPre(){ beep(820,120,0.05); }
 
@@ -167,12 +154,12 @@ function parseCrashValue(raw){
 }
 
 /* ===== estado ===== */
-const PKEY="gocho_v258_dyn";
+const PKEY="gocho_v260_dyn";
 let FEED_ID="gocho", connected=false, keepRunning=false, baseCount=0;
 
 let events17=[], intervals17=[], since17=null;
 const Session={ id:null, active:false, startIdx:0, pos:0, limit:60, lastEmitIdx:-999, baseSep:10, sepMin:10, sepHot:3, sepVeryHot:2, quota:3, fired:0, coolRounds:0,
-                winPlan:[], carry:0, winIdx:0, peak:{score:-1,posEnd:0} };
+                winPlan:[], carry:0, winIdx:0, stagnation:0, peak:{score:-1,posEnd:0} };
 let bets=[], pendings=[];
 
 /* perfiles */
@@ -186,7 +173,7 @@ function applyProfile(){
 }
 
 /* n-gramas */
-const cats=[]; function catOf(v){ return (v<2)?"B": (v<3)?"G": (v<5)?"M":"P"; }
+const cats=[]; const catOf=v=> (v<2)?"B": (v<3)?"G": (v<5)?"M":"P";
 const NGRAM={1:new Map(),2:new Map(),3:new Map(), global:{tot:0,n17:0}};
 function ngGet(n,pat){ const m=NGRAM[n]; let r=m.get(pat); if(!r){ r={tot:0,n17:0}; m.set(pat,r);} return r; }
 function ngUpdate(v){ const o=v>=1.70?1:0; for(let n=1;n<=3;n++){ if(cats.length>=n){ const pat=cats.slice(cats.length-n).join(""); const r=ngGet(n,pat); r.tot++; r.n17+=o; } } NGRAM.global.tot++; NGRAM.global.n17+=o; }
@@ -207,15 +194,15 @@ function hazardCurve(listIntervals, horizonT){
 }
 
 /* logistic online */
-const LR={ d:15, w:new Array(15).fill(0), G:new Array(15).fill(1e-6), eta:0.35, l2:1e-4,
-           thrBase:0.62, thrMin:0.48, thrMax:0.86, hotUps:0 };
+const LR={ d:16, w:new Array(16).fill(0), G:new Array(16).fill(1e-6), eta:0.35, l2:1e-4,
+           thrBase:0.62, thrMin:0.48, thrMax:0.86, hotUps:0, drift:0 };
 const sigmoid=z=>1/(1+Math.exp(-clamp(z,-15,15)));
 function lrPredict(x){ let s=0; for(let i=0;i<LR.d;i++) s+=LR.w[i]*x[i]; return sigmoid(s); }
 function lrUpdate(x,y){ const p=lrPredict(x); for(let i=0;i<LR.d;i++){ const g=(p-y)*x[i] + LR.l2*LR.w[i]; LR.G[i]+=g*g; LR.w[i]-= LR.eta/Math.sqrt(LR.G[i]) * g; } saveLearner(); return p;}
 function saveLearner(){ try{ localStorage.setItem(PKEY+"_w", JSON.stringify({w:LR.w,G:LR.G})); }catch(_){ } }
 function loadLearner(){ try{ const j=JSON.parse(localStorage.getItem(PKEY+"_w")||"null"); if(j&&j.w&&j.G){ LR.w=j.w; LR.G=j.G; } }catch(_){ } }
 
-/* stats & contexto */
+/* contexto */
 function blueDensity(n=20){const w=rounds.slice(-n); if(!w.length) return 1; return w.filter(x=>x<2).length/w.length;}
 function maxBlueRun(n=18){const w=rounds.slice(-n); let m=0,c=0; for(const x of w){ if(x<2){c++; m=Math.max(m,c);} else c=0; } return m;}
 function hasPurple(n=12){return rounds.slice(-n).some(x=>x>=5 && x<10);}
@@ -240,7 +227,7 @@ function getAgg(){
 function floorsOK(){
   const last=rounds[rounds.length-1]||1, a3=avg(rounds.slice(-3))||1;
   const c=getAgg(); if(last<c.floorLast) return false; if(a3<c.floorAvg3 && last<c.floorAvg3) return false;
-  if(maxBlueRun(16)>=11 && last<1.80) return false;
+  if(maxBlueRun(16)>=12 && last<1.80) return false;
   return true;
 }
 function contextOK(){
@@ -250,87 +237,50 @@ function contextOK(){
   return true;
 }
 
-/* features */
+/* features (añado posWindow) */
+function currentWindowIndex(pos){ for(let i=0;i<Session.winPlan.length;i++){ const w=Session.winPlan[i]; if(pos>=w.start && pos<=w.end) return i; } return (pos<6)? -1 : 2; }
 function buildX(){
-  const last = rounds[rounds.length-1]||1.0;
-  const a3 = avg(rounds.slice(-3)); const ma10 = movingAverage(rounds,10)||1.5;
-  const bd10=blueDensity(10), bd20=blueDensity(20);
-  const br = maxBlueRun(16), sl=slopeMA10();
-  const nprob = ngProb();
-  const I=hazardCurve(intervals17, (since17||0)+30);
-  const rel = (I.q75>0)? (I.hazards[(since17||0)+1]||0)/I.q75 : 0.0;
-  const r2 = runGE2();
+  const last=rounds[rounds.length-1]||1.0, a3=avg(rounds.slice(-3)); const ma10=movingAverage(rounds,10)||1.5;
+  const bd10=blueDensity(10), bd20=blueDensity(20); const br=maxBlueRun(16), sl=slopeMA10(), nprob=ngProb();
+  const I=hazardCurve(intervals17,(since17||0)+30); const rel=(I.q75>0)? (I.hazards[(since17||0)+1]||0)/I.q75 : 0.0;
+  const r2=runGE2(); const idx=currentWindowIndex(Session.pos); const w=idx>=0?Session.winPlan[idx]:{start:0,end:1}; const posW= idx>=0? clamp( (Session.pos-w.start)/(w.end-w.start+1), 0,1 ):0;
   return {x:[
-    1.0,
-    Math.sqrt(clamp((since17||0),0,60))/8,
-    1-bd10, 1-bd20,
-    clamp(br/16,0,1),
-    clamp(sl*40 + 0.5, 0,1),
-    hasPurple(10)?1:0,
-    clamp((last-1)/3,0,1),
-    clamp((a3-1)/3,0,1),
-    clamp(rel,0,1.6),
-    clamp(nprob,0,1),
-    clamp(r2/6,0,1),
-    clamp(HEAT.score/6,0,1),
-    regime()==="very-hot"?1:(regime()==="hot"?0.6:0),
-    clamp((ma10-1)/3,0,1)
+    1.0, Math.sqrt(clamp((since17||0),0,60))/8, 1-bd10, 1-bd20, clamp(br/16,0,1),
+    clamp(sl*40 + 0.5, 0,1), hasPurple(10)?1:0, clamp((last-1)/3,0,1), clamp((a3-1)/3,0,1),
+    clamp(rel,0,1.6), clamp(nprob,0,1), clamp(r2/6,0,1), clamp(HEAT.score/6,0,1),
+    regime()==="very-hot"?1:(regime()==="hot"?0.6:0), clamp((ma10-1)/3,0,1), posW
   ], rel, p_ng:nprob};
 }
 
-/* “Streak Hunter” */
+/* streak / pocket */
 function streakOK(){
-  const L8=rounds.slice(-8);
-  const c2=L8.filter(v=>v>=2).length;
-  const r2=runGE2();
-  const ma10=movingAverage(rounds,10)||1.5;
-  const bd10=blueDensity(10);
-  const np=ngProb();
-  const reg=regime();
+  const L8=rounds.slice(-8); const c2=L8.filter(v=>v>=2).length; const r2=runGE2();
+  const ma10=movingAverage(rounds,10)||1.5; const bd10=blueDensity(10); const np=ngProb(); const reg=regime();
   const score = c2*0.7 + r2*0.9 + Math.max(0,(ma10-1.4))*2 + Math.max(0,(0.9-bd10))*1.2 + (np-0.5)*1.4 + (reg==="very-hot"?0.8:(reg==="hot"?0.4:0));
   return score>=2.6;
 }
 function pocketScore(){
   const L6=rounds.slice(-6), L8=rounds.slice(-8);
-  const c17=L6.filter(v=>v>=1.70).length;
-  const c2 =L8.filter(v=>v>=2).length;
-  const r2 =runGE2();
-  const I=hazardCurve(intervals17,(since17||0)+30); const rel=(I.q75>0)? (I.hazards[(since17||0)+1]||0)/I.q75 : 0;
-  const ps = c17*0.7 + c2*0.6 + r2*0.8 + rel*0.9 + (1-blueDensity(10))*0.4 + HEAT.score*0.6;
-  return ps;
+  const c17=L6.filter(v=>v>=1.70).length; const c2=L8.filter(v=>v>=2).length;
+  const r2=runGE2(); const I=hazardCurve(intervals17,(since17||0)+30); const rel=(I.q75>0)? (I.hazards[(since17||0)+1]||0)/I.q75 : 0;
+  const ps=c17*0.7 + c2*0.6 + r2*0.8 + rel*0.9 + (1-blueDensity(10))*0.4 + HEAT.score*0.6; return ps;
 }
 
-/* umbral + requisitos dinámicos */
+/* umbral dinámico */
 const Perf={last:[]};
 function thrAdaptive(){
-  const ag=getAgg()||{thrAdj:0};
-  let base=LR.thrBase + ag.thrAdj + 0.03;
+  const ag=getAgg()||{thrAdj:0}; let base=LR.thrBase + ag.thrAdj + 0.03 - LR.drift;
   const h=Perf.last.length? Perf.last.reduce((s,x)=>s+(x?1:0),0)/Perf.last.length : 0.6;
   if(h<0.45) base+=0.05; else if(h>0.7) base-=0.03;
   const reg=regime(); if(reg==="hot") base-=0.08; if(reg==="very-hot") base-=0.12; if(reg==="cold") base+=0.05;
   base+= (LR.hotUps||0);
-  const remain = Math.max(0, Session.limit - Session.pos);
-  const slack = Math.max(0, Session.quota - Session.fired);
-  if(remain<=15 && slack>=1) base-=0.06;
-  if(remain<=8  && slack>=1) base-=0.10;
+  // anti-atasco: si muchas rondas sin disparar, baja un poco
+  const stagn = clamp(Session.stagnation/30, 0, 1)*0.04;
+  base -= stagn;
   return clamp(base, LR.thrMin, LR.thrMax);
 }
-function reqRelNow(){
-  let r=Profile.reqRel;
-  const reg=regime(); if(reg!=="cold") r-=0.03; if(reg==="very-hot") r-=0.05;
-  if(Session.pos>20 && Session.fired===0) r-=0.02;
-  if(Session.pos>45 && Session.fired<1) r-=0.03;
-  if(streakOK()) r-=0.05;
-  return Math.max(0.90, r);
-}
-function reqNNow(){
-  let n=Profile.reqN;
-  if(regime()!=="cold") n-=0.02;
-  if(Session.pos>20 && Session.fired===0) n-=0.01;
-  if(Session.pos>45) n-=0.02;
-  if(streakOK()) n-=0.03;
-  return clamp(n,0.45,0.65);
-}
+function reqRelNow(){ let r=Profile.reqRel; const reg=regime(); if(reg!=="cold") r-=0.03; if(reg==="very-hot") r-=0.05; if(Session.pos>20 && Session.fired===0) r-=0.02; if(Session.pos>45 && Session.fired<1) r-=0.03; if(streakOK()) r-=0.05; r-= clamp(Session.stagnation/30,0,1)*0.03; return Math.max(0.88, r); }
+function reqNNow(){ let n=Profile.reqN; if(regime()!=="cold") n-=0.02; if(Session.pos>20 && Session.fired===0) n-=0.01; if(Session.pos>45) n-=0.02; if(streakOK()) n-=0.03; n-= clamp(Session.stagnation/30,0,1)*0.02; return clamp(n,0.45,0.65); }
 
 /* pacing/ventanas */
 function initWindows(){
@@ -339,27 +289,8 @@ function initWindows(){
     {start:23,end:42, fired:0, quota:1, best:-1},
     {start:43,end:60, fired:0, quota:1, best:-1}
   ];
-  Session.carry=0; Session.winIdx=0; Session.peak={score:-1,posEnd:22};
-  pushReview("Plan de ventanas: [6–22], [23–42], [43–60]. Máx 1 por ventana (con carry-over).");
-}
-function currentWindowIndex(pos){
-  for(let i=0;i<Session.winPlan.length;i++){
-    const w=Session.winPlan[i]; if(pos>=w.start && pos<=w.end) return i;
-  }
-  return (pos<6)? -1 : 2;
-}
-function windowAllow(i){
-  if(i<0) return {ok:false, why:"pre-guard"};
-  const w=Session.winPlan[i];
-  // carry-over disponible desde ventanas previas no usadas
-  let carry=0; for(let k=0;k<i;k++){ if(Session.winPlan[k].fired<Session.winPlan[k].quota) carry += (Session.winPlan[k].quota - Session.winPlan[k].fired); }
-  const allow = (w.fired < w.quota + carry);
-  return {ok:allow, carry};
-}
-function updateWinBest(i,score){
-  if(i<0) return;
-  const w=Session.winPlan[i];
-  if(score > w.best) w.best=score;
+  Session.carry=0; Session.winIdx=0; Session.peak={score:-1,posEnd:22}; Session.stagnation=0;
+  pushReview("Plan ventanas v3: [6–22], [23–42], [43–60] con soft-deadline y carry-over.");
 }
 
 /* render */
@@ -381,28 +312,22 @@ function renderStats(scoreText){
 function renderBets(){ const tb=$("betsTbody"); tb.innerHTML=""; bets.forEach((b,i)=>{ const st=b.state==="win"?"win":b.state==="lose"?"lose":"pend"; const tr=document.createElement("tr"); tr.innerHTML=`<td>${i+1}</td><td>${b.sessionId||"—"}</td><td>${b.tag||"AUTO_1p7"}</td><td>${b.target}x</td><td>${b.emittedAt||"—"}</td><td>${b.crash?b.crash.toFixed(2)+"x":"—"}</td><td>${st}</td>`; tb.appendChild(tr); }); }
 
 /* pre-armado + disparo */
-const PreArm={on:false, ts:0};
-function clearPrearm(){ if(PreArm.on){ PreArm.on=false; setBanner(false); } }
-function maybePrearm(txt){
-  if(PreArm.on) return;
-  setBanner(true,"🟦 Pre-armado: posible entrada ≥1.70 en T+1","pre",2500);
-  beepPre(); PreArm.on=true; PreArm.ts=now();
-  pushReview("Pre-armado "+txt);
-}
+const PreArm={on:false, ts:0}; function clearPrearm(){ if(PreArm.on){ PreArm.on=false; setBanner(false); } }
+function maybePrearm(txt){ if(PreArm.on) return; setBanner(true,"🟦 Pre-armado: posible entrada ≥1.70 en T+1","pre",2500); beepPre(); PreArm.on=true; PreArm.ts=now(); pushReview("Pre-armado "+txt); }
 function fireNow(reasonTxt, wIdx){
   if(!isChecked("autoSignal")) return;
   const reg=regime(); const sepNeed = reg==="very-hot"? Session.sepVeryHot : reg==="hot"? Session.sepHot : Session.sepMin;
   if(rounds.length - Session.lastEmitIdx < sepNeed) return;
   if(Session.fired >= Session.quota) return;
-
-  const w=Session.winPlan[wIdx]; if(w && w.fired >= w.quota + windowAllow(wIdx).carry) return;
-
+  const w=Session.winPlan[wIdx]||null; if(w){ // cupo con carry-over
+    let carry=0; for(let k=0;k<wIdx;k++){ if(Session.winPlan[k].fired<Session.winPlan[k].quota) carry += (Session.winPlan[k].quota - Session.winPlan[k].fired); }
+    if(w.fired >= w.quota + carry) return;
+  }
   const ts=now(); const entry={id:"S"+ts,sessionId:Session.id,target:1.7,ts,emittedAt:HHmmss(ts),state:"pend",tag:"AUTO_1p7"};
   pendings.push(entry); bets.push(entry); if(bets.length>2500) bets.splice(0,bets.length-2500);
-  Session.lastEmitIdx=rounds.length; Session.fired++; if(w) w.fired++;
-  alarmFire();
-  setBanner(true,"🚨 ENTRAR AHORA → Próxima ronda (≥1.70)", "", 6000);
-  pushReview(`Señal emitida (ventana ${wIdx+1}/${Session.winPlan.length}). ${reasonTxt}`);
+  Session.lastEmitIdx=rounds.length; Session.fired++; if(w) w.fired++; Session.stagnation=0;
+  alarmFire(); setBanner(true,"🚨 ENTRAR AHORA → Próxima ronda (≥1.70)", "", 6000);
+  pushReview(`Señal emitida${w?` (ventana ${wIdx+1}/${Session.winPlan.length})`:""}: ${reasonTxt}`);
   renderBets();
 }
 
@@ -411,10 +336,10 @@ function startSession(){
   applyProfile();
   const c=getAgg()||{sepMin:10,sepHot:3};
   Session.id=HHmmss(now()); Session.active=true; Session.startIdx=rounds.length; Session.pos=0;
-  Session.lastEmitIdx=-999; Session.baseSep=c.sepMin; Session.sepMin=c.sepMin; Session.sepHot=c.sepHot; Session.fired=0; Session.coolRounds=0;
+  Session.lastEmitIdx=-999; Session.baseSep=c.sepMin; Session.sepMin=c.sepMin; Session.sepHot=c.sepHot; Session.fired=0; Session.coolRounds=0; Session.stagnation=0;
   initWindows();
   if(isChecked("clearOnStart")){ bets=[]; renderBets(); }
-  pushReview(`Empieza sesión ${Session.id} • objetivo ≥1.70 • tope ${Session.quota}/60 (smart pacing).`);
+  pushReview(`Empieza sesión ${Session.id} • objetivo ≥1.70 • tope ${Session.quota}/60.`);
   renderStats();
 }
 
@@ -424,48 +349,57 @@ function onTickSession(){
   if(!Session.active) return;
   Session.pos = rounds.length - Session.startIdx;
   if(Session.coolRounds>0) Session.coolRounds--;
+  Session.stagnation++;
 
   const f=buildX(); const p=lrPredict(f.x), thr=thrAdaptive();
   const gates = floorsOK() && contextOK();
   const reg=regime(); const streak = streakOK();
-
-  // score compuesto (para buscar pico de ventana)
   const sScore = 0.6*p + 0.2*clamp(f.rel,0,1.2) + 0.2*f.p_ng;
   PerfHist.lastScores.push(sScore); if(PerfHist.lastScores.length>40) PerfHist.lastScores.shift();
 
   const idx = currentWindowIndex(Session.pos);
-  if(idx>=0 && idx!==Session.winIdx){ Session.winIdx=idx; Session.peak={score:-1,posEnd:Session.winPlan[idx].end}; pushReview(`→ Entra a ventana ${idx+1}: ${Session.winPlan[idx].start}–${Session.winPlan[idx].end}`); }
-  updateWinBest(idx, sScore);
+  if(idx>=0 && idx!==Session.winIdx){ Session.winIdx=idx; Session.peak={score:-1,posEnd:Session.winPlan[idx].end}; pushReview(`→ Ventana ${idx+1}: ${Session.winPlan[idx].start}–${Session.winPlan[idx].end}`); }
+  if(idx>=0){ const w=Session.winPlan[idx]; if(sScore>w.best) w.best=sScore; }
 
-  const txt=`p:${(p*100).toFixed(0)}% thr:${thr.toFixed(2)} heat:${HEAT.score.toFixed(2)} rel:${f.rel.toFixed(2)} n:${(f.p_ng*100).toFixed(0)}% win:${idx+1} s:${sScore.toFixed(2)} best:${(idx>=0?Session.winPlan[idx].best.toFixed(2):"-")}`;
+  const txt=`p:${(p*100).toFixed(0)}% thr:${thr.toFixed(2)} heat:${HEAT.score.toFixed(2)} rel:${f.rel.toFixed(2)} n:${(f.p_ng*100).toFixed(0)}% win:${idx+1} s:${sScore.toFixed(2)} best:${(idx>=0?Session.winPlan[idx].best.toFixed(2):"-")} stag:${Session.stagnation}`;
   renderStats(txt);
 
-  // reglas de pacing
-  const allow = windowAllow(idx);
+  const allowWin = (i)=>{
+    if(i<0) return {ok:false,carry:0};
+    const w=Session.winPlan[i]; let carry=0; for(let k=0;k<i;k++){ if(Session.winPlan[k].fired<Session.winPlan[k].quota) carry += (Session.winPlan[k].quota - Session.winPlan[k].fired); }
+    return {ok:(w.fired < w.quota + carry), carry};
+  };
   const sepNeed = reg==="very-hot"? Session.sepVeryHot : reg==="hot"? Session.sepHot : Session.sepMin;
   const sepOK   = (rounds.length - Session.lastEmitIdx) >= sepNeed && (Session.fired < Session.quota);
 
-  // early guard: no disparar antes de pos 6 salvo señal MUY fuerte
+  // early guard: no antes de pos 6, salvo señal MUY fuerte
   const earlyGuard = (Session.pos<6) && !(streak && p>=thr+0.12 && gates);
 
-  if(gates && sepOK && !earlyGuard && allow.ok){
-    // dentro de ventana: buscamos pico (espera mínima de 4 rondas dentro de la ventana)
-    const w=Session.winPlan[idx];
-    const insideEnough = Session.pos >= (w.start+4) || streak || reg==="very-hot";
-    const nearEnd = (w.end - Session.pos) <= 2;
+  const winOK = allowWin(idx);
+  if(gates && sepOK && !earlyGuard && winOK.ok){
+    const w=Session.winPlan[idx]; const insideEnough = Session.pos >= (w.start+4) || streak || reg==="very-hot";
+    const nearEnd   = (w.end - Session.pos) <= 2;
+    const nearPeak  = (w.best>0) ? (sScore >= w.best - 0.01) : false;
+    const qOK       = streak ? true : (f.rel>=reqRelNow() && f.p_ng>=reqNNow());
+    const qLo       = streak ? (p>=thr-0.08) : (f.rel>=reqRelNow()-0.02 && f.p_ng>=reqNNow()-0.02);
 
-    const nearPeak = (w.best>0) ? (sScore >= w.best - 0.01) : false;
-
-    const qualityOK  = streak ? true : (f.rel>=reqRelNow() && f.p_ng>=reqNNow());
-    const qualityLo  = streak ? (p>=thr-0.08) : (f.rel>=reqRelNow()-0.02 && f.p_ng>=reqNNow()-0.02);
-
-    if( ((qualityOK && p>=thr) && (insideEnough && (nearPeak || nearEnd))) ||
+    // regla principal
+    if( ((qOK && p>=thr) && (insideEnough && (nearPeak || nearEnd))) ||
         (streak && p>=thr-0.06 && (nearPeak || nearEnd)) ){
       clearPrearm(); fireNow(txt+(streak?" [streak]":""), idx);
-    }else if( (qualityLo && p>=thr-0.05 && insideEnough) || (streak && p>=thr-0.10) ){
+    }else if( (qLo && p>=thr-0.05 && insideEnough) || (streak && p>=thr-0.10) ){
       maybePrearm(txt+(streak?" [pre-streak]":""));
     }else{
       clearPrearm();
+    }
+
+    // soft-deadline: si se acaba la ventana sin tiro
+    if((w.end - Session.pos) <= 1 && w.fired< (w.quota + winOK.carry)){
+      const ma3=avg(rounds.slice(-3))||1.2; const minOK=(rounds[rounds.length-1]>=1.28 && ma3>=1.42);
+      const relOK = f.rel>=0.85, nOK=f.p_ng>=0.48;
+      if(minOK && relOK && nOK && p>=thr-0.06){
+        fireNow(txt+" [soft-deadline]", idx);
+      }
     }
   }else{
     clearPrearm();
@@ -474,13 +408,13 @@ function onTickSession(){
   if(Session.pos>=Session.limit){
     Session.active=false; clearPrearm(); setBanner(false);
     pushReview("Fin de sesión.");
-    if(keepRunning){ setTimeout(()=>startSession(), 800); }
+    if(keepRunning){ setTimeout(()=>startSession(), 700); }
   }
 }
 
 /* resultado + aprendizaje */
 function afterRound(v,base){
-  setBanner(false); // ocultar cualquier banner al cerrar ronda
+  setBanner(false);
   if(!base && pendings.length){
     const bet=pendings.shift(); const win=(v>bet.target);
     bet.crash=v; bet.state=win?"win":"lose"; renderBets();
@@ -488,13 +422,11 @@ function afterRound(v,base){
     Perf.last.push(win); if(Perf.last.length>24) Perf.last.shift();
     if(!win){
       const L=Perf.last.slice(-3).filter(x=>x===false).length;
-      LR.hotUps=(L>=2)?0.05:0;
-      Session.sepMin=Math.min(Session.baseSep+2,14);
-      Session.coolRounds=6;
-      HEAT.freeze=Math.max(HEAT.freeze,1);
+      LR.hotUps=(L>=2)?0.05:0; Session.sepMin=Math.min(Session.baseSep+2,14); Session.coolRounds=6; HEAT.freeze=Math.max(HEAT.freeze,1);
     }else{
       LR.hotUps=0; Session.sepMin=Session.baseSep; Session.coolRounds=0;
     }
+    Session.stagnation=0;
     pushReview(`Resultado ${win?"GANADA":"PERDIDA"} (${v.toFixed(2)}x). p_prev=${(p*100).toFixed(0)}%.`);
   }
 }
@@ -512,9 +444,12 @@ function onNewCrash(v, ts, base=false){
   lastShown.unshift(v); if(lastShown.length>60) lastShown.pop();
   cats.push(catOf(v)); if(cats.length>7000) cats.shift(); ngUpdate(v);
   updateHeat(v);
+
+  // freeze sólo en casos extremos y decae rápido
   const bd12=blueDensity(12), br12=maxBlueRun(12);
-  if(bd12>0.85 || br12>=11) HEAT.freeze=Math.max(HEAT.freeze,2);
+  if(bd12>0.90 || br12>=12) HEAT.freeze=Math.max(HEAT.freeze,2);
   else if(HEAT.freeze>0) HEAT.freeze--;
+
   pushEvt17(v,ts);
   if(!base){ afterRound(v,false); if(Session.active) onTickSession(); }
   renderStats();
@@ -553,8 +488,7 @@ async function connectFeed(){
 
     // reset buffers
     rounds=[]; roundsMeta=[]; lastShown=[]; events17=[]; intervals17=[]; since17=null;
-    HEAT.score=0; HEAT.freeze=0;
-    cats.length=0; NGRAM[1].clear(); NGRAM[2].clear(); NGRAM[3].clear(); NGRAM.global={tot:0,n17:0};
+    HEAT.score=0; HEAT.freeze=0; cats.length=0; NGRAM[1].clear(); NGRAM[2].clear(); NGRAM[3].clear(); NGRAM.global={tot:0,n17:0};
     Perf.last=[]; PerfHist.lastScores=[]; baseCount=Object.keys(snap.val()).length;
 
     const data=snap.val(), keys=Object.keys(data).sort();
