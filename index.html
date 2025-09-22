@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Aviator Analyzer • Gocho v26.3b (fix connect)</title>
+<title>Aviator Analyzer • Gocho v26.3c (connect+signals fix)</title>
 <style>
   :root{--bg:#0b0f14;--panel:#141a23;--muted:#93a0ad;--text:#e9eef6;--bd:#20283a;--chip:#0f141e}
   html,body{background:var(--bg);color:var(--text);font:14px/1.5 system-ui,Inter,Segoe UI,Roboto,Arial,sans-serif;margin:0}
@@ -29,7 +29,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>✈️ Aviator Analyzer • <b style="color:#8ab4ff">Gocho v26.3b</b>
+  <h1>✈️ Aviator Analyzer • <b style="color:#8ab4ff">Gocho v26.3c</b>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
   </h1>
 
@@ -116,16 +116,21 @@ let rounds=[], roundsMeta=[], lastShown=[];
 let baseCount=0, lastKey=null, lastTs=null, lastActivity=null;
 let liveRef=null, liveCb=null, watchdog=null;
 
-/* ===== Core stats (resumido) ===== */
+/* ===== Core stats ===== */
 let session={active:false,startIdx:0,sigCount:0,objective:1.70,tag:"AUTO_1p7",windowPlan:[[6,22],[23,42],[43,60]]};
 let pendings=[], history=[];
 let sepMin=3, sepBlock=0, antibbRoundsLeft=0, cooldownWindowsLeft=0, loseStreak=0, lastWindowIdx=-1;
+let pinkCooldown=0, needGoodAfterBad=false; // NUEVO
+
 function heatScore(n=15){const w=rounds.slice(-n); if(!w.length)return 0; return (w.filter(x=>x>=2).length/w.length)*10;}
 function momentumScore(len=12){const w=rounds.slice(-len); let s=0; for(const x of w){ if(x>=10)s+=4; else if(x>=3)s+=3; else if(x>=2)s+=2; else if(x>=1.70)s+=1; else if(x<1.20)s-=3; else s-=1; } return s;}
 function microValley(){const a5=rounds.slice(-5),a8=rounds.slice(-8); return a5.filter(x=>x<1.50).length>=2 || a8.filter(x=>x<1.70).length>=3;}
 function pinkProximity(b=6){return rounds.slice(-b).some(x=>x>=15);}
+function lastIsBadTrap(){const l=rounds[rounds.length-1]||2; return l<1.15;}
+function twoOfLast5Sub115(){return rounds.slice(-5).filter(x=>x<1.15).length>=2;}
 function currentWindowIdx(){ const pos=rounds.length-session.startIdx; for(let i=0;i<session.windowPlan.length;i++){const[a,b]=session.windowPlan[i]; if(pos>=a&&pos<=b) return i;} return -1; }
 function windowProgress(i){ if(i<0)return 0; const pos=rounds.length-session.startIdx; const[a]=session.windowPlan[i]; return Math.max(0,pos-a); }
+
 function renderStats(){
   $("rounds").textContent=`${rounds.length} (base ${baseCount})`;
   const ma10=movingAverage(rounds,10); $("ma10").textContent=isNaN(ma10)?"–":ma10.toFixed(2)+"x";
@@ -166,27 +171,46 @@ function nodeToVT(node){
   return {v,ts};
 }
 
-/* ===== Señales (misma lógica v26.3) ===== */
-const minInto=[3,3,4];
-function allowEnv(){ const ma10=movingAverage(rounds,10)||0; const heat=heatScore(15); return !(heat<2 && ma10<2.2); }
-function volatilityGuard(){ const last8=rounds.slice(-8), lows=last8.filter(x=>x<1.20).length; const heat=heatScore(15); return !(lows>=3 && heat<6); }
-function votesOK(ag,w){ const heat=heatScore(15), mom=momentumScore(12); const ma5=movingAverage(rounds,5)||0, ma10=movingAverage(rounds,10)||0; const trend=(ma5>=ma10)?1:0;
-  let needMom=0, needHeat=3.2; if(ag==="CONS"){needMom=3;needHeat=4.0} if(ag==="EQ"){needMom=2;needHeat=3.5} if(ag==="AGR"){needMom=0;needHeat=3.0}
-  if(w===2){ needHeat=Math.max(needHeat,4.2); needMom=Math.max(needMom,2); }
-  let v=0; if(heat>=needHeat)v++; if(mom>=needMom)v++; if(trend)v++; return v>=2;
+/* ===== Señales (tune v26.2 feel + protecciones nuevas) ===== */
+// ventanas: permitir antes
+const minInto=[2,3,4]; // antes 3,3,4
+function envOK(){
+  const ma10=movingAverage(rounds,10)||0;
+  const heat=heatScore(15);
+  // más permisivo, pero no ciego:
+  if(heat<1.3 && ma10<1.9) return false;
+  return true;
+}
+function volatilityOK(){
+  const last8=rounds.slice(-8), lows=last8.filter(x=>x<1.20).length; 
+  const heat=heatScore(15);            // si hay demasiados lows y poco heat, no
+  if(lows>=3 && heat<6) return false;
+  if(twoOfLast5Sub115()) return false; // NUEVO
+  return true;
+}
+function votesOK(ag,w){
+  const heat=heatScore(15), mom=momentumScore(12);
+  const ma5=movingAverage(rounds,5)||0, ma10=movingAverage(rounds,10)||0; 
+  const trend=(ma5>=ma10)?1:0;
+  // umbrales más amables
+  let needMom=0, needHeat=3.0; if(ag==="CONS"){needMom=2;needHeat=3.2} if(ag==="EQ"){needMom=1;needHeat=3.0} if(ag==="AGR"){needMom=0;needHeat=2.8}
+  if(w===2){ needHeat=Math.max(needHeat,3.6); needMom=Math.max(needMom,1); }
+  let v=0; if(heat>=needHeat)v++; if(mom>=needMom)v++; if(trend)v++; 
+  return v>=2; // 2 de 3
 }
 function shouldEmit170(){
   if(!session.active || session.sigCount>=3) return false;
   const w=currentWindowIdx(); if(w===-1) return false;
   if(lastWindowIdx===w) return false;
-  if(cooldownWindowsLeft>0 || sepBlock>0) return false;
-  if(!allowEnv() || !volatilityGuard()) return false;
-  if(pinkProximity(6)) return false;
+  if(cooldownWindowsLeft>0 || sepBlock>0 || antibbRoundsLeft>0 || pinkCooldown>0) return false;
+  if(!envOK() || !volatilityOK()) return false;
   if(windowProgress(w)<minInto[w]) return false;
-  if(session.sigCount>=2){ const heat=heatScore(15), mom=momentumScore(12); if(heat<7 && mom<3) return false; }
   if(w===2 && microValley()) return false;
   const ag=$("aggr")?.value||"EQ"; if(!votesOK(ag,w)) return false;
-  const a18=rounds.slice(-18).filter(x=>x<1.70).length; if(ag==="CONS"&&a18>4) return false; if(ag==="EQ"&&a18>6) return false; if(ag==="AGR"&&a18>7) return false;
+  // no encadenar tras pérdida fea
+  if(needGoodAfterBad && !rounds.slice(-6).some(x=>x>=2.0)) return false; 
+  const a18=rounds.slice(-18).filter(x=>x<1.70).length; 
+  if(ag==="CONS"&&a18>6) return false; if(ag==="EQ"&&a18>7) return false; if(ag==="AGR"&&a18>8) return false;
   return true;
 }
 function emit170(){
@@ -194,6 +218,8 @@ function emit170(){
   const ts=Date.now(); const sig={tag:"AUTO_1p7",objective:1.70,time:HHmmss(ts),ts,sessionLabel:HHmm(ts),state:"pend"};
   pendings.push(sig); history.push(sig); renderSignals(); session.sigCount++; lastWindowIdx=currentWindowIdx(); sepBlock=sepMin;
   addLog(`Señal emitida (ventana ${lastWindowIdx+1}/3); objetivo ≥1.70.`);
+  // beep
+  if(flag("beepToggle",true)){ try{ new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=").play().catch(()=>{});}catch(_){}} 
 }
 function onNewCrash(v,ts,base=false){
   rounds.push(v); roundsMeta.push({v,ts}); if(rounds.length>3000){ rounds.shift(); roundsMeta.shift(); }
@@ -201,20 +227,50 @@ function onNewCrash(v,ts,base=false){
 
   if(!base && pendings.length){
     const b=pendings.shift(); const win=(v>b.objective); b.crash=v; b.state=win?"win":"lose"; history[history.length-1]=b; renderSignals();
-    if(v<1.20) antibbRoundsLeft=Math.max(antibbRoundsLeft,2);
-    if(win){ loseStreak=0; sepBlock=Math.max(sepBlock,2); } else { loseStreak++; sepBlock=Math.max(sepBlock,4); const loses=history.slice(-4).filter(x=>x.state==="lose").length; if(loses>=2||loseStreak>=3) cooldownWindowsLeft=Math.max(cooldownWindowsLeft,(loseStreak>=3?2:1)); }
+    // protecciones y pacing
+    if(v<1.15){ antibbRoundsLeft=Math.max(antibbRoundsLeft,2); needGoodAfterBad=true; }
+    if(win){ 
+      loseStreak=0; sepBlock=Math.max(sepBlock,2); needGoodAfterBad=false;
+    } else { 
+      loseStreak++; sepBlock=Math.max(sepBlock,3); if(loseStreak>=2) cooldownWindowsLeft=Math.max(cooldownWindowsLeft,1);
+      if(v<1.20) needGoodAfterBad=true; // pide ver ≥2x antes de la próxima
+    }
+    // cooldown por rosa grande cerca
+    const lastPink=rounds.slice(-8).find(x=>x>=50)?4:(rounds.slice(-6).find(x=>x>=15)?3:0);
+    pinkCooldown=Math.max(pinkCooldown,lastPink);
     addLog(`Resultado ${b.state==="win"?"GANADA":"PERDIDA"} (${v.toFixed(2)}x).`);
   }
-  if(sepBlock>0) sepBlock--; if(antibbRoundsLeft>0) antibbRoundsLeft--;
+
+  if(sepBlock>0) sepBlock--; 
+  if(antibbRoundsLeft>0) antibbRoundsLeft--;
+  if(cooldownWindowsLeft>0 && currentWindowIdx()!==lastWindowIdx) cooldownWindowsLeft--;
+  if(pinkCooldown>0) pinkCooldown--;
+
   renderStats();
+
+  // protec anti-trampa si justo cayó 1.0x
+  if(!base && lastIsBadTrap()) { antibbRoundsLeft=Math.max(antibbRoundsLeft,2); }
+
   if(!base && shouldEmit170()) emit170();
+
+  autoSessionMaybe();
 }
 
 /* ===== Sesión ===== */
-function resetSession(){ session.active=true; session.startIdx=rounds.length; session.sigCount=0; sepBlock=0; antibbRoundsLeft=0; cooldownWindowsLeft=0; lastWindowIdx=-1; addLog(`Empieza sesión ${HHmm(Date.now())} • objetivo ≥1.70 • tope 3/60 • Smart-Pacing v4.1`); }
-function autoSessionMaybe(){ const pos=rounds.length-session.startIdx; if(flag("autoSession",true) && (!session.active || pos>=60 || session.sigCount>=3)){ session.active=false; addLog("Fin de sesión."); resetSession(); } }
+function resetSession(){ 
+  session.active=true; session.startIdx=rounds.length; session.sigCount=0; 
+  sepBlock=0; antibbRoundsLeft=0; cooldownWindowsLeft=0; lastWindowIdx=-1; pinkCooldown=0; 
+  needGoodAfterBad=false;
+  addLog(`Empieza sesión ${HHmm(Date.now())} • objetivo ≥1.70 • tope 3/60 • Smart-Pacing v4.2`);
+}
+function autoSessionMaybe(){ 
+  const pos=rounds.length-session.startIdx; 
+  if(flag("autoSession",true) && (!session.active || pos>=60 || session.sigCount>=3)){ 
+    session.active=false; addLog("Fin de sesión."); resetSession(); 
+  } 
+}
 
-/* ===== Conexión robusta ===== */
+/* ===== Conexión robusta (igual que 26.3b) ===== */
 async function connectFeed(){
   if(connecting||connected) return;
   connecting=true; $("connectBtn").disabled=true;
@@ -233,9 +289,9 @@ async function connectFeed(){
 
     if(!snap){ $("statusFeedback").textContent="No hay datos en el feed (aún)."; connecting=false; $("connectBtn").disabled=false; return; }
 
-    rounds=[]; roundsMeta=[]; lastShown=[]; baseCount=0; history=[]; pendings=[];
-    const data=snap.val(); const keys=Object.keys(data).sort(); baseCount=keys.length;
+    if(flag("cleanOnConnect",false)){ rounds=[]; roundsMeta=[]; lastShown=[]; baseCount=0; history=[]; pendings=[]; }
 
+    const data=snap.val(); const keys=Object.keys(data).sort(); baseCount=keys.length;
     let lastValidTs=0, lastValidKey=null;
     for(const k of keys){
       const node=data[k];
@@ -251,11 +307,11 @@ async function connectFeed(){
 
     if(liveRef && liveCb) liveRef.off("child_added", liveCb);
     if(mode==="ts"){
-      liveRef = ref.orderByChild("ts").startAt(lastTs+1); // evita engancharse
-      liveCb   = s => { const d=s.val(); if(!d) return; const {v,ts}=nodeToVT(d); if(!(v!==null && isFinite(v) && v>=1)) return; lastTs=ts; lastKey=s.key; lastActivity=Date.now(); onNewCrash(v,ts,false); autoSessionMaybe(); };
+      liveRef = ref.orderByChild("ts").startAt(lastTs+1);
+      liveCb   = s => { const d=s.val(); if(!d) return; const {v,ts}=nodeToVT(d); if(!(v!==null && isFinite(v) && v>=1)) return; lastTs=ts; lastKey=s.key; lastActivity=Date.now(); onNewCrash(v,ts,false); };
     }else{
       liveRef = ref.orderByKey().startAfter(lastKey||"");
-      liveCb   = s => { const d=s.val(); if(!d) return; const {v,ts}=nodeToVT(d); if(!(v!==null && isFinite(v) && v>=1)) return; lastTs=ts; lastKey=s.key; lastActivity=Date.now(); onNewCrash(v,ts,false); autoSessionMaybe(); };
+      liveCb   = s => { const d=s.val(); if(!d) return; const {v,ts}=nodeToVT(d); if(!(v!==null && isFinite(v) && v>=1)) return; lastTs=ts; lastKey=s.key; lastActivity=Date.now(); onNewCrash(v,ts,false); };
     }
     liveRef.on("child_added", liveCb);
 
