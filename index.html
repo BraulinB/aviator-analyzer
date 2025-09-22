@@ -1,41 +1,35 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v26.3 (≥1.70 • 3/60 • Smart Pacing v4.1)</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Aviator Analyzer • Gocho v26.3b (fix connect)</title>
 <style>
-  :root{
-    --bg:#0b0f14; --panel:#141a23; --muted:#96a0ad; --text:#e9eef6;
-    --chip:#0f141e; --chipbd:#20283a;
-    --ok:#26d07c; --bad:#f06a6a; --warn:#f2b035; --brand:#8ab4ff;
-  }
+  :root{--bg:#0b0f14;--panel:#141a23;--muted:#93a0ad;--text:#e9eef6;--bd:#20283a;--chip:#0f141e}
   html,body{background:var(--bg);color:var(--text);font:14px/1.5 system-ui,Inter,Segoe UI,Roboto,Arial,sans-serif;margin:0}
   .wrap{max-width:1100px;margin:18px auto;padding:0 12px}
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .card{background:var(--panel);border:1px solid #20283a;border-radius:12px;padding:14px;margin:10px 0}
-  h1{font-size:18px;margin:0 0 8px;display:flex;gap:10px;align-items:center}
+  .card{background:var(--panel);border:1px solid var(--bd);border-radius:12px;padding:14px;margin:10px 0}
   .btn{background:#263047;border:0;color:var(--text);border-radius:8px;padding:8px 12px;cursor:pointer}
   .btn.ok{background:#25d07b;color:#08120c;font-weight:700}
   .muted{color:var(--muted)}
   select,input[type="text"]{background:#0f141e;color:var(--text);border:1px solid #263047;border-radius:8px;padding:6px 10px}
   input[type="text"]{width:140px}
   .kpi{display:flex;gap:14px;flex-wrap:wrap}
-  .kpi .box{background:#0f141e;border:1px solid #20283a;border-radius:10px;padding:10px 12px}
+  .kpi .box{background:#0f141e;border:1px solid var(--bd);border-radius:10px;padding:10px 12px}
   .chips{display:flex;flex-wrap:wrap;gap:6px}
-  .chip{background:var(--chip);border:1px solid var(--chipbd);border-radius:999px;padding:5px 10px;font-size:12px}
-  .chip.small{font-size:12px;padding:4px 8px}
-  .blue{background:#132238} .green{background:#173826} .purple{background:#2b2141} .pink{background:#3a1b2f}
+  .chip{background:var(--chip);border:1px solid var(--bd);border-radius:999px;padding:4px 9px;font-size:12px}
+  .blue{background:#132238}.green{background:#173826}.purple{background:#2b2141}.pink{background:#3a1b2f}
   .table{width:100%;border-collapse:collapse;font-size:13px}
-  .table th,.table td{padding:8px;border-bottom:1px solid #20283a;text-align:left}
-  .log{font:12px/1.5 ui-monospace,Consolas,Menlo,monospace;white-space:pre-wrap;background:#0f141e;border:1px solid #20283a;border-radius:10px;padding:10px;max-height:360px;overflow:auto}
+  .table th,.table td{padding:8px;border-bottom:1px solid var(--bd);text-align:left}
+  .log{font:12px/1.5 ui-monospace,Consolas,Menlo,monospace;white-space:pre-wrap;background:#0f141e;border:1px solid var(--bd);border-radius:10px;padding:10px;max-height:360px;overflow:auto}
   .clock{font-variant-numeric:tabular-nums}
-  .oktxt{color:#7ff5b0} .badtxt{color:#ff9b9b}
+  .oktxt{color:#7ff5b0}.badtxt{color:#ff9b9b}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>✈️ Aviator Analyzer • <b style="color:#8ab4ff">Gocho v26.3</b>
+  <h1>✈️ Aviator Analyzer • <b style="color:#8ab4ff">Gocho v26.3b</b>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
   </h1>
 
@@ -46,22 +40,11 @@
       <label class="row"><input id="auto1k" type="checkbox" checked> Auto-1k</label>
       <label class="row"><input id="autoSession" type="checkbox" checked> Auto-sesión</label>
       <label class="row"><input id="cleanOnConnect" type="checkbox"> Limpiar historial al conectar</label>
-
       <span class="muted">Perfil:</span>
-      <select id="profile">
-        <option value="PRECISE" selected>Preciso (3 / 60)</option>
-        <option value="NORMAL">Normal (3 / 60)</option>
-      </select>
-
+      <select id="profile"><option value="PRECISE" selected>Preciso (3/60)</option><option value="NORMAL">Normal (3/60)</option></select>
       <span class="muted">Agresividad:</span>
-      <select id="aggr">
-        <option value="EQ" selected>Equilibrado</option>
-        <option value="AGR">Agresivo</option>
-        <option value="CONS">Conservador</option>
-      </select>
-
-      <span class="muted">Feed:</span>
-      <input id="feedId" type="text" value="gocho"/>
+      <select id="aggr"><option value="EQ" selected>Equilibrado</option><option value="AGR">Agresivo</option><option value="CONS">Conservador</option></select>
+      <span class="muted">Feed:</span><input id="feedId" type="text" value="gocho"/>
       <button id="connectBtn" class="btn ok">Conectar</button>
       <button id="disconnectBtn" class="btn">Desconectar</button>
     </div>
@@ -76,7 +59,6 @@
       <div class="box">Sep: <b id="sepLbl">3</b><br><span class="muted">Heat:</span> <b id="heatLbl">–</b></div>
       <div class="box">p/Umbral: <b id="pthLbl">—</b><br><span class="muted">Régimen:</span> <b id="regLbl">—</b></div>
     </div>
-
     <div style="margin-top:10px">
       <div class="muted" style="margin-bottom:6px">Últimas 60 rondas (más reciente primero)</div>
       <div id="lastRounds" class="chips"></div>
@@ -97,319 +79,205 @@
   </div>
 
   <div class="card muted" style="font-size:12px">
-    Uso educativo/análisis. No garantiza resultados. “Ganada” = crash &gt; objetivo. No forzar entradas al cierre de bloque.
+    Uso educativo/análisis. No garantiza resultados. “Ganada” = crash &gt; objetivo.
   </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-
 <script>
-/* ========= CONFIG ========= */
-const firebaseConfig = {
-  apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
-  authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
-  projectId: "aviator-analyzer-b29a7",
-  storageBucket: "aviator-analyzer-b29a7.appspot.com",
-  messagingSenderId: "575063626276",
-  appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
-  measurementId: "G-325QCBSQMH",
-  databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com"
+/* ===== Firebase ===== */
+const firebaseConfig={
+  apiKey:"AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
+  authDomain:"aviator-analyzer-b29a7.firebaseapp.com",
+  projectId:"aviator-analyzer-b29a7",
+  storageBucket:"aviator-analyzer-b29a7.appspot.com",
+  messagingSenderId:"575063626276",
+  appId:"1:575063626276:web:5f640e41f0ad791d6a3eb1",
+  measurementId:"G-325QCBSQMH",
+  databaseURL:"https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com"
 };
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database(), auth=firebase.auth();
 
-/* ========= HELPERS ========= */
+/* ===== Helpers UI ===== */
 const $=id=>document.getElementById(id);
-function flag(id,def=false){ const el=$(id); return el?!!el.checked:def; }
-const now=()=>Date.now();
-const HHmm = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-const HHmmss = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-
+const addLog=s=>{ const el=$("logBox"); el.textContent+=`[${new Date().toLocaleTimeString()}] ${s}\n`; el.scrollTop=el.scrollHeight; };
+const HHmm = ts => new Date(ts).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+const HHmmss = ts => new Date(ts).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"});
 function chipClass(v){ if(v>=10) return "pink"; if(v>=3) return "purple"; if(v>=2) return "green"; return "blue"; }
-function movingAverage(arr,n){ const L=Math.min(arr.length,n); if(!L) return NaN; let s=0; for(let i=arr.length-L;i<arr.length;i++) s+=arr[i]; return s/L; }
+function movingAverage(a,n){ const L=Math.min(a.length,n); if(!L)return NaN; let s=0; for(let i=a.length-L;i<a.length;i++) s+=a[i]; return s/L; }
+function flag(id,def=false){ const el=$(id); return el?!!el.checked:def; }
 
-function heatScore(n=15){ const w=rounds.slice(-n); if(!w.length) return 0; return (w.filter(x=>x>=2).length/w.length)*10; }
-function blueRun(n=18){ const w=rounds.slice(-n); let r=0,m=0; for(const x of w){ if(x<1.70){ r++; m=Math.max(m,r);} else r=0;} return m; }
-function momentumScore(len=12){
-  const w=rounds.slice(-len); let s=0;
-  for(const x of w){
-    if(x>=10) s+=4; else if(x>=3) s+=3; else if(x>=2) s+=2; else if(x>=1.70) s+=1;
-    else if(x<1.20) s-=3; else s-=1;
-  } return s;
-}
-function pinkProximity(block=6){ return rounds.slice(-block).some(x=>x>=15); }
-function stdev(arr,n=12){ const w=arr.slice(-n); if(w.length<2) return 0; const m=w.reduce((a,b)=>a+b,0)/w.length; const v=w.reduce((a,b)=>a+(b-m)*(b-m),0)/(w.length-1); return Math.sqrt(v); }
-
-/* micro-valle: último5 con ≥2 <1.50 ó último8 con ≥3 <1.70 */
-function microValley(){ const a5=rounds.slice(-5), a8=rounds.slice(-8); const c5=a5.filter(x=>x<1.50).length; const c8=a8.filter(x=>x<1.70).length; return (c5>=2)||(c8>=3); }
-
-/* robust parser */
-function parseCrashValue(raw){
-  if(raw===null||raw===undefined) return null;
-  if(typeof raw==="number") return (raw>=1 && isFinite(raw))? raw : null;
-  let sRaw = String((typeof raw==="object" && raw && ("raw" in raw || "v" in raw)) ? (raw.raw ?? raw.v) : raw);
-  const rx=/(\d{1,3}(?:[.,\u00A0\u2009]\d{3})+(?:[.,]\d+)?)/;
-  const m=sRaw.match(rx);
-  if(m){
-    let t=m[1].replace(/[\u00A0\u2009]/g,' ');
-    const lastDot=t.lastIndexOf('.'), lastComma=t.lastIndexOf(',');
-    const dec=(lastComma>lastDot)?',':'.';
-    if(dec===','){ t=t.replace(/\./g,'').replace(/ /g,'').replace(',', '.'); }
-    else{ t=t.replace(/,/g,'').replace(/ /g,''); }
-    const v=Number(t); return (isFinite(v)&&v>=1)?v:null;
-  }
-  let s=sRaw.replace(/[^\d.,+-]+/g,'').trim();
-  if(!s) return null;
-  const lastDot=s.lastIndexOf('.'), lastComma=s.lastIndexOf(',');
-  let dec=(lastComma>lastDot)?',':'.'; if(lastDot===-1&&lastComma===-1) dec='.';
-  if(dec===','){ s=s.replace(/\./g,''); s=s.replace(',', '.'); } else { s=s.replace(/,/g,''); }
-  let v=Number(s); if(!(isFinite(v)&&v>=1)) return null;
-
-  if(flag("auto1k",true) && v>=300 && v<450){
-    const ma10=movingAverage(rounds,10), recentHuge=rounds.slice(-8).some(x=>x>=200);
-    if(recentHuge || (ma10 && ma10>20)) v+=1000;
-  } return v;
-}
-
-/* ========= ESTADO ========= */
-let FEED_ID="gocho", connected=false;
+/* ===== State ===== */
+let FEED_ID="gocho", connected=false, connecting=false;
 let rounds=[], roundsMeta=[], lastShown=[];
-let baseCount=0;
+let baseCount=0, lastKey=null, lastTs=null, lastActivity=null;
+let liveRef=null, liveCb=null, watchdog=null;
 
-let session={ active:false, startIdx:0, sigCount:0, tag:"AUTO_1p7", objective:1.70,
-  windowPlan:[[6,22],[23,42],[43,60]], softDeadline:true, carryOver:true };
-
+/* ===== Core stats (resumido) ===== */
+let session={active:false,startIdx:0,sigCount:0,objective:1.70,tag:"AUTO_1p7",windowPlan:[[6,22],[23,42],[43,60]]};
 let pendings=[], history=[];
-let sepMin=3, sepBlock=0, antibbRoundsLeft=0, cooldownWindowsLeft=0;
-let prevWinIdx=-1, lastWindowIdx=-1, loseStreak=0;
-let pThresh="—", regimen="—";
-
-/* ========= AUDIO ========= */
-let audioCtx=null;
-function beep(freq=880,ms=120,g=0.03){
-  if(!flag("beepToggle",true)) return;
-  try{ if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-    const o=audioCtx.createOscillator(), a=audioCtx.createGain();
-    o.type="sine"; o.frequency.value=freq; a.gain.value=g; o.connect(a); a.connect(audioCtx.destination);
-    o.start(); setTimeout(()=>o.stop(), ms);
-  }catch(_){}
+let sepMin=3, sepBlock=0, antibbRoundsLeft=0, cooldownWindowsLeft=0, loseStreak=0, lastWindowIdx=-1;
+function heatScore(n=15){const w=rounds.slice(-n); if(!w.length)return 0; return (w.filter(x=>x>=2).length/w.length)*10;}
+function momentumScore(len=12){const w=rounds.slice(-len); let s=0; for(const x of w){ if(x>=10)s+=4; else if(x>=3)s+=3; else if(x>=2)s+=2; else if(x>=1.70)s+=1; else if(x<1.20)s-=3; else s-=1; } return s;}
+function microValley(){const a5=rounds.slice(-5),a8=rounds.slice(-8); return a5.filter(x=>x<1.50).length>=2 || a8.filter(x=>x<1.70).length>=3;}
+function pinkProximity(b=6){return rounds.slice(-b).some(x=>x>=15);}
+function currentWindowIdx(){ const pos=rounds.length-session.startIdx; for(let i=0;i<session.windowPlan.length;i++){const[a,b]=session.windowPlan[i]; if(pos>=a&&pos<=b) return i;} return -1; }
+function windowProgress(i){ if(i<0)return 0; const pos=rounds.length-session.startIdx; const[a]=session.windowPlan[i]; return Math.max(0,pos-a); }
+function renderStats(){
+  $("rounds").textContent=`${rounds.length} (base ${baseCount})`;
+  const ma10=movingAverage(rounds,10); $("ma10").textContent=isNaN(ma10)?"–":ma10.toFixed(2)+"x";
+  $("since170").textContent=rounds.slice(-60).filter(x=>x>=1.70).length;
+  $("sessionProg").textContent=`${Math.min(60, rounds.length-session.startIdx)}/60`;
+  $("sessionSignals").textContent=`${session.sigCount}`;
+  $("sepLbl").textContent=`${sepMin}${cooldownWindowsLeft?` • cd:${cooldownWindowsLeft}`:""}`;
+  $("heatLbl").textContent=heatScore(15).toFixed(2);
+  const cont=$("lastRounds"); cont.innerHTML="";
+  lastShown.forEach(v=>{ const s=document.createElement("span"); s.className="chip "+chipClass(v); s.textContent=(v>=1000?(v-1000).toFixed(2):v.toFixed(2))+"x"; cont.appendChild(s); });
 }
-const beepGo=()=>{ beep(650,120,0.035); setTimeout(()=>beep(900,100,0.03),150); };
-
-/* ========= UI ========= */
-const addLog=line=>{ const el=$("logBox"); el.textContent+=`[${new Date().toLocaleTimeString()}] ${line}\n`; el.scrollTop=el.scrollHeight; };
 function renderSignals(){
   const tb=$("sigTbody"); tb.innerHTML="";
-  history.forEach((s,i)=>{
-    const st=s.state==="win"?`<b class="oktxt">win</b>`:s.state==="lose"?`<b class="badtxt">lose</b>`:"pend";
+  history.forEach((s,i)=>{ const st=s.state==="win"?`<b class="oktxt">win</b>`:s.state==="lose"?`<b class="badtxt">lose</b>`:"pend";
     const tr=document.createElement("tr");
     tr.innerHTML=`<td>${i+1}</td><td>${s.sessionLabel||"—"}</td><td>${s.tag}</td><td>${s.objective.toFixed(2)}x</td><td>${s.time}</td><td>${s.crash? s.crash.toFixed(2)+"x":"—"}</td><td>${st}</td>`;
     tb.appendChild(tr);
   });
 }
-function renderStats(){
-  $("rounds").textContent=`${rounds.length} (base ${baseCount})`;
-  const ma10=movingAverage(rounds,10); $("ma10").textContent=isNaN(ma10)?"–":ma10.toFixed(2)+"x";
-  $("since170").textContent=rounds.slice(-60).filter(x=>x>=1.70).length;
-  $("sessionProg").textContent=`${Math.min(60, rounds.length - session.startIdx)}/60`;
-  $("sessionSignals").textContent=`${session.sigCount}`;
-  $("sepLbl").textContent=`${sepMin}${cooldownWindowsLeft?` • cd:${cooldownWindowsLeft}`:""}`;
-  const heat=heatScore(15); $("heatLbl").textContent=heat.toFixed(2);
-  $("pthLbl").textContent=pThresh; $("regLbl").textContent=regimen;
-  const cont=$("lastRounds"); cont.innerHTML="";
-  lastShown.forEach(v=>{ const s=document.createElement("span"); s.className="chip small "+chipClass(v); s.textContent=(v>=1000?(v-1000).toFixed(2)+"x":v.toFixed(2)+"x"); cont.appendChild(s); });
+
+/* ===== Parser robusto ===== */
+function parseCrashValue(raw){
+  if(raw===null||raw===undefined) return null;
+  if(typeof raw==="number") return (raw>=1 && isFinite(raw))?raw:null;
+  let sRaw=String((typeof raw==="object"&&raw&&("raw" in raw || "v" in raw))?(raw.raw??raw.v):raw);
+  const rx=/(\d{1,3}(?:[.,\u00A0\u2009]\d{3})+(?:[.,]\d+)?|\d+(?:[.,]\d+)?)/;
+  const m=sRaw.match(rx); if(!m) return null; let t=m[1].replace(/[\u00A0\u2009]/g,' ');
+  const lastDot=t.lastIndexOf('.'), lastComma=t.lastIndexOf(','); const dec=(lastComma>lastDot)?',':'.';
+  if(dec===','){ t=t.replace(/\./g,'').replace(/ /g,'').replace(',', '.'); } else { t=t.replace(/,/g,'').replace(/ /g,''); }
+  let v=Number(t); if(!(isFinite(v)&&v>=1)) return null;
+  if(flag("auto1k",true) && v>=300 && v<450){ const ma10=movingAverage(rounds,10), recentHuge=rounds.slice(-8).some(x=>x>=200); if(recentHuge||(ma10&&ma10>20)) v+=1000; }
+  return v;
+}
+function nodeToVT(node){
+  const raw=(node && typeof node==='object' && ('raw' in node || 'v' in node)) ? (node.raw ?? node.v) : node;
+  const v=parseCrashValue(raw);
+  const ts=Number(node?.ts)||Date.now();
+  return {v,ts};
 }
 
-/* ========= SESIÓN ========= */
-function resetSession(){
-  session.active=true; session.startIdx=rounds.length; session.sigCount=0;
-  sepBlock=0; antibbRoundsLeft=0; cooldownWindowsLeft=0; prevWinIdx=-1; lastWindowIdx=-1; loseStreak=0;
-  pThresh="—"; regimen="—";
-  addLog(`Empieza sesión ${HHmm(now())} • objetivo ≥${session.objective.toFixed(2)} • tope 3/60 • Smart-Pacing v4.1.`);
+/* ===== Señales (misma lógica v26.3) ===== */
+const minInto=[3,3,4];
+function allowEnv(){ const ma10=movingAverage(rounds,10)||0; const heat=heatScore(15); return !(heat<2 && ma10<2.2); }
+function volatilityGuard(){ const last8=rounds.slice(-8), lows=last8.filter(x=>x<1.20).length; const heat=heatScore(15); return !(lows>=3 && heat<6); }
+function votesOK(ag,w){ const heat=heatScore(15), mom=momentumScore(12); const ma5=movingAverage(rounds,5)||0, ma10=movingAverage(rounds,10)||0; const trend=(ma5>=ma10)?1:0;
+  let needMom=0, needHeat=3.2; if(ag==="CONS"){needMom=3;needHeat=4.0} if(ag==="EQ"){needMom=2;needHeat=3.5} if(ag==="AGR"){needMom=0;needHeat=3.0}
+  if(w===2){ needHeat=Math.max(needHeat,4.2); needMom=Math.max(needMom,2); }
+  let v=0; if(heat>=needHeat)v++; if(mom>=needMom)v++; if(trend)v++; return v>=2;
 }
-function autoSessionMaybe(){
-  const pos=rounds.length-session.startIdx;
-  if(flag("autoSession",true) && (!session.active || pos>=60 || session.sigCount>=3)){
-    session.active=false; addLog(`Fin de sesión.`); resetSession();
-  }
-}
-function currentWindowIdx(){
-  const pos=rounds.length-session.startIdx;
-  for(let i=0;i<session.windowPlan.length;i++){ const [a,b]=session.windowPlan[i]; if(pos>=a && pos<=b) return i; }
-  return -1;
-}
-function windowProgress(idx){ if(idx<0) return 0; const pos=rounds.length-session.startIdx; const [a,_b]=session.windowPlan[idx]; return Math.max(0,pos-a); }
-
-/* ========= GATES ========= */
-function allowByEnvironment(){
-  const ma10=movingAverage(rounds,10)||0;
-  const heat=heatScore(15);
-  regimen = heat>=6 ? "very-hot" : heat>=4 ? "hot" : heat>=2 ? "warm" : "cold";
-  const ok=!(heat<2 && ma10<2.2);
-  pThresh=ok?"ok":"↑bloq (ambiente)";
-  return ok;
-}
-function allowByAntiBlue(){ return antibbRoundsLeft<=0; }
-function onWindowChange(idx){ if(idx!==-1 && prevWinIdx!==idx){ if(cooldownWindowsLeft>0){ cooldownWindowsLeft--; addLog(`Cooldown ventanas restantes: ${cooldownWindowsLeft}`);} prevWinIdx=idx; } }
-function votesOK(ag, wIdx){
-  const heat=heatScore(15), mom=momentumScore(12);
-  const ma5=movingAverage(rounds,5)||0, ma10=movingAverage(rounds,10)||0; const trend=(ma5>=ma10)?1:0;
-
-  let needMom=0, needHeat=3.2;
-  if(ag==="CONS"){ needMom=3; needHeat=4.0; }
-  if(ag==="EQ"){ needMom=2; needHeat=3.5; }
-  if(ag==="AGR"){ needMom=0; needHeat=3.0; }
-
-  // endurecemos la ventana 3
-  if(wIdx===2){
-    needHeat = Math.max(needHeat, 4.2);
-    needMom  = Math.max(needMom , 2);
-  }
-
-  let votes=0; if(heat>=needHeat) votes++; if(mom>=needMom) votes++; if(trend) votes++;
-  return votes>=2;
-}
-
-/* Smart-Pacing v4.1 */
-const minIntoByWin=[3,3,4];
-function pacingOK(wIdx){ const into=windowProgress(wIdx); const minNeed=minIntoByWin[wIdx]||3; return into>=minNeed; }
-
-/* volatilidad azul fuerte */
-function volatilityGuard(){
-  const last8=rounds.slice(-8); const lows=last8.filter(x=>x<1.20).length; const heat=heatScore(15);
-  return !(lows>=3 && heat<6);
-}
-
-/* ========= DISPARO ========= */
 function shouldEmit170(){
   if(!session.active || session.sigCount>=3) return false;
-
-  const wIdx=currentWindowIdx(); if(wIdx===-1) return false; onWindowChange(wIdx);
-  if(lastWindowIdx===wIdx) return false;           // 1 por ventana
-  if(cooldownWindowsLeft>0) return false;
-  if(sepBlock>0) return false;
-
-  if(!allowByAntiBlue()) return false;
-  if(!allowByEnvironment()) return false;
-  if(!volatilityGuard()) return false;
+  const w=currentWindowIdx(); if(w===-1) return false;
+  if(lastWindowIdx===w) return false;
+  if(cooldownWindowsLeft>0 || sepBlock>0) return false;
+  if(!allowEnv() || !volatilityGuard()) return false;
   if(pinkProximity(6)) return false;
-
-  if(!pacingOK(wIdx)) return false;
-
-  // soft-deadline si ya hicimos 2 wins y el entorno no es excepcional
-  if(session.sigCount>=2){
-    const heat=heatScore(15), mom=momentumScore(12);
-    if(heat<7 && mom<3) return false;
-  }
-
-  // micro-valle: aplicamos sólo en ventana 3
-  if(wIdx===2 && microValley()) return false;
-
-  const ag=$("aggr")?.value||"EQ";
-  if(!votesOK(ag,wIdx)) return false;
-
-  const bRun=blueRun(18);
-  if(ag==="CONS" && bRun>4) return false;
-  if(ag==="EQ"   && bRun>6) return false;
-  if(ag==="AGR"  && bRun>7) return false;
-
+  if(windowProgress(w)<minInto[w]) return false;
+  if(session.sigCount>=2){ const heat=heatScore(15), mom=momentumScore(12); if(heat<7 && mom<3) return false; }
+  if(w===2 && microValley()) return false;
+  const ag=$("aggr")?.value||"EQ"; if(!votesOK(ag,w)) return false;
+  const a18=rounds.slice(-18).filter(x=>x<1.70).length; if(ag==="CONS"&&a18>4) return false; if(ag==="EQ"&&a18>6) return false; if(ag==="AGR"&&a18>7) return false;
   return true;
 }
 function emit170(){
   if(!flag("autoSignal",true)) return;
-  const ts=now();
-  const sig={ tag:"AUTO_1p7", objective:1.70, time:HHmmss(ts), ts, sessionLabel:HHmm(ts), state:"pend" };
-  pendings.push(sig); history.push(sig); renderSignals();
-  session.sigCount++; lastWindowIdx=currentWindowIdx(); sepBlock=sepMin; beepGo();
+  const ts=Date.now(); const sig={tag:"AUTO_1p7",objective:1.70,time:HHmmss(ts),ts,sessionLabel:HHmm(ts),state:"pend"};
+  pendings.push(sig); history.push(sig); renderSignals(); session.sigCount++; lastWindowIdx=currentWindowIdx(); sepBlock=sepMin;
   addLog(`Señal emitida (ventana ${lastWindowIdx+1}/3); objetivo ≥1.70.`);
 }
-
-/* ========= NUEVOS CRASHES ========= */
 function onNewCrash(v,ts,base=false){
   rounds.push(v); roundsMeta.push({v,ts}); if(rounds.length>3000){ rounds.shift(); roundsMeta.shift(); }
   lastShown.unshift(v); if(lastShown.length>60) lastShown.pop();
 
   if(!base && pendings.length){
-    const bet=pendings.shift(); const win=(v>bet.objective);
-    bet.crash=v; bet.state=win?"win":"lose"; history[history.length-1]=bet; renderSignals();
-
+    const b=pendings.shift(); const win=(v>b.objective); b.crash=v; b.state=win?"win":"lose"; history[history.length-1]=b; renderSignals();
     if(v<1.20) antibbRoundsLeft=Math.max(antibbRoundsLeft,2);
-
-    if(win){ loseStreak=0; sepBlock=Math.max(sepBlock,2); }
-    else{
-      loseStreak++; sepBlock=Math.max(sepBlock,4);
-      const recent=history.slice(-4); const loses=recent.filter(x=>x.state==="lose").length;
-      if(loses>=2 || loseStreak>=3){ cooldownWindowsLeft=Math.max(cooldownWindowsLeft,(loseStreak>=3?2:1)); addLog(`Cooldown activado (${cooldownWindowsLeft} ventana(s)) por racha de pérdidas.`); }
-    }
-    addLog(`Resultado ${win?"GANADA":"PERDIDA"} (${v.toFixed(2)}x).`);
+    if(win){ loseStreak=0; sepBlock=Math.max(sepBlock,2); } else { loseStreak++; sepBlock=Math.max(sepBlock,4); const loses=history.slice(-4).filter(x=>x.state==="lose").length; if(loses>=2||loseStreak>=3) cooldownWindowsLeft=Math.max(cooldownWindowsLeft,(loseStreak>=3?2:1)); }
+    addLog(`Resultado ${b.state==="win"?"GANADA":"PERDIDA"} (${v.toFixed(2)}x).`);
   }
-
-  if(sepBlock>0) sepBlock--;
-  if(antibbRoundsLeft>0) antibbRoundsLeft--;
-
+  if(sepBlock>0) sepBlock--; if(antibbRoundsLeft>0) antibbRoundsLeft--;
   renderStats();
-  if(base) return;
-
-  autoSessionMaybe();
-  if(shouldEmit170()) emit170();
+  if(!base && shouldEmit170()) emit170();
 }
 
-/* ========= CONEXIÓN ========= */
-let liveRef=null, liveCb=null, lastKey=null, lastTs=null, lastActivity=null, watchdog=null;
-function nodeToVT(node){
-  const raw=(node && typeof node==='object' && ('raw' in node || 'v' in node)) ? (node.raw ?? node.v) : node;
-  const v=parseCrashValue(raw); const ts=Number(node?.ts)||now(); return {v,ts};
-}
+/* ===== Sesión ===== */
+function resetSession(){ session.active=true; session.startIdx=rounds.length; session.sigCount=0; sepBlock=0; antibbRoundsLeft=0; cooldownWindowsLeft=0; lastWindowIdx=-1; addLog(`Empieza sesión ${HHmm(Date.now())} • objetivo ≥1.70 • tope 3/60 • Smart-Pacing v4.1`); }
+function autoSessionMaybe(){ const pos=rounds.length-session.startIdx; if(flag("autoSession",true) && (!session.active || pos>=60 || session.sigCount>=3)){ session.active=false; addLog("Fin de sesión."); resetSession(); } }
+
+/* ===== Conexión robusta ===== */
 async function connectFeed(){
-  if(connected) return;
+  if(connecting||connected) return;
+  connecting=true; $("connectBtn").disabled=true;
   FEED_ID=($("feedId").value||"gocho").trim();
   $("statusFeedback").textContent=`Conectando a feeds/${FEED_ID}/crashes…`;
-  try{ await auth.signInAnonymously(); }catch(_){}
   try{
+    await auth.setPersistence(firebase.auth.Auth.Persistence.NONE).catch(()=>{});
+    await auth.signInAnonymously().catch(()=>{});
     const ref=db.ref(`feeds/${FEED_ID}/crashes`);
-    if(flag("cleanOnConnect",false)){ history=[]; pendings=[]; $("sigTbody").innerHTML=""; $("logBox").textContent=""; }
 
-    let snap=null, method="key";
-    try{ const s=await ref.orderByChild("ts").limitToLast(800).once("value"); if(s && s.val()){ snap=s; method="ts"; } }catch(_){}
-    if(!snap){ try{ const s=await ref.orderByKey().limitToLast(800).once("value"); if(s && s.val()){ snap=s; method="key"; } }catch(_{}) }
+    const tryGet = async (q) => { try{ const s=await q.get(); if(s && s.exists()) return s; }catch(_){ } return null; };
 
-    if(!snap||!snap.val()){ $("statusFeedback").textContent="Sin datos en el feed."; return; }
+    let snap = await tryGet(ref.orderByChild("ts").limitToLast(800));
+    let mode = "ts";
+    if(!snap){ snap = await tryGet(ref.orderByKey().limitToLast(800)); mode="key"; }
 
-    rounds=[]; roundsMeta=[]; lastShown=[]; baseCount=Object.keys(snap.val()).length; pendings=[];
-    const data=snap.val(), keys=Object.keys(data).sort();
-    keys.forEach(k=>{ const {v,ts}=nodeToVT(data[k]); if(v!==null) onNewCrash(v,ts,true); lastKey=k; lastTs=Number(data[k]?.ts||k)||now(); lastActivity=now(); });
+    if(!snap){ $("statusFeedback").textContent="No hay datos en el feed (aún)."; connecting=false; $("connectBtn").disabled=false; return; }
 
-    resetSession();
+    rounds=[]; roundsMeta=[]; lastShown=[]; baseCount=0; history=[]; pendings=[];
+    const data=snap.val(); const keys=Object.keys(data).sort(); baseCount=keys.length;
 
-    if(method==="ts"){
-      liveRef=ref.orderByChild("ts").startAt(lastTs);
-      liveCb=s=>{ const key=s.key, d=s.val(); const {v,ts}=nodeToVT(d); if(lastTs && ts<=lastTs && key===lastKey) return; lastKey=key; lastTs=ts; lastActivity=now(); if(v!==null) onNewCrash(v,ts,false); };
+    let lastValidTs=0, lastValidKey=null;
+    for(const k of keys){
+      const node=data[k];
+      const {v,ts}=nodeToVT(node);
+      if(v!==null && isFinite(v) && v>=1){
+        onNewCrash(v,ts,true);
+        if(ts>lastValidTs){ lastValidTs=ts; lastValidKey=k; }
+      }
+    }
+    lastTs=lastValidTs||Date.now(); lastKey=lastValidKey||keys[keys.length-1]; lastActivity=Date.now();
+
+    resetSession(); renderStats(); renderSignals();
+
+    if(liveRef && liveCb) liveRef.off("child_added", liveCb);
+    if(mode==="ts"){
+      liveRef = ref.orderByChild("ts").startAt(lastTs+1); // evita engancharse
+      liveCb   = s => { const d=s.val(); if(!d) return; const {v,ts}=nodeToVT(d); if(!(v!==null && isFinite(v) && v>=1)) return; lastTs=ts; lastKey=s.key; lastActivity=Date.now(); onNewCrash(v,ts,false); autoSessionMaybe(); };
     }else{
-      liveRef=ref.orderByKey().startAt(lastKey||"");
-      liveCb=s=>{ const key=s.key, d=s.val(); if(lastKey && key<=lastKey) return; lastKey=key; const {v,ts}=nodeToVT(d); lastTs=ts; lastActivity=now(); if(v!==null) onNewCrash(v,ts,false); };
+      liveRef = ref.orderByKey().startAfter(lastKey||"");
+      liveCb   = s => { const d=s.val(); if(!d) return; const {v,ts}=nodeToVT(d); if(!(v!==null && isFinite(v) && v>=1)) return; lastTs=ts; lastKey=s.key; lastActivity=Date.now(); onNewCrash(v,ts,false); autoSessionMaybe(); };
     }
     liveRef.on("child_added", liveCb);
 
     if(watchdog) clearInterval(watchdog);
-    watchdog=setInterval(()=>{ if(!connected) return; const dt=Date.now()-(lastActivity||0); if(dt>300000){ disconnectFeed(true); connectFeed(); } }, 30000);
+    watchdog=setInterval(()=>{ if(!connected) return; if(Date.now()-(lastActivity||0)>240000){ addLog("Watchdog: reconexión…"); disconnectFeed(true); connectFeed(); } }, 30000);
 
-    connected=true; $("statusFeedback").textContent="Conectado."; renderStats(); renderSignals();
+    connected=true; $("statusFeedback").textContent="Conectado.";
   }catch(err){
     $("statusFeedback").textContent="Error al conectar.";
-    addLog(`Conectar error: ${err?.message||err}`);
+    addLog("Conectar error: "+(err?.message||err));
+  }finally{
+    connecting=false; $("connectBtn").disabled=false;
   }
 }
 function disconnectFeed(silent=false){
-  if(!connected) return;
   if(liveRef && liveCb) liveRef.off("child_added", liveCb);
-  liveRef=liveCb=null; lastKey=lastTs=lastActivity=null; connected=false;
+  liveRef=liveCb=null; connected=false; connecting=false; lastKey=lastTs=lastActivity=null;
   if(watchdog){ clearInterval(watchdog); watchdog=null; }
-  if(!silent){ $("statusFeedback").textContent="Desconectado."; }
+  if(!silent) $("statusFeedback").textContent="Desconectado.";
 }
 
-/* ========= HOOKS ========= */
+/* ===== UI hooks ===== */
 $("connectBtn").addEventListener("click", connectFeed);
 $("disconnectBtn").addEventListener("click", ()=>disconnectFeed(false));
 setInterval(()=>{ $("clockNow").textContent=new Date().toLocaleTimeString(); }, 1000);
