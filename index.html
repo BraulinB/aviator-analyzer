@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v26.2 (≥1.70 • 3/60 • Smart Pacing v4)</title>
+<title>Aviator Analyzer • Gocho v26.3 (≥1.70 • 3/60 • Smart Pacing v4.1)</title>
 <style>
   :root{
     --bg:#0b0f14; --panel:#141a23; --muted:#96a0ad; --text:#e9eef6;
@@ -35,11 +35,10 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>✈️ Aviator Analyzer • <b style="color:#8ab4ff">Gocho v26.2</b>
+  <h1>✈️ Aviator Analyzer • <b style="color:#8ab4ff">Gocho v26.3</b>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
   </h1>
 
-  <!-- Controles -->
   <div class="card">
     <div class="row">
       <label class="row"><input id="autoSignal" type="checkbox" checked> Auto-señal</label>
@@ -69,7 +68,6 @@
     <div id="statusFeedback" class="muted" style="margin-top:6px"></div>
   </div>
 
-  <!-- KPIs -->
   <div class="card">
     <div class="kpi">
       <div class="box">Rondas: <b id="rounds">0</b> <span class="muted">(base)</span></div>
@@ -85,7 +83,6 @@
     </div>
   </div>
 
-  <!-- Señales -->
   <div class="card">
     <div class="row"><h3 style="margin:0">Señales (historial persistente)</h3></div>
     <table class="table" style="margin-top:8px">
@@ -94,7 +91,6 @@
     </table>
   </div>
 
-  <!-- Reseña -->
   <div class="card">
     <h3 style="margin:0 0 8px">Reseña</h3>
     <div id="logBox" class="log" aria-live="polite"></div>
@@ -105,13 +101,12 @@
   </div>
 </div>
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script>
-/* ================ CONFIG ================ */
+/* ========= CONFIG ========= */
 const firebaseConfig = {
   apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
   authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
@@ -123,67 +118,38 @@ const firebaseConfig = {
   databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com"
 };
 firebase.initializeApp(firebaseConfig);
-const db  = firebase.database();
-const auth= firebase.auth();
+const db=firebase.database(), auth=firebase.auth();
 
-/* ================ HELPERS ================ */
-const $ = id => document.getElementById(id);
-/* ✅ lectura segura de checkboxes */
-function flag(id, def=false){ const el=$(id); return el ? !!el.checked : def; }
-
+/* ========= HELPERS ========= */
+const $=id=>document.getElementById(id);
+function flag(id,def=false){ const el=$(id); return el?!!el.checked:def; }
 const now=()=>Date.now();
 const HHmm = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
 const HHmmss = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
 
 function chipClass(v){ if(v>=10) return "pink"; if(v>=3) return "purple"; if(v>=2) return "green"; return "blue"; }
+function movingAverage(arr,n){ const L=Math.min(arr.length,n); if(!L) return NaN; let s=0; for(let i=arr.length-L;i<arr.length;i++) s+=arr[i]; return s/L; }
 
-function movingAverage(arr, n){
-  const L=Math.min(arr.length,n); if(!L) return NaN;
-  let s=0; for(let i=arr.length-L;i<arr.length;i++) s+=arr[i]; return s/L;
-}
-
-/* calor = proporción ≥2x en ventana corta */
-function heatScore(n=15){
-  const w=rounds.slice(-n); if(!w.length) return 0;
-  return (w.filter(x=>x>=2).length/w.length)*10; // 0–10
-}
-/* racha de azules (<1.70) recientes */
-function blueRun(n=18){
-  const w=rounds.slice(-n); let r=0,m=0;
-  for(const x of w){ if(x<1.70){ r++; m=Math.max(m,r);} else r=0;}
-  return m;
-}
-/* momentum: penaliza azules y premia verdes/morados */
+function heatScore(n=15){ const w=rounds.slice(-n); if(!w.length) return 0; return (w.filter(x=>x>=2).length/w.length)*10; }
+function blueRun(n=18){ const w=rounds.slice(-n); let r=0,m=0; for(const x of w){ if(x<1.70){ r++; m=Math.max(m,r);} else r=0;} return m; }
 function momentumScore(len=12){
   const w=rounds.slice(-len); let s=0;
   for(const x of w){
-    if(x>=10) s+=4;
-    else if(x>=3) s+=3;
-    else if(x>=2) s+=2;
-    else if(x>=1.70) s+=1;
-    else if(x<1.20) s-=3;
-    else s-=1;
-  }
-  return s;
+    if(x>=10) s+=4; else if(x>=3) s+=3; else if(x>=2) s+=2; else if(x>=1.70) s+=1;
+    else if(x<1.20) s-=3; else s-=1;
+  } return s;
 }
-/* proximidad a rosa grande (≥15x) → evita valle post-pico */
-function pinkProximity(block=6){
-  return rounds.slice(-block).some(x=>x>=15);
-}
-/* std “suave” de últimos N */
-function stdev(arr,n=12){
-  const w=arr.slice(-n); if(w.length<2) return 0;
-  const m=w.reduce((a,b)=>a+b,0)/w.length;
-  const v=w.reduce((a,b)=>a+(b-m)*(b-m),0)/(w.length-1);
-  return Math.sqrt(v);
-}
+function pinkProximity(block=6){ return rounds.slice(-block).some(x=>x>=15); }
+function stdev(arr,n=12){ const w=arr.slice(-n); if(w.length<2) return 0; const m=w.reduce((a,b)=>a+b,0)/w.length; const v=w.reduce((a,b)=>a+(b-m)*(b-m),0)/(w.length-1); return Math.sqrt(v); }
 
-/* parser robusto + rescate 1000x si se mutila 396→1396 */
+/* micro-valle: último5 con ≥2 <1.50 ó último8 con ≥3 <1.70 */
+function microValley(){ const a5=rounds.slice(-5), a8=rounds.slice(-8); const c5=a5.filter(x=>x<1.50).length; const c8=a8.filter(x=>x<1.70).length; return (c5>=2)||(c8>=3); }
+
+/* robust parser */
 function parseCrashValue(raw){
   if(raw===null||raw===undefined) return null;
   if(typeof raw==="number") return (raw>=1 && isFinite(raw))? raw : null;
   let sRaw = String((typeof raw==="object" && raw && ("raw" in raw || "v" in raw)) ? (raw.raw ?? raw.v) : raw);
-
   const rx=/(\d{1,3}(?:[.,\u00A0\u2009]\d{3})+(?:[.,]\d+)?)/;
   const m=sRaw.match(rx);
   if(m){
@@ -201,236 +167,183 @@ function parseCrashValue(raw){
   if(dec===','){ s=s.replace(/\./g,''); s=s.replace(',', '.'); } else { s=s.replace(/,/g,''); }
   let v=Number(s); if(!(isFinite(v)&&v>=1)) return null;
 
-  if(flag("auto1k", true) && v>=300 && v<450){
-    const ma10 = movingAverage(rounds,10);
-    const recentHuge = rounds.slice(-8).some(x=>x>=200);
+  if(flag("auto1k",true) && v>=300 && v<450){
+    const ma10=movingAverage(rounds,10), recentHuge=rounds.slice(-8).some(x=>x>=200);
     if(recentHuge || (ma10 && ma10>20)) v+=1000;
-  }
-  return v;
+  } return v;
 }
 
-/* ================ ESTADO ================ */
+/* ========= ESTADO ========= */
 let FEED_ID="gocho", connected=false;
 let rounds=[], roundsMeta=[], lastShown=[];
 let baseCount=0;
 
-let session={
-  active:false, startIdx:0, sigCount:0, tag:"AUTO_1p7", objective:1.70,
-  windowPlan:[[6,22],[23,42],[43,60]], softDeadline:true, carryOver:true
-};
+let session={ active:false, startIdx:0, sigCount:0, tag:"AUTO_1p7", objective:1.70,
+  windowPlan:[[6,22],[23,42],[43,60]], softDeadline:true, carryOver:true };
 
 let pendings=[], history=[];
-let sepMin=3, sepBlock=0;
-let antibbRoundsLeft=0;
-let cooldownWindowsLeft=0;    // 🔸cooldown por ventanas
-let prevWinIdx=-1;
-let lastWindowIdx=-1;
-
-let loseStreak=0;
+let sepMin=3, sepBlock=0, antibbRoundsLeft=0, cooldownWindowsLeft=0;
+let prevWinIdx=-1, lastWindowIdx=-1, loseStreak=0;
 let pThresh="—", regimen="—";
 
-/* ================ AUDIO ================ */
+/* ========= AUDIO ========= */
 let audioCtx=null;
 function beep(freq=880,ms=120,g=0.03){
-  if(!flag("beepToggle", true)) return;
+  if(!flag("beepToggle",true)) return;
   try{ if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
     const o=audioCtx.createOscillator(), a=audioCtx.createGain();
     o.type="sine"; o.frequency.value=freq; a.gain.value=g; o.connect(a); a.connect(audioCtx.destination);
     o.start(); setTimeout(()=>o.stop(), ms);
   }catch(_){}
 }
-const beepGo = ()=>{ beep(650,120,0.035); setTimeout(()=>beep(900,100,0.03),150); };
+const beepGo=()=>{ beep(650,120,0.035); setTimeout(()=>beep(900,100,0.03),150); };
 
-/* ================ RENDER ================ */
-function renderStats(){
-  $("rounds").textContent = `${rounds.length} (base ${baseCount})`;
-  const ma10=movingAverage(rounds,10); $("ma10").textContent=isNaN(ma10)?"–":ma10.toFixed(2)+"x";
-  $("since170").textContent = rounds.slice(-60).filter(x=>x>=1.70).length;
-  $("sessionProg").textContent = `${Math.min(60, rounds.length - session.startIdx)}/60`;
-  $("sessionSignals").textContent = `${session.sigCount}`;
-  $("sepLbl").textContent = `${sepMin}${cooldownWindowsLeft?` • cd:${cooldownWindowsLeft}`:""}`;
-  const heat=heatScore(15); $("heatLbl").textContent=heat.toFixed(2);
-  $("pthLbl").textContent=pThresh; $("regLbl").textContent=regimen;
-
-  const cont=$("lastRounds"); cont.innerHTML="";
-  lastShown.forEach(v=>{
-    const s=document.createElement("span");
-    s.className="chip small "+chipClass(v);
-    s.textContent=(v>=1000? (v-1000).toFixed(2)+"x" : v.toFixed(2)+"x");
-    cont.appendChild(s);
-  });
-}
-function addLog(line){ const el=$("logBox"); el.textContent += `[${new Date().toLocaleTimeString()}] ${line}\n`; el.scrollTop=el.scrollHeight; }
+/* ========= UI ========= */
+const addLog=line=>{ const el=$("logBox"); el.textContent+=`[${new Date().toLocaleTimeString()}] ${line}\n`; el.scrollTop=el.scrollHeight; };
 function renderSignals(){
   const tb=$("sigTbody"); tb.innerHTML="";
   history.forEach((s,i)=>{
-    const st = s.state==="win" ? `<b class="oktxt">win</b>` : s.state==="lose" ? `<b class="badtxt">lose</b>` : "pend";
+    const st=s.state==="win"?`<b class="oktxt">win</b>`:s.state==="lose"?`<b class="badtxt">lose</b>`:"pend";
     const tr=document.createElement("tr");
-    tr.innerHTML = `<td>${i+1}</td><td>${s.sessionLabel||"—"}</td><td>${s.tag}</td><td>${s.objective.toFixed(2)}x</td><td>${s.time}</td><td>${s.crash? s.crash.toFixed(2)+"x":"—"}</td><td>${st}</td>`;
+    tr.innerHTML=`<td>${i+1}</td><td>${s.sessionLabel||"—"}</td><td>${s.tag}</td><td>${s.objective.toFixed(2)}x</td><td>${s.time}</td><td>${s.crash? s.crash.toFixed(2)+"x":"—"}</td><td>${st}</td>`;
     tb.appendChild(tr);
   });
 }
+function renderStats(){
+  $("rounds").textContent=`${rounds.length} (base ${baseCount})`;
+  const ma10=movingAverage(rounds,10); $("ma10").textContent=isNaN(ma10)?"–":ma10.toFixed(2)+"x";
+  $("since170").textContent=rounds.slice(-60).filter(x=>x>=1.70).length;
+  $("sessionProg").textContent=`${Math.min(60, rounds.length - session.startIdx)}/60`;
+  $("sessionSignals").textContent=`${session.sigCount}`;
+  $("sepLbl").textContent=`${sepMin}${cooldownWindowsLeft?` • cd:${cooldownWindowsLeft}`:""}`;
+  const heat=heatScore(15); $("heatLbl").textContent=heat.toFixed(2);
+  $("pthLbl").textContent=pThresh; $("regLbl").textContent=regimen;
+  const cont=$("lastRounds"); cont.innerHTML="";
+  lastShown.forEach(v=>{ const s=document.createElement("span"); s.className="chip small "+chipClass(v); s.textContent=(v>=1000?(v-1000).toFixed(2)+"x":v.toFixed(2)+"x"); cont.appendChild(s); });
+}
 
-/* ================ SESIÓN ================ */
+/* ========= SESIÓN ========= */
 function resetSession(){
   session.active=true; session.startIdx=rounds.length; session.sigCount=0;
-  sepBlock=0; antibbRoundsLeft=0; cooldownWindowsLeft=0; prevWinIdx=-1; lastWindowIdx=-1;
-  pThresh="—"; regimen="—"; loseStreak=0;
-  addLog(`Empieza sesión ${HHmm(now())} • objetivo ≥${session.objective.toFixed(2)} • tope 3/60 • Smart-Pacing v4.`);
+  sepBlock=0; antibbRoundsLeft=0; cooldownWindowsLeft=0; prevWinIdx=-1; lastWindowIdx=-1; loseStreak=0;
+  pThresh="—"; regimen="—";
+  addLog(`Empieza sesión ${HHmm(now())} • objetivo ≥${session.objective.toFixed(2)} • tope 3/60 • Smart-Pacing v4.1.`);
 }
 function autoSessionMaybe(){
-  const pos=rounds.length - session.startIdx;
-  if(flag("autoSession", true) && (!session.active || pos>=60 || session.sigCount>=3)){
-    session.active=false; addLog(`Fin de sesión.`);
-    resetSession();
+  const pos=rounds.length-session.startIdx;
+  if(flag("autoSession",true) && (!session.active || pos>=60 || session.sigCount>=3)){
+    session.active=false; addLog(`Fin de sesión.`); resetSession();
   }
 }
-
-/* Ventana actual 0..2 o -1 */
 function currentWindowIdx(){
-  const pos = rounds.length - session.startIdx;
-  for(let i=0;i<session.windowPlan.length;i++){
-    const [a,b]=session.windowPlan[i]; if(pos>=a && pos<=b) return i;
-  }
+  const pos=rounds.length-session.startIdx;
+  for(let i=0;i<session.windowPlan.length;i++){ const [a,b]=session.windowPlan[i]; if(pos>=a && pos<=b) return i; }
   return -1;
 }
-function windowProgress(idx){
-  if(idx<0) return 0;
-  const pos=rounds.length - session.startIdx;
-  const [a,_b]=session.windowPlan[idx]; return Math.max(0, pos - a);
-}
+function windowProgress(idx){ if(idx<0) return 0; const pos=rounds.length-session.startIdx; const [a,_b]=session.windowPlan[idx]; return Math.max(0,pos-a); }
 
-/* ================ REGLAS/GATES ================ */
+/* ========= GATES ========= */
 function allowByEnvironment(){
-  const ma10 = movingAverage(rounds,10)||0;
-  const heat = heatScore(15);
+  const ma10=movingAverage(rounds,10)||0;
+  const heat=heatScore(15);
   regimen = heat>=6 ? "very-hot" : heat>=4 ? "hot" : heat>=2 ? "warm" : "cold";
-  const ok = !(heat<2 && ma10<2.2);
-  pThresh = ok?"ok":"↑bloq (ambiente)";
+  const ok=!(heat<2 && ma10<2.2);
+  pThresh=ok?"ok":"↑bloq (ambiente)";
   return ok;
 }
 function allowByAntiBlue(){ return antibbRoundsLeft<=0; }
-function onWindowChange(idx){
-  if(idx!==-1 && prevWinIdx!==idx){
-    if(cooldownWindowsLeft>0){ cooldownWindowsLeft--; addLog(`Cooldown ventanas restantes: ${cooldownWindowsLeft}`); }
-    prevWinIdx=idx;
-  }
-}
+function onWindowChange(idx){ if(idx!==-1 && prevWinIdx!==idx){ if(cooldownWindowsLeft>0){ cooldownWindowsLeft--; addLog(`Cooldown ventanas restantes: ${cooldownWindowsLeft}`);} prevWinIdx=idx; } }
+function votesOK(ag, wIdx){
+  const heat=heatScore(15), mom=momentumScore(12);
+  const ma5=movingAverage(rounds,5)||0, ma10=movingAverage(rounds,10)||0; const trend=(ma5>=ma10)?1:0;
 
-/* votos 2/3: heat + momentum + tendencia (ma5 vs ma10) */
-function votesOK(ag){
-  const heat = heatScore(15);
-  const mom  = momentumScore(12);
-  const ma5 = movingAverage(rounds,5)||0, ma10=movingAverage(rounds,10)||0;
-  const trend = ma5>=ma10 ? 1:0;
-
-  // umbrales por agresividad
   let needMom=0, needHeat=3.2;
   if(ag==="CONS"){ needMom=3; needHeat=4.0; }
   if(ag==="EQ"){ needMom=2; needHeat=3.5; }
   if(ag==="AGR"){ needMom=0; needHeat=3.0; }
 
-  let votes=0;
-  if(heat>=needHeat) votes++;
-  if(mom>=needMom)  votes++;
-  if(trend)         votes++;
+  // endurecemos la ventana 3
+  if(wIdx===2){
+    needHeat = Math.max(needHeat, 4.2);
+    needMom  = Math.max(needMom , 2);
+  }
+
+  let votes=0; if(heat>=needHeat) votes++; if(mom>=needMom) votes++; if(trend) votes++;
   return votes>=2;
 }
 
-/* Smart-Pacing v4: no disparar apenas abre ventana */
-const minIntoByWin=[3,2,2];  // rondas mínimas transcurridas dentro de la ventana
-function pacingOK(wIdx){
-  const into = windowProgress(wIdx);
-  const minNeed = minIntoByWin[wIdx]||2;
-  return into>=minNeed;
-}
+/* Smart-Pacing v4.1 */
+const minIntoByWin=[3,3,4];
+function pacingOK(wIdx){ const into=windowProgress(wIdx); const minNeed=minIntoByWin[wIdx]||3; return into>=minNeed; }
 
-/* volatilidad azul fuerte: si hay ≥3 azules <1.20 en últimos 8, bloquear salvo calor alto */
+/* volatilidad azul fuerte */
 function volatilityGuard(){
-  const last8=rounds.slice(-8);
-  const droplows=last8.filter(x=>x<1.20).length;
-  const heat=heatScore(15);
-  return !(droplows>=3 && heat<6);
+  const last8=rounds.slice(-8); const lows=last8.filter(x=>x<1.20).length; const heat=heatScore(15);
+  return !(lows>=3 && heat<6);
 }
 
-/* ================ DISPARO ================ */
+/* ========= DISPARO ========= */
 function shouldEmit170(){
   if(!session.active || session.sigCount>=3) return false;
 
-  const wIdx=currentWindowIdx();
-  if(wIdx===-1) return false;
-  onWindowChange(wIdx);
-
-  // 1 por ventana
-  if(lastWindowIdx===wIdx) return false;
-
-  // cooldown por ventanas
+  const wIdx=currentWindowIdx(); if(wIdx===-1) return false; onWindowChange(wIdx);
+  if(lastWindowIdx===wIdx) return false;           // 1 por ventana
   if(cooldownWindowsLeft>0) return false;
-
-  // separaciones
   if(sepBlock>0) return false;
 
-  // guards
   if(!allowByAntiBlue()) return false;
   if(!allowByEnvironment()) return false;
   if(!volatilityGuard()) return false;
-  if(pinkProximity(6)) return false;          // post-rosa grande
+  if(pinkProximity(6)) return false;
 
-  // pacing
   if(!pacingOK(wIdx)) return false;
 
-  // votos 2/3
-  const ag=$("aggr")?.value||"EQ";
-  if(!votesOK(ag)) return false;
+  // soft-deadline si ya hicimos 2 wins y el entorno no es excepcional
+  if(session.sigCount>=2){
+    const heat=heatScore(15), mom=momentumScore(12);
+    if(heat<7 && mom<3) return false;
+  }
 
-  // gate suave por racha azul larga
-  const bRun = blueRun(18);
+  // micro-valle: aplicamos sólo en ventana 3
+  if(wIdx===2 && microValley()) return false;
+
+  const ag=$("aggr")?.value||"EQ";
+  if(!votesOK(ag,wIdx)) return false;
+
+  const bRun=blueRun(18);
   if(ag==="CONS" && bRun>4) return false;
   if(ag==="EQ"   && bRun>6) return false;
   if(ag==="AGR"  && bRun>7) return false;
 
   return true;
 }
-
 function emit170(){
-  if(!flag("autoSignal", true)) return;
+  if(!flag("autoSignal",true)) return;
   const ts=now();
   const sig={ tag:"AUTO_1p7", objective:1.70, time:HHmmss(ts), ts, sessionLabel:HHmm(ts), state:"pend" };
   pendings.push(sig); history.push(sig); renderSignals();
-  session.sigCount++; lastWindowIdx=currentWindowIdx();
-  sepBlock = sepMin;
-  beepGo();
+  session.sigCount++; lastWindowIdx=currentWindowIdx(); sepBlock=sepMin; beepGo();
   addLog(`Señal emitida (ventana ${lastWindowIdx+1}/3); objetivo ≥1.70.`);
 }
 
-/* ================ NUEVOS CRASHES ================ */
+/* ========= NUEVOS CRASHES ========= */
 function onNewCrash(v,ts,base=false){
   rounds.push(v); roundsMeta.push({v,ts}); if(rounds.length>3000){ rounds.shift(); roundsMeta.shift(); }
   lastShown.unshift(v); if(lastShown.length>60) lastShown.pop();
 
-  // resolver pendientes en live
   if(!base && pendings.length){
     const bet=pendings.shift(); const win=(v>bet.objective);
-    bet.crash=v; bet.state=win?"win":"lose";
-    history[ history.length-1 ] = bet; renderSignals();
+    bet.crash=v; bet.state=win?"win":"lose"; history[history.length-1]=bet; renderSignals();
 
-    // ajustes post-resultado
-    if(v<1.20) antibbRoundsLeft = Math.max(antibbRoundsLeft, 2);
+    if(v<1.20) antibbRoundsLeft=Math.max(antibbRoundsLeft,2);
 
-    if(win){
-      loseStreak=0;
-      sepBlock=Math.max(sepBlock,2); // breve separación tras win
-    }else{
-      loseStreak++;
-      sepBlock=Math.max(sepBlock,4); // más aire tras lose
-      // si 2L en 3 o racha ≥3 → cooldown 1–2 ventanas
-      const recent=history.slice(-3); const loses=recent.filter(x=>x.state==="lose").length;
-      if(loses>=2 || loseStreak>=3){
-        cooldownWindowsLeft = Math.max(cooldownWindowsLeft, (loseStreak>=3?2:1));
-        addLog(`Cooldown activado (${cooldownWindowsLeft} ventana(s)) por racha de pérdidas.`);
-      }
+    if(win){ loseStreak=0; sepBlock=Math.max(sepBlock,2); }
+    else{
+      loseStreak++; sepBlock=Math.max(sepBlock,4);
+      const recent=history.slice(-4); const loses=recent.filter(x=>x.state==="lose").length;
+      if(loses>=2 || loseStreak>=3){ cooldownWindowsLeft=Math.max(cooldownWindowsLeft,(loseStreak>=3?2:1)); addLog(`Cooldown activado (${cooldownWindowsLeft} ventana(s)) por racha de pérdidas.`); }
     }
-    addLog(`Resultado ${win? "GANADA":"PERDIDA"} (${v.toFixed(2)}x).`);
+    addLog(`Resultado ${win?"GANADA":"PERDIDA"} (${v.toFixed(2)}x).`);
   }
 
   if(sepBlock>0) sepBlock--;
@@ -443,58 +356,46 @@ function onNewCrash(v,ts,base=false){
   if(shouldEmit170()) emit170();
 }
 
-/* ================ CONEXIÓN FEED ================ */
+/* ========= CONEXIÓN ========= */
 let liveRef=null, liveCb=null, lastKey=null, lastTs=null, lastActivity=null, watchdog=null;
-
 function nodeToVT(node){
-  const raw = (node && typeof node==='object' && ('raw' in node || 'v' in node)) ? (node.raw ?? node.v) : node;
-  const v = parseCrashValue(raw);
-  const ts = Number(node?.ts) || now();
-  return {v,ts};
+  const raw=(node && typeof node==='object' && ('raw' in node || 'v' in node)) ? (node.raw ?? node.v) : node;
+  const v=parseCrashValue(raw); const ts=Number(node?.ts)||now(); return {v,ts};
 }
-
 async function connectFeed(){
   if(connected) return;
   FEED_ID=($("feedId").value||"gocho").trim();
-  const fb=$("statusFeedback"); fb&&(fb.textContent=`Conectando a feeds/${FEED_ID}/crashes…`);
-  try{ await auth.signInAnonymously(); }catch(e){}
+  $("statusFeedback").textContent=`Conectando a feeds/${FEED_ID}/crashes…`;
+  try{ await auth.signInAnonymously(); }catch(_){}
   try{
     const ref=db.ref(`feeds/${FEED_ID}/crashes`);
-    if(flag("cleanOnConnect", false)){ history=[]; pendings=[]; $("sigTbody").innerHTML=""; $("logBox").textContent=""; }
+    if(flag("cleanOnConnect",false)){ history=[]; pendings=[]; $("sigTbody").innerHTML=""; $("logBox").textContent=""; }
 
     let snap=null, method="key";
-    try{ const s=await ref.orderByChild("ts").limitToLast(800).once("value"); if(s && s.val()) { snap=s; method="ts"; } }catch(e){}
-    if(!snap){ try{ const s=await ref.orderByKey().limitToLast(800).once("value"); if(s && s.val()) { snap=s; method="key"; } }catch(e){} }
-    if(!snap||!snap.val()){ fb&&(fb.textContent="Sin datos en el feed."); return; }
+    try{ const s=await ref.orderByChild("ts").limitToLast(800).once("value"); if(s && s.val()){ snap=s; method="ts"; } }catch(_){}
+    if(!snap){ try{ const s=await ref.orderByKey().limitToLast(800).once("value"); if(s && s.val()){ snap=s; method="key"; } }catch(_{}) }
 
-    // reset buffers
-    rounds=[]; roundsMeta=[]; lastShown=[]; baseCount=Object.keys(snap.val()).length;
-    pendings=[];
+    if(!snap||!snap.val()){ $("statusFeedback").textContent="Sin datos en el feed."; return; }
 
-    // base
+    rounds=[]; roundsMeta=[]; lastShown=[]; baseCount=Object.keys(snap.val()).length; pendings=[];
     const data=snap.val(), keys=Object.keys(data).sort();
     keys.forEach(k=>{ const {v,ts}=nodeToVT(data[k]); if(v!==null) onNewCrash(v,ts,true); lastKey=k; lastTs=Number(data[k]?.ts||k)||now(); lastActivity=now(); });
 
     resetSession();
 
-    // live
     if(method==="ts"){
       liveRef=ref.orderByChild("ts").startAt(lastTs);
-      liveCb=s=>{ const key=s.key, d=s.val(); const {v,ts}=nodeToVT(d);
-        if(lastTs && ts<=lastTs && key===lastKey) return;
-        lastKey=key; lastTs=ts; lastActivity=now(); if(v!==null) onNewCrash(v,ts,false); };
+      liveCb=s=>{ const key=s.key, d=s.val(); const {v,ts}=nodeToVT(d); if(lastTs && ts<=lastTs && key===lastKey) return; lastKey=key; lastTs=ts; lastActivity=now(); if(v!==null) onNewCrash(v,ts,false); };
     }else{
       liveRef=ref.orderByKey().startAt(lastKey||"");
-      liveCb=s=>{ const key=s.key, d=s.val(); if(lastKey && key<=lastKey) return;
-        lastKey=key; const {v,ts}=nodeToVT(d); lastTs=ts; lastActivity=now(); if(v!==null) onNewCrash(v,ts,false); };
+      liveCb=s=>{ const key=s.key, d=s.val(); if(lastKey && key<=lastKey) return; lastKey=key; const {v,ts}=nodeToVT(d); lastTs=ts; lastActivity=now(); if(v!==null) onNewCrash(v,ts,false); };
     }
     liveRef.on("child_added", liveCb);
 
-    // watchdog
     if(watchdog) clearInterval(watchdog);
     watchdog=setInterval(()=>{ if(!connected) return; const dt=Date.now()-(lastActivity||0); if(dt>300000){ disconnectFeed(true); connectFeed(); } }, 30000);
 
-    connected=true; fb&&(fb.textContent="Conectado."); renderStats(); renderSignals();
+    connected=true; $("statusFeedback").textContent="Conectado."; renderStats(); renderSignals();
   }catch(err){
     $("statusFeedback").textContent="Error al conectar.";
     addLog(`Conectar error: ${err?.message||err}`);
@@ -508,7 +409,7 @@ function disconnectFeed(silent=false){
   if(!silent){ $("statusFeedback").textContent="Desconectado."; }
 }
 
-/* ================ UI ================ */
+/* ========= HOOKS ========= */
 $("connectBtn").addEventListener("click", connectFeed);
 $("disconnectBtn").addEventListener("click", ()=>disconnectFeed(false));
 setInterval(()=>{ $("clockNow").textContent=new Date().toLocaleTimeString(); }, 1000);
