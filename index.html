@@ -1,457 +1,441 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Aviator Analyzer · Gocho v26.6 (anti-eco, rosa explicada)</title>
+<title>Aviator Analyzer • Gocho v26.6 (3 señales óptimas / 60)</title>
 <style>
   :root{
-    --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5;
-    --ok:#2ecc71; --warn:#e67e22; --bad:#e74c3c; --brand:#8ab4ff;
-    --pill:#1c2130; --blue:#20334a; --green:#1f3a2e; --purple:#2a2146; --pink:#402038;
+    --bg:#0f1115; --panel:#131722; --muted:#9aa4b2; --ink:#e6edf3;
+    --chip-blue:#2e6ff2; --chip-purple:#9b59b6; --chip-pink:#ff4f93;
+    --ok:#35c27e; --bad:#ff6b6b; --warn:#ffb020; --line:#202635;
   }
-  html,body{background:var(--bg);color:var(--text);font:14px/1.45 system-ui,Inter,Segoe UI,Roboto,Arial,sans-serif;margin:0}
-  .wrap{max-width:1150px;margin:18px auto;padding:0 12px}
-  h1{font-size:18px;margin:0 0 10px;display:flex;gap:8px;align-items:center}
-  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .card{background:var(--panel);border:1px solid #22283a;border-radius:12px;padding:14px;margin:10px 0}
-  .btn{background:#2a3042;color:var(--text);border:0;border-radius:8px;padding:8px 12px;cursor:pointer}
-  .btn.ok{background:#2ecc71;color:#0c0f12;font-weight:700}
-  .muted{color:var(--muted)}
-  input[type="text"],select{background:#0f121a;color:var(--text);border:1px solid #2a3144;border-radius:6px;padding:6px}
-  .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:var(--pill);margin:4px 6px 0 0}
-  .pill.small{padding:4px 8px;font-size:12px}
-  .p-blue{background:var(--blue)} .p-green{background:var(--green)}
-  .p-purple{background:var(--purple)} .p-pink{background:var(--pink)}
-  .kpi{display:flex;gap:16px;flex-wrap:wrap}
-  .kpi .box{background:#0f121a;border:1px solid #22283a;border-radius:10px;padding:10px 12px}
-  .table{width:100%;border-collapse:collapse;font-size:13px}
-  .table th,.table td{padding:8px;border-bottom:1px solid #22283a;text-align:left}
-  .table td.win{color:#7ff5b0} .table td.lose{color:#ff9b9b}
-  .chip{border:1px solid #2a3144;border-radius:8px;padding:4px 8px;margin-right:8px}
-  .clock{font-variant-numeric:tabular-nums}
-  .explain{white-space:pre-wrap;font-family:ui-monospace,Consolas,monospace;font-size:12px}
+  *{box-sizing:border-box;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial}
+  body{margin:0;background:var(--bg);color:var(--ink)}
+  .wrap{max-width:1100px;margin:18px auto;padding:0 14px}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .head{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .head h1{margin:0;font-size:18px;font-weight:600}
+  .pill{border:1px solid var(--line);background:#0f1320;border-radius:9px;padding:6px 10px;color:var(--muted);display:inline-flex;align-items:center;gap:8px}
+  .btn{background:#1b2233;border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:8px 12px;cursor:pointer}
+  .btn[disabled]{opacity:.5;cursor:not-allowed}
+  .btn.ok{background:#113322;border-color:#1d593c}
+  .btn.danger{background:#301a1a;border-color:#5a2c2c}
+  label.switch{display:inline-flex;align-items:center;gap:6px;margin-right:10px;font-size:13px;color:var(--muted)}
+  select, input[type="text"]{background:#0f1320;border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:6px 10px}
+  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+  .stat{background:#0f1320;border:1px solid var(--line);border-radius:12px;padding:12px}
+  .stat small{color:var(--muted)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{padding:6px 9px;border-radius:999px;font-weight:600;font-size:12px;color:#fff;line-height:1;border:1px solid #ffffff20}
+  .chip.blue{background:linear-gradient(180deg,#2e6ff2,#1b49b4)}
+  .chip.purple{background:linear-gradient(180deg,#b06cd1,#7a44a2)}
+  .chip.pink{background:linear-gradient(180deg,#ff73a8,#c73879)}
+  .table{width:100%;border-collapse:collapse;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .table th,.table td{padding:10px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}
+  .table thead{background:#0f1320;color:#9aa4b2}
+  .tag{padding:2px 7px;border-radius:6px;border:1px solid var(--line);background:#0e1422;font-weight:600;font-size:11px}
+  .tag.auto{color:#8ecaff;border-color:#264d8c}
+  .tag.rosa{color:#ff8dc0;border-color:#7a375c}
+  .state-win{color:var(--ok);font-weight:700}
+  .state-lose{color:var(--bad);font-weight:700}
+  .log{height:220px;overflow:auto;background:#0f1320;border:1px solid var(--line);border-radius:12px;padding:10px;font-family:ui-monospace,Consolas,Menlo;margin-top:6px;font-size:12px;white-space:pre-wrap}
+  .kbd{font-family:ui-monospace,Consolas,Menlo;background:#0f1320;border:1px solid var(--line);padding:2px 6px;border-radius:6px}
+  .hint{color:var(--muted);font-size:12px}
+  .badge{padding:2px 8px;border-radius:999px;font-size:11px;border:1px solid var(--line)}
+  .badge.hot{color:#ffc876;background:#2b1e00;border-color:#573c00}
+  .badge.cold{color:#9cc2ff;background:#001a3a;border-color:#00376c}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>✈️ Aviator Analyzer · <span style="color:#8ab4ff">Gocho v26.6</span>
-    <span id="statusFeedback" class="muted" style="margin-left:8px">Conectado.</span>
-    <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
-  </h1>
-
-  <!-- Controles -->
-  <div class="card">
-    <div class="row">
-      <label class="row"><input id="autoSignal" type="checkbox" checked> Auto-señal</label>
-      <label class="row"><input id="beepToggle" type="checkbox" checked> Beep</label>
-      <label class="row"><input id="auto1k" type="checkbox" checked> Auto-1k</label>
-      <label class="row"><input id="autoSession" type="checkbox" checked> Auto-sesión</label>
-      <label class="row"><input id="cleanOnConnect" type="checkbox"> Limpiar historial al conectar</label>
-
-      <span class="muted">Perfil:</span>
-      <select id="perfil">
-        <option value="P3" selected>Preciso (3/60)</option>
-        <option value="N3">Normal (3/60)</option>
-        <option value="A3">Agresivo (3/60)</option>
-      </select>
-
-      <span class="muted">Agresividad:</span>
-      <select id="aggr">
-        <option value="EQ" selected>Equilibrado</option>
-        <option value="CONS">Conservador</option>
-        <option value="AGR">Agresivo</option>
-      </select>
-
-      <span class="muted">Feed:</span>
-      <input id="feedId" type="text" value="gocho" style="width:120px"/>
-      <button id="connectBtn" class="btn ok">Conectar</button>
-      <button id="disconnectBtn" class="btn">Desconectar</button>
-
-      <label class="row" style="margin-left:auto"><input id="huntRosa" type="checkbox"> 🪄 Caza Rosa ≥10× (máx. 1 por sesión, con explicación)</label>
+  <div class="row head panel">
+    <h1>✈️ Aviator Analyzer • <b>Gocho v26.6</b> <span class="hint">— 3 señales óptimas / sesión (60)</span></h1>
+    <div class="pill"><b>Feed:</b>
+      <input id="feedName" type="text" value="gocho" style="width:120px">
     </div>
-    <div id="aggrExplain" class="muted" style="margin-top:6px">
-      Señales 1.70 en Smart-Pacing (ventanas 1/3, 2/3, 3/3). Anti-eco activado: corrige duplicados y “lecturas tempranas”.
+    <label class="switch"><input type="checkbox" id="autoSignal" checked> Auto-señal</label>
+    <label class="switch"><input type="checkbox" id="beep" checked> Beep</label>
+    <label class="switch"><input type="checkbox" id="autosession" checked> Auto-sesión</label>
+    <label class="switch"><input type="checkbox" id="clearOnConnect"> Limpiar historial al conectar</label>
+    <div style="flex:1"></div>
+    <button id="connectBtn" class="btn ok">Conectar</button>
+    <button id="disconnectBtn" class="btn danger" disabled>Desconectar</button>
+  </div>
+
+  <div class="row">
+    <div class="panel" style="flex:1 1 350px">
+      <div class="row">
+        <label class="switch">Perfil:
+          <select id="perfil">
+            <option value="preciso">Preciso (3/60)</option>
+            <option value="balanceado" selected>Equilibrado</option>
+            <option value="agresivo">Agresivo</option>
+          </select>
+        </label>
+        <label class="switch">Agresividad:
+          <select id="agresividad">
+            <option value="calmado">Calmado</option>
+            <option value="equilibrado" selected>Equilibrado</option>
+            <option value="agresivo">Agresivo</option>
+          </select>
+        </label>
+        <label class="switch"><input type="checkbox" id="huntRosa" checked> Caza Rosa (≥10x, máx. 1 por sesión)</label>
+      </div>
+      <div class="stats" style="margin-top:10px">
+        <div class="stat"><small>Rondas</small><div><b id="statRounds">0</b> <span class="hint">(base 800)</span></div></div>
+        <div class="stat"><small>MA10</small><div><b id="statMA10">0.00x</b> · <small>≥1.70 (60): <b id="statGE170">0</b></small></div></div>
+        <div class="stat"><small>Sesión</small><div><b id="statSesion">0/60</b> · Señales: <b id="statSignals">0</b></div></div>
+        <div class="stat"><small>Sep</small><div><b id="statSep">0</b> · Heat: <b id="statHeat">0.00</b></div></div>
+        <div class="stat"><small>Régimen</small><div id="statReg"><span class="badge cold">—</span></div></div>
+      </div>
+    </div>
+
+    <div class="panel" style="flex:2 1 520px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div class="hint">Últimas 60 rondas (más reciente primero)</div>
+        <div class="hint">Azul &lt; 2.00 • Morado 2.00–9.99 • Rosa ≥10</div>
+      </div>
+      <div id="chips" class="chips"></div>
     </div>
   </div>
 
-  <!-- KPIs -->
-  <div class="card">
-    <div class="kpi">
-      <div class="box">Rondas: <b id="rounds">0</b> <span class="muted">(base)</span></div>
-      <div class="box">MA10: <b id="ma10">–</b><br><span class="muted">≥1.70 (60):</span> <b id="ge170">0</b></div>
-      <div class="box">Sesión: <b id="sesLbl">0/60</b><br><span class="muted">Señales:</span> <b id="signals">0</b></div>
-      <div class="box">Sep: <b id="sepLbl">–</b><br><span class="muted">Heat:</span> <b id="heatLbl">–</b></div>
-    </div>
-
-    <div style="margin-top:10px">
-      <div class="muted" style="margin-bottom:6px">Últimas 60 rondas (más reciente primero)</div>
-      <div id="lastRounds"></div>
-    </div>
-  </div>
-
-  <!-- Tabla señales -->
-  <div class="card">
-    <div class="row"><h3 style="margin:0">Señales (historial persistente)</h3></div>
-    <table class="table" style="margin-top:8px">
-      <thead><tr><th>#</th><th>Sesión</th><th>Ronda</th><th>Tag</th><th>Objetivo</th><th>Hora</th><th>Crash</th><th>Estado</th></tr></thead>
-      <tbody id="betsTbody"></tbody>
+  <div class="panel" style="margin-top:10px">
+    <table class="table" id="tbl">
+      <thead><tr>
+        <th>#</th><th>Sesión</th><th>Ronda</th><th>Tag</th><th>Objetivo</th><th>Hora</th><th>Crash</th><th>Estado</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
     </table>
-  </div>
-
-  <!-- Reseña -->
-  <div class="card">
-    <h3 style="margin:0">Reseña</h3>
-    <div id="logBox" class="explain" style="margin-top:8px;max-height:320px;overflow:auto"></div>
+    <div class="log" id="log"></div>
+    <div class="hint" style="margin-top:6px">Tips: puedes inyectar rondas manualmente desde consola con
+      <span class="kbd">gochoPush(1.27)</span>, <span class="kbd">gochoPush(6.45)</span>, etc. El conector también acepta <span class="kbd">window.postMessage({aviatorRound:1.35}, "*")</span>.
+    </div>
   </div>
 </div>
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-
 <script>
-/* =================== FIREBASE =================== */
-const firebaseConfig = {
-  apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
-  authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
-  projectId: "aviator-analyzer-b29a7",
-  storageBucket: "aviator-analyzer-b29a7.appspot.com",
-  messagingSenderId: "575063626276",
-  appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
-  measurementId: "G-325QCBSQMH",
-  databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com"
+/* =========================================================
+   Gocho v26.6  —  3 señales óptimas / 60 con “hot-sniper”
+   ========================================================= */
+
+// ---------- Estado base ----------
+const S = {
+  rounds: [],        // lista completa (crece)
+  last60: [],        // últimas 60 (reciente primero)
+  sessionIdx: 0,     // 0..59
+  sessionNum: 1,
+  signals: [],       // historial persistente
+  signalsThisSession: 0,
+  rosaGivenThisSession: false,
+  connected: false,
+  lastRoundAt: 0,
+  lastRoundVal: null,
+  dedupeMs: 3200,    // anti-eco por clicks / DOM
+  maxSignalsPerSession: 3,  // <== requisito del usuario
+  minGapRounds: 3,          // separación mínima normal
+  hotGapOverride: 1,        // si “hot” fuerte, permite 1
+  learning: { thr: 0.68, hi: 0.92, k: 120, wins:0, total:0 }, // umbral dinámico
+  rosa: {cooldown: 2, // evitar justo 1–2 rondas post-rosa
+         maxPerSession:1}
 };
-firebase.initializeApp(firebaseConfig);
-const db  = firebase.database();
-const auth= firebase.auth();
 
-/* =================== HELPERS =================== */
-const $ = (id)=>document.getElementById(id);
-const now=()=>Date.now();
-const HHmmss = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-const HHmm   = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+// ---------- Utilidades ----------
+const fmt = n => (Math.round(n*100)/100).toFixed(2);
+const nowClock = () => new Date().toLocaleTimeString();
+const log = (t)=>{ const el=document.getElementById('log'); el.textContent += `[${nowClock()}] ${t}\n`; el.scrollTop=el.scrollHeight; };
+const beep = (hz=880, ms=120)=>{ if(!document.getElementById('beep').checked) return;
+  try{const ctx=new (window.AudioContext||window.webkitAudioContext)(); const o=ctx.createOscillator(), g=ctx.createGain();
+  o.type='sine'; o.frequency.value=hz; o.connect(g); g.connect(ctx.destination); g.gain.value=.06; o.start();
+  setTimeout(()=>{o.stop();ctx.close()},ms);}catch(_){}
+};
 
-function movingAverage(arr,n){const L=Math.min(arr.length,n); if(!L) return NaN; let s=0; for(let i=arr.length-L;i<arr.length;i++) s+=arr[i]; return s/L;}
-function clamp(v,a,b){return v<a?a:(v>b?b:v);}
-function log(s){const c=$("logBox"); c.textContent+=s+"\n"; c.scrollTop=c.scrollHeight;}
-function beep(freq=880, ms=120, gain=0.03){
-  if(!$("beepToggle").checked) return;
-  try{
-    if(!window._actx) window._actx=new (window.AudioContext||window.webkitAudioContext)();
-    const o=_actx.createOscillator(), g=_actx.createGain();
-    o.type="sine"; o.frequency.value=freq; g.gain.value=gain; o.connect(g); g.connect(_actx.destination);
-    o.start(); setTimeout(()=>o.stop(), ms);
-  }catch(_){}
-}
-const beep17=()=>{beep(660,110,0.035); setTimeout(()=>beep(880,90,0.03),140);}
-const beepRosa=()=>{beep(360,150,0.04); setTimeout(()=>beep(1020,110,0.035),180);}
+// persistencia
+const STORE_KEY="gocho_signals_v266";
+const loadPersist=()=>{ try{ const j=localStorage.getItem(STORE_KEY); if(j){S.signals=JSON.parse(j)} }catch(_){ } };
+const savePersist=()=>{ try{ localStorage.setItem(STORE_KEY, JSON.stringify(S.signals.slice(-800))) }catch(_){ } };
 
-/* =================== ESTADO =================== */
-let FEED_ID="gocho", connected=false;
-let rounds=[], roundsMeta=[], lastShown=[];
-let baseCount=0, ge170Count60=0;
-
-let sessionActive=true, sessionStartIdx=0, sessionPos=0; // 0..60
-let signalsCount=0;
-let bets=[];  // {id, tag, target, tsEmit, sessStartIdx, roundIdx1..60, crash, state}
-const PERSIST_KEY="gocho_v266";
-
-/* ====== Anti-eco / Stabilizer ====== */
-const MERGE_WINDOW_MS = 4000; // si llega otro valor dentro de 4s, se considera corrección/eco
-let lastAcceptedTs=null, lastAcceptedV=null;
-
-/* ====== ROSA ====== */
-let rosaDone=false;
-
-/* =================== RENDER =================== */
-function colorPill(v){
-  if(v>=10) return "p-pink";
-  if(v>=5)  return "p-purple";
-  if(v>=2)  return "p-green";
-  return "p-blue";
-}
-function renderStats(){
-  $("rounds").textContent = `${rounds.length} (base ${baseCount})`;
-  const ma10=movingAverage(rounds,10);
-  $("ma10").textContent=isNaN(ma10)?"–":ma10.toFixed(2)+"x";
-  $("ge170").textContent=ge170Count60;
-
-  const pills=$("lastRounds"); pills.innerHTML="";
-  lastShown.forEach(x=>{
-    const s=document.createElement("span");
-    s.className=`pill small ${colorPill(x)}`;
-    s.textContent=x.toFixed(2)+"x";
-    pills.appendChild(s);
+// ---------- Render ----------
+function renderChips(){
+  const wrap=document.getElementById('chips'); wrap.innerHTML='';
+  S.last60.forEach(v=>{
+    const d=document.createElement('div'); d.className='chip '+chipClass(v); d.textContent=(v>=1000? '∞' : fmt(v))+'x';
+    wrap.appendChild(d);
   });
-
-  $("sesLbl").textContent = `${sessionPos}/60`;
-  $("sepLbl").textContent  = sepEst().toFixed(2);
-  $("heatLbl").textContent = heatEst().toFixed(2);
-  $("signals").textContent = signalsCount;
 }
-function renderBets(){
-  const tb=$("betsTbody"); tb.innerHTML="";
-  bets.forEach((b,i)=>{
-    const tr=document.createElement("tr");
-    tr.innerHTML = `
-      <td>${i+1}</td>
-      <td>${HHmm(b.tsEmit)}</td>
-      <td>${b.roundIn60??"–"}</td>
-      <td>${b.tag}</td>
-      <td>${b.target}x</td>
-      <td>${HHmmss(b.tsEmit)}</td>
-      <td class="${b.state==='win'?'win':(b.state==='lose'?'lose':'')}">${b.crash?b.crash.toFixed(2)+"x":"—"}</td>
-      <td class="${b.state==='win'?'win':(b.state==='lose'?'lose':'')}">${b.state||"pend"}</td>`;
+const chipClass = (v)=> (v>=10? 'pink' : (v>=2? 'purple':'blue'));
+
+function renderStats(){
+  const L=S.rounds.length, last10 = S.rounds.slice(-10);
+  const ma10 = last10.length? last10.reduce((a,b)=>a+b,0)/last10.length : 0;
+  const ge170 = S.last60.filter(v=>v>=1.7).length;
+  document.getElementById('statRounds').textContent = L+" (base 800)";
+  document.getElementById('statMA10').textContent = fmt(ma10)+'x';
+  document.getElementById('statGE170').textContent = ge170;
+  document.getElementById('statSesion').textContent = `${S.sessionIdx}/${60}`;
+  document.getElementById('statSignals').textContent = S.signalsThisSession;
+  const heat = calcHeat(S.last60);
+  document.getElementById('statHeat').textContent = fmt(heat.heat);
+  document.getElementById('statSep').textContent = heat.sep;
+  document.getElementById('statReg').innerHTML =
+    `<span class="badge ${heat.reg==='hot'?'hot':'cold'}">${heat.reg}</span>`;
+}
+function renderTable(){
+  const tb=document.getElementById('tbody'); tb.innerHTML='';
+  S.signals.slice(-200).forEach((r,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML = `<td>${S.signals.length-200+i+1<=0? i+1 : S.signals.length-199+i}</td>
+    <td>${r.sessionClock}</td>
+    <td>${r.roundInSession}/60</td>
+    <td><span class="tag ${r.tag==='ROSA_10x'?'rosa':'auto'}">${r.tag}</span></td>
+    <td>${r.obj.toFixed(2)}x</td>
+    <td>${r.time}</td>
+    <td>${r.crash? fmt(r.crash)+'x':'—'}</td>
+    <td class="${r.state==='win'?'state-win':'state-lose'}">${r.state}</td>`;
     tb.appendChild(tr);
   });
 }
 
-/* =================== MÉTRICAS SIMPLES =================== */
-function sepEst(){ // separación promedio de moradas/rosas últimas 40
-  let last=-1, s=0,c=0;
-  for(let i=rounds.length-1, j=0; i>=0 && j<40; i--, j++){
-    if(rounds[i]>=2){ if(last!==-1) { s += (last-i); c++; } last=i; }
+// ---------- Métricas / puntuador ----------
+function calcHeat(last60){
+  // Hotness simple: suma de excedentes sobre 1.70 en las últimas 12 menos castigo por <1.15 recent
+  const recent = last60.slice(0,12); // más recientes
+  const tail = last60.slice(0,5);    // trampas recientes
+  let plus = 0, minus = 0;
+  for(const v of recent) plus += Math.max(0, v-1.7);
+  for(const v of tail) minus += v<1.15 ? (1.15-v)*4 : 0;
+  // densidad morada
+  const moradas = last60.slice(0,20).filter(v=>v>=2 && v<10).length;
+  // tendencia básica (EMA corta vs larga)
+  const ema = (arr,a)=>arr.reduce((m,x)=>m*a + x*(1-a), arr[0]||0);
+  const emaS = ema(last60.slice(0,12).reverse(), .45);
+  const emaL = ema(last60.slice(0,36).reverse(), .18);
+  const slope = emaS-emaL;
+  const heat = plus - minus + moradas*0.1 + Math.max(0,slope)*2;
+  const sep = moradas; // mostrador
+  const reg = heat>3.2 ? 'hot' : 'ok';
+  return {heat, sep, reg, emaS, emaL, moradas, slope};
+}
+function hazards(last){
+  // peligros inmediatos para evitar señales tontas
+  const a0=last[0]??99, a1=last[1]??99, a2=last[2]??99;
+  let h = 0;
+  if(a0<1.10) h+=0.55;         // 1.00–1.09: trampa dura
+  if(a0<1.20) h+=0.25;
+  if(a1<1.10 || a2<1.10) h+=0.15;
+  // post-rosa: espera 2 rondas
+  const sinceRosa = last.findIndex(v=>v>=10);
+  if(sinceRosa>=0 && sinceRosa< S.rosa.cooldown) h += .35;
+  return h;
+}
+function scoreNext(){
+  const L = S.last60;
+  if(L.length<8) return {score:0, reasons:['poca data']};
+  const h = calcHeat(L);
+  const densMor = L.slice(0,12).filter(v=>v>=2 && v<10).length;
+  const blueStreak = (()=>{ let c=0; for(const v of L){ if(v<2) c++; else break; } return c; })();
+  const antiTrap = hazards(L);
+  // señal para ≥1.70
+  let s = 0;
+  s += Math.max(0,h.heat) * 0.22;
+  s += Math.max(0,h.slope) * 2.1 * 0.18;
+  s += densMor * 0.05;                 // clusters morados
+  s += Math.min(blueStreak,4) * 0.06;  // rebote tras varias azules
+  s -= antiTrap;                       // penalizaciones
+  // normalización y agresividad
+  const ag = document.getElementById('agresividad').value;
+  const boost = ag==='agresivo'? 1.10 : (ag==='calmado'? 0.92 : 1.0);
+  s = (1/(1+Math.exp(-s/2))) * boost;  // squash sigmoidal
+
+  const reasons = [];
+  if(h.heat>3.2) reasons.push('hot');
+  if(h.slope>0) reasons.push('uptrend');
+  if(densMor>=5) reasons.push('moradas');
+  if(blueStreak>=3) reasons.push('rebote azul');
+  if(antiTrap>0.3) reasons.push('peligro trap');
+  return {score:s, reasons};
+}
+function shouldHuntRosa(){
+  if(!document.getElementById('huntRosa').checked) return {ok:false,why:'off'};
+  if(S.rosaGivenThisSession) return {ok:false,why:'ya hubo rosa'};
+  const L=S.last60;
+  if(L.length<18) return {ok:false,why:'poca data'};
+  // Un sencillo “gap-predictor”: cuando hay moradas largas y calentamiento fuerte con baja reciente <1.15
+  const h=calcHeat(L);
+  const purp20 = L.slice(0,20).filter(v=>v>=2 && v<10).length;
+  const lows = L.slice(0,6).filter(v=>v<1.15).length;
+  const up = h.slope>0 && h.heat>4.2 && purp20>=10 && lows<=1;
+  return {ok: up, why:`moradas${purp20}/20, heat:${fmt(h.heat)}, slope:${fmt(h.slope)}`};
+}
+
+// ---------- Aprendizaje online ----------
+function learnRegister(win){
+  const L=S.learning;
+  L.total++; if(win) L.wins++;
+  const wr = L.wins/Math.max(1,L.total);
+  // sube umbral si vamos flojos; bájalo si va muy bien
+  if(wr<0.55) L.thr = Math.min(.8, L.thr + .02);
+  else if(wr>0.70) L.thr = Math.max(.60, L.thr - .015);
+}
+
+// ---------- Señalización ----------
+function maybeEmitSignals(newRound){
+  // 1) ROSA opcional (antes que 1.7 si pinta muy bien)
+  const r = shouldHuntRosa();
+  if(r.ok && !S.rosaGivenThisSession){
+    emitSignal('ROSA_10x', 10, `Caza ROSA: ${r.why}`, newRound);
+    S.rosaGivenThisSession = true;
+    return; // sólo 1 por sesión
   }
-  return c? s/c : 3;
-}
-function heatEst(){ // moradas+rosas en 30
-  let c=0; for(let i=rounds.length-1, j=0; i>=0 && j<30; i--, j++) if(rounds[i]>=2) c++;
-  return c/30*10; // 0..10
-}
 
-/* =================== LÓGICA DE SEÑALES =================== */
-function sessionRoundIn60(){ // 1..60
-  return ( (rounds.length - sessionStartIdx) % 60 ) + 1;
-}
-function ensureSession(){
-  if(!$("autoSession").checked) return;
-  sessionActive = true;
-  if(sessionRoundIn60()===1){
-    // reset de banderas por sesión
-    rosaDone=false;
+  // 2) Señal 1.7 — hasta 3 por sesión, con pacing flexible
+  if(S.signalsThisSession>=S.maxSignalsPerSession) return;
+
+  const {score,reasons}=scoreNext();
+  const thrDyn = S.learning.thr; // umbral dinámico
+  const heat = calcHeat(S.last60);
+  const minGap = (heat.heat>3.8 && score>S.learning.hi) ? S.hotGapOverride : S.minGapRounds;
+
+  const lastSigRound = (()=>{ for(let i=S.signals.length-1;i>=0;i--){ if(S.signals[i].sessionNum===S.sessionNum) return S.signals[i].roundInSession; } return -999; })();
+  const gap = S.sessionIdx - lastSigRound;
+
+  if(score >= thrDyn && gap >= minGap){
+    emitSignal('AUTO_1p7', 1.70, `score=${fmt(score)} • ${reasons.join(', ')||'base'}`, newRound);
   }
 }
-function maybeSignal17(){
-  if(!$("autoSignal").checked) return;
-  // Smart-Pacing v4 (sencillo): 3 ventanas por sesión
-  const r= sessionRoundIn60();
-  const windowIdx = (r<=20)?1 : (r<=40?2:3);
 
-  // heurísticas suaves
-  const sep=sepEst(), heat=heatEst(), ma10=movingAverage(rounds,10)||0;
-  const okContext =
-    sep>=1.2 && heat>=2.6 && ma10>=1.25; // contexto mínimo
-
-  const quotaByWindow = {1:1,2:1,3:1};
-  const firedInThisWindow = bets.filter(b=>b.win3Window===windowIdx && b.sessionStartIdx===sessionStartIdx).length;
-  const quotaOK = firedInThisWindow<quotaByWindow[windowIdx];
-
-  if(okContext && quotaOK){
-    fireShot(1.70, "AUTO_1p7", windowIdx);
-  }
-}
-function maybeHuntRosa(){
-  if(!$("huntRosa").checked || rosaDone===true) return;
-  // “rosa explicada”: momentum (moradas recientes), separación y ma10
-  const last30 = rounds.slice(-30);
-  const moradas = last30.filter(x=>x>=2).length;
-  const ma10=movingAverage(rounds,10)||0;
-  const lastPurp = last30.lastIndexOf(last30.find(x=>x>=5))>=0;
-  const sep=sepEst();
-
-  // umbral simple para emitir
-  const score = (moradas*0.12) + (ma10*0.15) + (sep*0.1) + (lastPurp?0.3:0);
-  if(score>=1.05){ // ventana buena
-    const why = `mom=${moradas}/30, ma10=${ma10.toFixed(2)}, sep=${sep.toFixed(2)}, purp30=${lastPurp}, score=${score.toFixed(2)}`;
-    fireShot(10, "ROSA_10x", null, why, true);
-    rosaDone=true;
-  }
-}
-function fireShot(target, tag, win3, explain=null, isRosa=false){
-  const ts=now();
-  const roundIn60 = sessionRoundIn60();
-  const rec = { id: "S"+ts, tag, target, tsEmit:ts, roundIn60, sessionStartIdx, state:"pend", crash:null, explain };
-  if(win3) rec.win3Window=win3;
-  bets.push(rec); signalsCount++; renderBets(); $("signals").textContent=signalsCount;
-  if(isRosa) beepRosa(); else beep17();
-  log(`[${HHmmss(ts)}] Señal emitida${isRosa?" (ROSA)":""} (ventana ${win3||"-"}/${"3"}); objetivo ≥${target.toFixed(2)}.` + (explain?`\n  ↳ ${explain}`:""));
+function emitSignal(tag, obj, why, latestRound){
+  S.signalsThisSession++;
+  const rec={
+    sessionNum:S.sessionNum,
+    sessionClock:new Date().toLocaleTimeString(),
+    roundInSession:S.sessionIdx,
+    tag: tag==='ROSA_10x'?'ROSA_10x':'AUTO_1p7',
+    obj: obj,
+    time: nowClock(),
+    crash: latestRound ?? null,
+    state: '—',
+    why
+  };
+  S.signals.push(rec); savePersist(); renderTable();
+  const label = tag==='ROSA_10x' ? 'ROSA ≥10x' : 'AUTO ≥1.70';
+  log(`🔔 Señal ${label} (ronda ${rec.roundInSession}/60) — ${why}`);
+  beep(tag==='ROSA_10x'? 580:880, 160);
 }
 
-/* =================== INGESTA / ANTI-ECO =================== */
-function parseCrashValue(raw){
-  if(raw===null||raw===undefined) return null;
-  if(typeof raw==="number") return (raw>=1 && isFinite(raw))? raw : null;
-  let s=String(raw).replace(/[^\d.,]/g,'').trim();
-  if(!s) return null;
-  const lastDot=s.lastIndexOf('.'), lastComma=s.lastIndexOf(',');
-  let dec=(lastComma>lastDot)?',':'.'; if(lastDot===-1&&lastComma===-1) dec='.';
-  if(dec===','){ s=s.replace(/\./g,''); s=s.replace(',', '.'); } else { s=s.replace(/,/g,''); }
-  const v=Number(s); return (isFinite(v)&&v>=1)?v:null;
-}
-
-// Acepta o corrige “eco” dentro de la misma ronda
-function ingestCrashCandidate(v, ts, keyHint){
-  // casos de base (primera vez)
-  if(lastAcceptedTs==null){
-    acceptCrash(v, ts, keyHint, false);
-    return;
-  }
-  const dt = ts - lastAcceptedTs;
-
-  // llegada repetida exacta (mismo v dentro de ventana): ignorar
-  if(Math.abs(dt)<=MERGE_WINDOW_MS && v===lastAcceptedV){
-    // duplicado idéntico → no hacemos nada
-    return;
-  }
-  // llegada de corrección (mismo período, valor distinto) → corregir último
-  if(Math.abs(dt)<=MERGE_WINDOW_MS && v!==lastAcceptedV){
-    correctLastCrash(v, ts);
-    return;
-  }
-  // llegada normal (nueva ronda)
-  acceptCrash(v, ts, keyHint, false);
-}
-function correctLastCrash(newV, ts){
-  if(!rounds.length) return;
-  const oldV=rounds[rounds.length-1];
-  rounds[rounds.length-1]=newV;
-  lastShown[0]=newV;
-  if(newV>=1.70 && oldV<1.70) ge170Count60 = Math.min(60, ge170Count60+1);
-  if(newV<1.70 && oldV>=1.70) ge170Count60 = Math.max(0, ge170Count60-1);
-
-  // re-evalúa última apuesta si corresponde
-  const lastBet = bets[bets.length-1];
-  if(lastBet && lastBet.state!=="win"){
-    lastBet.crash=newV;
-    if(newV>lastBet.target){ lastBet.state="win"; } else { lastBet.state="lose"; }
-    renderBets();
-  }
-  renderStats();
-  log(`[${HHmmss(ts)}] Corrección: ${oldV.toFixed(2)}x → ${newV.toFixed(2)}x (Δ ${Math.round(ts-lastAcceptedTs)} ms).`);
-  lastAcceptedTs = ts; lastAcceptedV=newV;
-}
-function acceptCrash(v, ts, keyHint, base){
-  rounds.push(v); roundsMeta.push({v,ts,key:keyHint||null});
-  if(rounds.length>3000){ rounds.shift(); roundsMeta.shift(); }
-  lastShown.unshift(v); if(lastShown.length>60) lastShown.pop();
-
-  // actualizar contadores 60
-  const prev = rounds[rounds.length-61];
-  if(prev!==undefined && prev>=1.70) ge170Count60--;
-  if(v>=1.70) ge170Count60++;
-
-  // cerrar apuestas pendientes
-  if(bets.length){
-    const b = bets.find(x=>x.state==="pend");
-    if(b){
-      b.crash=v;
-      b.state = (v>b.target)?"win":"lose";
-      renderBets();
-      if(b.tag==="ROSA_10x"){
-        const why = b.explain||"";
-        log(`[${HHmmss(ts)}] Resultado ${b.state.toUpperCase()} (ROSA ${v.toFixed(2)}x). Motivo: ${why}`);
+// actualizar resultado de la última señal si coincide con el último crash
+function settleLastSignalsWith(crashVal){
+  // cerramos sólo las señales de esta sesión que no tengan state
+  for(let i=S.signals.length-1;i>=0;i--){
+    const r=S.signals[i];
+    if(r.sessionNum!==S.sessionNum) break;
+    if(r.state==='—'){
+      r.crash = crashVal;
+      r.state = crashVal >= r.obj ? 'win' : 'lose';
+      if(r.tag==='ROSA_10x'){
+        const msg = r.state==='win'
+          ? `ROSA GANADA. Se ganó: crash ${fmt(crashVal)}x ≥ 10x. (${r.why})`
+          : `ROSA PERDIDA. Se perdió: crash ${fmt(crashVal)}x < 10x. (${r.why})`;
+        log((r.state==='win'?'✅ ':'❌ ')+msg);
       }else{
-        log(`[${HHmmss(ts)}] Resultado ${b.state.toUpperCase()} (1.70) con crash ${v.toFixed(2)}x.`);
+        log((r.state==='win'?'✅ ':'❌ ')+`Resultado ${r.state.toUpperCase()} (${fmt(crashVal)}x ${r.state==='win'?'>=':'<'} ${r.obj}x).`);
       }
+      learnRegister(r.state==='win');
+    }
+  }
+  savePersist(); renderTable();
+}
+
+// ---------- Gestión de sesión ----------
+function newSession(){
+  if(S.signalsThisSession>0) log(`— Fin de sesión ${S.sessionNum}. Señales: ${S.signalsThisSession}/${S.maxSignalsPerSession}.`);
+  S.sessionNum++; S.sessionIdx=0; S.signalsThisSession=0; S.rosaGivenThisSession=false;
+  log(`▶️ Empieza sesión ${nowClock()} · objetivo ≥1.70 • tope ${S.maxSignalsPerSession}/60 • Smart-Sniper v4.4`);
+}
+
+// ---------- Ingesta de rondas ----------
+function addRound(x){
+  if(typeof x!=='number' || !isFinite(x)) return;
+
+  // anti-eco: ignora duplicado idéntico demasiado pronto
+  const now=Date.now();
+  if(S.lastRoundVal!==null && x===S.lastRoundVal && (now - S.lastRoundAt) < S.dedupeMs){
+    // Sólo logueo si parece eco
+    // (esto evita la duplicación cuando pulsas apostar/retirar)
+    return;
+  }
+  S.lastRoundVal = x; S.lastRoundAt = now;
+
+  // rotar estructuras
+  S.rounds.push(x);
+  S.last60.unshift(x);
+  if(S.last60.length>60) S.last60.pop();
+
+  // stats + chips
+  renderChips(); renderStats();
+
+  // avanzar sesión
+  S.sessionIdx++;
+  if(S.sessionIdx>60){
+    if(document.getElementById('autosession').checked){
+      newSession();
+    }else{
+      S.sessionIdx=60;
     }
   }
 
-  // avance de sesión
-  sessionPos = sessionRoundIn60();
-  renderStats();
-
-  // emitir señales (solo en tiempo real)
-  if(!base){
-    ensureSession();
-    maybeSignal17();
-    maybeHuntRosa();
+  // oportunidad / señal
+  if(document.getElementById('autoSignal').checked){
+    maybeEmitSignals(x);
   }
-  lastAcceptedTs=ts; lastAcceptedV=v;
-}
 
-/* =================== CONEXIÓN FEED =================== */
-let liveRef=null, liveCb=null, lastKey=null, lastTs=null, lastActivity=null, watchdog=null;
+  // si hay una señal pendiente (la última), liquídala con este crash
+  settleLastSignalsWith(x);
 
-function nodeToVT(node){
-  const raw = (node && typeof node==='object' && ('raw' in node || 'v' in node)) ? (node.raw ?? node.v) : node;
-  const v = parseCrashValue(raw);
-  const ts = Number(node?.ts) || now();
-  return {v,ts};
-}
-
-async function connectFeed(){
-  if(connected) return;
-  FEED_ID=($("feedId").value||"gocho").trim();
-  $("statusFeedback").textContent=`Conectando a feeds/${FEED_ID}/crashes…`;
-  try{ await auth.signInAnonymously(); }catch(e){}
-
-  const ref=db.ref(`feeds/${FEED_ID}/crashes`);
-  if($("cleanOnConnect").checked){ $("logBox").textContent=""; bets=[]; signalsCount=0; renderBets(); }
-
-  let snap=null, method="key";
-  try{ const s=await ref.orderByChild("ts").limitToLast(900).once("value"); if(s && s.val()) { snap=s; method="ts"; } }catch(e){}
-  if(!snap){ try{ const s=await ref.orderByKey().limitToLast(900).once("value"); if(s && s.val()) { snap=s; method="key"; } }catch(e){} }
-  if(!snap||!snap.val()){ $("statusFeedback").textContent="Sin datos en el feed."; return; }
-
-  // reset de estado de sesión
-  rounds=[]; roundsMeta=[]; lastShown=[]; ge170Count60=0;
-  sessionStartIdx = rounds.length; sessionPos = sessionRoundIn60();
-  rosaDone=false; signalsCount=0;
-
-  const data=snap.val(), keys=Object.keys(data).sort();
-  baseCount=keys.length;
-  keys.forEach(k=>{
-    const {v,ts}=nodeToVT(data[k]); if(v!==null) acceptCrash(v,ts,k,true);
-    lastKey=k; lastTs=Number(data[k]?.ts||k)||now(); lastActivity=now();
-  });
-  $("statusFeedback").textContent="Conectado.";
-
-  // live
-  if(method==="ts"){
-    liveRef=ref.orderByChild("ts").startAt(lastTs);
-    liveCb=s=>{ const key=s.key, d=s.val(); const {v,ts}=nodeToVT(d);
-      if(lastTs && ts<=lastTs && key===lastKey) return;
-      lastKey=key; lastTs=ts; lastActivity=now();
-      if(v!==null) ingestCrashCandidate(v, ts, key);
-    };
-  }else{
-    liveRef=ref.orderByKey().startAt(lastKey||"");
-    liveCb=s=>{ const key=s.key, d=s.val(); if(lastKey && key<=lastKey) return;
-      lastKey=key; const {v,ts}=nodeToVT(d); lastTs=ts; lastActivity=now();
-      if(v!==null) ingestCrashCandidate(v, ts, key);
-    };
+  // autosiguiente sesión si alcanzamos las 60 y no emitimos 3
+  if(S.sessionIdx===60 && document.getElementById('autosession').checked){
+    newSession();
   }
-  liveRef.on("child_added", liveCb);
-
-  // watchdog reconexión
-  if(watchdog) clearInterval(watchdog);
-  watchdog=setInterval(()=>{ if(!connected) return; const dt=Date.now()-(lastActivity||0); if(dt>300000){ disconnectFeed(true); connectFeed(); } }, 30000);
-  connected=true;
-}
-function disconnectFeed(silent=false){
-  if(!connected) return;
-  if(liveRef && liveCb) liveRef.off("child_added", liveCb);
-  liveRef=liveCb=null; lastKey=lastTs=lastActivity=null; connected=false;
-  if(watchdog){ clearInterval(watchdog); watchdog=null; }
-  if(!silent) $("statusFeedback").textContent="Desconectado.";
 }
 
-/* =================== UI & PERSIST =================== */
-$("connectBtn").addEventListener("click", connectFeed);
-$("disconnectBtn").addEventListener("click", ()=>disconnectFeed(false));
+// ---------- Conexión (puente de feed) ----------
+function connect(){
+  if(S.connected) return;
+  if(document.getElementById('clearOnConnect').checked){
+    S.signals.length=0; savePersist(); renderTable();
+  }
+  S.connected = true;
+  document.getElementById('connectBtn').disabled=true;
+  document.getElementById('disconnectBtn').disabled=false;
+  log(`🔌 Conectado al feed «${document.getElementById('feedName').value.trim()}». Sesiones encadenadas hasta Desconectar.`);
+}
+function disconnect(){
+  S.connected = false;
+  document.getElementById('connectBtn').disabled=false;
+  document.getElementById('disconnectBtn').disabled=true;
+  log('⏹️ Desconectado.');
+}
 
-setInterval(()=>{
-  $("clockNow").textContent=new Date().toLocaleTimeString();
-  // persist simple
-  try{ localStorage.setItem(PERSIST_KEY, JSON.stringify({bets, signalsCount, sessionStartIdx})); }catch(_){}
-}, 1000);
+// Exponer punto de entrada para el capturador externo
+window.gochoPush = (v)=> addRound(Number(v));
+window.addEventListener('message', ev=>{
+  if(ev && ev.data && typeof ev.data.aviatorRound==='number'){ addRound(ev.data.aviatorRound) }
+});
 
-(function boot(){
-  try{ const raw=localStorage.getItem(PERSIST_KEY); if(raw){ const p=JSON.parse(raw); if(Array.isArray(p.bets)) bets=p.bets; if(p.signalsCount) signalsCount=p.signalsCount; if(p.sessionStartIdx) sessionStartIdx=p.sessionStartIdx; renderBets(); } }catch(_){}
-  renderStats();
-})();
+// ---------- UI ----------
+document.getElementById('connectBtn').onclick = ()=>{ connect(); };
+document.getElementById('disconnectBtn').onclick = ()=>{ disconnect(); };
+
+// Cargar historial y pintar
+loadPersist(); renderTable(); renderChips(); renderStats();
+log('Listo. Esperando rondas…');
+
+// Demo opcional (elimina si usas capturador real)
+// simula una tira si no hay feed en 2s:
+setTimeout(()=>{
+  if(!S.connected) connect();
+}, 600);
 </script>
 </body>
 </html>
