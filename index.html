@@ -3,13 +3,9 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Aviator Analyzer · Gocho v27.1</title>
+<title>Aviator Analyzer · Gocho v28.0</title>
 <style>
-  :root{
-    --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5;
-    --ok:#2ecc71; --warn:#e67e22; --bad:#e74c3c; --brand:#8ab4ff;
-    --pill:#1c2130; --blue:#20334a; --purple:#2a2146; --pink:#402038;
-  }
+  :root{ --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5; --brand:#8ab4ff; --pill:#1c2130; --blue:#20334a; --purple:#2a2146; --pink:#402038; }
   html,body{background:var(--bg);color:var(--text);font:14px/1.45 system-ui,Inter,Segoe UI,Roboto,Arial,sans-serif;margin:0}
   .wrap{max-width:1150px;margin:18px auto;padding:0 12px}
   h1{font-size:18px;margin:0 0 10px;display:flex;gap:8px;align-items:center}
@@ -33,7 +29,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>✈️ Aviator Analyzer · <span style="color:#8ab4ff">Gocho v27.1</span>
+  <h1>✈️ Aviator Analyzer · <span style="color:#8ab4ff">Gocho v28.0</span>
     <span id="statusFeedback" class="muted" style="margin-left:8px">Conectado.</span>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
   </h1>
@@ -70,7 +66,7 @@
     </div>
     <div class="row" style="margin-top:8px">
       <label class="row"><input id="formsToggle" type="checkbox" checked> Forms inteligente (aprende de patrones)</label>
-      <span class="muted">· Smart‑Pacing v5.2, anti‑eco, enfriamiento tras extremos, anti‑tempranazo y cooldown tras 2 pérdidas. Planifica para completar **3 señales/60** sin desperdiciar.</span>
+      <span class="muted">· Smart‑Pacing v6: anti‑eco, anti‑tempranazo, cooldown tras 2 pérdidas y **scoring adaptativo por tendencia**. Planea completar **3–4 señales/60** según precisión de la sesión.</span>
     </div>
   </div>
 
@@ -113,52 +109,35 @@
 
 <script>
 /* =================== FIREBASE =================== */
-const firebaseConfig = {
-  apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
-  authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
-  projectId: "aviator-analyzer-b29a7",
-  storageBucket: "aviator-analyzer-b29a7.appspot.com",
-  messagingSenderId: "575063626276",
-  appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
-  measurementId: "G-325QCBSQMH",
-  databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com"
-};
+const firebaseConfig = { apiKey:"AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs", authDomain:"aviator-analyzer-b29a7.firebaseapp.com", projectId:"aviator-analyzer-b29a7", storageBucket:"aviator-analyzer-b29a7.appspot.com", messagingSenderId:"575063626276", appId:"1:575063626276:web:5f640e41f0ad791d6a3eb1", measurementId:"G-325QCBSQMH", databaseURL:"https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com" };
 firebase.initializeApp(firebaseConfig);
-const db  = firebase.database();
-const auth= firebase.auth();
+const db=firebase.database(); const auth=firebase.auth();
 
 /* =================== HELPERS =================== */
 const $ = (id)=>document.getElementById(id);
 const now=()=>Date.now();
 const HHmmss = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
 const HHmm   = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-
 function movingAverage(arr,n){const L=Math.min(arr.length,n); if(!L) return NaN; let s=0; for(let i=arr.length-L;i<arr.length;i++) s+=arr[i]; return s/L;}
+function clamp(v,a,b){return v<a?a:(v>b?b:v);} 
 function log(s){const c=$("logBox"); c.textContent+=s+"\n"; c.scrollTop=c.scrollHeight;}
 function beep(freq=880, ms=120, gain=0.03){ if(!$("beepToggle").checked) return; try{ if(!window._actx) window._actx=new (window.AudioContext||window.webkitAudioContext)(); const o=_actx.createOscillator(), g=_actx.createGain(); o.type="sine"; o.frequency.value=freq; g.gain.value=gain; o.connect(g); g.connect(_actx.destination); o.start(); setTimeout(()=>o.stop(), ms); }catch(_){}}
 const beep17=()=>{beep(660,110,0.035); setTimeout(()=>beep(880,90,0.03),140);} 
 const beepRosa=()=>{beep(360,150,0.04); setTimeout(()=>beep(1020,110,0.035),180);} 
 
 /* =================== ESTADO =================== */
-let FEED_ID="gocho", connected=false;
-let rounds=[], roundsMeta=[], lastShown=[];
-let baseCount=0, ge170Count60=0;
-let sessionStartIdx=0; // índice absoluto del inicio de la sesión actual
-let signalsCount=0;    // total (para telemetría); la UI muestra por sesión
-let bets=[];           // {id, tag, target, tsEmit, roundIn60, sessionStartIdx, crash, state, explain, ctxSig, absRoundIdx}
-const PERSIST_KEY="gocho_v271";
+let FEED_ID="gocho", connected=false; let rounds=[], roundsMeta=[], lastShown=[]; let baseCount=0, ge170Count60=0; let sessionStartIdx=0; let signalsCount=0; let bets=[]; const PERSIST_KEY="gocho_v280";
+const scoreHist=[]; // últimos scores para umbral adaptativo
 
-/* ====== Anti-eco / Stabilizer ====== */
-const MERGE_WINDOW_MS = 4000; // si llega otro valor dentro de 4s, se considera corrección/eco
-let lastAcceptedTs=null, lastAcceptedV=null;
+/* ====== Anti-eco ====== */
+const MERGE_WINDOW_MS=4000; let lastAcceptedTs=null, lastAcceptedV=null;
 
 /* ====== ROSA ====== */
 let rosaDone=false;
 
 /* ====== FORMS ====== */
-const FORMS_N=4; // longitud del patrón de colores recientes
-function colorCode(v){ if(v>=10) return 'R'; if(v>=2) return 'M'; return 'A'; } // A: azul (<2), M: morado (2-9.99), R: rosa (>=10)
-function makeSignature(){ const a=rounds.slice(-FORMS_N).map(colorCode); return a.join(''); }
+const FORMS_N=4; function colorCode(v){ if(v>=10) return 'R'; if(v>=2) return 'M'; return 'A'; }
+function makeSignature(){ return rounds.slice(-FORMS_N).map(colorCode).join(''); }
 function loadForms(){ try{ return JSON.parse(localStorage.getItem('formsStats')||'{}'); }catch{ return {}; } }
 function saveForms(x){ try{ localStorage.setItem('formsStats', JSON.stringify(x)); }catch(_){} }
 let formsStats=loadForms();
@@ -168,255 +147,117 @@ function formsRate(sig){ const s=formsStats[sig]; return s? (s.win/(s.tot||1)) :
 /* =================== RENDER =================== */
 function colorPill(v){ if(v>=10) return "p-pink"; if(v>=2) return "p-purple"; return "p-blue"; }
 function renderStats(){
-  $("rounds").textContent = `${rounds.length} (base ${baseCount})`;
-  const ma10=movingAverage(rounds,10);
-  $("ma10").textContent=isNaN(ma10)?"–":ma10.toFixed(2)+"x";
+  $("rounds").textContent=`${rounds.length} (base ${baseCount})`;
+  const ma10=movingAverage(rounds,10); $("ma10").textContent=isNaN(ma10)?"–":ma10.toFixed(2)+"x";
   $("ge170").textContent=ge170Count60;
-
-  const pills=$("lastRounds"); pills.innerHTML="";
-  lastShown.forEach(x=>{ const s=document.createElement("span"); s.className=`pill small ${colorPill(x)}`; s.textContent=x.toFixed(2)+"x"; pills.appendChild(s); });
-
-  $("sesLbl").textContent = `${sessionRoundIn60()}/60`;
-  $("sepLbl").textContent  = sepEst().toFixed(2);
-  $("heatLbl").textContent = heatEst().toFixed(2);
-  const sessionSignals = bets.filter(b=>b.sessionStartIdx===sessionStartIdx).length;
-  $("signals").textContent = sessionSignals;
+  const pills=$("lastRounds"); pills.innerHTML=""; lastShown.forEach(x=>{ const s=document.createElement("span"); s.className=`pill small ${colorPill(x)}`; s.textContent=x.toFixed(2)+"x"; pills.appendChild(s); });
+  $("sesLbl").textContent=`${sessionRoundIn60()}/60`; $("sepLbl").textContent=sepEst().toFixed(2); $("heatLbl").textContent=heatEst().toFixed(2);
+  const sessionSignals=bets.filter(b=>b.sessionStartIdx===sessionStartIdx).length; $("signals").textContent=sessionSignals;
 }
-function renderBets(){
-  const tb=$("betsTbody"); tb.innerHTML="";
-  bets.forEach((b,i)=>{
-    const tr=document.createElement("tr");
-    tr.innerHTML = `
-      <td>${i+1}</td>
-      <td>${HHmm(b.tsEmit)}</td>
-      <td>${b.roundIn60??"–"}</td>
-      <td>${b.tag}</td>
-      <td>${b.target}x</td>
-      <td>${HHmmss(b.tsEmit)}</td>
-      <td class="${b.state==='win'?'win':(b.state==='lose'?'lose':'')}">${b.crash?b.crash.toFixed(2)+"x":"—"}</td>
-      <td class="${b.state==='win'?'win':(b.state==='lose'?'lose':'')}">${b.state||"pend"}</td>`;
-    tb.appendChild(tr);
-  });
-}
+function renderBets(){ const tb=$("betsTbody"); tb.innerHTML=""; bets.forEach((b,i)=>{ const tr=document.createElement("tr"); tr.innerHTML=`<td>${i+1}</td><td>${HHmm(b.tsEmit)}</td><td>${b.roundIn60??"–"}</td><td>${b.tag}</td><td>${b.target}x</td><td>${HHmmss(b.tsEmit)}</td><td class="${b.state==='win'?'win':(b.state==='lose'?'lose':'')}">${b.crash?b.crash.toFixed(2)+"x":"—"}</td><td class="${b.state==='win'?'win':(b.state==='lose'?'lose':'')}">${b.state||"pend"}</td>`; tb.appendChild(tr); }); }
 
 /* =================== MÉTRICAS =================== */
-function sepEst(){ // separación promedio de moradas/rosas últimas 40
-  let last=-1, s=0,c=0; const L=rounds.length;
-  for(let i=L-1, j=0; i>=0 && j<40; i--, j++){
-    if(rounds[i]>=2){ if(last!==-1) { s += (last-i); c++; } last=i; }
-  }
-  return c? s/c : 3;
-}
-function heatEst(){ // moradas+rosas en 30
-  let c=0; for(let i=rounds.length-1, j=0; i>=0 && j<30; i--, j++) if(rounds[i]>=2) c++;
-  return c/30*10; // 0..10
-}
+function sepEst(){ let last=-1,s=0,c=0; for(let i=rounds.length-1,j=0;i>=0&&j<40;i--,j++){ if(rounds[i]>=2){ if(last!==-1){s+= (last-i); c++;} last=i; } } return c? s/c : 3; }
+function heatEst(){ let c=0; for(let i=rounds.length-1,j=0;i>=0&&j<30;i--,j++) if(rounds[i]>=2) c++; return c/30*10; }
 function sessionRoundIn60(){ return ((rounds.length - sessionStartIdx) % 60) + 1; }
 
 /* =================== SESIONES =================== */
-function ensureSession(){
-  if(!$("autoSession").checked) return;
-  const r = ((rounds.length - sessionStartIdx) % 60) + 1;
-  if(r===1 && rounds.length!==sessionStartIdx){
-    sessionStartIdx = rounds.length; // ancla exacta del inicio
-    rosaDone=false;
-    log(`[${HHmmss(now())}] Nueva sesión: reinicio de contadores (3 señales/60).`);
-  }
+function ensureSession(){ if(!$("autoSession").checked) return; const r=sessionRoundIn60(); if(r===1 && rounds.length!==sessionStartIdx){ sessionStartIdx=rounds.length; rosaDone=false; log(`[${HHmmss(now())}] Nueva sesión: reinicio de contadores.`); } }
+
+/* =================== SCORING ADAPTATIVO =================== */
+function scoreForNow(){
+  const L4=rounds.slice(-4), L8=rounds.slice(-8), L12=rounds.slice(-12), L30=rounds.slice(-30);
+  const ma10=movingAverage(rounds,10)||1.0; const heat=heatEst(); const sep=sepEst();
+  const ge8=L8.filter(x=>x>=1.70).length, ge12=L12.filter(x=>x>=1.70).length;
+  const low4=L4.filter(x=>x<1.20).length; const has100=rounds.slice(-2).some(x=>Math.abs(x-1.00)<=0.005);
+  const slope=(movingAverage(L4,4)-movingAverage(L8,8))||0; const hasPurp5=L12.some(x=>x>=5 && x<10);
+  const afterExt = L10Has(20,10) || L10Has(50,20); // ≥20 en 10 o ≥50 en 20
+  function L10Has(v,look){ return rounds.slice(-look).some(x=>x>=v); }
+  // puntuación (0..~3)
+  let s=0;
+  s += 0.60 * Math.tanh((ma10-1.25)/0.15);
+  s += 0.55 * Math.tanh((heat-3.0)/1.0);
+  s += 0.50 * clamp(ge8/4,0,1);
+  s += 0.40 * clamp(ge12/6,0,1);
+  s += 0.40 * clamp(slope*4,-0.6,0.6);
+  s += 0.30 * (hasPurp5?1:0);
+  s -= 0.22 * low4;
+  s -= 0.60 * (has100?1:0);
+  s -= 0.40 * (afterExt?1:0);
+  return {s, ma10, heat, sep, ge8, ge12, low4, slope, has100, afterExt, hasPurp5};
+}
+function sessionSignalCap(){ // 3 por defecto; sube a 4 si va fino
+  const sess=bets.filter(b=>b.sessionStartIdx===sessionStartIdx);
+  const done=sess.filter(b=>b.state!=='pend'); const wins=done.filter(b=>b.state==='win').length;
+  const acc=done.length? wins/done.length : 0.0; return (acc>=0.62 && sess.length>=2)? 4 : 3;
 }
 
-function adaptiveGate(){
-  const last30 = bets.filter(b=>b.sessionStartIdx===sessionStartIdx).slice(-30);
-  const wins = last30.filter(b=>b.state==='win').length;
-  const rate = last30.length? wins/last30.length : 0.6;
-  const adj = (rate>=0.62)? -0.02 : (rate<=0.52? +0.05 : 0);
-  return { ma10Min: 1.33 + adj, requireGe170In8: (rate<=0.52? 3:2) };
-}
+/* =================== LÓGICA SEÑALES 1.7 =================== */
+function maybeSignal17(){ if(!$("autoSignal").checked) return; const r=sessionRoundIn60(); const cap=sessionSignalCap();
+  const {s, ma10, heat, sep, ge8, ge12, low4, slope, has100, afterExt, hasPurp5} = scoreForNow();
+  // mantener historial de score
+  scoreHist.push(s); if(scoreHist.length>60) scoreHist.shift();
+  const mean = scoreHist.reduce((a,b)=>a+b,0)/(scoreHist.length||1);
+  const std = Math.sqrt(scoreHist.reduce((a,b)=>a+(b-mean)*(b-mean),0)/(scoreHist.length||1));
 
-/* =================== LÓGICA DE SEÑALES =================== */
-function maybeSignal17(){
-  if(!$("autoSignal").checked) return;
-  const r= sessionRoundIn60();
-  const windowIdx = (r<=20)?1 : (r<=40?2:3);
+  // régimen
+  const up = (heat>=3.8 && slope>=0.05 && ge8>=3);
+  const cold = (heat<=2.4 || slope<=-0.08 || low4>=2);
 
-  // contexto
-  const sep=sepEst(), heat=heatEst(), ma10=movingAverage(rounds,10)||0;
-  const {ma10Min, requireGe170In8} = adaptiveGate();
+  // umbral adaptativo
+  let tau = 1.25; if(up) tau-=0.10; if(cold) tau+=0.15; tau += Math.max(0, 0.35*std - 0.05); // más exigente si var alta
+  // ajuste por forms
+  const sig = makeSignature(); const fr=formsRate(sig); if($("formsToggle").checked && fr!==null && (formsStats[sig]?.tot||0)>=5 && fr<0.52) tau+=0.08;
+  // planificación por tercio
+  const sessSigs = bets.filter(b=>b.sessionStartIdx===sessionStartIdx).length;
+  const need1 = sessSigs===0 && r>=18, need2=sessSigs===1 && r>=38, need3=sessSigs===2 && r>=58;
+  if(need1||need2||need3) tau = Math.max(1.10, tau-0.05);
 
-  // micro
-  const L4 = rounds.slice(-4), L8=rounds.slice(-8), L12=rounds.slice(-12);
-  const ge170in8 = L8.filter(x=>x>=1.70).length;
-  const ge170in12 = L12.filter(x=>x>=1.70).length;
-  const low112in4 = L4.filter(x=>x<1.20).length;
-  const had100in3 = rounds.slice(-3).some(x=>Math.abs(x-1.00)<=0.005);
-  const afterExtreme = (()=>{
-    const a1 = rounds.slice(-10).some(x=>x>=20);
-    const a2 = rounds.slice(-20).some(x=>x>=50);
-    return (a1||a2);
-  })();
-  const microSlope = (movingAverage(L4,4) - movingAverage(L8,8));
-  const recentPurp = rounds.slice(-6).some(x=>x>=2 && x<10);
-
-  // hot
-  const strongHot = (heat>=4.2) && (microSlope>=0.05) && (ge170in8>=4) && (low112in4===0) && !had100in3 && !afterExtreme;
-  const hotUptrend = (heat>=3.6) && (microSlope>=0.03) && (ge170in8>=3) && (low112in4<=1) && !had100in3 && !afterExtreme;
-
-  // política sesión
-  const signalsInSession = bets.filter(b=>b.sessionStartIdx===sessionStartIdx).length;
-  const lastSig = [...bets].reverse().find(b=>b.sessionStartIdx===sessionStartIdx);
+  // reglas duras
+  const signalsInSession=sessSigs; if(signalsInSession>=cap) return; // techo por sesión
+  const lastSig=[...bets].reverse().find(b=>b.sessionStartIdx===sessionStartIdx);
   const lastGap = lastSig? (rounds.length - (lastSig.absRoundIdx||0)) : Infinity;
-  if(r<8 && !strongHot) return;                 // anti-tempranazo
-  if(r<=15 && signalsInSession>=1 && !hotUptrend) return; // no quema 2 temprano
-  const last2 = bets.filter(b=>b.sessionStartIdx===sessionStartIdx).slice(-2);
-  const last2Loss = last2.length===2 && last2.every(b=>b.state==='lose');
-  if(last2Loss && lastGap<8) return; // cooldown tras 2 pérdidas
-  if(signalsInSession>=3) return; // máx. 3/60
-  const minGap = hotUptrend? 2 : 6;
+  if(r<8 && !up) return;                   // anti-tempranazo
+  if(r<=15 && signalsInSession>=1 && !up) return; // no quemar 2 temprano
+  const last2=bets.filter(b=>b.sessionStartIdx===sessionStartIdx).slice(-2); const twoLoss= last2.length===2 && last2.every(b=>b.state==='lose');
+  if(twoLoss && lastGap<8) return;         // cooldown 2 pérdidas
+  const minGap = up? 2 : 6; if(lastGap<minGap) return;
+  if(afterExt) return; if(has100) return; if(low4>=2) return;
 
-  // reglas
-  const okContext = sep>=1.25 && heat>=3.0 && ma10>=Math.max(1.30, ma10Min-0.02);
-  const okMicro   = ge170in8>=Math.max(2, requireGe170In8-1) && low112in4<=1 && !had100in3 && microSlope>=-0.05 && !afterExtreme;
-  const momentumSetup = (recentPurp||strongHot) && okContext && ge170in8>=3 && microSlope>=0.00;
-  const reboundSetup  = (rounds.slice(-3).filter(x=>x<1.30).length>=2) && (ge170in12>=5) && (ma10>=1.32) && !had100in3;
-
-  // planificación 3/60
-  const need1st = signalsInSession===0 && r>=18;
-  const need2nd = signalsInSession===1 && r>=38;
-  const need3rd = signalsInSession===2 && r>=58;
-  let relaxedOK = false;
-  if(need1st || need2nd || need3rd){
-    const relaxContext = sep>=1.22 && heat>=2.7 && ma10>=1.28;
-    const relaxMicro   = (ge170in8>=2) && (rounds.slice(-2).every(x=>x>=1.10)) && (microSlope>=-0.02) && !afterExtreme;
-    relaxedOK = relaxContext && relaxMicro;
-  }
-
-  const shouldFire = (okContext && okMicro) || momentumSetup || reboundSetup || relaxedOK;
-  const formsSig = makeSignature();
-  const fRate = formsRate(formsSig);
-  const formsOK = (!$("formsToggle").checked) || (fRate===null) || (formsStats[formsSig]&&formsStats[formsSig].tot<5) || fRate>=0.52;
-
-  if(shouldFire && formsOK && lastGap>=minGap){
-    const why = `ma10=${ma10.toFixed(2)}(min ${Math.max(1.30,ma10Min-0.02).toFixed(2)}), sep=${sep.toFixed(2)}, heat=${heat.toFixed(2)}, ge170/8=${ge170in8}, ge170/12=${ge170in12}, low<1.20(4)=${low112in4}, slope4-8=${microSlope.toFixed(2)}, hotUp=${hotUptrend?'sí':'no'}, gap=${lastGap}, planner=${(need1st||need2nd||need3rd)?'on':'off'}, forms[${formsSig}]=${fRate===null?'-':(fRate*100).toFixed(0)+'%'} `;
-    fireShot(1.70, "AUTO_1p7", windowIdx, why, false, formsSig);
-  }
+  // disparo si score supera tau
+  if(s>=tau){ const why=`score=${s.toFixed(2)} ≥ tau=${tau.toFixed(2)} | up=${up?'sí':'no'}, cold=${cold?'sí':'no'}, ma10=${ma10.toFixed(2)}, heat=${heat.toFixed(2)}, sep=${sep.toFixed(2)}, ge170/8=${ge8}, ge170/12=${ge12}, low<1.20(4)=${low4}, slope=${slope.toFixed(2)}, forms[${sig}]=${fr===null?'-':(fr*100).toFixed(0)+'%'}`; fireShot(1.70, "AUTO_1p7", null, why, false, sig); }
 }
 
-function maybeHuntRosa(){
-  if(!$("huntRosa").checked || rosaDone===true) return;
-  const r = sessionRoundIn60();
-  if(r<12) return; // no ROSA en primeras 11 rondas
+/* =================== ROSA 10× =================== */
+function maybeHuntRosa(){ if(!$("huntRosa").checked || rosaDone) return; const r=sessionRoundIn60(); if(r<12) return; const last20=rounds.slice(-20), last30=rounds.slice(-30); const mor20=last20.filter(x=>x>=2&&x<10).length, mor30=last30.filter(x=>x>=2&&x<10).length; const purp5=last20.some(x=>x>=5&&x<10); const no100=rounds.slice(-5).every(x=>Math.abs(x-1.00)>0.005); const ma10=movingAverage(rounds,10)||0; const sep=sepEst(), heat=heatEst(); const sinceRosa=(function(){for(let i=rounds.length-1,c=0;i>=0&&c<80;i--,c++){if(rounds[i]>=10) return c;} return 999;})(); const afterExt=rounds.slice(-100).some(x=>x>=50); const ok = heat>=3.4 && ma10>=1.36 && sep>=1.25 && mor20>=7 && mor30>=11 && purp5 && no100 && sinceRosa>24 && !afterExt; if(ok){ const why=`mom(M)20=${mor20}, mom(M)30=${mor30}, purp5in20=${purp5}, no100in5=${no100}, ma10=${ma10.toFixed(2)}, sep=${sep.toFixed(2)}, heat=${heat.toFixed(2)}, sinceRosa>${sinceRosa}`; fireShot(10, "ROSA_10x", null, why, true); rosaDone=true; } }
 
-  const last20 = rounds.slice(-20), last30 = rounds.slice(-30);
-  const moradas20 = last20.filter(x=>x>=2 && x<10).length;
-  const moradas30 = last30.filter(x=>x>=2 && x<10).length;
-  const purp5in20 = last20.some(x=>x>=5 && x<10);
-  const no100in5 = rounds.slice(-5).every(x=>Math.abs(x-1.00)>0.005);
-  const ma10=movingAverage(rounds,10)||0;
-  const sep=sepEst(), heat=heatEst();
-  const sinceRosa = (()=>{ for(let i=rounds.length-1,c=0;i>=0&&c<80;i--,c++){ if(rounds[i]>=10) return c; } return 999; })();
-  const afterExtreme = rounds.slice(-100).some(x=>x>=50);
+/* =================== EMISIÓN =================== */
+function fireShot(target, tag, win3, explain=null, isRosa=false, ctxSig=null){ const ts=now(); const roundIn60=sessionRoundIn60(); const rec={ id:"S"+ts, tag, target, tsEmit:ts, roundIn60, sessionStartIdx, state:"pend", crash:null, explain, ctxSig, absRoundIdx:rounds.length }; if(win3) rec.win3Window=win3; bets.push(rec); signalsCount++; renderBets(); const sessionSignals=bets.filter(b=>b.sessionStartIdx===sessionStartIdx).length; $("signals").textContent=sessionSignals; if(isRosa) beepRosa(); else beep17(); log(`[${HHmmss(ts)}] Señal emitida${isRosa?" (ROSA)":""}; objetivo ≥${target.toFixed(2)}.\n  ↳ ${explain||''}`); }
 
-  const ok = heat>=3.4 && ma10>=1.36 && sep>=1.25 && moradas20>=7 && moradas30>=11 && purp5in20 && no100in5 && sinceRosa>24 && !afterExtreme;
-  if(ok){
-    const why = `mom(M)20=${moradas20}, mom(M)30=${moradas30}, purp5in20=${purp5in20}, no100in5=${no100in5}, ma10=${ma10.toFixed(2)}, sep=${sep.toFixed(2)}, heat=${heat.toFixed(2)}, sinceRosa>${sinceRosa}`;
-    fireShot(10, "ROSA_10x", null, why, true);
-    rosaDone=true;
-  }
-}
-
-function fireShot(target, tag, win3, explain=null, isRosa=false, ctxSig=null){
-  const ts=now();
-  const roundIn60 = sessionRoundIn60();
-  const rec = { id: "S"+ts, tag, target, tsEmit:ts, roundIn60, sessionStartIdx, state:"pend", crash:null, explain, ctxSig, absRoundIdx: rounds.length };
-  if(win3) rec.win3Window=win3;
-  bets.push(rec); signalsCount++; renderBets();
-  const sessionSignals = bets.filter(b=>b.sessionStartIdx===sessionStartIdx).length; $("signals").textContent=sessionSignals;
-  if(isRosa) beepRosa(); else beep17();
-  log(`[${HHmmss(ts)}] Señal emitida${isRosa?" (ROSA)":""} (ventana ${win3||"-"}/${"3"}); objetivo ≥${target.toFixed(2)}.\n  ↳ ${explain||''}`);
-}
-
-/* =================== INGESTA / ANTI-ECO =================== */
-function parseCrashValue(raw){
-  if(raw===null||raw===undefined) return null; if(typeof raw==="number") return (raw>=1 && isFinite(raw))? raw : null;
-  let s=String(raw).replace(/[^\d.,]/g,'').trim(); if(!s) return null;
-  const lastDot=s.lastIndexOf('.'), lastComma=s.lastIndexOf(','); let dec=(lastComma>lastDot)?',':'.'; if(lastDot===-1&&lastComma===-1) dec='.';
-  if(dec===','){ s=s.replace(/\./g,''); s=s.replace(',', '.'); } else { s=s.replace(/,/g,''); }
-  const v=Number(s); return (isFinite(v)&&v>=1)?v:null;
-}
-
-function ingestCrashCandidate(v, ts, keyHint){
-  if(lastAcceptedTs==null){ acceptCrash(v, ts, keyHint, false); return; }
-  const dt = ts - lastAcceptedTs;
-  if(Math.abs(dt)<=MERGE_WINDOW_MS && v===lastAcceptedV){ return; }
-  if(Math.abs(dt)<=MERGE_WINDOW_MS && v!==lastAcceptedV){ correctLastCrash(v, ts); return; }
-  acceptCrash(v, ts, keyHint, false);
-}
-function correctLastCrash(newV, ts){
-  if(!rounds.length) return;
-  const oldV=rounds[rounds.length-1];
-  rounds[rounds.length-1]=newV; lastShown[0]=newV;
-  if(newV>=1.70 && oldV<1.70) ge170Count60 = Math.min(60, ge170Count60+1);
-  if(newV<1.70 && oldV>=1.70) ge170Count60 = Math.max(0, ge170Count60-1);
-
-  const lastBet = bets[bets.length-1];
-  if(lastBet && lastBet.state!=="win"){ lastBet.crash=newV; lastBet.state=(newV>lastBet.target)?"win":"lose"; if(lastBet.state!=='pend' && lastBet.ctxSig) updateForms(lastBet.ctxSig, lastBet.state==='win'); renderBets(); }
-  renderStats();
-  log(`[${HHmmss(ts)}] Corrección: ${oldV.toFixed(2)}x → ${newV.toFixed(2)}x (Δ ${Math.round(ts-lastAcceptedTs)} ms).`);
-  lastAcceptedTs = ts; lastAcceptedV=newV;
-}
-function acceptCrash(v, ts, keyHint, base){
-  rounds.push(v); roundsMeta.push({v,ts,key:keyHint||null});
-  if(rounds.length>3000){ rounds.shift(); roundsMeta.shift(); }
-  lastShown.unshift(v); if(lastShown.length>60) lastShown.pop();
-
-  // actualizar contadores 60
-  const prev = rounds[rounds.length-61]; if(prev!==undefined && prev>=1.70) ge170Count60--; if(v>=1.70) ge170Count60++;
-
-  // cerrar apuesta pendiente
-  if(bets.length){ const b = bets.find(x=>x.state==="pend"); if(b){ b.crash=v; b.state=(v>b.target)?"win":"lose"; renderBets(); if(b.ctxSig) updateForms(b.ctxSig, b.state==='win'); log(`[${HHmmss(ts)}] Resultado ${b.state.toUpperCase()} (${b.tag.includes('ROSA')?'ROSA':'1.70'}) con crash ${v.toFixed(2)}x.`); } }
-
-  renderStats();
-
-  if(!base){ ensureSession(); maybeSignal17(); maybeHuntRosa(); }
-  lastAcceptedTs=ts; lastAcceptedV=v;
-}
+/* =================== INGESTA =================== */
+function parseCrashValue(raw){ if(raw===null||raw===undefined) return null; if(typeof raw==="number") return (raw>=1&&isFinite(raw))?raw:null; let s=String(raw).replace(/[^\d.,]/g,'').trim(); if(!s) return null; const lastDot=s.lastIndexOf('.'), lastComma=s.lastIndexOf(','); let dec=(lastComma>lastDot)?',':'.'; if(lastDot===-1&&lastComma===-1) dec='.'; if(dec===','){ s=s.replace(/\./g,''); s=s.replace(',', '.'); } else { s=s.replace(/,/g,''); } const v=Number(s); return (isFinite(v)&&v>=1)?v:null; }
+function ingestCrashCandidate(v,ts,keyHint){ if(lastAcceptedTs==null){ acceptCrash(v,ts,keyHint,true); return; } const dt=ts-lastAcceptedTs; if(Math.abs(dt)<=MERGE_WINDOW_MS && v===lastAcceptedV) return; if(Math.abs(dt)<=MERGE_WINDOW_MS && v!==lastAcceptedV){ correctLastCrash(v,ts); return; } acceptCrash(v,ts,keyHint,false); }
+function correctLastCrash(newV,ts){ if(!rounds.length) return; const oldV=rounds[rounds.length-1]; rounds[rounds.length-1]=newV; lastShown[0]=newV; if(newV>=1.70&&oldV<1.70) ge170Count60=Math.min(60,ge170Count60+1); if(newV<1.70&&oldV>=1.70) ge170Count60=Math.max(0,ge170Count60-1); const lastBet=bets[bets.length-1]; if(lastBet&&lastBet.state!=='win'){ lastBet.crash=newV; lastBet.state=(newV>lastBet.target)?'win':'lose'; if(lastBet.state!=='pend'&&lastBet.ctxSig) updateForms(lastBet.ctxSig,lastBet.state==='win'); renderBets(); } renderStats(); log(`[${HHmmss(ts)}] Corrección: ${oldV.toFixed(2)}x → ${newV.toFixed(2)}x.`); lastAcceptedTs=ts; lastAcceptedV=newV; }
+function acceptCrash(v,ts,keyHint,base){ rounds.push(v); roundsMeta.push({v,ts,key:keyHint||null}); if(rounds.length>3000){ rounds.shift(); roundsMeta.shift(); } lastShown.unshift(v); if(lastShown.length>60) lastShown.pop(); const prev=rounds[rounds.length-61]; if(prev!==undefined&&prev>=1.70) ge170Count60--; if(v>=1.70) ge170Count60++; if(bets.length){ const b=bets.find(x=>x.state==='pend'); if(b){ b.crash=v; b.state=(v>b.target)?'win':'lose'; renderBets(); if(b.ctxSig) updateForms(b.ctxSig,b.state==='win'); log(`[${HHmmss(ts)}] Resultado ${b.state.toUpperCase()} (${b.tag.includes('ROSA')?'ROSA':'1.70'}) con crash ${v.toFixed(2)}x.`); } } renderStats(); if(!base){ ensureSession(); maybeSignal17(); maybeHuntRosa(); } lastAcceptedTs=ts; lastAcceptedV=v; }
 
 /* =================== CONEXIÓN FEED =================== */
 let liveRef=null, liveCb=null, lastKey=null, lastTs=null, lastActivity=null, watchdog=null;
-function nodeToVT(node){ const raw=(node&&typeof node==='object'&&('raw' in node||'v' in node))?(node.raw??node.v):node; const v=parseCrashValue(raw); const ts=Number(node?.ts)||now(); return {v,ts}; }
-async function connectFeed(){
-  if(connected) return; FEED_ID=($("feedId").value||"gocho").trim(); $("statusFeedback").textContent=`Conectando a feeds/${FEED_ID}/crashes…`;
-  try{ await auth.signInAnonymously(); }catch(e){}
-  const ref=db.ref(`feeds/${FEED_ID}/crashes`);
-  if($("cleanOnConnect").checked){ $("logBox").textContent=""; bets=[]; signalsCount=0; renderBets(); }
-
-  let snap=null, method="key";
-  try{ const s=await ref.orderByChild("ts").limitToLast(900).once("value"); if(s && s.val()) { snap=s; method="ts"; } }catch(e){}
-  if(!snap){ try{ const s=await ref.orderByKey().limitToLast(900).once("value"); if(s && s.val()) { snap=s; method="key"; } }catch(e){} }
+function nodeToVT(node){ const raw=(node&&typeof node==='object'&&('raw'in node||'v'in node))?(node.raw??node.v):node; const v=parseCrashValue(raw); const ts=Number(node?.ts)||now(); return {v,ts}; }
+async function connectFeed(){ if(connected) return; FEED_ID=($("feedId").value||"gocho").trim(); $("statusFeedback").textContent=`Conectando a feeds/${FEED_ID}/crashes…`; try{ await auth.signInAnonymously(); }catch(e){} const ref=db.ref(`feeds/${FEED_ID}/crashes`); if($("cleanOnConnect").checked){ $("logBox").textContent=""; bets=[]; signalsCount=0; renderBets(); }
+  let snap=null, method="key"; try{ const s=await ref.orderByChild("ts").limitToLast(900).once("value"); if(s&&s.val()){ snap=s; method="ts"; } }catch(e){}
+  if(!snap){ try{ const s=await ref.orderByKey().limitToLast(900).once("value"); if(s&&s.val()){ snap=s; method="key"; } }catch(e){} }
   if(!snap||!snap.val()){ $("statusFeedback").textContent="Sin datos en el feed."; return; }
-
-  // reset
-  rounds=[]; roundsMeta=[]; lastShown=[]; ge170Count60=0; signalsCount=0; rosaDone=false;
-
-  const data=snap.val(), keys=Object.keys(data).sort(); baseCount=keys.length;
-  keys.forEach(k=>{ const {v,ts}=nodeToVT(data[k]); if(v!==null) acceptCrash(v,ts,k,true); lastKey=k; lastTs=Number(data[k]?.ts||k)||now(); lastActivity=now(); });
-
-  // ancla de sesión en el punto actual
-  sessionStartIdx = rounds.length; renderStats(); $("statusFeedback").textContent="Conectado.";
-
-  if(method==="ts"){ liveRef=ref.orderByChild("ts").startAt(lastTs); liveCb=s=>{ const key=s.key, d=s.val(); const {v,ts}=nodeToVT(d); if(lastTs && ts<=lastTs && key===lastKey) return; lastKey=key; lastTs=ts; lastActivity=now(); if(v!==null) ingestCrashCandidate(v, ts, key); }; }
-  else { liveRef=ref.orderByKey().startAt(lastKey||""); liveCb=s=>{ const key=s.key, d=s.val(); if(lastKey && key<=lastKey) return; lastKey=key; const {v,ts}=nodeToVT(d); lastTs=ts; lastActivity=now(); if(v!==null) ingestCrashCandidate(v, ts, key); }; }
-  liveRef.on("child_added", liveCb);
-
-  if(watchdog) clearInterval(watchdog);
-  watchdog=setInterval(()=>{ if(!connected) return; const dt=Date.now()-(lastActivity||0); if(dt>300000){ disconnectFeed(true); connectFeed(); } }, 30000);
-  connected=true;
-}
-function disconnectFeed(silent=false){ if(!connected) return; if(liveRef && liveCb) liveRef.off("child_added", liveCb); liveRef=liveCb=null; lastKey=lastTs=lastActivity=null; connected=false; if(watchdog){ clearInterval(watchdog); watchdog=null; } if(!silent) $("statusFeedback").textContent="Desconectado."; }
+  rounds=[]; roundsMeta=[]; lastShown=[]; ge170Count60=0; signalsCount=0; rosaDone=false; scoreHist.length=0;
+  const data=snap.val(), keys=Object.keys(data).sort(); baseCount=keys.length; keys.forEach(k=>{ const {v,ts}=nodeToVT(data[k]); if(v!==null) acceptCrash(v,ts,k,true); lastKey=k; lastTs=Number(data[k]?.ts||k)||now(); lastActivity=now(); });
+  sessionStartIdx=rounds.length; renderStats(); $("statusFeedback").textContent="Conectado.";
+  if(method==="ts"){ liveRef=ref.orderByChild("ts").startAt(lastTs); liveCb=s=>{ const key=s.key,d=s.val(); const {v,ts}=nodeToVT(d); if(lastTs&&ts<=lastTs&&key===lastKey) return; lastKey=key; lastTs=ts; lastActivity=now(); if(v!==null) ingestCrashCandidate(v,ts,key); }; }
+  else{ liveRef=ref.orderByKey().startAt(lastKey||""); liveCb=s=>{ const key=s.key,d=s.val(); if(lastKey&&key<=lastKey) return; lastKey=key; const {v,ts}=nodeToVT(d); lastTs=ts; lastActivity=now(); if(v!==null) ingestCrashCandidate(v,ts,key); }; }
+  liveRef.on("child_added", liveCb); if(watchdog) clearInterval(watchdog); watchdog=setInterval(()=>{ if(!connected) return; const dt=Date.now()-(lastActivity||0); if(dt>300000){ disconnectFeed(true); connectFeed(); } },30000); connected=true; }
+function disconnectFeed(silent=false){ if(!connected) return; if(liveRef&&liveCb) liveRef.off("child_added",liveCb); liveRef=liveCb=null; lastKey=lastTs=lastActivity=null; connected=false; if(watchdog){ clearInterval(watchdog); watchdog=null; } if(!silent) $("statusFeedback").textContent="Desconectado."; }
 
 /* =================== UI & PERSIST =================== */
-$("connectBtn").addEventListener("click", connectFeed);
-$("disconnectBtn").addEventListener("click", ()=>disconnectFeed(false));
-setInterval(()=>{ $("clockNow").textContent=new Date().toLocaleTimeString(); try{ localStorage.setItem(PERSIST_KEY, JSON.stringify({bets, signalsCount, sessionStartIdx, formsStats})); }catch(_){} }, 1000);
+$("connectBtn").addEventListener("click", connectFeed); $("disconnectBtn").addEventListener("click", ()=>disconnectFeed(false));
+setInterval(()=>{ $("clockNow").textContent=new Date().toLocaleTimeString(); try{ localStorage.setItem(PERSIST_KEY, JSON.stringify({bets, signalsCount, sessionStartIdx, formsStats})) }catch(_){} },1000);
 (function boot(){ try{ const raw=localStorage.getItem(PERSIST_KEY); if(raw){ const p=JSON.parse(raw); if(Array.isArray(p.bets)) bets=p.bets; if(p.signalsCount!=null) signalsCount=p.signalsCount; if(p.sessionStartIdx!=null) sessionStartIdx=p.sessionStartIdx; if(p.formsStats) formsStats=p.formsStats; renderBets(); } }catch(_){ } renderStats(); })();
 </script>
 </body>
