@@ -1,283 +1,373 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Aviator Analyzer · Gocho v29.3 (no ROSA + anti-eco fuerte + 3×)</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Portal • Gocho Dashboard</title>
 <style>
-  :root{ --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5; --brand:#8ab4ff; --pill:#1c2130; --blue:#20334a; --purple:#2a2146; --pink:#402038; }
-  html,body{background:var(--bg);color:var(--text);font:14px/1.45 system-ui,Inter,Segoe UI,Roboto,Arial,sans-serif;margin:0}
-  .wrap{max-width:1150px;margin:18px auto;padding:0 12px}
-  h1{font-size:18px;margin:0 0 10px;display:flex;gap:8px;align-items:center}
-  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .card{background:var(--panel);border:1px solid #22283a;border-radius:12px;padding:14px;margin:10px 0}
-  .btn{background:#2a3042;color:var(--text);border:0;border-radius:8px;padding:8px 12px;cursor:pointer}
-  .btn.ok{background:#2ecc71;color:#0c0f12;font-weight:700}
-  .muted{color:var(--muted)}
-  input[type="text"],select{background:#0f121a;color:var(--text);border:1px solid #2a3144;border-radius:6px;padding:6px}
-  .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:var(--pill);margin:4px 6px 0 0}
-  .pill.small{padding:4px 8px;font-size:12px}
-  .p-blue{background:var(--blue)} .p-purple{background:var(--purple)} .p-pink{background:var(--pink)}
-  .kpi{display:flex;gap:16px;flex-wrap:wrap}
-  .kpi .box{background:#0f121a;border:1px solid #22283a;border-radius:10px;padding:10px 12px}
-  .table{width:100%;border-collapse:collapse;font-size:13px}
-  .table th,.table td{padding:8px;border-bottom:1px solid #22283a;text-align:left}
-  .table td.win{color:#7ff5b0} .table td.lose{color:#ff9b9b}
-  .clock{font-variant-numeric:tabular-nums}
-  .explain{white-space:pre-wrap;font-family:ui-monospace,Consolas,monospace;font-size:12px}
+:root{
+  --bg:#0b0f14; --panel:#121821; --line:#1e2633; --text:#e7edf5; --muted:#8fa1b2;
+  --cyan:#5ad7ff; --purple:#b79bff; --pink:#ff6aa9; --green:#42d392; --red:#ff6b6b; --amber:#ffc857;
+  --chip-blue-bg:#0f2431; --chip-purple-bg:#1b1634; --chip-pink-bg:#2a0f1c;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,Segoe UI,Roboto,Helvetica,Arial}
+.container{max-width:1400px;margin:16px auto;padding:0 14px}
+row{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+
+/* Cards */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
+.card h3{margin:0 0 6px;font-size:12px;letter-spacing:.4px;color:var(--muted);text-transform:uppercase}
+
+/* Top bar */
+.head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand .dot{width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 8px rgba(66,211,146,.6)}
+.brand h1{font-size:16px;margin:0}
+.badge{padding:3px 8px;border:1px solid var(--line);border-radius:999px;background:#0c121a;color:var(--muted);font-weight:700}
+
+/* KPI tiles */
+.kpi{display:flex;justify-content:space-between;align-items:center}
+.kpi .big{font-size:20px;font-weight:800}
+.kpi .sub{color:var(--muted);font-size:12px}
+
+/* Chips */
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:6px 8px;border-radius:10px;font-weight:800;font-size:12px}
+.chip.blue{color:#9ee1ff;background:var(--chip-blue-bg)}
+.chip.purple{color:#d7c7ff;background:var(--chip-purple-bg)}
+.chip.pink{color:#ffc2da;background:var(--chip-pink-bg)}
+
+/* Graphs */
+.canvas-wrap{position:relative;height:280px}
+canvas{width:100%;height:100%}
+.legend{display:flex;gap:14px;color:var(--muted);font-size:12px}
+.leg-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+
+/* Warning banner */
+.banner{display:flex;gap:12px;align-items:center;border-radius:12px;padding:12px;border:1px solid var(--line)}
+.banner.dn{background:#1a1113;color:#ffdbe4;border-color:#3a1a22}
+.banner.up{background:#0f1914;color:#d1ffe8;border-color:#1a3a2b}
+.banner .title{font-weight:800;letter-spacing:.4px}
+
+/* Big crash */
+.bigcrash{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center}
+.bigcrash .small{color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.bigcrash .value{font-size:48px;font-weight:900;letter-spacing:.5px}
+
+/* Grid layout */
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+.col-3{grid-column:span 3}
+.col-4{grid-column:span 4}
+.col-5{grid-column:span 5}
+.col-6{grid-column:span 6}
+.col-8{grid-column:span 8}
+.col-9{grid-column:span 9}
+.col-12{grid-column:span 12}
+@media(max-width:1100px){
+  .col-3,.col-4,.col-5,.col-6,.col-8,.col-9{grid-column:span 12}
+  .canvas-wrap{height:230px}
+}
+
+/* Top metrics bar */
+.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.metric{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
+.metric .cap{color:var(--muted);font-size:12px}
+.metric .num{font-weight:900;font-size:18px;margin-top:6px}
+.sep{height:1px;background:var(--line);margin:8px 0}
+.small{color:var(--muted)}
+
+/* feed controls */
+.controls{display:flex;gap:8px;align-items:center}
+input[type=text]{background:#0c1219;border:1px solid var(--line);color:var(--text);padding:7px 10px;border-radius:10px}
+button{background:#102034;border:1px solid var(--line);color:#d7ecff;border-radius:10px;padding:7px 10px;cursor:pointer}
+button.red{background:#2b1416;border-color:#4a2226;color:#ffd7dc}
+.switch{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px}
+.footer{margin-top:10px;color:var(--muted);font-size:12px}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>✈️ Aviator Analyzer · <span style="color:#8ab4ff">Gocho v29.3</span>
-    <span id="statusFeedback" class="muted" style="margin-left:8px">Sin conectar.</span>
-    <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
-  </h1>
-
-  <div class="card">
-    <div class="row">
-      <label class="row"><input id="autoSignal" type="checkbox" checked> Auto‑señal 1.7×</label>
-      <label class="row"><input id="auto3x" type="checkbox" checked> Caza 3× (máx. 1/35)</label>
-      <label class="row"><input id="beepToggle" type="checkbox" checked> Beep</label>
-      <label class="row"><input id="auto1k" type="checkbox" checked> Auto‑1k</label>
-      <label class="row"><input id="autoSession" type="checkbox" checked> Auto‑sesión</label>
-      <label class="row"><input id="cleanOnConnect" type="checkbox"> Limpiar historial al conectar</label>
-
-      <span class="muted">Perfil:</span>
-      <select id="perfil">
-        <option value="P3" selected>Preciso (3–4/60)</option>
-        <option value="N3">Normal (4–5/60)</option>
-        <option value="A3">Agresivo (5–6/60)</option>
-      </select>
-
-      <span class="muted">Agresividad:</span>
-      <select id="aggr">
-        <option value="EQ" selected>Equilibrado</option>
-        <option value="CONS">Conservador</option>
-        <option value="AGR">Agresivo</option>
-      </select>
-
-      <span class="muted">Feed:</span>
-      <input id="feedId" type="text" value="gocho" style="width:120px"/>
-      <button id="connectBtn" class="btn ok">Conectar</button>
-      <button id="disconnectBtn" class="btn">Desconectar</button>
-    </div>
-    <div class="row" style="margin-top:8px">
-      <label class="row"><input id="formsToggle" type="checkbox" checked> Forms inteligente (aprende de patrones)</label>
-      <span class="muted">· Smart‑Pacing v7.3: probabilístico, anti‑tempranazo, anti‑racha perdedora, planificador por tercios. **Sin ROSA**. Módulo **3×** (1 cada 35 rondas). **Anti‑eco fuerte**: ignora duplicados por clave/tiempo/valor y no cierra apuestas con ecos.</span>
+<div class="container">
+  <div class="head">
+    <div class="brand"><span class="dot"></span><h1>Portal • Gocho</h1><span class="badge" id="clock"></span></div>
+    <div class="controls" style="margin-left:auto">
+      <input id="feed" type="text" value="gocho" title="Nombre del canal BroadcastChannel"/>
+      <button id="btnConnect">Conectar</button>
+      <button id="btnDisconnect" class="red">Desconectar</button>
+      <label class="switch"><input id="swBeep" type="checkbox">Beep</label>
     </div>
   </div>
 
-  <div class="card">
-    <div class="kpi">
-      <div class="box">Rondas: <b id="rounds">0</b> <span class="muted">(base)</span></div>
-      <div class="box">MA10: <b id="ma10">–</b><br><span class="muted">≥1.70 (60):</span> <b id="ge170">0</b></div>
-      <div class="box">Sesión: <b id="sesLbl">0/60</b><br><span class="muted">Señales:</span> <b id="signals">0</b></div>
-      <div class="box">Sep: <b id="sepLbl">–</b><br><span class="muted">Heat:</span> <b id="heatLbl">–</b></div>
+  <div class="metrics">
+    <div class="metric">
+      <div class="cap">JUGADORES</div>
+      <div class="num" id="mPlayers">—</div>
     </div>
-
-    <div style="margin-top:10px">
-      <div class="muted" style="margin-bottom:6px">Colores: <span class="pill small p-blue">Azul &lt; 2×</span> <span class="pill small p-purple">Morado 2–9.99×</span> <span class="pill small p-pink">Rosa ≥10×</span></div>
-      <div class="muted" style="margin-bottom:6px">Últimas 60 rondas (más reciente primero)</div>
-      <div id="lastRounds"></div>
+    <div class="metric">
+      <div class="cap">APUESTAS</div>
+      <div class="num" id="mBets">0</div>
+    </div>
+    <div class="metric">
+      <div class="cap">TOTAL APOSTADO</div>
+      <div class="num" id="mBetSum">$0</div>
+    </div>
+    <div class="metric">
+      <div class="cap">TOTAL CASHOUT</div>
+      <div class="num" id="mCashout">$0</div>
+    </div>
+    <div class="metric">
+      <div class="cap">GANANCIA CASINO</div>
+      <div class="num" id="mGain">$0</div>
     </div>
   </div>
 
-  <div class="card">
-    <div class="row"><h3 style="margin:0">Señales (historial persistente)</h3></div>
-    <table class="table" style="margin-top:8px">
-      <thead><tr><th>#</th><th>Sesión</th><th>Ronda</th><th>Tag</th><th>Objetivo</th><th>Hora</th><th>Crash</th><th>Estado</th></tr></thead>
-      <tbody id="betsTbody"></tbody>
-    </table>
+  <div class="card" style="margin-top:12px">
+    <h3>Historial de rondas</h3>
+    <div id="chips" class="chips"></div>
   </div>
 
-  <div class="card">
-    <h3 style="margin:0">Reseña</h3>
-    <div id="logBox" class="explain" style="margin-top:8px;max-height:340px;overflow:auto"></div>
+  <div class="grid" style="margin-top:12px">
+    <div class="card col-8">
+      <h3>Tendencia (últimas 60) &nbsp; <span id="trendMeta" class="small"></span></h3>
+      <div class="canvas-wrap"><canvas id="trend"></canvas></div>
+      <div class="legend" style="margin-top:8px">
+        <span><span class="leg-dot" style="background:var(--cyan)"></span>Puntos</span>
+        <span><span class="leg-dot" style="background:var(--amber)"></span>MA20</span>
+        <span><span class="leg-dot" style="background:var(--pink)"></span>Regresión</span>
+      </div>
+    </div>
+
+    <div class="card col-4">
+      <div id="riskBanner" class="banner dn">
+        <div class="title">Por su seguridad, evite apostar</div>
+        <div class="small">Tendencia bajista</div>
+      </div>
+      <div class="hr"></div>
+      <div class="bigcrash">
+        <div class="small">¡Se fue volando!</div>
+        <div class="value" id="lastCrash">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid" style="margin-top:12px">
+    <div class="card col-6">
+      <h3>Distribución por rangos</h3>
+      <div class="canvas-wrap" style="height:260px"><canvas id="donut"></canvas></div>
+      <div class="legend" style="margin-top:8px">
+        <span><span class="leg-dot" style="background:#2f9be1"></span>1.00–1.50</span>
+        <span><span class="leg-dot" style="background:#5ec2ff"></span>1.51–2.00</span>
+        <span><span class="leg-dot" style="background:#a48bff"></span>2.01–3.00</span>
+        <span><span class="leg-dot" style="background:#d7c1ff"></span>3.01–5.00</span>
+        <span><span class="leg-dot" style="background:#ff87bc"></span>≥10.00</span>
+      </div>
+    </div>
+
+    <div class="card col-6">
+      <h3>Reseña</h3>
+      <div id="log" class="card" style="height:260px;overflow:auto;background:#0c1218"></div>
+      <div class="footer">Feeds: BroadcastChannel("<b>gocho</b>") · <code>window.postMessage({aviatorRound:1.26}, "*")</code> · <code>localStorage["gocho:round"]=1.26</code></div>
+    </div>
   </div>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script>
-// =================== FIREBASE ===================
-const firebaseConfig={
-  apiKey:"AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
-  authDomain:"aviator-analyzer-b29a7.firebaseapp.com",
-  projectId:"aviator-analyzer-b29a7",
-  storageBucket:"aviator-analyzer-b29a7.appspot.com",
-  messagingSenderId:"575063626276",
-  appId:"1:575063626276:web:5f640e41f0ad791d6a3eb1",
-  measurementId:"G-325QCBSQMH",
-  databaseURL:"https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com"
-};
-try{firebase.initializeApp(firebaseConfig);}catch(e){console.error(e)}
-const db=firebase.database();
-const auth=firebase.auth();
+/*** ---------- Estado + util ---------- ***/
+const $ = s=>document.querySelector(s);
+const chipsEl = $("#chips"), logEl=$("#log");
+const fmtUSD = n => (n==null?'$0': '$'+ n.toLocaleString('en-US'));
+const now = ()=> new Date().toLocaleTimeString();
+function log(t, cls=''){ const d=document.createElement('div'); d.textContent='['+now()+'] '+t; if(cls) d.style.color=cls; logEl.appendChild(d); logEl.scrollTop=logEl.scrollHeight; }
+function beep(){ if(!swBeep.checked) return; const ctx=new (window.AudioContext||window.webkitAudioContext)(); const o=ctx.createOscillator(), g=ctx.createGain(); o.type='sine',o.frequency.value=880; g.gain.value=0.03; o.connect(g).connect(ctx.destination); o.start(); setTimeout(()=>o.stop(),120); }
 
-// =================== HELPERS ===================
-const $=id=>document.getElementById(id);
-const now=()=>Date.now();
-const HHmmss=ts=>new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-const HHmm=ts=>new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-function movingAverage(arr,n){const L=Math.min(arr.length,n);if(!L)return NaN;let s=0;for(let i=arr.length-L;i<arr.length;i++)s+=arr[i];return s/L}
-function clamp(v,a,b){return v<a?a:(v>b?b:v)}
-function log(s){const c=$("logBox");c.textContent+=s+"\n";c.scrollTop=c.scrollHeight}
-function beep(freq=880,ms=120,gain=0.03){if(!$("beepToggle").checked)return;try{if(!window._actx)window._actx=new (window.AudioContext||window.webkitAudioContext)();const o=_actx.createOscillator(),g=_actx.createGain();o.type="sine";o.frequency.value=freq;g.gain.value=gain;o.connect(_actx.destination);o.start();setTimeout(()=>o.stop(),ms);}catch(_){}}
-const beep17=()=>{beep(660,110,0.035);setTimeout(()=>beep(880,90,0.03),140)}
+/*** ---------- Rondas ---------- ***/
+let feed='gocho', bc=null, last=0, lastAt=0;
+let rounds=[], // más reciente primero
+    betsCount=0;
 
-// =================== ESTADO ===================
-let FEED_ID="gocho", connected=false;
-let rounds=[], roundsMeta=[], lastShown=[];
-let baseCount=0, ge170Count60=0;
-let sessionStartIdx=0; let bets=[];
-const PERSIST_KEY="gocho_v293";
-let formsStats={};
-let last3xAbsIdx=-9999; const THIRTYFIVE=35;
-let lastShotForRound=null; // evita 2 señales para la MISMA ronda próxima
+let players=null, betSum=0, cashout=0, gain=0;
 
-// anti-eco/duplicados
-const MERGE_WINDOW_MS=4000; const DUP_GUARD_MS=15000;
-let lastAcceptedTs=null, lastAcceptedV=null;
-let seenKeys=new Set(); let seenFps=[]; const FP_KEEP=80;
-function rememberSeen(key,ts,v){if(key)seenKeys.add(key);seenFps.push({ts,v});if(seenFps.length>FP_KEEP)seenFps.shift()}
-function isDuplicateEvent(ts,v,key){
-  if(key && seenKeys.has(key)) return true;
-  if(lastAcceptedV!=null){
-    if(Math.abs(v-lastAcceptedV)<0.0001 && (ts<=lastAcceptedTs || (ts-lastAcceptedTs)<=DUP_GUARD_MS)) return true;
+function start(){
+  stop();
+  feed=$("#feed").value.trim()||'gocho';
+  try{
+    bc=new BroadcastChannel(feed);
+    bc.onmessage = ev => accept(ev.data);
+    log('Conectado a feed "'+feed+'" por BroadcastChannel','#9cffc2');
+  }catch(e){ log('BroadcastChannel no disponible: '+e.message, '#ffc857'); }
+  // fallback postMessage
+  window.addEventListener('message', onMsg);
+  window.addEventListener('storage', onStorage);
+}
+function stop(){
+  try{ if(bc) bc.close(); }catch(e){}
+  bc=null;
+  window.removeEventListener('message', onMsg);
+  window.removeEventListener('storage', onStorage);
+  log('Desconectado.','#ffb3b3');
+}
+function onMsg(ev){
+  const d=ev.data||{};
+  if(d.aviatorRound!=null) accept(d.aviatorRound);
+  if(d.players!=null){ players=d.players; $("#mPlayers").textContent=players; }
+  if(d.totalBet!=null){ betSum=+d.totalBet; $("#mBetSum").textContent=fmtUSD(betSum); }
+  if(d.totalCashout!=null){ cashout=+d.totalCashout; $("#mCashout").textContent=fmtUSD(cashout); }
+  if(d.casinoGain!=null){ gain=+d.casinoGain; $("#mGain").textContent=fmtUSD(gain); }
+}
+function onStorage(ev){
+  if(ev.key===feed+':round' || ev.key==='gocho:round'){
+    accept(parseFloat(ev.newValue));
   }
-  for(let i=seenFps.length-1;i>=0 && i>=seenFps.length-16;i--){const fp=seenFps[i]; if(Math.abs(fp.ts-ts)<=2000 && Math.abs(fp.v-v)<0.0001) return true}
-  return false
+}
+window.gochoPush = (x)=>accept(Number(x));
+
+function accept(vRaw){
+  let v=parseFloat(vRaw); if(!isFinite(v)||v<=0) return;
+  const t=performance.now();
+  if(v===last && (t-lastAt)<2500) return; // antiduplicado
+  last=v; lastAt=t;
+
+  rounds.unshift(v); if(rounds.length>120) rounds.pop();
+  betsCount++; $("#mBets").textContent=betsCount.toLocaleString('es-ES');
+  $("#lastCrash").textContent=v.toFixed(2)+'x';
+  renderChips(); renderTrend(); renderDonut(); updateBanner(); beep();
 }
 
-// =================== RENDER ===================
-function colorPill(v){if(v>=10)return"p-pink";if(v>=2)return"p-purple";return"p-blue"}
-function renderStats(){
-  $("rounds").textContent=`${rounds.length} (base ${baseCount})`;
-  const ma10=movingAverage(rounds,10);$("ma10").textContent=isNaN(ma10)?"–":ma10.toFixed(2)+"x";
-  $("ge170").textContent=ge170Count60;
-  const pills=$("lastRounds");pills.innerHTML="";lastShown.forEach(x=>{const s=document.createElement("span");s.className=`pill small ${colorPill(x)}`;s.textContent=x.toFixed(2)+"x";pills.appendChild(s)});
-  $("sesLbl").textContent=`${sessionRoundIn60()}/60`; $("sepLbl").textContent=sepEst().toFixed(2); $("heatLbl").textContent=heatEst().toFixed(2);
-  $("signals").textContent=bets.filter(b=>b.sessionStartIdx===sessionStartIdx).length
-}
-function renderBets(){const tb=$("betsTbody");tb.innerHTML="";bets.forEach((b,i)=>{const tr=document.createElement("tr");tr.innerHTML=`<td>${i+1}</td><td>${HHmm(b.tsEmit)}</td><td>${b.roundIn60??"–"}</td><td>${b.tag}</td><td>${b.target}x</td><td>${HHmmss(b.tsEmit)}</td><td class="${b.state==='win'?'win':(b.state==='lose'?'lose':'')}">${b.crash?b.crash.toFixed(2)+"x":"—"}</td><td class="${b.state==='win'?'win':(b.state==='lose'?'lose':'')}">${b.state||"pend"}</td>`;tb.appendChild(tr)})}
-
-// =================== MÉTRICAS ===================
-function sepEst(){let last=-1,s=0,c=0;for(let i=rounds.length-1,j=0;i>=0&&j<40;i--,j++){if(rounds[i]>=2){if(last!==-1){s+=(last-i);c++}last=i}}return c?s/c:3}
-function heatEst(){let c=0;for(let i=rounds.length-1,j=0;i>=0&&j<30;i--,j++)if(rounds[i]>=2)c++;return c/30*10}
-function sessionRoundIn60(){return((rounds.length-sessionStartIdx)%60)+1}
-
-// =================== SESIÓN ===================
-function ensureSession(){if(!$("autoSession").checked)return;const r=sessionRoundIn60();if(r===1 && rounds.length!==sessionStartIdx){sessionStartIdx=rounds.length;log(`[${HHmmss(now())}] Nueva sesión: reinicio de contadores.`)}}
-
-// =================== FORMS (simple) ===================
-const FORMS_N=4; function colorCode(v){if(v>=10)return'R';if(v>=2)return'M';return'A'}
-function makeSignature(){return rounds.slice(-FORMS_N).map(colorCode).join('')}
-function loadForms(){try{return JSON.parse(localStorage.getItem('formsStats')||'{}')}catch{return{}}}
-function saveForms(x){try{localStorage.setItem('formsStats',JSON.stringify(x))}catch{}}
-function updateForms(sig,win){if(!sig)return;const s=formsStats[sig]||{win:0,tot:0};s.tot++;if(win)s.win++;formsStats[sig]=s;saveForms(formsStats)}
-function formsRate(sig){const s=formsStats[sig];return s?(s.win/(s.tot||1)):null}
-
-// =================== SCORING (1.7× / 3×) ===================
-function sigmoid(x){return 1/(1+Math.exp(-x))}
-function hazards(){const last5=rounds.slice(-5);const le105=last5.filter(x=>x<=1.05).length;const le110=last5.filter(x=>x<=1.10).length;const had100=rounds.slice(-6).some(x=>Math.abs(x-1.00)<=0.005);return{le105,le110,had100}}
-function probNext170(){
-  const L4=rounds.slice(-4),L8=rounds.slice(-8),L12=rounds.slice(-12);
-  const ma10=(movingAverage(rounds,10)||1.0),heat=heatEst(),sep=sepEst();
-  const ge8=L8.filter(x=>x>=1.70).length, ge12=L12.filter(x=>x>=1.70).length;
-  const low4=L4.filter(x=>x<1.20).length; const slope=(movingAverage(L4,4)-movingAverage(L8,8))||0; const hasPurp5=L12.some(x=>x>=5&&x<10);
-  const ext20=rounds.slice(-10).some(x=>x>=20), ext50=rounds.slice(-20).some(x=>x>=50); const hz=hazards();
-  const x1=(Math.min(ma10,slope<0?1.35:ma10)-1.20)/0.25, x2=(heat-3.0)/1.2, x3=(sep-1.2)/0.35, x4=ge8/8, x5=ge12/12, x6=slope*8, x7=hasPurp5?1:0, x8=hz.le110, x9=hz.had100?1:0, x10=(ext20||ext50)?1:0;
-  const w=[-0.60,0.90,0.70,0.70,1.20,0.85,0.70,0.75,-0.55,-1.00,-0.55];
-  const z=w[0]+w[1]*x1+w[2]*x2+w[3]*x3+w[4]*x4+w[5]*x5+w[6]*x6+w[7]*x7+w[8]*x8+w[9]*x9+w[10]*x10;
-  return{p:sigmoid(z),ma10,heat,sep,ge8,ge12,low4,slope,hasPurp5,hz,afterExt:(ext20||ext50)}
-}
-function probNext300(){
-  const L12=rounds.slice(-12), L20=rounds.slice(-20);
-  const ma10=(movingAverage(rounds,10)||1.0), heat=heatEst(), sep=sepEst();
-  const ge3_12=L12.filter(x=>x>=3).length, ge3_20=L20.filter(x=>x>=3).length, ge17_8=rounds.slice(-8).filter(x=>x>=1.7).length;
-  const slope=(movingAverage(rounds.slice(-4),4)-movingAverage(rounds.slice(-8),8))||0; const purpStrong=L12.some(x=>x>=6&&x<10);
-  const hz=hazards(); const after50=rounds.slice(-30).some(x=>x>=50);
-  const x1=(ma10-1.30)/0.25, x2=(heat-3.6)/1.0, x3=(sep-1.25)/0.30, x4=ge3_12/8, x5=ge3_20/12, x6=slope*10, x7=purpStrong?1:0, x8=hz.le110, x9=hz.had100?1:0, x10=ge17_8/6;
-  const w=[-0.90,1.00,0.95,0.80,0.90,0.95,0.60,0.80,-0.70,-1.00,0.50];
-  const z=w[0]+w[1]*x1+w[2]*x2+w[3]*x3+w[4]*x4+w[5]*x5+w[6]*x6+w[7]*x7+w[8]*x8+w[9]*x9+w[10]*x10;
-  return{p:sigmoid(z),ma10,heat,sep,ge3_12,ge3_20,ge17_8,slope,purpStrong,hz,after50}
+function renderChips(){
+  chipsEl.innerHTML='';
+  const take = rounds.slice(0,60);
+  for(const x of take){
+    const c=document.createElement('span'); c.className='chip';
+    if(x<2) c.classList.add('blue'); else if(x<10) c.classList.add('purple'); else c.classList.add('pink');
+    c.textContent=x.toFixed(2)+'x'; chipsEl.appendChild(c);
+  }
 }
 
-// =================== AUX ===================
-function anyPending(){return bets.some(b=>b.state==='pend')}
-function nextIdx(){return rounds.length+1}
+/*** ---------- Gráfico tendencia ---------- ***/
+const tcv = $("#trend"), tctx = tcv.getContext('2d');
+const dcv = $("#donut"), dctx = dcv.getContext('2d');
+function clear(ctx){ ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height); }
+function renderTrend(){
+  const w=tcv.width = tcv.clientWidth * devicePixelRatio;
+  const h=tcv.height= tcv.clientHeight* devicePixelRatio;
+  clear(tctx); tctx.lineWidth=2*devicePixelRatio;
 
-// =================== LÓGICA 1.7× ===================
-function sessionAccuracy(tag){const s=bets.filter(b=>b.sessionStartIdx===sessionStartIdx && b.state!=='pend' && (!tag || b.tag===tag)); if(!s.length) return null; const w=s.filter(b=>b.state==='win').length; return w/s.length}
-function capByPerfil(){const v=$("perfil").value; if(v==='A3') return {cap:6,budget:[2,2,2]}; if(v==='N3') return {cap:5,budget:[2,2,1]}; return {cap:4,budget:[1,1,1]}}
-function budgetForWindow(){const{budget}=capByPerfil(); const r=sessionRoundIn60(); return (r<=20)?budget[0]:(r<=40?budget[1]:budget[2])}
-function maybeSignal17(){
-  if(!$("autoSignal").checked) return; if(anyPending()) return; const r=sessionRoundIn60(); if(lastShotForRound===nextIdx()) return; const {cap}=capByPerfil();
-  const {p,ma10,heat,sep,ge8,ge12,low4,slope,hasPurp5,hz,afterExt}=probNext170();
-  const acc=sessionAccuracy('AUTO_1p7'); const shotsSoFar=bets.filter(b=>b.sessionStartIdx===sessionStartIdx && b.tag==='AUTO_1p7').length;
-  const lastSig=[...bets].reverse().find(b=>b.sessionStartIdx===sessionStartIdx && b.tag==='AUTO_1p7');
-  const lastGap=lastSig?(rounds.length-(lastSig.absRoundIdx||0)):Infinity; const lastWasWin=lastSig && lastSig.state==='win'; const lastWasLose=lastSig && lastSig.state==='lose';
-  const up=(heat>=4.0 && slope>=0.05 && ge8>=3); const cold=(heat<=2.5 || slope<=-0.08 || low4>=2);
-  let p_tau=($("perfil").value==='P3'?0.64:($("perfil").value==='N3'?0.62:0.60)); if(up)p_tau-=0.05; if(cold)p_tau+=0.06; if(acc!=null)p_tau+=clamp(0.12*(0.58-acc),-0.06,0.10);
-  const sig=makeSignature(); const fr=formsRate(sig); if($("formsToggle").checked && fr!==null && (formsStats[sig]?.tot||0)>=6 && fr<0.52) p_tau+=0.04;
-  const usedInWindow=bets.filter(b=>b.sessionStartIdx===sessionStartIdx && b.tag==='AUTO_1p7' && ((b.roundIn60<=20 && r<=20) || (b.roundIn60>20 && b.roundIn60<=40 && r>20 && r<=40) || (b.roundIn60>40 && r>40))).length; const windowBudget=budgetForWindow();
-  if(shotsSoFar>=cap) return; if(usedInWindow>=windowBudget && !(up && lastWasWin)) return; if(r<10 && !(up && slope>=0.08 && ge8>=4 && !hz.had100 && hz.le110===0)) return; if(!up && slope<0) return; if(lastWasLose && lastGap<6) return; if(hz.had100 || hz.le110>=2) return; if(afterExt) return; const minGap=up?(lastWasWin?2:4):6; if(lastGap<minGap) return;
-  const nearEnd=(r>=18&&r<=20)||(r>=38&&r<=40)||(r>=58&&r<=60); const p_tau_final=p_tau - ((nearEnd && usedInWindow<windowBudget && slope>=0)?0.02:0);
-  if(p>=p_tau_final){ const why=`1.7x p=${(p*100).toFixed(1)}% ≥ τ=${(p_tau_final*100).toFixed(1)}% | up=${up?'sí':'no'}, cold=${cold?'sí':'no'}, ma10=${ma10.toFixed(2)}, heat=${heat.toFixed(2)}, sep=${sep.toFixed(2)}, ge170/8=${ge8}, ge170/12=${ge12}, low<1.20(4)=${low4}, slope=${slope.toFixed(2)}, accSess=${acc===null?'-':(acc*100).toFixed(0)+'%'}, budgetWin=${usedInWindow}/${windowBudget}, hazard(≤1.05,≤1.10,1.00)=${hz.le105},${hz.le110},${hz.had100}, forms[${sig}]=${fr===null?'-':(fr*100).toFixed(0)+'%'} `; fireShot(1.70,'AUTO_1p7',null,why,false,sig) }
+  const data = rounds.slice(0,60).reverse(); // izq→der
+  if(!data.length) return;
+
+  const max = Math.max(10, ...data), min = Math.min(1, ...data);
+  const pad=10*devicePixelRatio;
+  const X=i=> pad + (w-2*pad) * (i/(data.length-1||1));
+  const Y=v=> h-pad - (h-2*pad) * ((v-min)/(max-min||1));
+
+  // Puntos
+  tctx.strokeStyle = getCSS('--line'); tctx.beginPath();
+  tctx.moveTo(X(0),Y(data[0]));
+  for(let i=1;i<data.length;i++) tctx.lineTo(X(i),Y(data[i]));
+  tctx.stroke();
+
+  // scatter cyan
+  tctx.fillStyle='#5ad7ff';
+  for(let i=0;i<data.length;i++){
+    tctx.beginPath(); tctx.arc(X(i),Y(data[i]), 2.5*devicePixelRatio,0,Math.PI*2); tctx.fill();
+  }
+
+  // MA20 (ámbar)
+  const ma20 = movingAvg(data,20);
+  tctx.strokeStyle='#ffc857'; tctx.beginPath();
+  for(let i=0;i<ma20.length;i++){
+    const xi = i+(data.length-ma20.length);
+    if(i===0) tctx.moveTo(X(xi),Y(ma20[i])); else tctx.lineTo(X(xi),Y(ma20[i]));
+  }
+  tctx.stroke();
+
+  // Regresión lineal
+  const {m,b} = linReg(data);
+  const y0 = m*0 + b, yN = m*(data.length-1)+b;
+  tctx.strokeStyle='#ff6aa9';
+  tctx.beginPath(); tctx.moveTo(X(0),Y(y0)); tctx.lineTo(X(data.length-1),Y(yN)); tctx.stroke();
+
+  $("#trendMeta").textContent = `MA20: ${ (ma20.at(-1)||0).toFixed(2)}x · pendiente: ${m.toFixed(3)}`;
+}
+function movingAvg(arr,win){
+  const out=[]; let s=0;
+  for(let i=0;i<arr.length;i++){
+    s += arr[i]; if(i>=win) s -= arr[i-win];
+    if(i>=win-1) out.push(s/win);
+  }
+  return out;
+}
+function linReg(arr){
+  const n=arr.length; if(!n) return {m:0,b:0};
+  let sx=0, sy=0, sxy=0, sxx=0;
+  for(let i=0;i<n;i++){ sx+=i; sy+=arr[i]; sxy+=i*arr[i]; sxx+=i*i; }
+  const m = (n*sxy - sx*sy) / (n*sxx - sx*sx || 1);
+  const b = (sy - m*sx)/n;
+  return {m,b};
+}
+function getCSS(name){ return getComputedStyle(document.documentElement).getPropertyValue(name); }
+
+/*** ---------- Donut ---------- ***/
+function renderDonut(){
+  const w=dcv.width = dcv.clientWidth*devicePixelRatio;
+  const h=dcv.height= dcv.clientHeight*devicePixelRatio;
+  clear(dctx);
+  const data = rounds.slice(0,200);
+  const buckets = [
+    data.filter(x=>x>=1.00&&x<=1.50).length,
+    data.filter(x=>x>1.50&&x<=2.00).length,
+    data.filter(x=>x>2.00&&x<=3.00).length,
+    data.filter(x=>x>3.00&&x<10.00).length,
+    data.filter(x=>x>=10.00).length,
+  ];
+  const colors = ['#2f9be1','#5ec2ff','#a48bff','#d7c1ff','#ff87bc'];
+  const total = buckets.reduce((a,b)=>a+b,0)||1;
+  const cx=w/2, cy=h/2, R=Math.min(w,h)*0.42, r=R*0.62;
+  let a0=-Math.PI/2;
+  buckets.forEach((v,i)=>{
+    const a1 = a0 + 2*Math.PI*(v/total);
+    dctx.fillStyle = colors[i];
+    dctx.beginPath();
+    dctx.moveTo(cx,cy);
+    dctx.arc(cx,cy, R, a0, a1);
+    dctx.closePath(); dctx.fill();
+    a0=a1;
+  });
+  // agujero
+  dctx.globalCompositeOperation='destination-out';
+  dctx.beginPath(); dctx.arc(cx,cy,r,0,2*Math.PI); dctx.fill();
+  dctx.globalCompositeOperation='source-over';
+  // texto
+  dctx.fillStyle='#8fa1b2'; dctx.font=(14*devicePixelRatio)+'px system-ui';
+  dctx.textAlign='center';
+  dctx.fillText('muestras: '+total, cx, cy+6*devicePixelRatio);
 }
 
-// =================== LÓGICA 3× (1/35) ===================
-function maybeSignal3x(){ if(!$("auto3x").checked) return; if(anyPending()) return; if(lastShotForRound===nextIdx()) return; const r=sessionRoundIn60();
-  const gap3x=rounds.length-last3xAbsIdx; if(gap3x<THIRTYFIVE) return;
-  const {p,ma10,heat,sep,ge3_12,ge3_20,ge17_8,slope,purpStrong,hz,after50}=probNext300();
-  const up=(heat>=4.2 && slope>=0.06 && ge17_8>=4); let p_tau=0.46; if(up)p_tau-=0.04; if(hz.le110>=1 || hz.had100)p_tau+=0.06; if(after50)p_tau+=0.04; if(r<12 && !up) return; if(!up) return; if(hz.had100 || hz.le110>=2) return; if(slope<0.04) return;
-  if(p>=p_tau){ const why=`3x p=${(p*100).toFixed(1)}% ≥ τ=${(p_tau*100).toFixed(1)}% | up=${up?'sí':'no'}, ma10=${ma10.toFixed(2)}, heat=${heat.toFixed(2)}, sep=${sep.toFixed(2)}, ≥3x/12=${ge3_12}, ≥3x/20=${ge3_20}, ge170/8=${ge17_8}, slope=${slope.toFixed(2)}, purpStrong=${purpStrong}, hazard(≤1.05,≤1.10,1.00)=${hz.le105},${hz.le110},${hz.had100}`; fireShot(3.00,'AUTO_3x',null,why,false,makeSignature()); last3xAbsIdx=rounds.length }
-}
-
-// =================== EMISIÓN ===================
-function fireShot(target,tag,win3,explain=null,isRosa=false,ctxSig=null){ const ts=now(); const roundIn60=sessionRoundIn60(); const expected=rounds.length+1; const rec={ id:'S'+ts, tag, target, tsEmit:ts, roundIn60, sessionStartIdx, state:'pend', crash:null, explain, ctxSig, absRoundIdx:rounds.length, expectRoundIdx:expected, resolvedRoundIdx:null }; if(win3) rec.win3Window=win3; bets.push(rec); renderBets(); $("signals").textContent=bets.filter(b=>b.sessionStartIdx===sessionStartIdx).length; beep17(); lastShotForRound=expected; log(`[${HHmmss(ts)}] Señal emitida (${tag}); objetivo ≥${target.toFixed(2)}.\n  ↳ ${explain||''}`) }
-
-// =================== INGESTA ===================
-function parseCrashValue(raw){ if(raw===null||raw===undefined) return null; if(typeof raw==='number') return (raw>=1 && isFinite(raw))?raw:null; let s=String(raw).replace(/[^\d.,]/g,'').trim(); if(!s) return null; const lastDot=s.lastIndexOf('.'), lastComma=s.lastIndexOf(','); let dec=(lastComma>lastDot)?',':'.'; if(lastDot===-1 && lastComma===-1) dec='.'; if(dec===','){ s=s.replace(/\./g,''); s=s.replace(',', '.'); } else { s=s.replace(/,/g,''); } const v=Number(s); return (isFinite(v)&&v>=1)?v:null }
-function nodeToVT(node){ const raw=(node && typeof node==='object' && ('raw' in node || 'v' in node)) ? (node.raw ?? node.v) : node; const v=parseCrashValue(raw); const ts=Number(node?.ts)||now(); return {v,ts} }
-function ingestCrashCandidate(v,ts,key){ if(isDuplicateEvent(ts,v,key)){ log(`[${HHmmss(ts)}] Eco filtrado: ${v.toFixed(2)}x (dup-guard)`); return } if(lastAcceptedTs==null){ acceptCrash(v,ts,key,true); rememberSeen(key,ts,v); return } const dt=ts-lastAcceptedTs; if(Math.abs(dt)<=MERGE_WINDOW_MS && v!==lastAcceptedV){ correctLastCrash(v,ts); rememberSeen(key,ts,v); return } acceptCrash(v,ts,key,false); rememberSeen(key,ts,v) }
-function correctLastCrash(newV,ts){ if(!rounds.length) return; const oldV=rounds[rounds.length-1]; rounds[rounds.length-1]=newV; lastShown[0]=newV; if(newV>=1.70&&oldV<1.70) ge170Count60=Math.min(60,ge170Count60+1); if(newV<1.70&&oldV>=1.70) ge170Count60=Math.max(0,ge170Count60-1); bets.filter(b=>b.resolvedRoundIdx===rounds.length).forEach(b=>{ b.crash=newV; b.state=(newV>b.target)?'win':'lose' }); renderBets(); renderStats(); log(`[${HHmmss(ts)}] Corrección: ${oldV.toFixed(2)}x → ${newV.toFixed(2)}x.`); lastAcceptedTs=ts; lastAcceptedV=newV; rememberSeen(null,ts,newV) }
-function acceptCrash(v,ts,key,base){ rounds.push(v); roundsMeta.push({v,ts,key:key||null}); if(rounds.length>3000){ rounds.shift(); roundsMeta.shift() } lastShown.unshift(v); if(lastShown.length>60) lastShown.pop(); const prev=rounds[rounds.length-61]; if(prev!==undefined && prev>=1.70) ge170Count60--; if(v>=1.70) ge170Count60++; const resolvedNow=bets.filter(x=>x.state==='pend' && x.expectRoundIdx===rounds.length); resolvedNow.forEach(b=>{ b.crash=v; b.state=(v>b.target)?'win':'lose'; b.resolvedRoundIdx=rounds.length }); if(resolvedNow.length){ renderBets(); log(`[${HHmmss(ts)}] Resultado ${resolvedNow[0].state.toUpperCase()} (${resolvedNow[0].tag}) con crash ${v.toFixed(2)}x.`) } renderStats(); if(!base){ ensureSession(); maybeSignal17(); maybeSignal3x() } lastShotForRound=null; lastAcceptedTs=ts; lastAcceptedV=v }
-
-// =================== CONEXIÓN FEED ===================
-let liveRef=null, liveCb=null, lastKey=null, lastTs=null, lastActivity=null, watchdog=null;
-async function connectFeed(){ try{ if(connected) return; FEED_ID=($("feedId").value||'gocho').trim(); $("statusFeedback").textContent=`Conectando a feeds/${FEED_ID}/crashes…`; try{ await auth.signInAnonymously() }catch(e){ console.warn('auth anon falló',e) }
-  const ref=db.ref(`feeds/${FEED_ID}/crashes`);
-  if($("cleanOnConnect").checked){ $("logBox").textContent=''; bets=[]; renderBets() }
-  let snap=null,method='key';
-  try{ const s=await ref.orderByChild('ts').limitToLast(900).once('value'); if(s && s.val()){ snap=s; method='ts' } }catch(e){ console.warn('ts query falló', e) }
-  if(!snap){ try{ const s=await ref.orderByKey().limitToLast(900).once('value'); if(s && s.val()){ snap=s; method='key' } }catch(e){ console.warn('key query falló', e) } }
-  if(!snap || !snap.val()){ $("statusFeedback").textContent='Sin datos en el feed.'; return }
-  rounds=[]; roundsMeta=[]; lastShown=[]; ge170Count60=0; formsStats=loadForms(); last3xAbsIdx=-9999; lastShotForRound=null; seenKeys=new Set(); seenFps=[]; lastAcceptedTs=null; lastAcceptedV=null;
-  const data=snap.val(); const keys=Object.keys(data).sort(); baseCount=keys.length;
-  keys.forEach(k=>{ const n=data[k]; const {v,ts}=nodeToVT(n); if(v!==null){ acceptCrash(v,ts,k,true); rememberSeen(k,ts,v) } lastKey=k; lastTs=Number(n?.ts||k)||now(); lastActivity=now() });
-  sessionStartIdx=rounds.length; renderStats(); $("statusFeedback").textContent='Conectado.';
-  if(method==='ts'){
-    liveRef=ref.orderByChild('ts').startAt(lastTs);
-    liveCb=s=>{ const key=s.key, n=s.val(); const {v,ts}=nodeToVT(n); if(lastTs && ts<=lastTs && key===lastKey) return; lastKey=key; lastTs=ts; lastActivity=now(); if(v!==null) ingestCrashCandidate(v,ts,key) }
+/*** ---------- Banner riesgo ---------- ***/
+function updateBanner(){
+  const take = rounds.slice(0,60).reverse();
+  const {m} = linReg(take);
+  const ma20 = movingAvg(take,20).at(-1)||0;
+  const banner=$("#riskBanner");
+  if(m<-0.02 && ma20<1.60){ // bajista
+    banner.className='banner dn';
+    banner.querySelector('.small').textContent='Tendencia bajista';
+  }else if(m>0.02 && ma20>=1.80){
+    banner.className='banner up';
+    banner.querySelector('.small').textContent='Tendencia alcista';
   }else{
-    liveRef=ref.orderByKey().startAt(lastKey||'');
-    liveCb=s=>{ const key=s.key, n=s.val(); if(lastKey && key<=lastKey) return; lastKey=key; const {v,ts}=nodeToVT(n); lastTs=ts; lastActivity=now(); if(v!==null) ingestCrashCandidate(v,ts,key) }
+    banner.className='banner';
+    banner.querySelector('.small').textContent='Tendencia neutra';
   }
-  liveRef.on('child_added', liveCb);
-  if(watchdog) clearInterval(watchdog);
-  watchdog=setInterval(()=>{ if(!connected) return; const dt=Date.now()-(lastActivity||0); if(dt>300000){ disconnectFeed(true); connectFeed() } }, 30000);
-  connected=true
- }catch(err){ console.error(err); $("statusFeedback").textContent='Error al conectar'; log('Error al conectar: '+(err?.message||err)) } }
-function disconnectFeed(silent=false){ if(!connected) return; try{ if(liveRef && liveCb) liveRef.off('child_added', liveCb) }catch(_){ } liveRef=liveCb=null; lastKey=lastTs=lastActivity=null; connected=false; if(watchdog){ clearInterval(watchdog); watchdog=null } if(!silent) $("statusFeedback").textContent='Desconectado.' }
+}
 
-// =================== UI & PERSIST ===================
-$("connectBtn").addEventListener('click', connectFeed);
-$("disconnectBtn").addEventListener('click', ()=>disconnectFeed(false));
-setInterval(()=>{ $("clockNow").textContent=new Date().toLocaleTimeString(); try{ localStorage.setItem(PERSIST_KEY, JSON.stringify({bets,sessionStartIdx,formsStats,last3xAbsIdx,lastShotForRound})) }catch(_){ } },1000);
-(function boot(){ try{ const raw=localStorage.getItem(PERSIST_KEY); if(raw){ const p=JSON.parse(raw); if(Array.isArray(p.bets)) bets=p.bets; if(p.sessionStartIdx!=null) sessionStartIdx=p.sessionStartIdx; if(p.formsStats) formsStats=p.formsStats; if(p.last3xAbsIdx!=null) last3xAbsIdx=p.last3xAbsIdx; if(p.lastShotForRound!=null) lastShotForRound=p.lastShotForRound; renderBets() } }catch(_){ } renderStats() })();
+/*** ---------- UI y reloj ---------- ***/
+const swBeep=$("#swBeep");
+$("#btnConnect").onclick=start;
+$("#btnDisconnect").onclick=stop;
+setInterval(()=>$("#clock").textContent=new Date().toLocaleTimeString(),1000);
+log('Listo. Esperando rondas…','#9ab');
 </script>
 </body>
 </html>
