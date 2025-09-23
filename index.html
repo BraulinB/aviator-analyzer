@@ -2,45 +2,41 @@
 <html lang="es">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v26.5 • ≥1.70 + Rosa (explicada) + colores 1win</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Aviator Analyzer · Gocho v26.6 (anti-eco, rosa explicada)</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5;
-    --ok:#2ecc71; --warn:#e67e22; --bad:#e74c3c; --brand:#8ab4ff; --pink:#ff69b4;
+    --ok:#2ecc71; --warn:#e67e22; --bad:#e74c3c; --brand:#8ab4ff;
+    --pill:#1c2130; --blue:#20334a; --green:#1f3a2e; --purple:#2a2146; --pink:#402038;
   }
   html,body{background:var(--bg);color:var(--text);font:14px/1.45 system-ui,Inter,Segoe UI,Roboto,Arial,sans-serif;margin:0}
-  .wrap{max-width:1100px;margin:18px auto;padding:0 12px}
-  .card{background:var(--panel);border:1px solid #22283a;border-radius:12px;padding:14px;margin:10px 0}
-  h1{font-size:18px;margin:0 0 8px;display:flex;gap:8px;align-items:center}
+  .wrap{max-width:1150px;margin:18px auto;padding:0 12px}
+  h1{font-size:18px;margin:0 0 10px;display:flex;gap:8px;align-items:center}
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .card{background:var(--panel);border:1px solid #22283a;border-radius:12px;padding:14px;margin:10px 0}
   .btn{background:#2a3042;color:var(--text);border:0;border-radius:8px;padding:8px 12px;cursor:pointer}
   .btn.ok{background:#2ecc71;color:#0c0f12;font-weight:700}
   .muted{color:var(--muted)}
   input[type="text"],select{background:#0f121a;color:var(--text);border:1px solid #2a3144;border-radius:6px;padding:6px}
-  input[type="text"]{width:140px}
-
-  /* Chips (colores del juego): azul <2x, morado 2–9.99x, rosa ≥10x */
-  .chips{display:flex;flex-wrap:wrap;gap:6px}
-  .chip{display:inline-flex;align-items:center;justify-content:center;min-width:56px;
-        padding:6px 8px;border-radius:999px;border:1px solid #22283a;font-variant-numeric:tabular-nums}
-  .chip.blue   {background:#12213e;color:#a8c7ff;border-color:#20395e;}
-  .chip.purple {background:#261c3d;color:#e0c8ff;border-color:#3d2e5d;}
-  .chip.pink   {background:#3b1a2c;color:#ff9fdf;border-color:#63364c;font-weight:600}
-
-  .table{width:100%;border-collapse:collapse;font-size:13px}
-  .table th,.table td{padding:8px;border-bottom:1px solid #22283a;text-align:left}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:var(--pill);margin:4px 6px 0 0}
+  .pill.small{padding:4px 8px;font-size:12px}
+  .p-blue{background:var(--blue)} .p-green{background:var(--green)}
+  .p-purple{background:var(--purple)} .p-pink{background:var(--pink)}
   .kpi{display:flex;gap:16px;flex-wrap:wrap}
   .kpi .box{background:#0f121a;border:1px solid #22283a;border-radius:10px;padding:10px 12px}
+  .table{width:100%;border-collapse:collapse;font-size:13px}
+  .table th,.table td{padding:8px;border-bottom:1px solid #22283a;text-align:left}
+  .table td.win{color:#7ff5b0} .table td.lose{color:#ff9b9b}
+  .chip{border:1px solid #2a3144;border-radius:8px;padding:4px 8px;margin-right:8px}
   .clock{font-variant-numeric:tabular-nums}
-  .status-pend{color:#e5e7eb} .status-win{color:#7ff5b0} .status-lose{color:#ff9b9b}
-  .smallnote{font-size:12px;color:#b5bfd2}
+  .explain{white-space:pre-wrap;font-family:ui-monospace,Consolas,monospace;font-size:12px}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v26.5</span>
-    <span class="muted" id="statusFeedback" style="margin-left:8px"></span>
+  <h1>✈️ Aviator Analyzer · <span style="color:#8ab4ff">Gocho v26.6</span>
+    <span id="statusFeedback" class="muted" style="margin-left:8px">Conectado.</span>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
   </h1>
 
@@ -51,14 +47,13 @@
       <label class="row"><input id="beepToggle" type="checkbox" checked> Beep</label>
       <label class="row"><input id="auto1k" type="checkbox" checked> Auto-1k</label>
       <label class="row"><input id="autoSession" type="checkbox" checked> Auto-sesión</label>
-      <label class="row"><input id="clearOnConnect" type="checkbox"> Limpiar historial al conectar</label>
-    </div>
-    <div class="row" style="margin-top:6px">
+      <label class="row"><input id="cleanOnConnect" type="checkbox"> Limpiar historial al conectar</label>
+
       <span class="muted">Perfil:</span>
       <select id="perfil">
-        <option value="P3" selected>Preciso (3 / 60)</option>
-        <option value="P2">Normal (2 / 60)</option>
-        <option value="P1">Ligero (1 / 60)</option>
+        <option value="P3" selected>Preciso (3/60)</option>
+        <option value="N3">Normal (3/60)</option>
+        <option value="A3">Agresivo (3/60)</option>
       </select>
 
       <span class="muted">Agresividad:</span>
@@ -69,34 +64,29 @@
       </select>
 
       <span class="muted">Feed:</span>
-      <input id="feedId" type="text" value="gocho"/>
+      <input id="feedId" type="text" value="gocho" style="width:120px"/>
       <button id="connectBtn" class="btn ok">Conectar</button>
       <button id="disconnectBtn" class="btn">Desconectar</button>
 
-      <label class="row" style="margin-left:auto">
-        <input id="huntRosa" type="checkbox"> Caza Rosa (≥10x, máx. 1 por sesión)
-      </label>
+      <label class="row" style="margin-left:auto"><input id="huntRosa" type="checkbox"> 🪄 Caza Rosa ≥10× (máx. 1 por sesión, con explicación)</label>
     </div>
-    <div class="smallnote" style="margin-top:6px">
-      Señales ≥1.70 con Smart-Pacing (ventanas 1/3, 2/3, 3/3). Anti-trampa tras 1.00–1.15 y checklist 10/5/3.  
-      “Rosa” es opcional, **con explicación de por qué se emite / por qué gana o pierde**.
+    <div id="aggrExplain" class="muted" style="margin-top:6px">
+      Señales 1.70 en Smart-Pacing (ventanas 1/3, 2/3, 3/3). Anti-eco activado: corrige duplicados y “lecturas tempranas”.
     </div>
   </div>
 
-  <!-- KPIs + Estado -->
+  <!-- KPIs -->
   <div class="card">
     <div class="kpi">
       <div class="box">Rondas: <b id="rounds">0</b> <span class="muted">(base)</span></div>
-      <div class="box">MA10: <b id="ma10">–</b><br>
-        <span class="muted">≥1.70 (60):</span> <b id="ge170_60">–</b></div>
-      <div class="box">Sesión: <b id="sessProg">0/60</b><br><span class="muted">Señales:</span> <b id="signals">0</b></div>
-      <div class="box">Sep: <b id="sepNow">–</b><br><span class="muted">Heat:</span> <b id="heatNow">–</b></div>
-      <div class="box">p/Umbral: <b id="pumbral">—</b><br><span class="muted">Régimen:</span> <b id="regimen">—</b></div>
+      <div class="box">MA10: <b id="ma10">–</b><br><span class="muted">≥1.70 (60):</span> <b id="ge170">0</b></div>
+      <div class="box">Sesión: <b id="sesLbl">0/60</b><br><span class="muted">Señales:</span> <b id="signals">0</b></div>
+      <div class="box">Sep: <b id="sepLbl">–</b><br><span class="muted">Heat:</span> <b id="heatLbl">–</b></div>
     </div>
 
-    <div style="margin-top:12px">
+    <div style="margin-top:10px">
       <div class="muted" style="margin-bottom:6px">Últimas 60 rondas (más reciente primero)</div>
-      <div id="lastRounds" class="chips"></div>
+      <div id="lastRounds"></div>
     </div>
   </div>
 
@@ -104,23 +94,15 @@
   <div class="card">
     <div class="row"><h3 style="margin:0">Señales (historial persistente)</h3></div>
     <table class="table" style="margin-top:8px">
-      <thead>
-        <tr>
-          <th>#</th><th>Sesión</th><th>Ronda</th><th>Tag</th><th>Objetivo</th><th>Hora</th><th>Crash</th><th>Estado</th>
-        </tr>
-      </thead>
+      <thead><tr><th>#</th><th>Sesión</th><th>Ronda</th><th>Tag</th><th>Objetivo</th><th>Hora</th><th>Crash</th><th>Estado</th></tr></thead>
       <tbody id="betsTbody"></tbody>
     </table>
   </div>
 
   <!-- Reseña -->
   <div class="card">
-    <h3 style="margin:0 0 6px 0">Reseña</h3>
-    <div id="logBox" class="smallnote" style="white-space:pre-wrap;max-height:360px;overflow:auto"></div>
-  </div>
-
-  <div class="card muted" style="font-size:12px">
-    Uso educativo/análisis. No garantiza resultados. “Ganada” = crash &gt; objetivo. No forzar entradas al cierre del bloque.
+    <h3 style="margin:0">Reseña</h3>
+    <div id="logBox" class="explain" style="margin-top:8px;max-height:320px;overflow:auto"></div>
   </div>
 </div>
 
@@ -130,7 +112,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script>
-/* ======== FIREBASE ======== */
+/* =================== FIREBASE =================== */
 const firebaseConfig = {
   apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
   authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
@@ -145,172 +127,252 @@ firebase.initializeApp(firebaseConfig);
 const db  = firebase.database();
 const auth= firebase.auth();
 
-/* ======== HELPERS ======== */
+/* =================== HELPERS =================== */
 const $ = (id)=>document.getElementById(id);
 const now=()=>Date.now();
-const HHmm = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
 const HHmmss = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-
-function isChecked(id){ const el=$(id); return !!(el && el.checked); } // seguro
+const HHmm   = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
 
 function movingAverage(arr,n){const L=Math.min(arr.length,n); if(!L) return NaN; let s=0; for(let i=arr.length-L;i<arr.length;i++) s+=arr[i]; return s/L;}
 function clamp(v,a,b){return v<a?a:(v>b?b:v);}
-
-function logLine(s){ const box=$("logBox"); const ts=new Date().toTimeString().slice(0,8);
-  box.textContent += `[${ts}] ${s}\n`; box.scrollTop=box.scrollHeight; }
-
-/* Parser robusto + rescate ≥1000x */
-function parseCrashValue(raw){
-  if(raw===null||raw===undefined) return null;
-  if(typeof raw==="number") return (raw>=1 && isFinite(raw))? raw : null;
-  let sRaw = String((typeof raw==="object" && raw && ("raw" in raw || "v" in raw)) ? (raw.raw ?? raw.v) : raw);
-
-  const rx=/(\d{1,3}(?:[.,\u00A0\u2009]\d{3})+(?:[.,]\d+)?)/;
-  const m=sRaw.match(rx);
-  if(m){
-    let t=m[1].replace(/[\u00A0\u2009]/g,' ');
-    const lastDot=t.lastIndexOf('.'), lastComma=t.lastIndexOf(',');
-    const dec=(lastComma>lastDot)?',':'.';
-    if(dec===','){ t=t.replace(/\./g,'').replace(/ /g,'').replace(',', '.'); }
-    else{ t=t.replace(/,/g,'').replace(/ /g,''); }
-    const v=Number(t); return (isFinite(v)&&v>=1)?v:null;
-  }
-
-  let s=sRaw.replace(/[^\d.,+-]+/g,'').trim();
-  if(!s) return null;
-  const lastDot=s.lastIndexOf('.'), lastComma=s.lastIndexOf(',');
-  let dec=(lastComma>lastDot)?',':'.'; if(lastDot===-1&&lastComma===-1) dec='.';
-  if(dec===','){ s=s.replace(/\./g,''); s=s.replace(',', '.'); } else { s=s.replace(/,/g,''); }
-  let v=Number(s); if(!(isFinite(v)&&v>=1)) return null;
-
-  if(isChecked("auto1k") && v>=300 && v<450){
-    const ma10 = movingAverage(rounds,10);
-    const recentHuge = rounds.slice(-8).some(x=>x>=200);
-    if(recentHuge || (ma10 && ma10>20)) v+=1000;
-  }
-  return v;
-}
-
-/* ======== ESTADO ======== */
-let FEED_ID="gocho", connected=false;
-let rounds=[], roundsMeta=[], lastShown=[];
-let baseCount=0;
-
-let pendings=[], bets=[], signalsCount=0;
-const PERSIST_KEY="gocho_v265";
-
-/* Aprendizaje ligero */
-let learn = {
-  heatAdj: 0,              // ajuste dinámico al heat mínimo de ≥1.70
-  history17: [],           // últimas 12 señales 1.70 (true=win,false=lose)
-  historyRosa: [],         // últimas 8 señales rosa
-  rosaPurpNeed: 2          // moradas requeridas en 20 para dar rosa (2 ó 3)
-};
-
-const session = {active:false, startIdx:null, count:0, maxShots:3, winCount:0, lossCount:0, rosaDone:false};
-
-const windows = [
-  {min:6,  max:22, idx:1},
-  {min:23, max:42, idx:2},
-  {min:43, max:60, idx:3},
-];
-let usedWindows=new Set();
-
-/* ======== AUDIO ======== */
-let audioCtx=null;
+function log(s){const c=$("logBox"); c.textContent+=s+"\n"; c.scrollTop=c.scrollHeight;}
 function beep(freq=880, ms=120, gain=0.03){
-  if(!isChecked("beepToggle")) return;
+  if(!$("beepToggle").checked) return;
   try{
-    if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-    o.type="sine"; o.frequency.value=freq; g.gain.value=gain; o.connect(g); g.connect(audioCtx.destination);
+    if(!window._actx) window._actx=new (window.AudioContext||window.webkitAudioContext)();
+    const o=_actx.createOscillator(), g=_actx.createGain();
+    o.type="sine"; o.frequency.value=freq; g.gain.value=gain; o.connect(g); g.connect(_actx.destination);
     o.start(); setTimeout(()=>o.stop(), ms);
   }catch(_){}
 }
-const beep17 = ()=>{ beep(620,120,0.035); setTimeout(()=>beep(900,100,0.03),160); };            // señal ≥1.70
-const beepRosa = ()=>{ beep(360,150,0.045); setTimeout(()=>beep(980,100,0.04),200); setTimeout(()=>beep(760,120,0.035),360);};// rosa
+const beep17=()=>{beep(660,110,0.035); setTimeout(()=>beep(880,90,0.03),140);}
+const beepRosa=()=>{beep(360,150,0.04); setTimeout(()=>beep(1020,110,0.035),180);}
 
-/* ======== MÉTRICAS RÁPIDAS ======== */
-function lastN(n){ return rounds.slice(-n); }
-function countGE(arr,thr){ return arr.reduce((a,x)=>a+(x>=thr),0); }
-function countLT(arr,thr){ return arr.reduce((a,x)=>a+(x<thr),0); }
-function ge170_60(){ return countGE(lastN(60), 1.70); }
-function heatScore(){ const w=lastN(15); if(!w.length) return 0; const p2 = countGE(w,2)/w.length; const low = countLT(w,1.15)/w.length; return Math.max(0, 6*p2 - 3*low); }
-function regimenLabel(h){ if(h>=4.5) return "very-hot"; if(h>=3.2) return "hot"; if(h>=2.0) return "ok"; return "frío"; }
+/* =================== ESTADO =================== */
+let FEED_ID="gocho", connected=false;
+let rounds=[], roundsMeta=[], lastShown=[];
+let baseCount=0, ge170Count60=0;
 
-/* ======== REGLAS (≥1.70) ======== */
-function checklist_10_5_3(){
-  const L10=lastN(10), L5=lastN(5), L3=lastN(3);
-  const c10 = countGE(L10,2.0)>=4;
-  const c5  = countLT(L5,1.15)===0;
-  const c3  = countGE(L3,1.70)>=2;
-  return {okCount:[c10,c5,c3].filter(Boolean).length, flags:{c10,c5,c3}};
+let sessionActive=true, sessionStartIdx=0, sessionPos=0; // 0..60
+let signalsCount=0;
+let bets=[];  // {id, tag, target, tsEmit, sessStartIdx, roundIdx1..60, crash, state}
+const PERSIST_KEY="gocho_v266";
+
+/* ====== Anti-eco / Stabilizer ====== */
+const MERGE_WINDOW_MS = 4000; // si llega otro valor dentro de 4s, se considera corrección/eco
+let lastAcceptedTs=null, lastAcceptedV=null;
+
+/* ====== ROSA ====== */
+let rosaDone=false;
+
+/* =================== RENDER =================== */
+function colorPill(v){
+  if(v>=10) return "p-pink";
+  if(v>=5)  return "p-purple";
+  if(v>=2)  return "p-green";
+  return "p-blue";
 }
-function antiTrampa(){
-  const L1=lastN(1)[0]||99, L5=lastN(5);
-  if(L1<1.15) return {ok:false, why:"post-1.15"};
-  if(countLT(L5,1.15)>=2) return {ok:false, why:"valles<1.15"};
-  return {ok:true};
-}
-function windowIdx(pos){ for(const w of windows){ if(pos+1>=w.min && pos+1<=w.max) return w.idx; } return null; }
-
-/* ======== GATE ROSA (explicado) ======== */
-function rosaExplain(){
-  const L20=lastN(20), L8=lastN(8), L6=lastN(6), L3=lastN(3);
-  const moradas20 = countGE(L20,5);
-  const momentum8 = countGE(L8,2);
-  const noTrap6   = countLT(L6,1.12)===0;
-  const fresh3    = countGE(L3,2)>=1;
-
-  const purpNeed = Math.max(2, learn.rosaPurpNeed|0); // 2 ó 3 según aprendizaje
-  const okPurp   = moradas20 >= purpNeed;
-  const okNoTrap = noTrap6;
-  const okMom    = momentum8 >= 3;
-  const okFresh  = fresh3;
-
-  const ok = okPurp && okNoTrap && okMom && okFresh;
-  const text = `moradas20:${moradas20}/${purpNeed} • momentum8:${momentum8} • sin<1.12(6):${noTrap6?"sí":"no"} • fresh3:${okFresh?"sí":"no"}`;
-
-  return {ok, okPurp, okNoTrap, okMom, okFresh, moradas20, momentum8, purpNeed, text};
-}
-
-/* ======== UI RENDER ======== */
 function renderStats(){
   $("rounds").textContent = `${rounds.length} (base ${baseCount})`;
-  const ma10=movingAverage(rounds,10); $("ma10").textContent=isNaN(ma10)?"–":ma10.toFixed(2)+"x";
-  $("ge170_60").textContent = ge170_60();
-  const pos = session.active && session.startIdx!=null ? Math.max(0, rounds.length - session.startIdx) : 0;
-  $("sessProg").textContent = `${clamp(pos,0,60)}/60`;
-  $("signals").textContent = signalsCount;
-  const heat=heatScore(); $("heatNow").textContent = heat.toFixed(2);
-  $("regimen").textContent = regimenLabel(heat);
-  $("sepNow").textContent = Math.max(0, rounds.length - (lastSignalIdx ?? -999));
+  const ma10=movingAverage(rounds,10);
+  $("ma10").textContent=isNaN(ma10)?"–":ma10.toFixed(2)+"x";
+  $("ge170").textContent=ge170Count60;
 
-  // Chips coloreados
-  const cont=$("lastRounds"); cont.innerHTML="";
-  lastShown.forEach(v=>{
-    const span=document.createElement("span");
-    span.className="chip " + (v>=10 ? "pink" : (v>=2 ? "purple" : "blue"));
-    span.textContent=v.toFixed(2)+"x";
-    cont.appendChild(span);
+  const pills=$("lastRounds"); pills.innerHTML="";
+  lastShown.forEach(x=>{
+    const s=document.createElement("span");
+    s.className=`pill small ${colorPill(x)}`;
+    s.textContent=x.toFixed(2)+"x";
+    pills.appendChild(s);
   });
 
-  // p/Umbral = checklist
-  const chk=checklist_10_5_3(); $("pumbral").textContent = chk.okCount>=2? "ok":"—";
+  $("sesLbl").textContent = `${sessionPos}/60`;
+  $("sepLbl").textContent  = sepEst().toFixed(2);
+  $("heatLbl").textContent = heatEst().toFixed(2);
+  $("signals").textContent = signalsCount;
 }
 function renderBets(){
   const tb=$("betsTbody"); tb.innerHTML="";
-  bets.concat(pendings).forEach((b,i)=>{
-    const st=b.state==="win"?"win":b.state==="lose"?"lose":"pend";
+  bets.forEach((b,i)=>{
     const tr=document.createElement("tr");
-    tr.title = b.explain || ""; // tooltip con explicación (especialmente para Rosa)
-    tr.innerHTML=`<td>${i+1}</td><td>${b.session||"—"}</td><td>${b.ronda? (b.ronda+"/60"):"—"}</td><td>${b.tag||"-"}</td><td>${b.target}x</td><td>${b.emittedAt||"—"}</td><td>${b.crash?b.crash.toFixed(2)+"x":"—"}</td><td class="${st==="win"?"status-win":st==="lose"?"status-lose":"status-pend"}">${st}</td>`;
+    tr.innerHTML = `
+      <td>${i+1}</td>
+      <td>${HHmm(b.tsEmit)}</td>
+      <td>${b.roundIn60??"–"}</td>
+      <td>${b.tag}</td>
+      <td>${b.target}x</td>
+      <td>${HHmmss(b.tsEmit)}</td>
+      <td class="${b.state==='win'?'win':(b.state==='lose'?'lose':'')}">${b.crash?b.crash.toFixed(2)+"x":"—"}</td>
+      <td class="${b.state==='win'?'win':(b.state==='lose'?'lose':'')}">${b.state||"pend"}</td>`;
     tb.appendChild(tr);
   });
 }
 
-/* ======== CONEXIÓN FEED ======== */
-let liveRef=null, liveCb=null, lastKey=null, lastTs=null, lastActivity=null, watchdog=null, lastSignalIdx=-999;
+/* =================== MÉTRICAS SIMPLES =================== */
+function sepEst(){ // separación promedio de moradas/rosas últimas 40
+  let last=-1, s=0,c=0;
+  for(let i=rounds.length-1, j=0; i>=0 && j<40; i--, j++){
+    if(rounds[i]>=2){ if(last!==-1) { s += (last-i); c++; } last=i; }
+  }
+  return c? s/c : 3;
+}
+function heatEst(){ // moradas+rosas en 30
+  let c=0; for(let i=rounds.length-1, j=0; i>=0 && j<30; i--, j++) if(rounds[i]>=2) c++;
+  return c/30*10; // 0..10
+}
+
+/* =================== LÓGICA DE SEÑALES =================== */
+function sessionRoundIn60(){ // 1..60
+  return ( (rounds.length - sessionStartIdx) % 60 ) + 1;
+}
+function ensureSession(){
+  if(!$("autoSession").checked) return;
+  sessionActive = true;
+  if(sessionRoundIn60()===1){
+    // reset de banderas por sesión
+    rosaDone=false;
+  }
+}
+function maybeSignal17(){
+  if(!$("autoSignal").checked) return;
+  // Smart-Pacing v4 (sencillo): 3 ventanas por sesión
+  const r= sessionRoundIn60();
+  const windowIdx = (r<=20)?1 : (r<=40?2:3);
+
+  // heurísticas suaves
+  const sep=sepEst(), heat=heatEst(), ma10=movingAverage(rounds,10)||0;
+  const okContext =
+    sep>=1.2 && heat>=2.6 && ma10>=1.25; // contexto mínimo
+
+  const quotaByWindow = {1:1,2:1,3:1};
+  const firedInThisWindow = bets.filter(b=>b.win3Window===windowIdx && b.sessionStartIdx===sessionStartIdx).length;
+  const quotaOK = firedInThisWindow<quotaByWindow[windowIdx];
+
+  if(okContext && quotaOK){
+    fireShot(1.70, "AUTO_1p7", windowIdx);
+  }
+}
+function maybeHuntRosa(){
+  if(!$("huntRosa").checked || rosaDone===true) return;
+  // “rosa explicada”: momentum (moradas recientes), separación y ma10
+  const last30 = rounds.slice(-30);
+  const moradas = last30.filter(x=>x>=2).length;
+  const ma10=movingAverage(rounds,10)||0;
+  const lastPurp = last30.lastIndexOf(last30.find(x=>x>=5))>=0;
+  const sep=sepEst();
+
+  // umbral simple para emitir
+  const score = (moradas*0.12) + (ma10*0.15) + (sep*0.1) + (lastPurp?0.3:0);
+  if(score>=1.05){ // ventana buena
+    const why = `mom=${moradas}/30, ma10=${ma10.toFixed(2)}, sep=${sep.toFixed(2)}, purp30=${lastPurp}, score=${score.toFixed(2)}`;
+    fireShot(10, "ROSA_10x", null, why, true);
+    rosaDone=true;
+  }
+}
+function fireShot(target, tag, win3, explain=null, isRosa=false){
+  const ts=now();
+  const roundIn60 = sessionRoundIn60();
+  const rec = { id: "S"+ts, tag, target, tsEmit:ts, roundIn60, sessionStartIdx, state:"pend", crash:null, explain };
+  if(win3) rec.win3Window=win3;
+  bets.push(rec); signalsCount++; renderBets(); $("signals").textContent=signalsCount;
+  if(isRosa) beepRosa(); else beep17();
+  log(`[${HHmmss(ts)}] Señal emitida${isRosa?" (ROSA)":""} (ventana ${win3||"-"}/${"3"}); objetivo ≥${target.toFixed(2)}.` + (explain?`\n  ↳ ${explain}`:""));
+}
+
+/* =================== INGESTA / ANTI-ECO =================== */
+function parseCrashValue(raw){
+  if(raw===null||raw===undefined) return null;
+  if(typeof raw==="number") return (raw>=1 && isFinite(raw))? raw : null;
+  let s=String(raw).replace(/[^\d.,]/g,'').trim();
+  if(!s) return null;
+  const lastDot=s.lastIndexOf('.'), lastComma=s.lastIndexOf(',');
+  let dec=(lastComma>lastDot)?',':'.'; if(lastDot===-1&&lastComma===-1) dec='.';
+  if(dec===','){ s=s.replace(/\./g,''); s=s.replace(',', '.'); } else { s=s.replace(/,/g,''); }
+  const v=Number(s); return (isFinite(v)&&v>=1)?v:null;
+}
+
+// Acepta o corrige “eco” dentro de la misma ronda
+function ingestCrashCandidate(v, ts, keyHint){
+  // casos de base (primera vez)
+  if(lastAcceptedTs==null){
+    acceptCrash(v, ts, keyHint, false);
+    return;
+  }
+  const dt = ts - lastAcceptedTs;
+
+  // llegada repetida exacta (mismo v dentro de ventana): ignorar
+  if(Math.abs(dt)<=MERGE_WINDOW_MS && v===lastAcceptedV){
+    // duplicado idéntico → no hacemos nada
+    return;
+  }
+  // llegada de corrección (mismo período, valor distinto) → corregir último
+  if(Math.abs(dt)<=MERGE_WINDOW_MS && v!==lastAcceptedV){
+    correctLastCrash(v, ts);
+    return;
+  }
+  // llegada normal (nueva ronda)
+  acceptCrash(v, ts, keyHint, false);
+}
+function correctLastCrash(newV, ts){
+  if(!rounds.length) return;
+  const oldV=rounds[rounds.length-1];
+  rounds[rounds.length-1]=newV;
+  lastShown[0]=newV;
+  if(newV>=1.70 && oldV<1.70) ge170Count60 = Math.min(60, ge170Count60+1);
+  if(newV<1.70 && oldV>=1.70) ge170Count60 = Math.max(0, ge170Count60-1);
+
+  // re-evalúa última apuesta si corresponde
+  const lastBet = bets[bets.length-1];
+  if(lastBet && lastBet.state!=="win"){
+    lastBet.crash=newV;
+    if(newV>lastBet.target){ lastBet.state="win"; } else { lastBet.state="lose"; }
+    renderBets();
+  }
+  renderStats();
+  log(`[${HHmmss(ts)}] Corrección: ${oldV.toFixed(2)}x → ${newV.toFixed(2)}x (Δ ${Math.round(ts-lastAcceptedTs)} ms).`);
+  lastAcceptedTs = ts; lastAcceptedV=newV;
+}
+function acceptCrash(v, ts, keyHint, base){
+  rounds.push(v); roundsMeta.push({v,ts,key:keyHint||null});
+  if(rounds.length>3000){ rounds.shift(); roundsMeta.shift(); }
+  lastShown.unshift(v); if(lastShown.length>60) lastShown.pop();
+
+  // actualizar contadores 60
+  const prev = rounds[rounds.length-61];
+  if(prev!==undefined && prev>=1.70) ge170Count60--;
+  if(v>=1.70) ge170Count60++;
+
+  // cerrar apuestas pendientes
+  if(bets.length){
+    const b = bets.find(x=>x.state==="pend");
+    if(b){
+      b.crash=v;
+      b.state = (v>b.target)?"win":"lose";
+      renderBets();
+      if(b.tag==="ROSA_10x"){
+        const why = b.explain||"";
+        log(`[${HHmmss(ts)}] Resultado ${b.state.toUpperCase()} (ROSA ${v.toFixed(2)}x). Motivo: ${why}`);
+      }else{
+        log(`[${HHmmss(ts)}] Resultado ${b.state.toUpperCase()} (1.70) con crash ${v.toFixed(2)}x.`);
+      }
+    }
+  }
+
+  // avance de sesión
+  sessionPos = sessionRoundIn60();
+  renderStats();
+
+  // emitir señales (solo en tiempo real)
+  if(!base){
+    ensureSession();
+    maybeSignal17();
+    maybeHuntRosa();
+  }
+  lastAcceptedTs=ts; lastAcceptedV=v;
+}
+
+/* =================== CONEXIÓN FEED =================== */
+let liveRef=null, liveCb=null, lastKey=null, lastTs=null, lastActivity=null, watchdog=null;
 
 function nodeToVT(node){
   const raw = (node && typeof node==='object' && ('raw' in node || 'v' in node)) ? (node.raw ?? node.v) : node;
@@ -323,240 +385,73 @@ async function connectFeed(){
   if(connected) return;
   FEED_ID=($("feedId").value||"gocho").trim();
   $("statusFeedback").textContent=`Conectando a feeds/${FEED_ID}/crashes…`;
-  try{ await auth.signInAnonymously(); }catch(e){ logLine("Auth anónima falló, reintentando lectura…"); }
+  try{ await auth.signInAnonymously(); }catch(e){}
 
   const ref=db.ref(`feeds/${FEED_ID}/crashes`);
-  $("statusFeedback").textContent="Cargando historial…";
+  if($("cleanOnConnect").checked){ $("logBox").textContent=""; bets=[]; signalsCount=0; renderBets(); }
 
   let snap=null, method="key";
-  try{ const s=await ref.orderByChild("ts").limitToLast(800).once("value"); if(s && s.val()) { snap=s; method="ts"; } }catch(e){}
-  if(!snap){ try{ const s=await ref.orderByKey().limitToLast(800).once("value"); if(s && s.val()) { snap=s; method="key"; } }catch(e){} }
+  try{ const s=await ref.orderByChild("ts").limitToLast(900).once("value"); if(s && s.val()) { snap=s; method="ts"; } }catch(e){}
+  if(!snap){ try{ const s=await ref.orderByKey().limitToLast(900).once("value"); if(s && s.val()) { snap=s; method="key"; } }catch(e){} }
   if(!snap||!snap.val()){ $("statusFeedback").textContent="Sin datos en el feed."; return; }
 
-  const doClear = isChecked("clearOnConnect");
-  if(doClear){ bets=[]; pendings=[]; signalsCount=0; $("logBox").textContent=""; usedWindows.clear(); }
-
-  rounds=[]; roundsMeta=[]; lastShown=[];
-  baseCount=Object.keys(snap.val()).length;
+  // reset de estado de sesión
+  rounds=[]; roundsMeta=[]; lastShown=[]; ge170Count60=0;
+  sessionStartIdx = rounds.length; sessionPos = sessionRoundIn60();
+  rosaDone=false; signalsCount=0;
 
   const data=snap.val(), keys=Object.keys(data).sort();
-  keys.forEach(k=>{ const {v,ts}=nodeToVT(data[k]); if(v!==null) onNewCrash(v,ts,true); lastKey=k; lastTs=Number(data[k]?.ts||k)||now(); lastActivity=now(); });
+  baseCount=keys.length;
+  keys.forEach(k=>{
+    const {v,ts}=nodeToVT(data[k]); if(v!==null) acceptCrash(v,ts,k,true);
+    lastKey=k; lastTs=Number(data[k]?.ts||k)||now(); lastActivity=now();
+  });
+  $("statusFeedback").textContent="Conectado.";
 
-  startSession();
-
+  // live
   if(method==="ts"){
     liveRef=ref.orderByChild("ts").startAt(lastTs);
-    liveCb=s=>{ const key=s.key, d=s.val(); const {v,ts}=nodeToVT(d); if(lastTs && ts<=lastTs && key===lastKey) return; lastKey=key; lastTs=ts; lastActivity=now(); if(v!==null) onNewCrash(v,ts,false); };
+    liveCb=s=>{ const key=s.key, d=s.val(); const {v,ts}=nodeToVT(d);
+      if(lastTs && ts<=lastTs && key===lastKey) return;
+      lastKey=key; lastTs=ts; lastActivity=now();
+      if(v!==null) ingestCrashCandidate(v, ts, key);
+    };
   }else{
     liveRef=ref.orderByKey().startAt(lastKey||"");
-    liveCb=s=>{ const key=s.key, d=s.val(); if(lastKey && key<=lastKey) return; lastKey=key; const {v,ts}=nodeToVT(d); lastTs=ts; lastActivity=now(); if(v!==null) onNewCrash(v,ts,false); };
+    liveCb=s=>{ const key=s.key, d=s.val(); if(lastKey && key<=lastKey) return;
+      lastKey=key; const {v,ts}=nodeToVT(d); lastTs=ts; lastActivity=now();
+      if(v!==null) ingestCrashCandidate(v, ts, key);
+    };
   }
   liveRef.on("child_added", liveCb);
 
+  // watchdog reconexión
   if(watchdog) clearInterval(watchdog);
   watchdog=setInterval(()=>{ if(!connected) return; const dt=Date.now()-(lastActivity||0); if(dt>300000){ disconnectFeed(true); connectFeed(); } }, 30000);
-
-  connected=true; $("statusFeedback").textContent="Conectado.";
+  connected=true;
 }
 function disconnectFeed(silent=false){
   if(!connected) return;
   if(liveRef && liveCb) liveRef.off("child_added", liveCb);
   liveRef=liveCb=null; lastKey=lastTs=lastActivity=null; connected=false;
   if(watchdog){ clearInterval(watchdog); watchdog=null; }
-  if(!silent){ $("statusFeedback").textContent="Desconectado."; }
+  if(!silent) $("statusFeedback").textContent="Desconectado.";
 }
 
-/* ======== SESIÓN ======== */
-function startSession(){
-  session.active=true;
-  session.startIdx=rounds.length;
-  session.count=0; session.winCount=0; session.lossCount=0;
-  session.rosaDone=false;
-  usedWindows.clear();
-  session.startTs=now();
-  logLine(`Empieza sesión ${HHmm(session.startTs)} • objetivo ≥1.70 • tope ${session.maxShots}/60 • Smart-Pacing`);
-}
-function endSession(reason="Fin de sesión."){
-  session.active=false;
-  logLine(reason);
-  if(isChecked("autoSession")) startSession();
-}
-function inSessionPos(){ return session.active && session.startIdx!=null ? (rounds.length - session.startIdx) : 0; }
-
-/* ======== EMISIÓN DE SEÑALES ======== */
-function canEmit17(){
-  if(!session.active || !isChecked("autoSignal")) return {ok:false, why:"off"};
-  if(session.count>= ( $("perfil").value==="P3" ? 3 : $("perfil").value==="P2" ? 2 : 1)) return {ok:false, why:"tope"};
-  const pos=inSessionPos(); if(pos<=0) return {ok:false, why:"pos0"};
-  const wIdx=windowIdx(pos);
-  if(!wIdx) return {ok:false, why:"fuera-ventana"};
-  if(usedWindows.has(wIdx)) return {ok:false, why:"ventana-ocupada"};
-
-  const chk=checklist_10_5_3();
-  const anti=antiTrampa();
-  const heat=heatScore();
-
-  // gates por agresividad + aprendizaje
-  const ag=$("aggr").value;
-  const needOK = (ag==="AGR")? 2 : (ag==="CONS"? 3 : 2);
-  const baseHeat = (ag==="AGR")? 2.0 : (ag==="CONS"? 2.6: 2.3);
-  const heatMin = baseHeat + (learn.heatAdj||0);  // ajuste online
-  const pass = chk.okCount>=needOK && anti.ok && heat>=heatMin;
-
-  return {ok:pass, why: pass?"ok":`chk:${chk.okCount}/3 anti:${anti.ok} heat:${heat.toFixed(2)}<${heatMin.toFixed(2)}`, wIdx, heatMin};
-}
-
-function emitShot(target, tag, explainText=""){
-  const ts=now(); const pos=inSessionPos(); const id="S"+ts;
-  const b={id,target,stake:1,ts,emittedAt:HHmmss(ts),state:"pend",tag,reason:"auto",conf:0.8,
-           session: HHmm(session.startTs||now()), ronda: clamp(pos+1,1,60), explain: explainText};
-  pendings.push(b); lastSignalIdx=rounds.length;
-  signalsCount++; session.count++;
-  renderBets();
-}
-
-function maybeEmit17(){
-  const gate=canEmit17();
-  if(!gate.ok) return;
-  emitShot(1.70, "AUTO_1p7", `≥1.70 por checklist/heat. heatMin=${gate.heatMin?.toFixed(2)}`);
-  usedWindows.add(gate.wIdx);
-  beep17();
-  const pos=inSessionPos();
-  logLine(`Señal ≥1.70 emitida (ventana ${gate.wIdx}/3; ronda ${clamp(pos+1,1,60)}/60). ${gate.why==="ok"?"":"\n↳ "+gate.why}`);
-}
-
-function maybeEmitRosa(){
-  if(!session.active || !isChecked("huntRosa")) return;
-  if(session.rosaDone===true) return;
-  const g=rosaExplain();
-  if(!g.ok) return;
-
-  // No competir si acaba de tirar otra
-  const sep = rounds.length - (lastSignalIdx ?? -999);
-  if(sep<6) return;
-
-  const pos=inSessionPos();
-  const why = `ROSA por ${g.text} • sep>=6 ✔`;
-  emitShot(10.0, "ROSA_10x", why);
-  session.rosaDone=true;
-  beepRosa();
-  logLine(`🎯 Caza ROSA emitida (ronda ${clamp(pos+1,1,60)}/60). ${why}`);
-}
-
-/* ======== APRENDIZAJE ======== */
-function learnUpdate17(win){
-  learn.history17.push(!!win); if(learn.history17.length>12) learn.history17.shift();
-  const total=learn.history17.length, wr = total? learn.history17.filter(Boolean).length/total : 0.5;
-  // Ajuste suave del heat mínimo
-  let adj = 0;
-  if(wr<0.45) adj = +0.40;
-  else if(wr<0.55) adj = +0.20;
-  else if(wr>0.70) adj = -0.10;
-  else adj = 0;
-  learn.heatAdj = clamp(adj, -0.20, +0.50);
-}
-function learnUpdateRosa(win){
-  learn.historyRosa.push(!!win); if(learn.historyRosa.length>8) learn.historyRosa.shift();
-  const total=learn.historyRosa.length, wr = total? learn.historyRosa.filter(Boolean).length/total : 0.5;
-  // Si va floja, exigir 3 moradas; si va bien, volver a 2.
-  learn.rosaPurpNeed = (wr<0.30)? 3 : 2;
-}
-
-/* ======== ON NEW CRASH ======== */
-function onNewCrash(v, ts, base=false){
-  rounds.push(v); roundsMeta.push({v,ts}); if(rounds.length>3000){ rounds.shift(); roundsMeta.shift(); }
-  lastShown.unshift(v); if(lastShown.length>60) lastShown.pop();
-
-  // Resolver pendientes (si no es base)
-  if(!base && pendings.length){
-    const bet=pendings.shift();
-    const win=(v>bet.target);
-    bet.crash=v; bet.state=win?"win":"lose";
-    bets.push(bet); if(bets.length>1200) bets.splice(0,bets.length-1200);
-    renderBets();
-
-    // Explicación detallada si es ROSA
-    if(bet.tag==="ROSA_10x"){
-      const g=rosaExplain(); // métrica inmediata para dejar trazabilidad
-      const resultTxt = win? "GANADA" : "PERDIDA";
-      const reason = win
-        ? `Se ganó: crash ${v.toFixed(2)}x ≥ 10x. (moradas20:${g.moradas20}/${g.purpNeed}, momentum8:${g.momentum8}, sin<1.12(6):${g.okNoTrap?"sí":"no"})`
-        : `Se perdió: crash ${v.toFixed(2)}x < 10x. (moradas20:${g.moradas20}/${g.purpNeed}, momentum8:${g.momentum8}, sin<1.12(6):${g.okNoTrap?"sí":"no"})`;
-      bet.explain = (bet.explain? bet.explain+" • ": "") + reason;
-      logLine(`ROSA ${resultTxt}. ${reason}`);
-      learnUpdateRosa(win);
-    }else{
-      // ≥1.70 explicación breve
-      const txt = win ? `GANADA (${v.toFixed(2)}x ≥ 1.70).` : `PERDIDA (${v.toFixed(2)}x < 1.70).`;
-      logLine(`Resultado ${txt}`);
-      learnUpdate17(win);
-    }
-
-    // cooldown mínimo si pierde varias de ≥1.70
-    if(bet.tag!=="ROSA_10x"){
-      const last3=bets.slice(-3).filter(b=>b.tag==="AUTO_1p7");
-      if(last3.length===3 && last3.filter(b=>b.state==="lose").length>=2){
-        logLine("Cooldown corto: demasiadas pérdidas recientes (≥1.70).");
-        usedWindows.add(windowIdx(inSessionPos())||99);
-      }
-    }
-  }
-
-  // Evaluar emisión
-  if(!base && session.active){
-    maybeEmitRosa();  // opcional
-    maybeEmit17();    // principal
-    const pos=inSessionPos();
-    const tope = ($("perfil").value==="P3"?3: $("perfil").value==="P2"?2:1);
-    if(pos>=60 || session.count>=tope) endSession("Fin de sesión.");
-  }
-
-  renderStats();
-}
-
-/* ======== PERSISTENCIA ======== */
-function persistLocal(){
-  try{
-    localStorage.setItem(PERSIST_KEY, JSON.stringify({
-      bets, pendings, signalsCount, session, usedWindows:[...usedWindows], learn,
-      ui:{
-        perfil:$("perfil").value, aggr:$("aggr").value, autoSignal:isChecked("autoSignal"),
-        beep:isChecked("beepToggle"), auto1k:isChecked("auto1k"), autoSession:isChecked("autoSession"),
-        huntRosa:isChecked("huntRosa"), feed: $("feedId").value
-      }
-    }));
-  }catch(_){}
-}
-function restoreLocal(){
-  try{
-    const raw=localStorage.getItem(PERSIST_KEY); if(!raw) return;
-    const p=JSON.parse(raw);
-    if(Array.isArray(p.bets)) bets=p.bets;
-    if(Array.isArray(p.pendings)) pendings=p.pendings;
-    if(typeof p.signalsCount==="number") signalsCount=p.signalsCount;
-    if(p.session && typeof p.session.active==="boolean"){ Object.assign(session,p.session); }
-    if(p.usedWindows) usedWindows=new Set(p.usedWindows);
-    if(p.learn) learn=Object.assign(learn,p.learn);
-    if(p.ui){
-      $("perfil").value = p.ui.perfil || "P3";
-      $("aggr").value   = p.ui.aggr   || "EQ";
-      $("autoSignal").checked = !!p.ui.autoSignal;
-      $("beepToggle").checked = !!p.ui.beep;
-      $("auto1k").checked     = !!p.ui.auto1k;
-      $("autoSession").checked= !!p.ui.autoSession;
-      $("huntRosa").checked   = !!p.ui.huntRosa;
-      $("feedId").value       = p.ui.feed || "gocho";
-    }
-  }catch(_){}
-}
-
-/* ======== UI ======== */
+/* =================== UI & PERSIST =================== */
 $("connectBtn").addEventListener("click", connectFeed);
 $("disconnectBtn").addEventListener("click", ()=>disconnectFeed(false));
-setInterval(()=>{ $("clockNow").textContent=new Date().toLocaleTimeString(); persistLocal(); }, 1000);
 
-/* ======== BOOT ======== */
-(function(){ restoreLocal(); renderBets(); renderStats(); })();
+setInterval(()=>{
+  $("clockNow").textContent=new Date().toLocaleTimeString();
+  // persist simple
+  try{ localStorage.setItem(PERSIST_KEY, JSON.stringify({bets, signalsCount, sessionStartIdx})); }catch(_){}
+}, 1000);
+
+(function boot(){
+  try{ const raw=localStorage.getItem(PERSIST_KEY); if(raw){ const p=JSON.parse(raw); if(Array.isArray(p.bets)) bets=p.bets; if(p.signalsCount) signalsCount=p.signalsCount; if(p.sessionStartIdx) sessionStartIdx=p.sessionStartIdx; renderBets(); } }catch(_){}
+  renderStats();
+})();
 </script>
 </body>
 </html>
