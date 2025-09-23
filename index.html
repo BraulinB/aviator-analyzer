@@ -3,439 +3,507 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Aviator Analyzer • Gocho v26.6 (3 señales óptimas / 60)</title>
+<title>Aviator Analyzer • Gocho v26.6</title>
 <style>
   :root{
-    --bg:#0f1115; --panel:#131722; --muted:#9aa4b2; --ink:#e6edf3;
-    --chip-blue:#2e6ff2; --chip-purple:#9b59b6; --chip-pink:#ff4f93;
-    --ok:#35c27e; --bad:#ff6b6b; --warn:#ffb020; --line:#202635;
+    --bg:#0b0f14;--panel:#111723;--ink:#e8eefb;--muted:#9fb1c7;
+    --blue:#4da3ff;--purple:#b889ff;--pink:#ff66b3;--ok:#34d399;--bad:#ff6b6b;
+    --chip:#1a2332;--chip2:#141c29;--chip3:#0f1722;--line:#1d2736;--accent:#60a5fa;
   }
-  *{box-sizing:border-box;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial}
-  body{margin:0;background:var(--bg);color:var(--ink)}
-  .wrap{max-width:1100px;margin:18px auto;padding:0 14px}
-  .row{display:flex;gap:10px;flex-wrap:wrap}
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
-  .head{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-  .head h1{margin:0;font-size:18px;font-weight:600}
-  .pill{border:1px solid var(--line);background:#0f1320;border-radius:9px;padding:6px 10px;color:var(--muted);display:inline-flex;align-items:center;gap:8px}
-  .btn{background:#1b2233;border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:8px 12px;cursor:pointer}
-  .btn[disabled]{opacity:.5;cursor:not-allowed}
-  .btn.ok{background:#113322;border-color:#1d593c}
-  .btn.danger{background:#301a1a;border-color:#5a2c2c}
-  label.switch{display:inline-flex;align-items:center;gap:6px;margin-right:10px;font-size:13px;color:var(--muted)}
-  select, input[type="text"]{background:#0f1320;border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:6px 10px}
-  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
-  .stat{background:#0f1320;border:1px solid var(--line);border-radius:12px;padding:12px}
-  .stat small{color:var(--muted)}
-  .chips{display:flex;flex-wrap:wrap;gap:6px}
-  .chip{padding:6px 9px;border-radius:999px;font-weight:600;font-size:12px;color:#fff;line-height:1;border:1px solid #ffffff20}
-  .chip.blue{background:linear-gradient(180deg,#2e6ff2,#1b49b4)}
-  .chip.purple{background:linear-gradient(180deg,#b06cd1,#7a44a2)}
-  .chip.pink{background:linear-gradient(180deg,#ff73a8,#c73879)}
-  .table{width:100%;border-collapse:collapse;border:1px solid var(--line);border-radius:12px;overflow:hidden}
-  .table th,.table td{padding:10px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}
-  .table thead{background:#0f1320;color:#9aa4b2}
-  .tag{padding:2px 7px;border-radius:6px;border:1px solid var(--line);background:#0e1422;font-weight:600;font-size:11px}
-  .tag.auto{color:#8ecaff;border-color:#264d8c}
-  .tag.rosa{color:#ff8dc0;border-color:#7a375c}
-  .state-win{color:var(--ok);font-weight:700}
-  .state-lose{color:var(--bad);font-weight:700}
-  .log{height:220px;overflow:auto;background:#0f1320;border:1px solid var(--line);border-radius:12px;padding:10px;font-family:ui-monospace,Consolas,Menlo;margin-top:6px;font-size:12px;white-space:pre-wrap}
-  .kbd{font-family:ui-monospace,Consolas,Menlo;background:#0f1320;border:1px solid var(--line);padding:2px 6px;border-radius:6px}
-  .hint{color:var(--muted);font-size:12px}
-  .badge{padding:2px 8px;border-radius:999px;font-size:11px;border:1px solid var(--line)}
-  .badge.hot{color:#ffc876;background:#2b1e00;border-color:#573c00}
-  .badge.cold{color:#9cc2ff;background:#001a3a;border-color:#00376c}
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,Segoe UI,Roboto,Helvetica,Arial}
+  h1{font-size:18px;margin:0 0 .5rem}
+  .bar{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+  .wrap{max-width:1140px;margin:16px auto;padding:0 12px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px}
+  .pill{display:inline-flex;align-items:center;justify-content:center;min-width:56px;height:28px;padding:0 10px;border-radius:999px;
+        background:var(--chip);border:1px solid var(--line);margin:4px;font-weight:600}
+  .pill.blue{color:var(--blue)}
+  .pill.purple{color:var(--purple)}
+  .pill.pink{color:var(--pink);border-color:color-mix(in oklab, var(--pink) 60%, #000)}
+  .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+  .kpi{background:var(--chip2);padding:10px;border-radius:10px;border:1px solid var(--line)}
+  .kpi b{display:block;font-size:18px;margin-top:2px}
+  .btn{background:#1f2a3c;border:1px solid var(--line);color:var(--ink);padding:8px 12px;border-radius:10px;cursor:pointer}
+  .btn.ok{background:#16311f;border-color:#1f4d2a}
+  .btn.dng{background:#3a1520;border-color:#5f2131}
+  .btn[disabled]{opacity:.6;cursor:not-allowed}
+  input[type=text],select{background:#101826;border:1px solid var(--line);color:var(--ink);padding:8px 10px;border-radius:10px}
+  label{display:inline-flex;align-items:center;gap:6px}
+  table{width:100%;border-collapse:collapse}
+  th,td{border-bottom:1px solid var(--line);padding:8px;text-align:left}
+  th{color:var(--muted);font-weight:600}
+  .status.win{color:var(--ok);font-weight:700}
+  .status.lose{color:var(--bad);font-weight:700}
+  .log{height:220px;overflow:auto;background:var(--chip3);border:1px solid var(--line);border-radius:10px;padding:8px;font-family:ui-monospace,Consolas,monospace}
+  .muted{color:var(--muted)}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .sep{height:1px;background:var(--line);margin:10px 0}
+  .hint{font-size:12px;color:var(--muted)}
+  .tag{font-weight:700;color:var(--accent)}
+  .switch{accent-color:var(--accent)}
+  .mono{font-family:ui-monospace,Consolas,monospace}
+  @media(max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="row head panel">
-    <h1>✈️ Aviator Analyzer • <b>Gocho v26.6</b> <span class="hint">— 3 señales óptimas / sesión (60)</span></h1>
-    <div class="pill"><b>Feed:</b>
-      <input id="feedName" type="text" value="gocho" style="width:120px">
+  <div class="card">
+    <div class="bar" style="justify-content:space-between">
+      <h1>✈️ Aviator Analyzer • <span id="ver">Gocho v26.6</span></h1>
+      <div class="muted" id="clock"></div>
     </div>
-    <label class="switch"><input type="checkbox" id="autoSignal" checked> Auto-señal</label>
-    <label class="switch"><input type="checkbox" id="beep" checked> Beep</label>
-    <label class="switch"><input type="checkbox" id="autosession" checked> Auto-sesión</label>
-    <label class="switch"><input type="checkbox" id="clearOnConnect"> Limpiar historial al conectar</label>
-    <div style="flex:1"></div>
-    <button id="connectBtn" class="btn ok">Conectar</button>
-    <button id="disconnectBtn" class="btn danger" disabled>Desconectar</button>
-  </div>
 
-  <div class="row">
-    <div class="panel" style="flex:1 1 350px">
+    <div class="bar">
       <div class="row">
-        <label class="switch">Perfil:
-          <select id="perfil">
-            <option value="preciso">Preciso (3/60)</option>
-            <option value="balanceado" selected>Equilibrado</option>
-            <option value="agresivo">Agresivo</option>
-          </select>
+        <label>Feed:
+          <input id="feed" class="mono" type="text" value="gocho" size="10" />
         </label>
-        <label class="switch">Agresividad:
-          <select id="agresividad">
-            <option value="calmado">Calmado</option>
-            <option value="equilibrado" selected>Equilibrado</option>
-            <option value="agresivo">Agresivo</option>
-          </select>
-        </label>
-        <label class="switch"><input type="checkbox" id="huntRosa" checked> Caza Rosa (≥10x, máx. 1 por sesión)</label>
+        <label><input id="autoSignal" class="switch" type="checkbox" checked /> Auto-señal</label>
+        <label><input id="beep" class="switch" type="checkbox" checked /> Beep</label>
+        <label><input id="autoSession" class="switch" type="checkbox" checked /> Auto-sesión</label>
+        <label><input id="clearOnConnect" class="switch" type="checkbox" /> Limpiar historial al conectar</label>
       </div>
-      <div class="stats" style="margin-top:10px">
-        <div class="stat"><small>Rondas</small><div><b id="statRounds">0</b> <span class="hint">(base 800)</span></div></div>
-        <div class="stat"><small>MA10</small><div><b id="statMA10">0.00x</b> · <small>≥1.70 (60): <b id="statGE170">0</b></small></div></div>
-        <div class="stat"><small>Sesión</small><div><b id="statSesion">0/60</b> · Señales: <b id="statSignals">0</b></div></div>
-        <div class="stat"><small>Sep</small><div><b id="statSep">0</b> · Heat: <b id="statHeat">0.00</b></div></div>
-        <div class="stat"><small>Régimen</small><div id="statReg"><span class="badge cold">—</span></div></div>
+      <div class="row">
+        <button id="btnConnect" class="btn ok">Conectar</button>
+        <button id="btnDisconnect" class="btn dng">Desconectar</button>
       </div>
     </div>
 
-    <div class="panel" style="flex:2 1 520px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-        <div class="hint">Últimas 60 rondas (más reciente primero)</div>
-        <div class="hint">Azul &lt; 2.00 • Morado 2.00–9.99 • Rosa ≥10</div>
-      </div>
-      <div id="chips" class="chips"></div>
-    </div>
-  </div>
+    <div class="bar">
+      <label>Perfil:
+        <select id="perfil">
+          <option value="preciso">Preciso (3 / 60)</option>
+        </select>
+      </label>
 
-  <div class="panel" style="margin-top:10px">
-    <table class="table" id="tbl">
-      <thead><tr>
-        <th>#</th><th>Sesión</th><th>Ronda</th><th>Tag</th><th>Objetivo</th><th>Hora</th><th>Crash</th><th>Estado</th>
-      </tr></thead>
-      <tbody id="tbody"></tbody>
-    </table>
-    <div class="log" id="log"></div>
-    <div class="hint" style="margin-top:6px">Tips: puedes inyectar rondas manualmente desde consola con
-      <span class="kbd">gochoPush(1.27)</span>, <span class="kbd">gochoPush(6.45)</span>, etc. El conector también acepta <span class="kbd">window.postMessage({aviatorRound:1.35}, "*")</span>.
+      <label>Agresividad:
+        <select id="agres">
+          <option value="equilibrado">Equilibrado</option>
+          <option value="agresivo">Agresivo</option>
+          <option value="prudente">Prudente</option>
+        </select>
+      </label>
+
+      <label><input id="cazaRosa" class="switch" type="checkbox" checked />
+        Caza Rosa (≥10x, máx. 1 por sesión)
+      </label>
+    </div>
+
+    <div class="grid" id="kpis">
+      <div class="kpi"><span>Rondas:</span><b><span id="kpiRounds">0</span> <span class="muted">(base 800)</span></b></div>
+      <div class="kpi"><span>MA10:</span><b><span id="kpiMA10">0.00x</span> <span class="muted">≥1.70 (60): <span id="kpi170">0</span></span></b></div>
+      <div class="kpi"><span>Sesión:</span><b><span id="kpiSession">0/60</span> <span class="muted">Señales: <span id="kpiSignals">0</span></span></b></div>
+      <div class="kpi"><span>Sep:</span><b><span id="kpiSep">0</span> · Heat: <span id="kpiHeat">0.00</span></b></div>
+    </div>
+
+    <div class="bar">
+      <div class="hint">Azul &lt; 2.00 • Morado 2.00–9.99 • Rosa ≥ 10</div>
+    </div>
+
+    <div class="card" id="roundsCard">
+      <div class="bar" style="justify-content:space-between">
+        <div>Últimas 60 rondas <span class="muted">(más reciente primero)</span></div>
+        <div id="regimen" class="muted"></div>
+      </div>
+      <div id="rounds" style="display:flex;flex-wrap:wrap"></div>
+    </div>
+
+    <div class="card">
+      <div class="bar" style="justify-content:space-between">
+        <div>Señales (historial persistente)</div>
+      </div>
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th>#</th><th>Sesión</th><th>Ronda</th><th>Tag</th><th>Objetivo</th><th>Hora</th><th>Crash</th><th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div>Reseña</div>
+      <div class="log" id="log"></div>
+      <div class="hint">Tips: también puedes inyectar rondas manuales desde consola con <span class="mono">gochoPush(1.27)</span> o <span class="mono">aviatorPush(6.45)</span>. Este conector además escucha <span class="mono">window.postMessage({aviatorRound:1.35})</span>, <span class="mono">{crash:1.35}</span> o <span class="mono">{type:'gocho:round', value:1.35}</span>.</div>
     </div>
   </div>
 </div>
 
 <script>
-/* =========================================================
-   Gocho v26.6  —  3 señales óptimas / 60 con “hot-sniper”
-   ========================================================= */
-
-// ---------- Estado base ----------
+/* =========================
+   Gocho v26.6  (c) braulinb
+   ========================= */
 const S = {
-  rounds: [],        // lista completa (crece)
-  last60: [],        // últimas 60 (reciente primero)
-  sessionIdx: 0,     // 0..59
-  sessionNum: 1,
-  signals: [],       // historial persistente
-  signalsThisSession: 0,
-  rosaGivenThisSession: false,
+  feedName: 'gocho',
   connected: false,
-  lastRoundAt: 0,
-  lastRoundVal: null,
-  dedupeMs: 3200,    // anti-eco por clicks / DOM
-  maxSignalsPerSession: 3,  // <== requisito del usuario
-  minGapRounds: 3,          // separación mínima normal
-  hotGapOverride: 1,        // si “hot” fuerte, permite 1
-  learning: { thr: 0.68, hi: 0.92, k: 120, wins:0, total:0 }, // umbral dinámico
-  rosa: {cooldown: 2, // evitar justo 1–2 rondas post-rosa
-         maxPerSession:1}
+  roundsTotal: 0,
+  last60: [],           // últimos 60 (más reciente primero)
+  ma10: 0,
+  ge170: 0,            // >= 1.70 en ventana 60
+  session: 0,          // índice completo de sesión (contador)
+  sIndex: 0,           // 0..59 dentro de la sesión
+  signalsInSession: 0, // 0..3
+  maxSignals: 3,       // óptimo 3
+  sep: 0,              // separación desde última señal (en rondas)
+  heat: 0,             // calor dinámico
+  rosaUsed: false,     // ya cazó rosa en la sesión
+  lastValue: null,     // anti-duplicados
+  lastTs: 0,
+  history: JSON.parse(localStorage.getItem('gocho.history') || '[]'), // persistente
+  auto: true,
+  beep: true,
+  autoSession: true,
+  agres: 'equilibrado',
+  perfil: 'preciso',
+  rosaOn: true,
+  clearOnConnect: false,
 };
 
-// ---------- Utilidades ----------
-const fmt = n => (Math.round(n*100)/100).toFixed(2);
-const nowClock = () => new Date().toLocaleTimeString();
-const log = (t)=>{ const el=document.getElementById('log'); el.textContent += `[${nowClock()}] ${t}\n`; el.scrollTop=el.scrollHeight; };
-const beep = (hz=880, ms=120)=>{ if(!document.getElementById('beep').checked) return;
-  try{const ctx=new (window.AudioContext||window.webkitAudioContext)(); const o=ctx.createOscillator(), g=ctx.createGain();
-  o.type='sine'; o.frequency.value=hz; o.connect(g); g.connect(ctx.destination); g.gain.value=.06; o.start();
-  setTimeout(()=>{o.stop();ctx.close()},ms);}catch(_){}
+const el = sel => document.querySelector(sel);
+const els = sel => document.querySelectorAll(sel);
+const Log = (msg) => {
+  const box = el('#log');
+  const t = new Date().toTimeString().slice(0,8);
+  box.insertAdjacentHTML('beforeend', `[${t}] ${msg}\n`);
+  box.scrollTop = box.scrollHeight;
 };
 
-// persistencia
-const STORE_KEY="gocho_signals_v266";
-const loadPersist=()=>{ try{ const j=localStorage.getItem(STORE_KEY); if(j){S.signals=JSON.parse(j)} }catch(_){ } };
-const savePersist=()=>{ try{ localStorage.setItem(STORE_KEY, JSON.stringify(S.signals.slice(-800))) }catch(_){ } };
+const fmt = (v) => `${Number(v).toFixed(2)}x`;
 
-// ---------- Render ----------
-function renderChips(){
-  const wrap=document.getElementById('chips'); wrap.innerHTML='';
+/* ---------- UI wiring ---------- */
+(function uiInit(){
+  el('#feed').value = S.feedName;
+  el('#autoSignal').checked = S.auto;
+  el('#beep').checked = S.beep;
+  el('#autoSession').checked = S.autoSession;
+  el('#cazaRosa').checked = S.rosaOn;
+  el('#agres').value = S.agres;
+  el('#perfil').value = 'preciso';
+
+  el('#autoSignal').addEventListener('change', e=>S.auto = e.target.checked);
+  el('#beep').addEventListener('change', e=>S.beep = e.target.checked);
+  el('#autoSession').addEventListener('change', e=>S.autoSession = e.target.checked);
+  el('#cazaRosa').addEventListener('change', e=>S.rosaOn = e.target.checked);
+  el('#agres').addEventListener('change', e=>S.agres = e.target.value);
+  el('#perfil').addEventListener('change', e=>S.perfil = e.target.value);
+  el('#clearOnConnect').addEventListener('change', e=>S.clearOnConnect = e.target.checked);
+
+  el('#btnConnect').addEventListener('click', connect);
+  el('#btnDisconnect').addEventListener('click', disconnect);
+
+  // reloj
+  setInterval(()=>{ el('#clock').textContent = new Date().toLocaleTimeString('es-ES'); }, 1000);
+})();
+
+/* ---------- Connect / Disconnect ---------- */
+function connect(){
+  if (S.connected) return;
+  S.feedName = el('#feed').value.trim() || 'gocho';
+  S.connected = true;
+
+  if (S.clearOnConnect){
+    S.last60 = []; renderRounds();
+    S.history = []; renderHistory();
+    localStorage.removeItem('gocho.history');
+  }
+
+  // escucha robusta de postMessage
+  window.addEventListener('message', onMsg, false);
+
+  // expone helpers manuales
+  window.gochoPush = (v)=>handleRound(Number(v), 'manual');
+  window.aviatorPush = window.gochoPush;
+
+  // handshake (algunos feeders responden a ping)
+  try { window.postMessage({gochoHandshake:'ping', feed:S.feedName}, '*'); } catch {}
+
+  Log(`Conectado al feed «${S.feedName}». Sesiones encadenadas hasta Desconectar.`);
+
+  // si en 15s no llega nada, avisa
+  setTimeout(()=>{ if (S.connected && S.roundsTotal===0) Log('⚠️ Conectado, pero aún no llegan rondas. Verifica que el capturador esté activo o usa gochoPush(x).');}, 15000);
+
+  // arranca/continúa sesión
+  if (S.sIndex===0) startSession();
+}
+
+function disconnect(){
+  if (!S.connected) return;
+  S.connected = false;
+  window.removeEventListener('message', onMsg, false);
+  Log('Desconectado.');
+}
+
+/* ---------- Mensajería de feed ---------- */
+function extractValue(data){
+  // Soporta varios formatos:
+  // {aviatorRound:1.23}, {crash:1.23}, {round:1.23},
+  // {type:'gocho:round', value:1.23}, '1.23', 1.23
+  if (data == null) return null;
+  if (typeof data === 'number') return data;
+  if (typeof data === 'string'){
+    const n = parseFloat(data);
+    return isFinite(n) ? n : null;
+  }
+  if (typeof data === 'object'){
+    if ('aviatorRound' in data) return Number(data.aviatorRound);
+    if ('crash' in data) return Number(data.crash);
+    if ('round' in data) return Number(data.round);
+    if (data.type==='gocho:round' && 'value' in data) return Number(data.value);
+    if (data.type==='aviator:round' && 'value' in data) return Number(data.value);
+  }
+  return null;
+}
+
+function onMsg(e){
+  // Ignora mensajes del propio logger para evitar bucles
+  const v = extractValue(e.data);
+  if (v==null || !isFinite(v)) return;
+  handleRound(v, 'feed');
+}
+
+/* ---------- Núcleo ---------- */
+function handleRound(val, src='feed'){
+  const now = Date.now();
+
+  // Anti duplicación (evita eco por clicks o refrescos rápidos)
+  if (S.lastValue!==null && val===S.lastValue && (now - S.lastTs) < 1500){
+    // Log(`(skip dup ${val})`);
+    return;
+  }
+  S.lastValue = val; S.lastTs = now;
+
+  S.roundsTotal++;
+  // Inserta al inicio (más reciente primero)
+  S.last60.unshift(val);
+  if (S.last60.length>60) S.last60.length = 60;
+
+  // KPIs
+  S.ma10 = S.last60.slice(0,10).reduce((a,b)=>a+b,0) / Math.max(1, Math.min(10,S.last60.length));
+  S.ge170 = S.last60.filter(x=>x>=1.70).length;
+
+  renderRounds();
+  el('#kpiRounds').textContent = S.roundsTotal;
+  el('#kpiMA10').textContent = fmt(S.ma10);
+  el('#kpi170').textContent = S.ge170;
+
+  // Avanza sesión
+  S.sIndex = (S.sIndex % 60) + 1;
+  el('#kpiSession').textContent = `${S.sIndex}/60`;
+
+  // Recalcula calor y régimen
+  S.heat = calcHeat();
+  el('#kpiHeat').textContent = S.heat.toFixed(2);
+  const regime = S.heat>=6 ? 'very-hot' : (S.heat>=3 ? 'hot' : (S.heat>=1 ? 'warm' : 'cool'));
+  el('#regimen').textContent = `p/Umbral: ok · Régimen: ${regime}`;
+
+  // reglas de pacing
+  if (S.sep>0) S.sep++;
+
+  // Caza Rosa (opcional, 1 por sesión)
+  if (S.rosaOn && !S.rosaUsed && maybeRosa()){
+    fireSignal('ROSA_10x', 10, val, rosaReason(), true);
+  }
+
+  // Señales 1.7x (hasta 3 por sesión)
+  if (S.auto && S.signalsInSession < S.maxSignals && maybe17()){
+    fireSignal('AUTO_1p7', 1.7, val, hotReason());
+  }
+
+  // cierre de sesión y encadenamiento
+  if (S.sIndex===60){
+    const summary = `Fin de sesión. Señales: ${S.signalsInSession}/${S.maxSignals}.`;
+    Log(summary);
+    if (S.autoSession){
+      startSession();
+    }
+  }
+}
+
+function startSession(){
+  S.session++;
+  S.sIndex = 0;
+  S.signalsInSession = 0;
+  S.sep = 0;
+  S.rosaUsed = false;
+  el('#kpiSession').textContent = `0/60`;
+  el('#kpiSignals').textContent = `0`;
+  Log(`Empieza sesión ${new Date().toTimeString().slice(0,8)} · objetivo ≥1.70 · tope ${S.maxSignals}/60 · Smart-Pacing`);
+}
+
+/* ---------- Heurísticas ---------- */
+
+// color de ronda
+function colorOf(v){
+  if (v>=10) return 'pink';
+  if (v>=2)  return 'purple';
+  return 'blue';
+}
+
+// calor: último 12
+function calcHeat(){
+  const w = S.last60.slice(0,12);
+  let heat = 0;
+  for (const v of w){
+    if (v<2) heat -= 0.9;                 // azul
+    else if (v<5) heat += 0.9;            // morado bajo
+    else if (v<10) heat += 1.5;           // morado alto
+    else heat += 3.5;                     // rosa
+  }
+  // ligero bonus si MA10 sube
+  if (S.ma10>=3) heat += 0.6;
+  return heat;
+}
+
+// “very-hot” cuando calor alto;
+function isVeryHot(){ return S.heat >= 6; }
+function isHot(){ return S.heat >= 3; }
+
+// Evitar entrar justo tras una rosa (suele venir respiro de azules)
+function inRosaHazard(){
+  const recent = S.last60.slice(1,6);           // 5 previas (excluye la actual en idx 0)
+  return recent.some(v=>v>=10) && recent.slice(0,2).some(v=>v<2);
+}
+
+// Windows de confirmación de tendencia alcista
+function risingOk(){
+  const a = S.last60.slice(0,6);  // corto
+  const b = S.last60.slice(0,12); // medio
+  const pctMoradosA = a.filter(v=>v>=2).length / Math.max(1,a.length);
+  const pctMoradosB = b.filter(v=>v>=2).length / Math.max(1,b.length);
+  const blues3 = a.slice(0,3).filter(v=>v<2).length;
+  return pctMoradosA >= 0.5 && pctMoradosB >= 0.55 && blues3 <= 1;
+}
+
+// ¿Señal 1.7?
+function maybe17(){
+  // evita duplicar al instante tras señal
+  if (S.sep>0 && S.sep<2 && !isVeryHot()) return false;
+
+  // permitir 2 seguidas si very-hot (sep mínimo 1)
+  const minSep = isVeryHot()? 1 : 7;
+  if (S.sep>0 && S.sep < minSep) return false;
+
+  if (inRosaHazard()) return false; // evita post-rosa inmediato
+  if (!risingOk()) return false;
+
+  // probador de riesgo: no entrar si 3 de las últimas 4 son azules
+  const risk = S.last60.slice(0,4).filter(v=>v<2).length;
+  if (risk>=3) return false;
+
+  return true;
+}
+
+// ¿Caza Rosa?
+function maybeRosa(){
+  // condiciones: mucha energía y presencia de morados fuertes
+  const a = S.last60.slice(0,20);
+  const hi = a.filter(v=>v>=7).length;
+  const pinkNear = a.some(v=>v>=10);
+  const bluesBurst = a.slice(0,6).filter(v=>v<2).length<=2;
+  return S.heat>=6 && hi>=2 && !pinkNear && bluesBurst && S.sep>=3;
+}
+
+function hotReason(){
+  const a = S.last60.slice(0,12);
+  const mor = a.filter(v=>v>=2).length;
+  const blu = a.filter(v=>v<2).length;
+  return `ventana 12: morados ${mor} / azules ${blu}, heat ${S.heat.toFixed(2)}, MA10 ${S.ma10.toFixed(2)}x`;
+}
+
+function rosaReason(){
+  const a = S.last60.slice(0,20);
+  const hi = a.filter(v=>v>=7).length;
+  return `morados≥7: ${hi} en 20, heat ${S.heat.toFixed(2)}, MA10 ${S.ma10.toFixed(2)}x`;
+}
+
+/* ---------- Disparo de señal ---------- */
+function fireSignal(tag, objetivo, lastCrash, reason, isRosa=false){
+  const hora = new Date().toTimeString().slice(0,8);
+  const row = {
+    id: S.history.length+1,
+    sesion: S.session.toString().padStart(2,'0'),
+    ronda: S.sIndex,  // ronda dentro de 60
+    tag, obj: objetivo, hora,
+    crash: lastCrash, estado: lastCrash>=objetivo?'win':'lose',
+  };
+  S.history.unshift(row);
+  if (S.history.length>500) S.history.length=500;
+  localStorage.setItem('gocho.history', JSON.stringify(S.history));
+  renderHistory();
+
+  // reseña
+  const why = isRosa? `Caza ROSA emitida (ronda ${S.sIndex}/60). ${rosaReason()}` :
+                      `Señal ≥${objetivo.toFixed(2)} emitida (ventana hot); ${reason}.`;
+  Log(why);
+  Log(`Resultado ${row.estado.toUpperCase()} (${row.crash.toFixed(2)}x).`);
+
+  // contadores
+  if (isRosa) S.rosaUsed = true;
+  S.signalsInSession++;
+  el('#kpiSignals').textContent = S.signalsInSession;
+  S.sep = 1;
+
+  // sonido
+  if (S.beep){
+    tone(isRosa? 1040 : 740, isRosa? 220 : 140);
+  }
+}
+
+/* ---------- Render ---------- */
+
+function renderRounds(){
+  const box = el('#rounds');
+  box.innerHTML = '';
   S.last60.forEach(v=>{
-    const d=document.createElement('div'); d.className='chip '+chipClass(v); d.textContent=(v>=1000? '∞' : fmt(v))+'x';
-    wrap.appendChild(d);
+    const pill = document.createElement('div');
+    pill.className = `pill ${colorOf(v)}`;
+    pill.textContent = `${v.toFixed(2)}x`;
+    box.appendChild(pill);
   });
 }
-const chipClass = (v)=> (v>=10? 'pink' : (v>=2? 'purple':'blue'));
 
-function renderStats(){
-  const L=S.rounds.length, last10 = S.rounds.slice(-10);
-  const ma10 = last10.length? last10.reduce((a,b)=>a+b,0)/last10.length : 0;
-  const ge170 = S.last60.filter(v=>v>=1.7).length;
-  document.getElementById('statRounds').textContent = L+" (base 800)";
-  document.getElementById('statMA10').textContent = fmt(ma10)+'x';
-  document.getElementById('statGE170').textContent = ge170;
-  document.getElementById('statSesion').textContent = `${S.sessionIdx}/${60}`;
-  document.getElementById('statSignals').textContent = S.signalsThisSession;
-  const heat = calcHeat(S.last60);
-  document.getElementById('statHeat').textContent = fmt(heat.heat);
-  document.getElementById('statSep').textContent = heat.sep;
-  document.getElementById('statReg').innerHTML =
-    `<span class="badge ${heat.reg==='hot'?'hot':'cold'}">${heat.reg}</span>`;
-}
-function renderTable(){
-  const tb=document.getElementById('tbody'); tb.innerHTML='';
-  S.signals.slice(-200).forEach((r,i)=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML = `<td>${S.signals.length-200+i+1<=0? i+1 : S.signals.length-199+i}</td>
-    <td>${r.sessionClock}</td>
-    <td>${r.roundInSession}/60</td>
-    <td><span class="tag ${r.tag==='ROSA_10x'?'rosa':'auto'}">${r.tag}</span></td>
-    <td>${r.obj.toFixed(2)}x</td>
-    <td>${r.time}</td>
-    <td>${r.crash? fmt(r.crash)+'x':'—'}</td>
-    <td class="${r.state==='win'?'state-win':'state-lose'}">${r.state}</td>`;
+function renderHistory(){
+  const tb = el('#tbody');
+  tb.innerHTML = '';
+  S.history.forEach(r=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${r.id}</td>
+      <td>${r.sesion}</td>
+      <td>${r.ronda}</td>
+      <td class="tag">${r.tag}</td>
+      <td>${r.obj.toFixed(2)}x</td>
+      <td>${r.hora}</td>
+      <td>${r.crash.toFixed(2)}x</td>
+      <td class="status ${r.estado}">${r.estado}</td>`;
     tb.appendChild(tr);
   });
 }
 
-// ---------- Métricas / puntuador ----------
-function calcHeat(last60){
-  // Hotness simple: suma de excedentes sobre 1.70 en las últimas 12 menos castigo por <1.15 recent
-  const recent = last60.slice(0,12); // más recientes
-  const tail = last60.slice(0,5);    // trampas recientes
-  let plus = 0, minus = 0;
-  for(const v of recent) plus += Math.max(0, v-1.7);
-  for(const v of tail) minus += v<1.15 ? (1.15-v)*4 : 0;
-  // densidad morada
-  const moradas = last60.slice(0,20).filter(v=>v>=2 && v<10).length;
-  // tendencia básica (EMA corta vs larga)
-  const ema = (arr,a)=>arr.reduce((m,x)=>m*a + x*(1-a), arr[0]||0);
-  const emaS = ema(last60.slice(0,12).reverse(), .45);
-  const emaL = ema(last60.slice(0,36).reverse(), .18);
-  const slope = emaS-emaL;
-  const heat = plus - minus + moradas*0.1 + Math.max(0,slope)*2;
-  const sep = moradas; // mostrador
-  const reg = heat>3.2 ? 'hot' : 'ok';
-  return {heat, sep, reg, emaS, emaL, moradas, slope};
-}
-function hazards(last){
-  // peligros inmediatos para evitar señales tontas
-  const a0=last[0]??99, a1=last[1]??99, a2=last[2]??99;
-  let h = 0;
-  if(a0<1.10) h+=0.55;         // 1.00–1.09: trampa dura
-  if(a0<1.20) h+=0.25;
-  if(a1<1.10 || a2<1.10) h+=0.15;
-  // post-rosa: espera 2 rondas
-  const sinceRosa = last.findIndex(v=>v>=10);
-  if(sinceRosa>=0 && sinceRosa< S.rosa.cooldown) h += .35;
-  return h;
-}
-function scoreNext(){
-  const L = S.last60;
-  if(L.length<8) return {score:0, reasons:['poca data']};
-  const h = calcHeat(L);
-  const densMor = L.slice(0,12).filter(v=>v>=2 && v<10).length;
-  const blueStreak = (()=>{ let c=0; for(const v of L){ if(v<2) c++; else break; } return c; })();
-  const antiTrap = hazards(L);
-  // señal para ≥1.70
-  let s = 0;
-  s += Math.max(0,h.heat) * 0.22;
-  s += Math.max(0,h.slope) * 2.1 * 0.18;
-  s += densMor * 0.05;                 // clusters morados
-  s += Math.min(blueStreak,4) * 0.06;  // rebote tras varias azules
-  s -= antiTrap;                       // penalizaciones
-  // normalización y agresividad
-  const ag = document.getElementById('agresividad').value;
-  const boost = ag==='agresivo'? 1.10 : (ag==='calmado'? 0.92 : 1.0);
-  s = (1/(1+Math.exp(-s/2))) * boost;  // squash sigmoidal
-
-  const reasons = [];
-  if(h.heat>3.2) reasons.push('hot');
-  if(h.slope>0) reasons.push('uptrend');
-  if(densMor>=5) reasons.push('moradas');
-  if(blueStreak>=3) reasons.push('rebote azul');
-  if(antiTrap>0.3) reasons.push('peligro trap');
-  return {score:s, reasons};
-}
-function shouldHuntRosa(){
-  if(!document.getElementById('huntRosa').checked) return {ok:false,why:'off'};
-  if(S.rosaGivenThisSession) return {ok:false,why:'ya hubo rosa'};
-  const L=S.last60;
-  if(L.length<18) return {ok:false,why:'poca data'};
-  // Un sencillo “gap-predictor”: cuando hay moradas largas y calentamiento fuerte con baja reciente <1.15
-  const h=calcHeat(L);
-  const purp20 = L.slice(0,20).filter(v=>v>=2 && v<10).length;
-  const lows = L.slice(0,6).filter(v=>v<1.15).length;
-  const up = h.slope>0 && h.heat>4.2 && purp20>=10 && lows<=1;
-  return {ok: up, why:`moradas${purp20}/20, heat:${fmt(h.heat)}, slope:${fmt(h.slope)}`};
+/* ---------- Audio ---------- */
+let audioCtx;
+function tone(freq=740, ms=140){
+  try{
+    if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = 'sine';
+    o.frequency.value = freq;
+    g.gain.value = 0.001;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start();
+    const now = audioCtx.currentTime;
+    g.gain.exponentialRampToValueAtTime(0.15, now+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + (ms/1000));
+    o.stop(now + (ms/1000)+0.01);
+  }catch{}
 }
 
-// ---------- Aprendizaje online ----------
-function learnRegister(win){
-  const L=S.learning;
-  L.total++; if(win) L.wins++;
-  const wr = L.wins/Math.max(1,L.total);
-  // sube umbral si vamos flojos; bájalo si va muy bien
-  if(wr<0.55) L.thr = Math.min(.8, L.thr + .02);
-  else if(wr>0.70) L.thr = Math.max(.60, L.thr - .015);
-}
-
-// ---------- Señalización ----------
-function maybeEmitSignals(newRound){
-  // 1) ROSA opcional (antes que 1.7 si pinta muy bien)
-  const r = shouldHuntRosa();
-  if(r.ok && !S.rosaGivenThisSession){
-    emitSignal('ROSA_10x', 10, `Caza ROSA: ${r.why}`, newRound);
-    S.rosaGivenThisSession = true;
-    return; // sólo 1 por sesión
-  }
-
-  // 2) Señal 1.7 — hasta 3 por sesión, con pacing flexible
-  if(S.signalsThisSession>=S.maxSignalsPerSession) return;
-
-  const {score,reasons}=scoreNext();
-  const thrDyn = S.learning.thr; // umbral dinámico
-  const heat = calcHeat(S.last60);
-  const minGap = (heat.heat>3.8 && score>S.learning.hi) ? S.hotGapOverride : S.minGapRounds;
-
-  const lastSigRound = (()=>{ for(let i=S.signals.length-1;i>=0;i--){ if(S.signals[i].sessionNum===S.sessionNum) return S.signals[i].roundInSession; } return -999; })();
-  const gap = S.sessionIdx - lastSigRound;
-
-  if(score >= thrDyn && gap >= minGap){
-    emitSignal('AUTO_1p7', 1.70, `score=${fmt(score)} • ${reasons.join(', ')||'base'}`, newRound);
-  }
-}
-
-function emitSignal(tag, obj, why, latestRound){
-  S.signalsThisSession++;
-  const rec={
-    sessionNum:S.sessionNum,
-    sessionClock:new Date().toLocaleTimeString(),
-    roundInSession:S.sessionIdx,
-    tag: tag==='ROSA_10x'?'ROSA_10x':'AUTO_1p7',
-    obj: obj,
-    time: nowClock(),
-    crash: latestRound ?? null,
-    state: '—',
-    why
-  };
-  S.signals.push(rec); savePersist(); renderTable();
-  const label = tag==='ROSA_10x' ? 'ROSA ≥10x' : 'AUTO ≥1.70';
-  log(`🔔 Señal ${label} (ronda ${rec.roundInSession}/60) — ${why}`);
-  beep(tag==='ROSA_10x'? 580:880, 160);
-}
-
-// actualizar resultado de la última señal si coincide con el último crash
-function settleLastSignalsWith(crashVal){
-  // cerramos sólo las señales de esta sesión que no tengan state
-  for(let i=S.signals.length-1;i>=0;i--){
-    const r=S.signals[i];
-    if(r.sessionNum!==S.sessionNum) break;
-    if(r.state==='—'){
-      r.crash = crashVal;
-      r.state = crashVal >= r.obj ? 'win' : 'lose';
-      if(r.tag==='ROSA_10x'){
-        const msg = r.state==='win'
-          ? `ROSA GANADA. Se ganó: crash ${fmt(crashVal)}x ≥ 10x. (${r.why})`
-          : `ROSA PERDIDA. Se perdió: crash ${fmt(crashVal)}x < 10x. (${r.why})`;
-        log((r.state==='win'?'✅ ':'❌ ')+msg);
-      }else{
-        log((r.state==='win'?'✅ ':'❌ ')+`Resultado ${r.state.toUpperCase()} (${fmt(crashVal)}x ${r.state==='win'?'>=':'<'} ${r.obj}x).`);
-      }
-      learnRegister(r.state==='win');
-    }
-  }
-  savePersist(); renderTable();
-}
-
-// ---------- Gestión de sesión ----------
-function newSession(){
-  if(S.signalsThisSession>0) log(`— Fin de sesión ${S.sessionNum}. Señales: ${S.signalsThisSession}/${S.maxSignalsPerSession}.`);
-  S.sessionNum++; S.sessionIdx=0; S.signalsThisSession=0; S.rosaGivenThisSession=false;
-  log(`▶️ Empieza sesión ${nowClock()} · objetivo ≥1.70 • tope ${S.maxSignalsPerSession}/60 • Smart-Sniper v4.4`);
-}
-
-// ---------- Ingesta de rondas ----------
-function addRound(x){
-  if(typeof x!=='number' || !isFinite(x)) return;
-
-  // anti-eco: ignora duplicado idéntico demasiado pronto
-  const now=Date.now();
-  if(S.lastRoundVal!==null && x===S.lastRoundVal && (now - S.lastRoundAt) < S.dedupeMs){
-    // Sólo logueo si parece eco
-    // (esto evita la duplicación cuando pulsas apostar/retirar)
-    return;
-  }
-  S.lastRoundVal = x; S.lastRoundAt = now;
-
-  // rotar estructuras
-  S.rounds.push(x);
-  S.last60.unshift(x);
-  if(S.last60.length>60) S.last60.pop();
-
-  // stats + chips
-  renderChips(); renderStats();
-
-  // avanzar sesión
-  S.sessionIdx++;
-  if(S.sessionIdx>60){
-    if(document.getElementById('autosession').checked){
-      newSession();
-    }else{
-      S.sessionIdx=60;
-    }
-  }
-
-  // oportunidad / señal
-  if(document.getElementById('autoSignal').checked){
-    maybeEmitSignals(x);
-  }
-
-  // si hay una señal pendiente (la última), liquídala con este crash
-  settleLastSignalsWith(x);
-
-  // autosiguiente sesión si alcanzamos las 60 y no emitimos 3
-  if(S.sessionIdx===60 && document.getElementById('autosession').checked){
-    newSession();
-  }
-}
-
-// ---------- Conexión (puente de feed) ----------
-function connect(){
-  if(S.connected) return;
-  if(document.getElementById('clearOnConnect').checked){
-    S.signals.length=0; savePersist(); renderTable();
-  }
-  S.connected = true;
-  document.getElementById('connectBtn').disabled=true;
-  document.getElementById('disconnectBtn').disabled=false;
-  log(`🔌 Conectado al feed «${document.getElementById('feedName').value.trim()}». Sesiones encadenadas hasta Desconectar.`);
-}
-function disconnect(){
-  S.connected = false;
-  document.getElementById('connectBtn').disabled=false;
-  document.getElementById('disconnectBtn').disabled=true;
-  log('⏹️ Desconectado.');
-}
-
-// Exponer punto de entrada para el capturador externo
-window.gochoPush = (v)=> addRound(Number(v));
-window.addEventListener('message', ev=>{
-  if(ev && ev.data && typeof ev.data.aviatorRound==='number'){ addRound(ev.data.aviatorRound) }
-});
-
-// ---------- UI ----------
-document.getElementById('connectBtn').onclick = ()=>{ connect(); };
-document.getElementById('disconnectBtn').onclick = ()=>{ disconnect(); };
-
-// Cargar historial y pintar
-loadPersist(); renderTable(); renderChips(); renderStats();
-log('Listo. Esperando rondas…');
-
-// Demo opcional (elimina si usas capturador real)
-// simula una tira si no hay feed en 2s:
-setTimeout(()=>{
-  if(!S.connected) connect();
-}, 600);
+/* ---------- Inicio ---------- */
+renderRounds(); renderHistory();
 </script>
 </body>
 </html>
