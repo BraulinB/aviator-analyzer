@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Aviator Analyzer · Gocho v26.8 (smart-pacing v5, forms)</title>
+<title>Aviator Analyzer · Gocho v26.9 (smart-pacing v5, forms)</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5;
@@ -36,7 +36,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>✈️ Aviator Analyzer · <span style="color:#8ab4ff">Gocho v26.8</span>
+  <h1>✈️ Aviator Analyzer · <span style="color:#8ab4ff">Gocho v26.9</span>
     <span id="statusFeedback" class="muted" style="margin-left:8px">Conectado.</span>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
   </h1>
@@ -73,7 +73,7 @@
     </div>
     <div class="row" style="margin-top:8px">
       <label class="row"><input id="formsToggle" type="checkbox" checked> Forms inteligente (aprende de patrones)</label>
-      <span class="muted">· Smart‑Pacing v5, anti‑eco, enfriamiento tras extremos.</span>
+      <span class="muted">· Smart‑Pacing v5.1, anti‑eco, enfriamiento tras extremos y planificación para completar 3 señales/60 sin forzar entradas malas.</span>
     </div>
     <div id="aggrExplain" class="muted" style="margin-top:6px">
       Señales ≥1.70 en Smart‑Pacing. <b>Máx. 3 señales por sesión (60 rondas)</b> y permite <b>2 seguidas</b> si hay <b>zona hot + tendencia alcista</b>. Anti‑eco activado y “lecturas tempranas” corregidas.
@@ -283,15 +283,18 @@ function maybeSignal17(){
   const {ma10Min, requireGe170In8} = adaptiveGate();
 
   // ===== micro-contexto =====
-  const L4 = lastN(4), L6 = lastN(6), L8=lastN(8);
+  const L4 = lastN(4), L6 = lastN(6), L8=lastN(8), L12=lastN(12);
   const ge170in8 = L8.filter(x=>x>=1.70).length;
+  const ge170in12 = L12.filter(x=>x>=1.70).length;
   const low112in4 = L4.filter(x=>x<1.20).length;
-  const had100in3 = lastN(3).some(x=>near(x));
-  const afterExtreme = roundsSince(x=>x>=20, 8) <= 6 || roundsSince(x=>x>=50, 12) <= 8; // enfriamiento tras ≥20×/≥50×
-  const microSlope = (movingAverage(L4,4) - movingAverage(L8,8)); // tendencia
+  const had100in2 = lastN(2).some(x=>near(x));
+  const afterExtreme = roundsSince(x=>x>=20, 10) <= 6 || roundsSince(x=>x>=50, 20) <= 8; // enfriamiento tras ≥20×/≥50×
+  const microSlope = (movingAverage(L4,4) - movingAverage(L8,8)); // tendencia 4→8
+  const recentPurp = lastN(6).some(x=>x>=2 && x<10);
+  const strongPurp = lastN(10).some(x=>x>=5 && x<10);
 
-  // ===== hot + uptrend =====
-  const hotUptrend = (heat>=3.8) && (microSlope>=0.05) && (ge170in8>=4) && (low112in4<=1) && !had100in3 && !afterExtreme;
+  // ===== hot + uptrend (permite 2 seguidas) =====
+  const hotUptrend = (heat>=3.5) && (microSlope>=0.03) && (ge170in8>=3) && (low112in4<=1) && !had100in2 && !afterExtreme;
 
   // ===== política de señales por sesión =====
   const signalsInSession = bets.filter(b=>b.sessionStartIdx===sessionStartIdx).length;
@@ -300,32 +303,55 @@ function maybeSignal17(){
   const lastGap = lastSig? (rounds.length - (lastSig.absRoundIdx||0)) : Infinity;
   const minGap = hotUptrend? 2 : 6; // permite 2 seguidas si hot+uptrend
 
-  // ===== reglas de entrada =====
-  const okContext = sep>=1.30 && heat>=2.8 && ma10>=ma10Min;
-  const okMicro   = ge170in8>=requireGe170In8 && low112in4<=1 && !had100in3 && microSlope>=-0.10 && !afterExtreme;
+  // ===== reglas base =====
+  const okContext = sep>=1.25 && heat>=3.0 && ma10>=Math.max(1.28, ma10Min-0.03);
+  const okMicro   = ge170in8>=Math.max(2, requireGe170In8-1) && low112in4<=1 && !had100in2 && microSlope>=-0.08 && !afterExtreme;
+
+  // ===== set‑ups alternativos =====
+  // (A) Momentum: tras morada reciente y contexto sólido
+  const momentumSetup = recentPurp && okContext && ge170in8>=3 && microSlope>=0.00;
+  // (B) Rebound: 2 bajos recientes pero base buena en 12
+  const reboundSetup  = (lastN(3).filter(x=>x<1.30).length>=2) && (ge170in12>=5) && (ma10>=1.30) && !had100in2;
+
+  // ===== planificación para completar 3/60 =====
+  let nearEndSlot = (r>=18 && signalsInSession===0) || (r>=38 && signalsInSession<=1) || (r>=58 && signalsInSession<=2);
+  let relaxedOK = false;
+  if(nearEndSlot){
+    const relaxContext = sep>=1.20 && heat>=2.6 && ma10>=1.26;
+    const relaxMicro   = (ge170in8>=2) && (lastN(2).every(x=>x>=1.10)) && (microSlope>=-0.03) && !afterExtreme;
+    relaxedOK = relaxContext && relaxMicro;
+  }
+
+  const shouldFire = (okContext && okMicro) || momentumSetup || reboundSetup || relaxedOK;
 
   const formsSig = makeSignature();
   const fRate = formsRate(formsSig);
   const formsOK = (!$("formsToggle").checked) || (fRate===null) || (formsStats[formsSig]&&formsStats[formsSig].tot<5) || fRate>=0.52;
 
-  if(okContext && okMicro && formsOK && lastGap>=minGap){
-    const why = `ma10=${ma10.toFixed(2)}(min ${ma10Min.toFixed(2)}), sep=${sep.toFixed(2)}, heat=${heat.toFixed(2)}, ge170/8=${ge170in8}, low<1.20(4)=${low112in4}, slope4-8=${microSlope.toFixed(2)}, hotUp=${hotUptrend?'sí':'no'}, gap=${lastGap}, forms[${formsSig}]=${fRate===null?'-':(fRate*100).toFixed(0)+'%'} `;
+  if(shouldFire && formsOK && lastGap>=minGap){
+    const why = `ma10=${ma10.toFixed(2)}(min ${Math.max(1.28,ma10Min-0.03).toFixed(2)}), sep=${sep.toFixed(2)}, heat=${heat.toFixed(2)}, ge170/8=${ge170in8}, ge170/12=${ge170in12}, low<1.20(4)=${low112in4}, slope4-8=${microSlope.toFixed(2)}, hotUp=${hotUptrend?'sí':'no'}, gap=${lastGap}, nearEnd=${nearEndSlot?'sí':'no'}, forms[${formsSig}]=${fRate===null?'-':(fRate*100).toFixed(0)+'%'} `;
     fireShot(1.70, "AUTO_1p7", windowIdx, why, false, formsSig);
   }
 }
 
 function maybeHuntRosa(){
   if(!$("huntRosa").checked || rosaDone===true) return;
-  const last30 = rounds.slice(-30);
-  const moradas = last30.filter(x=>x>=2 && x<10).length; // solo moradas (no rosas)
-  const ma10=movingAverage(rounds,10)||0;
-  const hasPurp = last30.some(x=>x>=5 && x<10);
-  const sep=sepEst();
-  const afterExtreme = roundsSince(x=>x>=50, 40)<=6; // evita emitir si acaba de salir una rosa muy alta
+  const r = sessionRoundIn60();
+  if(r<8) return; // no ROSA en primeras rondas
 
-  const score = (moradas*0.10) + (ma10*0.12) + (sep*0.10) + (hasPurp?0.25:0) - (afterExtreme?0.25:0);
-  if(score>=1.05 && !afterExtreme){
-    const why = `mom(M)=${moradas}/30, ma10=${ma10.toFixed(2)}, sep=${sep.toFixed(2)}, purp30=${hasPurp}, score=${score.toFixed(2)}`;
+  const last20 = lastN(20), last30 = lastN(30), last10 = lastN(10);
+  const moradas20 = last20.filter(x=>x>=2 && x<10).length;
+  const moradas30 = last30.filter(x=>x>=2 && x<10).length;
+  const purp5in20 = last20.some(x=>x>=5 && x<10);
+  const no100in5 = lastN(5).every(x=>!near(x));
+  const ma10=movingAverage(rounds,10)||0;
+  const sep=sepEst(), heat=heatEst();
+  const sinceRosa = roundsSince(x=>x>=10, 60);
+  const afterExtreme = roundsSince(x=>x>=50, 80)<=8; // evita cadena tras super‑rosa
+
+  const ok = heat>=3.2 && ma10>=1.35 && sep>=1.25 && moradas20>=7 && moradas30>=10 && purp5in20 && no100in5 && sinceRosa>20 && !afterExtreme;
+  if(ok){
+    const why = `mom(M)20=${moradas20}, mom(M)30=${moradas30}, purp5in20=${purp5in20}, no100in5=${no100in5}, ma10=${ma10.toFixed(2)}, sep=${sep.toFixed(2)}, heat=${heat.toFixed(2)}, sinceRosa>${sinceRosa}`;
     fireShot(10, "ROSA_10x", null, why, true);
     rosaDone=true;
   }
