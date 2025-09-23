@@ -1,343 +1,506 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Aviator Analyzer • Gocho v26.3c (connect+signals fix)</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Aviator Analyzer • Gocho v26.4 • ≥1.70 + Caza Rosa (opcional)</title>
 <style>
-  :root{--bg:#0b0f14;--panel:#141a23;--muted:#93a0ad;--text:#e9eef6;--bd:#20283a;--chip:#0f141e}
-  html,body{background:var(--bg);color:var(--text);font:14px/1.5 system-ui,Inter,Segoe UI,Roboto,Arial,sans-serif;margin:0}
+  :root{
+    --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5;
+    --ok:#2ecc71; --warn:#e67e22; --bad:#e74c3c; --brand:#8ab4ff; --pink:#ff69b4;
+  }
+  html,body{background:var(--bg);color:var(--text);font:14px/1.45 system-ui,Inter,Segoe UI,Roboto,Arial,sans-serif;margin:0}
   .wrap{max-width:1100px;margin:18px auto;padding:0 12px}
+  .card{background:var(--panel);border:1px solid #22283a;border-radius:12px;padding:14px;margin:10px 0}
+  h1{font-size:18px;margin:0 0 8px;display:flex;gap:8px;align-items:center}
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .card{background:var(--panel);border:1px solid var(--bd);border-radius:12px;padding:14px;margin:10px 0}
-  .btn{background:#263047;border:0;color:var(--text);border-radius:8px;padding:8px 12px;cursor:pointer}
-  .btn.ok{background:#25d07b;color:#08120c;font-weight:700}
+  .btn{background:#2a3042;color:var(--text);border:0;border-radius:8px;padding:8px 12px;cursor:pointer}
+  .btn.ok{background:#2ecc71;color:#0c0f12;font-weight:700}
   .muted{color:var(--muted)}
-  select,input[type="text"]{background:#0f141e;color:var(--text);border:1px solid #263047;border-radius:8px;padding:6px 10px}
+  input[type="text"],select{background:#0f121a;color:var(--text);border:1px solid #2a3144;border-radius:6px;padding:6px}
   input[type="text"]{width:140px}
-  .kpi{display:flex;gap:14px;flex-wrap:wrap}
-  .kpi .box{background:#0f141e;border:1px solid var(--bd);border-radius:10px;padding:10px 12px}
-  .chips{display:flex;flex-wrap:wrap;gap:6px}
-  .chip{background:var(--chip);border:1px solid var(--bd);border-radius:999px;padding:4px 9px;font-size:12px}
-  .blue{background:#132238}.green{background:#173826}.purple{background:#2b2141}.pink{background:#3a1b2f}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:#1c2130;margin:4px 6px 0 0}
+  .pill.small{padding:4px 8px;font-size:12px}
   .table{width:100%;border-collapse:collapse;font-size:13px}
-  .table th,.table td{padding:8px;border-bottom:1px solid var(--bd);text-align:left}
-  .log{font:12px/1.5 ui-monospace,Consolas,Menlo,monospace;white-space:pre-wrap;background:#0f141e;border:1px solid var(--bd);border-radius:10px;padding:10px;max-height:360px;overflow:auto}
+  .table th,.table td{padding:8px;border-bottom:1px solid #22283a;text-align:left}
+  .kpi{display:flex;gap:16px;flex-wrap:wrap}
+  .kpi .box{background:#0f121a;border:1px solid #22283a;border-radius:10px;padding:10px 12px}
   .clock{font-variant-numeric:tabular-nums}
-  .oktxt{color:#7ff5b0}.badtxt{color:#ff9b9b}
+  .chip{border:1px solid #2a3144;border-radius:8px;padding:4px 8px;margin-right:8px}
+  .tag17{background:#20334a} .tagRosa{background:#3b2940}
+  .status-pend{color:#e5e7eb} .status-win{color:#7ff5b0} .status-lose{color:#ff9b9b}
+  .pink{color:var(--pink)}
+  .smallnote{font-size:12px;color:#b5bfd2}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>✈️ Aviator Analyzer • <b style="color:#8ab4ff">Gocho v26.3c</b>
+  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v26.4</span>
+    <span class="muted" id="statusFeedback" style="margin-left:8px"></span>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
   </h1>
 
+  <!-- Controles -->
   <div class="card">
     <div class="row">
       <label class="row"><input id="autoSignal" type="checkbox" checked> Auto-señal</label>
       <label class="row"><input id="beepToggle" type="checkbox" checked> Beep</label>
       <label class="row"><input id="auto1k" type="checkbox" checked> Auto-1k</label>
       <label class="row"><input id="autoSession" type="checkbox" checked> Auto-sesión</label>
-      <label class="row"><input id="cleanOnConnect" type="checkbox"> Limpiar historial al conectar</label>
+      <label class="row"><input id="clearOnConnect" type="checkbox"> Limpiar historial al conectar</label>
+    </div>
+    <div class="row" style="margin-top:6px">
       <span class="muted">Perfil:</span>
-      <select id="profile"><option value="PRECISE" selected>Preciso (3/60)</option><option value="NORMAL">Normal (3/60)</option></select>
+      <select id="perfil">
+        <option value="P3" selected>Preciso (3 / 60)</option>
+        <option value="P2">Normal (2 / 60)</option>
+        <option value="P1">Ligero (1 / 60)</option>
+      </select>
+
       <span class="muted">Agresividad:</span>
-      <select id="aggr"><option value="EQ" selected>Equilibrado</option><option value="AGR">Agresivo</option><option value="CONS">Conservador</option></select>
-      <span class="muted">Feed:</span><input id="feedId" type="text" value="gocho"/>
+      <select id="aggr">
+        <option value="EQ" selected>Equilibrado</option>
+        <option value="CONS">Conservador</option>
+        <option value="AGR">Agresivo</option>
+      </select>
+
+      <span class="muted">Feed:</span>
+      <input id="feedId" type="text" value="gocho"/>
       <button id="connectBtn" class="btn ok">Conectar</button>
       <button id="disconnectBtn" class="btn">Desconectar</button>
+
+      <label class="row" style="margin-left:auto">
+        <input id="huntRosa" type="checkbox"> Caza Rosa (≥10x, máx. 1 por sesión)
+      </label>
     </div>
-    <div id="statusFeedback" class="muted" style="margin-top:6px"></div>
+    <div class="smallnote" style="margin-top:6px">
+      Señales ≥1.70 con Smart-Pacing (ventanas 1/3, 2/3, 3/3). Anti-trampa tras 1.00–1.15 y checklist 10/5/3. “Rosa” es opcional y no afecta las ≥1.70.
+    </div>
   </div>
 
+  <!-- KPIs + Estado -->
   <div class="card">
     <div class="kpi">
       <div class="box">Rondas: <b id="rounds">0</b> <span class="muted">(base)</span></div>
-      <div class="box">MA10: <b id="ma10">–</b><br><span class="muted">≥1.70 (60):</span> <b id="since170">0</b></div>
-      <div class="box">Sesión: <b id="sessionProg">0/60</b><br><span class="muted">Señales:</span> <b id="sessionSignals">0</b></div>
-      <div class="box">Sep: <b id="sepLbl">3</b><br><span class="muted">Heat:</span> <b id="heatLbl">–</b></div>
-      <div class="box">p/Umbral: <b id="pthLbl">—</b><br><span class="muted">Régimen:</span> <b id="regLbl">—</b></div>
+      <div class="box">MA10: <b id="ma10">–</b><br>
+        <span class="muted">≥1.70 (60):</span> <b id="ge170_60">–</b></div>
+      <div class="box">Sesión: <b id="sessProg">0/60</b><br><span class="muted">Señales:</span> <b id="signals">0</b></div>
+      <div class="box">Sep: <b id="sepNow">–</b><br><span class="muted">Heat:</span> <b id="heatNow">–</b></div>
+      <div class="box">p/Umbral: <b id="pumbral">—</b><br><span class="muted">Régimen:</span> <b id="regimen">—</b></div>
     </div>
-    <div style="margin-top:10px">
+
+    <div style="margin-top:12px">
       <div class="muted" style="margin-bottom:6px">Últimas 60 rondas (más reciente primero)</div>
-      <div id="lastRounds" class="chips"></div>
+      <div id="lastRounds"></div>
     </div>
   </div>
 
+  <!-- Tabla señales -->
   <div class="card">
     <div class="row"><h3 style="margin:0">Señales (historial persistente)</h3></div>
     <table class="table" style="margin-top:8px">
-      <thead><tr><th>#</th><th>Sesión</th><th>Tag</th><th>Objetivo</th><th>Hora</th><th>Crash</th><th>Estado</th></tr></thead>
-      <tbody id="sigTbody"></tbody>
+      <thead>
+        <tr>
+          <th>#</th><th>Sesión</th><th>Ronda</th><th>Tag</th><th>Objetivo</th><th>Hora</th><th>Crash</th><th>Estado</th>
+        </tr>
+      </thead>
+      <tbody id="betsTbody"></tbody>
     </table>
   </div>
 
+  <!-- Reseña -->
   <div class="card">
-    <h3 style="margin:0 0 8px">Reseña</h3>
-    <div id="logBox" class="log" aria-live="polite"></div>
+    <h3 style="margin:0 0 6px 0">Reseña</h3>
+    <div id="logBox" class="smallnote" style="white-space:pre-wrap;max-height:340px;overflow:auto"></div>
   </div>
 
   <div class="card muted" style="font-size:12px">
-    Uso educativo/análisis. No garantiza resultados. “Ganada” = crash &gt; objetivo.
+    Uso educativo/análisis. No garantiza resultados. “Ganada” = crash &gt; objetivo. No forzar entradas al cierre del bloque.
   </div>
 </div>
 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
 <script>
-/* ===== Firebase ===== */
-const firebaseConfig={
-  apiKey:"AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
-  authDomain:"aviator-analyzer-b29a7.firebaseapp.com",
-  projectId:"aviator-analyzer-b29a7",
-  storageBucket:"aviator-analyzer-b29a7.appspot.com",
-  messagingSenderId:"575063626276",
-  appId:"1:575063626276:web:5f640e41f0ad791d6a3eb1",
-  measurementId:"G-325QCBSQMH",
-  databaseURL:"https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com"
+/* ======== FIREBASE ======== */
+const firebaseConfig = {
+  apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
+  authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
+  projectId: "aviator-analyzer-b29a7",
+  storageBucket: "aviator-analyzer-b29a7.appspot.com",
+  messagingSenderId: "575063626276",
+  appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
+  measurementId: "G-325QCBSQMH",
+  databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com"
 };
 firebase.initializeApp(firebaseConfig);
-const db=firebase.database(), auth=firebase.auth();
+const db  = firebase.database();
+const auth= firebase.auth();
 
-/* ===== Helpers UI ===== */
-const $=id=>document.getElementById(id);
-const addLog=s=>{ const el=$("logBox"); el.textContent+=`[${new Date().toLocaleTimeString()}] ${s}\n`; el.scrollTop=el.scrollHeight; };
-const HHmm = ts => new Date(ts).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
-const HHmmss = ts => new Date(ts).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"});
-function chipClass(v){ if(v>=10) return "pink"; if(v>=3) return "purple"; if(v>=2) return "green"; return "blue"; }
-function movingAverage(a,n){ const L=Math.min(a.length,n); if(!L)return NaN; let s=0; for(let i=a.length-L;i<a.length;i++) s+=a[i]; return s/L; }
-function flag(id,def=false){ const el=$(id); return el?!!el.checked:def; }
+/* ======== HELPERS ======== */
+const $ = (id)=>document.getElementById(id);
+const now=()=>Date.now();
+const HHmm = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+const HHmmss = ts => new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
 
-/* ===== State ===== */
-let FEED_ID="gocho", connected=false, connecting=false;
-let rounds=[], roundsMeta=[], lastShown=[];
-let baseCount=0, lastKey=null, lastTs=null, lastActivity=null;
-let liveRef=null, liveCb=null, watchdog=null;
+function isChecked(id){ const el=$(id); return !!(el && el.checked); } // seguro contra null
 
-/* ===== Core stats ===== */
-let session={active:false,startIdx:0,sigCount:0,objective:1.70,tag:"AUTO_1p7",windowPlan:[[6,22],[23,42],[43,60]]};
-let pendings=[], history=[];
-let sepMin=3, sepBlock=0, antibbRoundsLeft=0, cooldownWindowsLeft=0, loseStreak=0, lastWindowIdx=-1;
-let pinkCooldown=0, needGoodAfterBad=false; // NUEVO
+function movingAverage(arr,n){const L=Math.min(arr.length,n); if(!L) return NaN; let s=0; for(let i=arr.length-L;i<arr.length;i++) s+=arr[i]; return s/L;}
+function clamp(v,a,b){return v<a?a:(v>b?b:v);}
 
-function heatScore(n=15){const w=rounds.slice(-n); if(!w.length)return 0; return (w.filter(x=>x>=2).length/w.length)*10;}
-function momentumScore(len=12){const w=rounds.slice(-len); let s=0; for(const x of w){ if(x>=10)s+=4; else if(x>=3)s+=3; else if(x>=2)s+=2; else if(x>=1.70)s+=1; else if(x<1.20)s-=3; else s-=1; } return s;}
-function microValley(){const a5=rounds.slice(-5),a8=rounds.slice(-8); return a5.filter(x=>x<1.50).length>=2 || a8.filter(x=>x<1.70).length>=3;}
-function pinkProximity(b=6){return rounds.slice(-b).some(x=>x>=15);}
-function lastIsBadTrap(){const l=rounds[rounds.length-1]||2; return l<1.15;}
-function twoOfLast5Sub115(){return rounds.slice(-5).filter(x=>x<1.15).length>=2;}
-function currentWindowIdx(){ const pos=rounds.length-session.startIdx; for(let i=0;i<session.windowPlan.length;i++){const[a,b]=session.windowPlan[i]; if(pos>=a&&pos<=b) return i;} return -1; }
-function windowProgress(i){ if(i<0)return 0; const pos=rounds.length-session.startIdx; const[a]=session.windowPlan[i]; return Math.max(0,pos-a); }
+function logLine(s){ const box=$("logBox"); const ts=new Date().toTimeString().slice(0,8);
+  box.textContent += `[${ts}] ${s}\n`; box.scrollTop=box.scrollHeight; }
 
-function renderStats(){
-  $("rounds").textContent=`${rounds.length} (base ${baseCount})`;
-  const ma10=movingAverage(rounds,10); $("ma10").textContent=isNaN(ma10)?"–":ma10.toFixed(2)+"x";
-  $("since170").textContent=rounds.slice(-60).filter(x=>x>=1.70).length;
-  $("sessionProg").textContent=`${Math.min(60, rounds.length-session.startIdx)}/60`;
-  $("sessionSignals").textContent=`${session.sigCount}`;
-  $("sepLbl").textContent=`${sepMin}${cooldownWindowsLeft?` • cd:${cooldownWindowsLeft}`:""}`;
-  $("heatLbl").textContent=heatScore(15).toFixed(2);
-  const cont=$("lastRounds"); cont.innerHTML="";
-  lastShown.forEach(v=>{ const s=document.createElement("span"); s.className="chip "+chipClass(v); s.textContent=(v>=1000?(v-1000).toFixed(2):v.toFixed(2))+"x"; cont.appendChild(s); });
+/* Parser robusto + rescate ≥1000x */
+function parseCrashValue(raw){
+  if(raw===null||raw===undefined) return null;
+  if(typeof raw==="number") return (raw>=1 && isFinite(raw))? raw : null;
+  let sRaw = String((typeof raw==="object" && raw && ("raw" in raw || "v" in raw)) ? (raw.raw ?? raw.v) : raw);
+
+  const rx=/(\d{1,3}(?:[.,\u00A0\u2009]\d{3})+(?:[.,]\d+)?)/;
+  const m=sRaw.match(rx);
+  if(m){
+    let t=m[1].replace(/[\u00A0\u2009]/g,' ');
+    const lastDot=t.lastIndexOf('.'), lastComma=t.lastIndexOf(',');
+    const dec=(lastComma>lastDot)?',':'.';
+    if(dec===','){ t=t.replace(/\./g,'').replace(/ /g,'').replace(',', '.'); }
+    else{ t=t.replace(/,/g,'').replace(/ /g,''); }
+    const v=Number(t); return (isFinite(v)&&v>=1)?v:null;
+  }
+
+  let s=sRaw.replace(/[^\d.,+-]+/g,'').trim();
+  if(!s) return null;
+  const lastDot=s.lastIndexOf('.'), lastComma=s.lastIndexOf(',');
+  let dec=(lastComma>lastDot)?',':'.'; if(lastDot===-1&&lastComma===-1) dec='.';
+  if(dec===','){ s=s.replace(/\./g,''); s=s.replace(',', '.'); } else { s=s.replace(/,/g,''); }
+  let v=Number(s); if(!(isFinite(v)&&v>=1)) return null;
+
+  if(isChecked("auto1k") && v>=300 && v<450){
+    const ma10 = movingAverage(rounds,10);
+    const recentHuge = rounds.slice(-8).some(x=>x>=200);
+    if(recentHuge || (ma10 && ma10>20)) v+=1000;
+  }
+  return v;
 }
-function renderSignals(){
-  const tb=$("sigTbody"); tb.innerHTML="";
-  history.forEach((s,i)=>{ const st=s.state==="win"?`<b class="oktxt">win</b>`:s.state==="lose"?`<b class="badtxt">lose</b>`:"pend";
+
+/* ======== ESTADO ======== */
+let FEED_ID="gocho", connected=false;
+let rounds=[], roundsMeta=[], lastShown=[];
+let baseCount=0;
+
+let pendings=[], bets=[], signalsCount=0;
+const PERSIST_KEY="gocho_v264";
+const session = {active:false, startIdx:null, count:0, maxShots:3, winCount:0, lossCount:0, rosaDone:false};
+
+const windows = [
+  {min:6,  max:22, idx:1}, // ventana 1/3
+  {min:23, max:42, idx:2}, // ventana 2/3
+  {min:43, max:60, idx:3}, // ventana 3/3
+];
+let usedWindows=new Set();
+
+/* ======== AUDIO ======== */
+let audioCtx=null;
+function beep(freq=880, ms=120, gain=0.03){
+  if(!isChecked("beepToggle")) return;
+  try{
+    if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.type="sine"; o.frequency.value=freq; g.gain.value=gain; o.connect(g); g.connect(audioCtx.destination);
+    o.start(); setTimeout(()=>o.stop(), ms);
+  }catch(_){}
+}
+const beep17 = ()=>{ beep(620,120,0.035); setTimeout(()=>beep(900,100,0.03),160); };            // señal ≥1.70
+const beepRosa = ()=>{ beep(360,150,0.045); setTimeout(()=>beep(980,100,0.04),200); setTimeout(()=>beep(760,120,0.035),360);};// rosa
+
+/* ======== MÉTRICAS RÁPIDAS ======== */
+function lastN(n){ return rounds.slice(-n); }
+function countGE(arr,thr){ return arr.reduce((a,x)=>a+(x>=thr),0); }
+function countLT(arr,thr){ return arr.reduce((a,x)=>a+(x<thr),0); }
+function ge170_60(){ return countGE(lastN(60), 1.70); }
+function heatScore(){ // simple: proporción ≥2x en 15 + penalización sub-1.15
+  const w=lastN(15); if(!w.length) return 0;
+  const p2 = countGE(w,2)/w.length;
+  const low = countLT(w,1.15)/w.length;
+  return Math.max(0, 6*p2 - 3*low); // 0..6 aprox
+}
+function regimenLabel(h){ if(h>=4.5) return "very-hot"; if(h>=3.2) return "hot"; if(h>=2.0) return "ok"; return "frío"; }
+
+/* ======== REGLAS (≥1.70) ======== */
+// Checklist 10/5/3 + anti-trampa
+function checklist_10_5_3(){
+  const L10=lastN(10), L5=lastN(5), L3=lastN(3);
+  const c10 = countGE(L10,2.0)>=4;
+  const c5  = countLT(L5,1.15)===0;
+  const c3  = countGE(L3,1.70)>=2;
+  return {okCount:[c10,c5,c3].filter(Boolean).length, flags:{c10,c5,c3}};
+}
+function antiTrampa(){
+  const L1=lastN(1)[0]||99, L5=lastN(5);
+  if(L1<1.15) return {ok:false, why:"post-1.15"};
+  if(countLT(L5,1.15)>=2) return {ok:false, why:"valles<1.15"};
+  return {ok:true};
+}
+function windowIdx(pos){ for(const w of windows){ if(pos+1>=w.min && pos+1<=w.max) return w.idx; } return null; }
+
+/* ======== REGLA ROSA (≥10x, 1 por sesión, ultra prudente) ======== */
+function rosaGate(){
+  if(!isChecked("huntRosa") || session.rosaDone!==false || session.rosaDone===true) return {ok:false, why:"off_or_done"};
+  const L12=lastN(12), L20=lastN(20), L6=lastN(6), L8=lastN(8), L3=lastN(3);
+  if(!L12.length) return {ok:false, why:"no-data"};
+  // Condiciones fuertes:
+  const okPurp = countGE(L20,5)>=2;           // al menos 2 moradas en 20
+  const okNoTrap = countLT(L6,1.12)===0;      // últimos 6 sin 1.00–1.12
+  const okMomentum = countGE(L8,2)>=3;        // momentum decente
+  const okFresh = countGE(L3,2)>=1;           // no entrar en pleno valle
+  const pass = okPurp && okNoTrap && okMomentum && okFresh;
+  return {ok:pass, why: pass?"ok":"rosa-weak"};
+}
+
+/* ======== UI RENDER ======== */
+function renderStats(){
+  $("rounds").textContent = `${rounds.length} (base ${baseCount})`;
+  const ma10=movingAverage(rounds,10); $("ma10").textContent=isNaN(ma10)?"–":ma10.toFixed(2)+"x";
+  $("ge170_60").textContent = ge170_60();
+  const pos = session.active && session.startIdx!=null ? Math.max(0, rounds.length - session.startIdx) : 0;
+  $("sessProg").textContent = `${clamp(pos,0,60)}/60`;
+  $("signals").textContent = signalsCount;
+  const heat=heatScore(); $("heatNow").textContent = heat.toFixed(2);
+  $("regimen").textContent = regimenLabel(heat);
+  $("sepNow").textContent = Math.max(0, rounds.length - (lastSignalIdx ?? -999));
+  $("pumbral").textContent = checklist_10_5_3().okCount>=2? "ok":"—";
+
+  const cont=$("lastRounds"); cont.innerHTML="";
+  lastShown.forEach(x=>{ const d=document.createElement("span"); d.className="pill small"; d.textContent=x.toFixed(2)+"x"; cont.appendChild(d); });
+}
+function renderBets(){
+  const tb=$("betsTbody"); tb.innerHTML="";
+  bets.concat(pendings).forEach((b,i)=>{
+    const st=b.state==="win"?"win":b.state==="lose"?"lose":"pend";
     const tr=document.createElement("tr");
-    tr.innerHTML=`<td>${i+1}</td><td>${s.sessionLabel||"—"}</td><td>${s.tag}</td><td>${s.objective.toFixed(2)}x</td><td>${s.time}</td><td>${s.crash? s.crash.toFixed(2)+"x":"—"}</td><td>${st}</td>`;
+    tr.innerHTML=`<td>${i+1}</td><td>${b.session||"—"}</td><td>${b.ronda? (b.ronda+"/60"):"—"}</td><td>${b.tag||"-"}</td><td>${b.target}x</td><td>${b.emittedAt||"—"}</td><td>${b.crash?b.crash.toFixed(2)+"x":"—"}</td><td class="${st==="win"?"status-win":st==="lose"?"status-lose":"status-pend"}">${st}</td>`;
     tb.appendChild(tr);
   });
 }
 
-/* ===== Parser robusto ===== */
-function parseCrashValue(raw){
-  if(raw===null||raw===undefined) return null;
-  if(typeof raw==="number") return (raw>=1 && isFinite(raw))?raw:null;
-  let sRaw=String((typeof raw==="object"&&raw&&("raw" in raw || "v" in raw))?(raw.raw??raw.v):raw);
-  const rx=/(\d{1,3}(?:[.,\u00A0\u2009]\d{3})+(?:[.,]\d+)?|\d+(?:[.,]\d+)?)/;
-  const m=sRaw.match(rx); if(!m) return null; let t=m[1].replace(/[\u00A0\u2009]/g,' ');
-  const lastDot=t.lastIndexOf('.'), lastComma=t.lastIndexOf(','); const dec=(lastComma>lastDot)?',':'.';
-  if(dec===','){ t=t.replace(/\./g,'').replace(/ /g,'').replace(',', '.'); } else { t=t.replace(/,/g,'').replace(/ /g,''); }
-  let v=Number(t); if(!(isFinite(v)&&v>=1)) return null;
-  if(flag("auto1k",true) && v>=300 && v<450){ const ma10=movingAverage(rounds,10), recentHuge=rounds.slice(-8).some(x=>x>=200); if(recentHuge||(ma10&&ma10>20)) v+=1000; }
-  return v;
-}
+/* ======== CONEXIÓN FEED ======== */
+let liveRef=null, liveCb=null, lastKey=null, lastTs=null, lastActivity=null, watchdog=null, lastSignalIdx=-999;
+
 function nodeToVT(node){
-  const raw=(node && typeof node==='object' && ('raw' in node || 'v' in node)) ? (node.raw ?? node.v) : node;
-  const v=parseCrashValue(raw);
-  const ts=Number(node?.ts)||Date.now();
+  const raw = (node && typeof node==='object' && ('raw' in node || 'v' in node)) ? (node.raw ?? node.v) : node;
+  const v = parseCrashValue(raw);
+  const ts = Number(node?.ts) || now();
   return {v,ts};
 }
 
-/* ===== Señales (tune v26.2 feel + protecciones nuevas) ===== */
-// ventanas: permitir antes
-const minInto=[2,3,4]; // antes 3,3,4
-function envOK(){
-  const ma10=movingAverage(rounds,10)||0;
-  const heat=heatScore(15);
-  // más permisivo, pero no ciego:
-  if(heat<1.3 && ma10<1.9) return false;
-  return true;
+async function connectFeed(){
+  if(connected) return;
+  FEED_ID=($("feedId").value||"gocho").trim();
+  $("statusFeedback").textContent=`Conectando a feeds/${FEED_ID}/crashes…`;
+  try{ await auth.signInAnonymously(); }catch(e){ logLine("Auth anónima falló, reintentando lectura…"); }
+
+  const ref=db.ref(`feeds/${FEED_ID}/crashes`);
+  $("statusFeedback").textContent="Cargando historial…";
+
+  let snap=null, method="key";
+  try{ const s=await ref.orderByChild("ts").limitToLast(800).once("value"); if(s && s.val()) { snap=s; method="ts"; } }catch(e){}
+  if(!snap){ try{ const s=await ref.orderByKey().limitToLast(800).once("value"); if(s && s.val()) { snap=s; method="key"; } }catch(e){} }
+  if(!snap||!snap.val()){ $("statusFeedback").textContent="Sin datos en el feed."; return; }
+
+  const doClear = isChecked("clearOnConnect");
+  if(doClear){ bets=[]; pendings=[]; signalsCount=0; $("logBox").textContent=""; usedWindows.clear(); }
+
+  rounds=[]; roundsMeta=[]; lastShown=[];
+  baseCount=Object.keys(snap.val()).length;
+
+  const data=snap.val(), keys=Object.keys(data).sort();
+  keys.forEach(k=>{ const {v,ts}=nodeToVT(data[k]); if(v!==null) onNewCrash(v,ts,true); lastKey=k; lastTs=Number(data[k]?.ts||k)||now(); lastActivity=now(); });
+
+  startSession(); // inicia sesión encadenada (auto-sesión por defecto)
+
+  if(method==="ts"){
+    liveRef=ref.orderByChild("ts").startAt(lastTs);
+    liveCb=s=>{ const key=s.key, d=s.val(); const {v,ts}=nodeToVT(d); if(lastTs && ts<=lastTs && key===lastKey) return; lastKey=key; lastTs=ts; lastActivity=now(); if(v!==null) onNewCrash(v,ts,false); };
+  }else{
+    liveRef=ref.orderByKey().startAt(lastKey||"");
+    liveCb=s=>{ const key=s.key, d=s.val(); if(lastKey && key<=lastKey) return; lastKey=key; const {v,ts}=nodeToVT(d); lastTs=ts; lastActivity=now(); if(v!==null) onNewCrash(v,ts,false); };
+  }
+  liveRef.on("child_added", liveCb);
+
+  if(watchdog) clearInterval(watchdog);
+  watchdog=setInterval(()=>{ if(!connected) return; const dt=Date.now()-(lastActivity||0); if(dt>300000){ disconnectFeed(true); connectFeed(); } }, 30000);
+
+  connected=true; $("statusFeedback").textContent="Conectado.";
 }
-function volatilityOK(){
-  const last8=rounds.slice(-8), lows=last8.filter(x=>x<1.20).length; 
-  const heat=heatScore(15);            // si hay demasiados lows y poco heat, no
-  if(lows>=3 && heat<6) return false;
-  if(twoOfLast5Sub115()) return false; // NUEVO
-  return true;
+function disconnectFeed(silent=false){
+  if(!connected) return;
+  if(liveRef && liveCb) liveRef.off("child_added", liveCb);
+  liveRef=liveCb=null; lastKey=lastTs=lastActivity=null; connected=false;
+  if(watchdog){ clearInterval(watchdog); watchdog=null; }
+  if(!silent){ $("statusFeedback").textContent="Desconectado."; }
 }
-function votesOK(ag,w){
-  const heat=heatScore(15), mom=momentumScore(12);
-  const ma5=movingAverage(rounds,5)||0, ma10=movingAverage(rounds,10)||0; 
-  const trend=(ma5>=ma10)?1:0;
-  // umbrales más amables
-  let needMom=0, needHeat=3.0; if(ag==="CONS"){needMom=2;needHeat=3.2} if(ag==="EQ"){needMom=1;needHeat=3.0} if(ag==="AGR"){needMom=0;needHeat=2.8}
-  if(w===2){ needHeat=Math.max(needHeat,3.6); needMom=Math.max(needMom,1); }
-  let v=0; if(heat>=needHeat)v++; if(mom>=needMom)v++; if(trend)v++; 
-  return v>=2; // 2 de 3
+
+/* ======== SESIÓN ======== */
+function startSession(){
+  session.active=true;
+  session.startIdx=rounds.length;
+  session.count=0; session.winCount=0; session.lossCount=0;
+  session.rosaDone=false;
+  usedWindows.clear();
+  logLine(`Empieza sesión ${HHmm(now())} • objetivo ≥1.70 • tope ${session.maxShots}/60 • Smart-Pacing`);
 }
-function shouldEmit170(){
-  if(!session.active || session.sigCount>=3) return false;
-  const w=currentWindowIdx(); if(w===-1) return false;
-  if(lastWindowIdx===w) return false;
-  if(cooldownWindowsLeft>0 || sepBlock>0 || antibbRoundsLeft>0 || pinkCooldown>0) return false;
-  if(!envOK() || !volatilityOK()) return false;
-  if(windowProgress(w)<minInto[w]) return false;
-  if(w===2 && microValley()) return false;
-  const ag=$("aggr")?.value||"EQ"; if(!votesOK(ag,w)) return false;
-  // no encadenar tras pérdida fea
-  if(needGoodAfterBad && !rounds.slice(-6).some(x=>x>=2.0)) return false; 
-  const a18=rounds.slice(-18).filter(x=>x<1.70).length; 
-  if(ag==="CONS"&&a18>6) return false; if(ag==="EQ"&&a18>7) return false; if(ag==="AGR"&&a18>8) return false;
-  return true;
+function endSession(reason="Fin de sesión."){
+  session.active=false;
+  logLine(reason);
+  if(isChecked("autoSession")){ startSession(); }
 }
-function emit170(){
-  if(!flag("autoSignal",true)) return;
-  const ts=Date.now(); const sig={tag:"AUTO_1p7",objective:1.70,time:HHmmss(ts),ts,sessionLabel:HHmm(ts),state:"pend"};
-  pendings.push(sig); history.push(sig); renderSignals(); session.sigCount++; lastWindowIdx=currentWindowIdx(); sepBlock=sepMin;
-  addLog(`Señal emitida (ventana ${lastWindowIdx+1}/3); objetivo ≥1.70.`);
-  // beep
-  if(flag("beepToggle",true)){ try{ new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=").play().catch(()=>{});}catch(_){}} 
+
+function inSessionPos(){ return session.active && session.startIdx!=null ? (rounds.length - session.startIdx) : 0; }
+
+/* ======== EMISIÓN DE SEÑALES ======== */
+function canEmit17(){
+  if(!session.active || !isChecked("autoSignal")) return {ok:false, why:"off"};
+  if(session.count>= ( $("perfil").value==="P3" ? 3 : $("perfil").value==="P2" ? 2 : 1)) return {ok:false, why:"tope"};
+  const pos=inSessionPos(); if(pos<=0) return {ok:false, why:"pos0"};
+
+  const wIdx=windowIdx(pos);
+  if(!wIdx) return {ok:false, why:"fuera-ventana"};
+  if(usedWindows.has(wIdx)) return {ok:false, why:"ventana-ocupada"};
+
+  const chk=checklist_10_5_3();
+  const anti=antiTrampa();
+  const heat=heatScore();
+
+  // gates por agresividad
+  const ag=$("aggr").value;
+  const needOK = (ag==="AGR")? 2 : (ag==="CONS"? 3 : 2);
+  const heatMin = (ag==="AGR")? 2.0 : (ag==="CONS"? 2.6: 2.3);
+
+  const pass = chk.okCount>=needOK && anti.ok && heat>=heatMin;
+  return {ok:pass, why: pass?"ok":`chk:${chk.okCount}/3 anti:${anti.ok} heat:${heat.toFixed(2)}`, wIdx};
 }
-function onNewCrash(v,ts,base=false){
+
+function emitShot(target, tag){
+  const ts=now(); const pos=inSessionPos(); const id="S"+ts;
+  const b={id,target,stake:1,ts,emittedAt:HHmmss(ts),state:"pend",tag,reason:"auto",conf:0.8, session: HHmm(session.startTs||now()), ronda: clamp(pos+1,1,60)};
+  pendings.push(b); lastSignalIdx=rounds.length;
+  signalsCount++; session.count++;
+  renderBets();
+}
+
+function maybeEmit17(){
+  const gate=canEmit17();
+  if(!gate.ok){ return; }
+  emitShot(1.70, "AUTO_1p7");
+  usedWindows.add(gate.wIdx);
+  beep17();
+  const pos=inSessionPos();
+  logLine(`Señal emitida (ventana ${gate.wIdx}/3; ronda ${clamp(pos+1,1,60)}/60); objetivo ≥1.70. ${gate.why==="ok"?"":"\n↳ "+gate.why}`);
+}
+
+function maybeEmitRosa(){
+  if(!session.active || !isChecked("huntRosa")) return;
+  if(session.rosaDone===true) return;
+  const g=rosaGate();
+  if(!g.ok){ return; }
+  // Rosa no compite con la 1.70: si acabamos de tirar (sep<6), la saltamos
+  const sep = rounds.length - (lastSignalIdx ?? -999);
+  if(sep<6) return;
+
+  emitShot(10.0, "ROSA_10x");
+  session.rosaDone=true;
+  beepRosa();
+  const pos=inSessionPos();
+  logLine(`🎯 Caza ROSA emitida (ronda ${clamp(pos+1,1,60)}/60). Objetivo ≥10x. (filtros fuertes ok)`);
+}
+
+/* ======== ON NEW CRASH ======== */
+function onNewCrash(v, ts, base=false){
   rounds.push(v); roundsMeta.push({v,ts}); if(rounds.length>3000){ rounds.shift(); roundsMeta.shift(); }
   lastShown.unshift(v); if(lastShown.length>60) lastShown.pop();
 
+  // Resolver pendientes (si no es base)
   if(!base && pendings.length){
-    const b=pendings.shift(); const win=(v>b.objective); b.crash=v; b.state=win?"win":"lose"; history[history.length-1]=b; renderSignals();
-    // protecciones y pacing
-    if(v<1.15){ antibbRoundsLeft=Math.max(antibbRoundsLeft,2); needGoodAfterBad=true; }
-    if(win){ 
-      loseStreak=0; sepBlock=Math.max(sepBlock,2); needGoodAfterBad=false;
-    } else { 
-      loseStreak++; sepBlock=Math.max(sepBlock,3); if(loseStreak>=2) cooldownWindowsLeft=Math.max(cooldownWindowsLeft,1);
-      if(v<1.20) needGoodAfterBad=true; // pide ver ≥2x antes de la próxima
-    }
-    // cooldown por rosa grande cerca
-    const lastPink=rounds.slice(-8).find(x=>x>=50)?4:(rounds.slice(-6).find(x=>x>=15)?3:0);
-    pinkCooldown=Math.max(pinkCooldown,lastPink);
-    addLog(`Resultado ${b.state==="win"?"GANADA":"PERDIDA"} (${v.toFixed(2)}x).`);
-  }
-
-  if(sepBlock>0) sepBlock--; 
-  if(antibbRoundsLeft>0) antibbRoundsLeft--;
-  if(cooldownWindowsLeft>0 && currentWindowIdx()!==lastWindowIdx) cooldownWindowsLeft--;
-  if(pinkCooldown>0) pinkCooldown--;
-
-  renderStats();
-
-  // protec anti-trampa si justo cayó 1.0x
-  if(!base && lastIsBadTrap()) { antibbRoundsLeft=Math.max(antibbRoundsLeft,2); }
-
-  if(!base && shouldEmit170()) emit170();
-
-  autoSessionMaybe();
-}
-
-/* ===== Sesión ===== */
-function resetSession(){ 
-  session.active=true; session.startIdx=rounds.length; session.sigCount=0; 
-  sepBlock=0; antibbRoundsLeft=0; cooldownWindowsLeft=0; lastWindowIdx=-1; pinkCooldown=0; 
-  needGoodAfterBad=false;
-  addLog(`Empieza sesión ${HHmm(Date.now())} • objetivo ≥1.70 • tope 3/60 • Smart-Pacing v4.2`);
-}
-function autoSessionMaybe(){ 
-  const pos=rounds.length-session.startIdx; 
-  if(flag("autoSession",true) && (!session.active || pos>=60 || session.sigCount>=3)){ 
-    session.active=false; addLog("Fin de sesión."); resetSession(); 
-  } 
-}
-
-/* ===== Conexión robusta (igual que 26.3b) ===== */
-async function connectFeed(){
-  if(connecting||connected) return;
-  connecting=true; $("connectBtn").disabled=true;
-  FEED_ID=($("feedId").value||"gocho").trim();
-  $("statusFeedback").textContent=`Conectando a feeds/${FEED_ID}/crashes…`;
-  try{
-    await auth.setPersistence(firebase.auth.Auth.Persistence.NONE).catch(()=>{});
-    await auth.signInAnonymously().catch(()=>{});
-    const ref=db.ref(`feeds/${FEED_ID}/crashes`);
-
-    const tryGet = async (q) => { try{ const s=await q.get(); if(s && s.exists()) return s; }catch(_){ } return null; };
-
-    let snap = await tryGet(ref.orderByChild("ts").limitToLast(800));
-    let mode = "ts";
-    if(!snap){ snap = await tryGet(ref.orderByKey().limitToLast(800)); mode="key"; }
-
-    if(!snap){ $("statusFeedback").textContent="No hay datos en el feed (aún)."; connecting=false; $("connectBtn").disabled=false; return; }
-
-    if(flag("cleanOnConnect",false)){ rounds=[]; roundsMeta=[]; lastShown=[]; baseCount=0; history=[]; pendings=[]; }
-
-    const data=snap.val(); const keys=Object.keys(data).sort(); baseCount=keys.length;
-    let lastValidTs=0, lastValidKey=null;
-    for(const k of keys){
-      const node=data[k];
-      const {v,ts}=nodeToVT(node);
-      if(v!==null && isFinite(v) && v>=1){
-        onNewCrash(v,ts,true);
-        if(ts>lastValidTs){ lastValidTs=ts; lastValidKey=k; }
+    const bet=pendings.shift(); const win=(v>bet.target);
+    bet.crash=v; bet.state=win?"win":"lose";
+    bet.pl=win?"+1":"−1";
+    if(win) session.winCount++; else session.lossCount++;
+    bets.push(bet); if(bets.length>1200) bets.splice(0,bets.length-1200);
+    renderBets();
+    logLine(`Resultado ${bet.tag.includes("ROSA")?"ROSA ":""}${win?"GANADA":"PERDIDA"} (${v.toFixed(2)}x).`);
+    // cooldown por racha de pérdidas cortas (≥1.15) en ≥1.70
+    if(!bet.tag.includes("ROSA")){
+      const last3=bets.slice(-3);
+      if(last3.length===3 && last3.every(b=>b.tag==="AUTO_1p7") && last3.filter(b=>b.state==="lose").length>=2){
+        logLine("Cooldown corto activado: demasiadas pérdidas recientes (≥1.70).");
+        usedWindows.add(windowIdx(inSessionPos())||99); // evita re-disparar en la misma ventana
       }
     }
-    lastTs=lastValidTs||Date.now(); lastKey=lastValidKey||keys[keys.length-1]; lastActivity=Date.now();
-
-    resetSession(); renderStats(); renderSignals();
-
-    if(liveRef && liveCb) liveRef.off("child_added", liveCb);
-    if(mode==="ts"){
-      liveRef = ref.orderByChild("ts").startAt(lastTs+1);
-      liveCb   = s => { const d=s.val(); if(!d) return; const {v,ts}=nodeToVT(d); if(!(v!==null && isFinite(v) && v>=1)) return; lastTs=ts; lastKey=s.key; lastActivity=Date.now(); onNewCrash(v,ts,false); };
-    }else{
-      liveRef = ref.orderByKey().startAfter(lastKey||"");
-      liveCb   = s => { const d=s.val(); if(!d) return; const {v,ts}=nodeToVT(d); if(!(v!==null && isFinite(v) && v>=1)) return; lastTs=ts; lastKey=s.key; lastActivity=Date.now(); onNewCrash(v,ts,false); };
-    }
-    liveRef.on("child_added", liveCb);
-
-    if(watchdog) clearInterval(watchdog);
-    watchdog=setInterval(()=>{ if(!connected) return; if(Date.now()-(lastActivity||0)>240000){ addLog("Watchdog: reconexión…"); disconnectFeed(true); connectFeed(); } }, 30000);
-
-    connected=true; $("statusFeedback").textContent="Conectado.";
-  }catch(err){
-    $("statusFeedback").textContent="Error al conectar.";
-    addLog("Conectar error: "+(err?.message||err));
-  }finally{
-    connecting=false; $("connectBtn").disabled=false;
   }
-}
-function disconnectFeed(silent=false){
-  if(liveRef && liveCb) liveRef.off("child_added", liveCb);
-  liveRef=liveCb=null; connected=false; connecting=false; lastKey=lastTs=lastActivity=null;
-  if(watchdog){ clearInterval(watchdog); watchdog=null; }
-  if(!silent) $("statusFeedback").textContent="Desconectado.";
+
+  // Si estamos en sesión, evaluar emisión
+  if(!base && session.active){
+    maybeEmitRosa();  // opcional, no interfiere
+    maybeEmit17();    // principal
+    // Cierre de sesión: por tiempo o por tope
+    const pos=inSessionPos();
+    const tope = ($("perfil").value==="P3"?3: $("perfil").value==="P2"?2:1);
+    if(pos>=60 || session.count>=tope){
+      endSession("Fin de sesión.");
+    }
+  }
+
+  renderStats();
 }
 
-/* ===== UI hooks ===== */
+/* ======== PERSISTENCIA ======== */
+function persistLocal(){
+  try{
+    localStorage.setItem(PERSIST_KEY, JSON.stringify({
+      bets, pendings, signalsCount, session, usedWindows:[...usedWindows],
+      ui:{
+        perfil:$("perfil").value, aggr:$("aggr").value, autoSignal:isChecked("autoSignal"),
+        beep:isChecked("beepToggle"), auto1k:isChecked("auto1k"), autoSession:isChecked("autoSession"),
+        huntRosa:isChecked("huntRosa"), feed: $("feedId").value
+      }
+    }));
+  }catch(_){}
+}
+function restoreLocal(){
+  try{
+    const raw=localStorage.getItem(PERSIST_KEY); if(!raw) return;
+    const p=JSON.parse(raw);
+    if(Array.isArray(p.bets)) bets=p.bets;
+    if(Array.isArray(p.pendings)) pendings=p.pendings;
+    if(typeof p.signalsCount==="number") signalsCount=p.signalsCount;
+    if(p.session && typeof p.session.active==="boolean"){ Object.assign(session,p.session); }
+    if(p.usedWindows) usedWindows=new Set(p.usedWindows);
+    if(p.ui){
+      $("perfil").value = p.ui.perfil || "P3";
+      $("aggr").value   = p.ui.aggr   || "EQ";
+      $("autoSignal").checked = !!p.ui.autoSignal;
+      $("beepToggle").checked = !!p.ui.beep;
+      $("auto1k").checked     = !!p.ui.auto1k;
+      $("autoSession").checked= !!p.ui.autoSession;
+      $("huntRosa").checked   = !!p.ui.huntRosa;
+      $("feedId").value       = p.ui.feed || "gocho";
+    }
+  }catch(_){}
+}
+
+/* ======== UI ======== */
 $("connectBtn").addEventListener("click", connectFeed);
 $("disconnectBtn").addEventListener("click", ()=>disconnectFeed(false));
-setInterval(()=>{ $("clockNow").textContent=new Date().toLocaleTimeString(); }, 1000);
-renderStats(); renderSignals();
+
+setInterval(()=>{ $("clockNow").textContent=new Date().toLocaleTimeString(); persistLocal(); }, 1000);
+
+/* ======== BOOT ======== */
+(function(){
+  restoreLocal(); renderBets(); renderStats();
+})();
 </script>
 </body>
 </html>
