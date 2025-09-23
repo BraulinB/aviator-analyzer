@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Aviator Analyzer · Gocho v26.7 (smart-pacing v5, forms)</title>
+<title>Aviator Analyzer · Gocho v26.8 (smart-pacing v5, forms)</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5;
@@ -36,7 +36,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>✈️ Aviator Analyzer · <span style="color:#8ab4ff">Gocho v26.7</span>
+  <h1>✈️ Aviator Analyzer · <span style="color:#8ab4ff">Gocho v26.8</span>
     <span id="statusFeedback" class="muted" style="margin-left:8px">Conectado.</span>
     <span class="muted" style="margin-left:auto">🕒 <b id="clockNow" class="clock">--:--:--</b></span>
   </h1>
@@ -76,7 +76,7 @@
       <span class="muted">· Smart‑Pacing v5, anti‑eco, enfriamiento tras extremos.</span>
     </div>
     <div id="aggrExplain" class="muted" style="margin-top:6px">
-      Señales ≥1.70 en Smart‑Pacing (ventanas 1/3, 2/3, 3/3). Anti‑eco activado y “lecturas tempranas” corregidas.
+      Señales ≥1.70 en Smart‑Pacing. <b>Máx. 3 señales por sesión (60 rondas)</b> y permite <b>2 seguidas</b> si hay <b>zona hot + tendencia alcista</b>. Anti‑eco activado y “lecturas tempranas” corregidas.
     </div>
   </div>
 
@@ -276,37 +276,41 @@ function adaptiveGate(){
 function maybeSignal17(){
   if(!$("autoSignal").checked) return;
   const r= sessionRoundIn60();
-  const windowIdx = (r<=20)?1 : (r<=40?2:3);
+  const windowIdx = (r<=20)?1 : (r<=40?2:3); // solo para log
 
   // ===== contexto general =====
   const sep=sepEst(), heat=heatEst(), ma10=movingAverage(rounds,10)||0;
   const {ma10Min, requireGe170In8} = adaptiveGate();
 
-  // ===== micro-contexto (últimas N) =====
+  // ===== micro-contexto =====
   const L4 = lastN(4), L6 = lastN(6), L8=lastN(8);
   const ge170in8 = L8.filter(x=>x>=1.70).length;
   const low112in4 = L4.filter(x=>x<1.20).length;
-  const had100in2 = lastN(2).some(x=>near(x));
+  const had100in3 = lastN(3).some(x=>near(x));
   const afterExtreme = roundsSince(x=>x>=20, 8) <= 6 || roundsSince(x=>x>=50, 12) <= 8; // enfriamiento tras ≥20×/≥50×
-  const microSlope = (movingAverage(L4,4) - movingAverage(L8,8)); // negativo ⇒ enfriando
+  const microSlope = (movingAverage(L4,4) - movingAverage(L8,8)); // tendencia
 
-  // ===== cuota por ventana =====
-  const quotaByWindow = {1:1,2:1,3:1};
-  const firedInThisWindow = bets.filter(b=>b.win3Window===windowIdx && b.sessionStartIdx===sessionStartIdx).length;
-  const quotaOK = firedInThisWindow<quotaByWindow[windowIdx];
+  // ===== hot + uptrend =====
+  const hotUptrend = (heat>=3.8) && (microSlope>=0.05) && (ge170in8>=4) && (low112in4<=1) && !had100in3 && !afterExtreme;
 
-  // ===== forms inteligente =====
-  const sig = makeSignature();
-  const fRate = formsRate(sig);
-  const formsOK = (!$("formsToggle").checked) || (fRate===null) || (formsRate(sig)===null? true : formsRate(sig)>=0.52 || (formsStats[sig]&&formsStats[sig].tot<5));
+  // ===== política de señales por sesión =====
+  const signalsInSession = bets.filter(b=>b.sessionStartIdx===sessionStartIdx).length;
+  if(signalsInSession>=3) return; // máx. 3 por 60
+  const lastSig = [...bets].reverse().find(b=>b.sessionStartIdx===sessionStartIdx);
+  const lastGap = lastSig? (rounds.length - (lastSig.absRoundIdx||0)) : Infinity;
+  const minGap = hotUptrend? 2 : 6; // permite 2 seguidas si hot+uptrend
 
   // ===== reglas de entrada =====
-  const okContext = sep>=1.30 && heat>=2.8 && ma10>=ma10Min; // más exigente
-  const okMicro   = ge170in8>=requireGe170In8 && low112in4<=1 && !had100in2 && microSlope>=-0.10 && !afterExtreme;
+  const okContext = sep>=1.30 && heat>=2.8 && ma10>=ma10Min;
+  const okMicro   = ge170in8>=requireGe170In8 && low112in4<=1 && !had100in3 && microSlope>=-0.10 && !afterExtreme;
 
-  if(okContext && okMicro && quotaOK && formsOK){
-    const why = `ma10=${ma10.toFixed(2)}(min ${ma10Min.toFixed(2)}), sep=${sep.toFixed(2)}, heat=${heat.toFixed(2)}, ge170/8=${ge170in8}, low<1.20(4)=${low112in4}, slope4-8=${microSlope.toFixed(2)}, extreme=${afterExtreme?'sí':'no'}, forms[${sig}]=${fRate===null?'-':(fRate*100).toFixed(0)+'%'} `;
-    fireShot(1.70, "AUTO_1p7", windowIdx, why, false, sig);
+  const formsSig = makeSignature();
+  const fRate = formsRate(formsSig);
+  const formsOK = (!$("formsToggle").checked) || (fRate===null) || (formsStats[formsSig]&&formsStats[formsSig].tot<5) || fRate>=0.52;
+
+  if(okContext && okMicro && formsOK && lastGap>=minGap){
+    const why = `ma10=${ma10.toFixed(2)}(min ${ma10Min.toFixed(2)}), sep=${sep.toFixed(2)}, heat=${heat.toFixed(2)}, ge170/8=${ge170in8}, low<1.20(4)=${low112in4}, slope4-8=${microSlope.toFixed(2)}, hotUp=${hotUptrend?'sí':'no'}, gap=${lastGap}, forms[${formsSig}]=${fRate===null?'-':(fRate*100).toFixed(0)+'%'} `;
+    fireShot(1.70, "AUTO_1p7", windowIdx, why, false, formsSig);
   }
 }
 
@@ -330,11 +334,12 @@ function maybeHuntRosa(){
 function fireShot(target, tag, win3, explain=null, isRosa=false, ctxSig=null){
   const ts=now();
   const roundIn60 = sessionRoundIn60();
-  const rec = { id: "S"+ts, tag, target, tsEmit:ts, roundIn60, sessionStartIdx, state:"pend", crash:null, explain, ctxSig };
+  const rec = { id: "S"+ts, tag, target, tsEmit:ts, roundIn60, sessionStartIdx, state:"pend", crash:null, explain, ctxSig, absRoundIdx: rounds.length };
   if(win3) rec.win3Window=win3;
   bets.push(rec); signalsCount++; renderBets(); $("signals").textContent=signalsCount;
   if(isRosa) beepRosa(); else beep17();
-  log(`[${HHmmss(ts)}] Señal emitida${isRosa?" (ROSA)":""} (ventana ${win3||"-"}/${"3"}); objetivo ≥${target.toFixed(2)}.\n  ↳ ${explain||''}`);
+  log(`[${HHmmss(ts)}] Señal emitida${isRosa?" (ROSA)":""} (ventana ${win3||"-"}/${"3"}); objetivo ≥${target.toFixed(2)}.
+  ↳ ${explain||''}`);
 }
 
 /* =================== INGESTA / ANTI-ECO =================== */
