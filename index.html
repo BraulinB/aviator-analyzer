@@ -3,130 +3,92 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Portal • Gocho Dashboard</title>
+<title>Portal + Gocho Analyzer v26.6 • 3 señales óptimas / sesión</title>
 <style>
 :root{
   --bg:#0b0f14; --panel:#121821; --line:#1e2633; --text:#e7edf5; --muted:#8fa1b2;
   --cyan:#5ad7ff; --purple:#b79bff; --pink:#ff6aa9; --green:#42d392; --red:#ff6b6b; --amber:#ffc857;
   --chip-blue-bg:#0f2431; --chip-purple-bg:#1b1634; --chip-pink-bg:#2a0f1c;
 }
-*{box-sizing:border-box}
-html,body{height:100%}
+*{box-sizing:border-box} html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,Segoe UI,Roboto,Helvetica,Arial}
 .container{max-width:1400px;margin:16px auto;padding:0 14px}
-row{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
-
-/* Cards */
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
 .card h3{margin:0 0 6px;font-size:12px;letter-spacing:.4px;color:var(--muted);text-transform:uppercase}
-
-/* Top bar */
 .head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
 .brand{display:flex;align-items:center;gap:10px}
 .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 8px rgba(66,211,146,.6)}
 .brand h1{font-size:16px;margin:0}
 .badge{padding:3px 8px;border:1px solid var(--line);border-radius:999px;background:#0c121a;color:var(--muted);font-weight:700}
-
-/* KPI tiles */
-.kpi{display:flex;justify-content:space-between;align-items:center}
-.kpi .big{font-size:20px;font-weight:800}
-.kpi .sub{color:var(--muted);font-size:12px}
-
-/* Chips */
+.controls{display:flex;gap:8px;align-items:center}
+input[type=text],select{background:#0c1219;border:1px solid var(--line);color:var(--text);padding:7px 10px;border-radius:10px}
+button{background:#102034;border:1px solid var(--line);color:#d7ecff;border-radius:10px;padding:7px 10px;cursor:pointer}
+button.red{background:#2b1416;border-color:#4a2226;color:#ffd7dc}
+.switch{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px}
+.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.metric{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
+.metric .cap{color:var(--muted);font-size:12px}
+.metric .num{font-weight:900;font-size:18px;margin-top:6px}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{padding:6px 8px;border-radius:10px;font-weight:800;font-size:12px}
 .chip.blue{color:#9ee1ff;background:var(--chip-blue-bg)}
 .chip.purple{color:#d7c7ff;background:var(--chip-purple-bg)}
 .chip.pink{color:#ffc2da;background:var(--chip-pink-bg)}
-
-/* Graphs */
-.canvas-wrap{position:relative;height:280px}
-canvas{width:100%;height:100%}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+.col-3{grid-column:span 3}.col-4{grid-column:span 4}.col-5{grid-column:span 5}
+.col-6{grid-column:span 6}.col-8{grid-column:span 8}.col-9{grid-column:span 9}.col-12{grid-column:span 12}
+@media(max-width:1100px){ .col-3,.col-4,.col-5,.col-6,.col-8,.col-9{grid-column:span 12} }
+.canvas-wrap{position:relative;height:260px} canvas{width:100%;height:100%}
 .legend{display:flex;gap:14px;color:var(--muted);font-size:12px}
 .leg-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
-
-/* Warning banner */
 .banner{display:flex;gap:12px;align-items:center;border-radius:12px;padding:12px;border:1px solid var(--line)}
 .banner.dn{background:#1a1113;color:#ffdbe4;border-color:#3a1a22}
 .banner.up{background:#0f1914;color:#d1ffe8;border-color:#1a3a2b}
-.banner .title{font-weight:800;letter-spacing:.4px}
-
-/* Big crash */
 .bigcrash{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center}
 .bigcrash .small{color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
 .bigcrash .value{font-size:48px;font-weight:900;letter-spacing:.5px}
-
-/* Grid layout */
-.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
-.col-3{grid-column:span 3}
-.col-4{grid-column:span 4}
-.col-5{grid-column:span 5}
-.col-6{grid-column:span 6}
-.col-8{grid-column:span 8}
-.col-9{grid-column:span 9}
-.col-12{grid-column:span 12}
-@media(max-width:1100px){
-  .col-3,.col-4,.col-5,.col-6,.col-8,.col-9{grid-column:span 12}
-  .canvas-wrap{height:230px}
-}
-
-/* Top metrics bar */
-.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
-.metric{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
-.metric .cap{color:var(--muted);font-size:12px}
-.metric .num{font-weight:900;font-size:18px;margin-top:6px}
-.sep{height:1px;background:var(--line);margin:8px 0}
+.table{width:100%;border-collapse:separate;border-spacing:0 6px}
+.table th{color:var(--muted);font-size:12px;text-align:left;padding:6px}
+.table td{padding:10px;background:#0c1218;border:1px solid var(--line)}
+.table tr td:first-child{border-radius:8px 0 0 8px}.table tr td:last-child{border-radius:0 8px 8px 0}
+.tag{padding:2px 8px;border-radius:999px;font-weight:800;font-size:12px;border:1px solid var(--line)}
+.tag.auto{background:#0f1f2b;color:#9dd8ff}.tag.rosa{background:#2a0f1c;color:#ffb3cf}
+.state.win{color:#c9ffd8}.state.lose{color:#ffb3b3}.state.pend{color:#ffe0a6}
 .small{color:var(--muted)}
-
-/* feed controls */
-.controls{display:flex;gap:8px;align-items:center}
-input[type=text]{background:#0c1219;border:1px solid var(--line);color:var(--text);padding:7px 10px;border-radius:10px}
-button{background:#102034;border:1px solid var(--line);color:#d7ecff;border-radius:10px;padding:7px 10px;cursor:pointer}
-button.red{background:#2b1416;border-color:#4a2226;color:#ffd7dc}
-.switch{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px}
 .footer{margin-top:10px;color:var(--muted);font-size:12px}
 </style>
 </head>
 <body>
 <div class="container">
+
+  <!-- CABECERA -->
   <div class="head">
-    <div class="brand"><span class="dot"></span><h1>Portal • Gocho</h1><span class="badge" id="clock"></span></div>
+    <div class="brand"><span class="dot"></span><h1>Portal + Gocho Analyzer</h1><span class="badge" id="clock"></span></div>
     <div class="controls" style="margin-left:auto">
-      <input id="feed" type="text" value="gocho" title="Nombre del canal BroadcastChannel"/>
+      <input id="feed" type="text" value="gocho" title="BroadcastChannel feed"/>
       <button id="btnConnect">Conectar</button>
       <button id="btnDisconnect" class="red">Desconectar</button>
       <label class="switch"><input id="swBeep" type="checkbox">Beep</label>
+      <label class="switch"><input id="swAutoSession" type="checkbox" checked>Auto-sesión</label>
     </div>
   </div>
 
+  <!-- MÉTRICAS SUPERIORES -->
   <div class="metrics">
-    <div class="metric">
-      <div class="cap">JUGADORES</div>
-      <div class="num" id="mPlayers">—</div>
-    </div>
-    <div class="metric">
-      <div class="cap">APUESTAS</div>
-      <div class="num" id="mBets">0</div>
-    </div>
-    <div class="metric">
-      <div class="cap">TOTAL APOSTADO</div>
-      <div class="num" id="mBetSum">$0</div>
-    </div>
-    <div class="metric">
-      <div class="cap">TOTAL CASHOUT</div>
-      <div class="num" id="mCashout">$0</div>
-    </div>
-    <div class="metric">
-      <div class="cap">GANANCIA CASINO</div>
-      <div class="num" id="mGain">$0</div>
-    </div>
+    <div class="metric"><div class="cap">JUGADORES</div><div class="num" id="mPlayers">—</div></div>
+    <div class="metric"><div class="cap">APUESTAS</div><div class="num" id="mBets">0</div></div>
+    <div class="metric"><div class="cap">TOTAL APOSTADO</div><div class="num" id="mBetSum">$0</div></div>
+    <div class="metric"><div class="cap">TOTAL CASHOUT</div><div class="num" id="mCashout">$0</div></div>
+    <div class="metric"><div class="cap">GANANCIA CASINO</div><div class="num" id="mGain">$0</div></div>
   </div>
 
+  <!-- HISTORIAL DE RONDAS -->
   <div class="card" style="margin-top:12px">
-    <h3>Historial de rondas</h3>
+    <h3>Historial de rondas (colores: Azul &lt; 2.00 · Morado 2.00–9.99 · Rosa ≥ 10)</h3>
     <div id="chips" class="chips"></div>
   </div>
 
+  <!-- TENDENCIA + RIESGO -->
   <div class="grid" style="margin-top:12px">
     <div class="card col-8">
       <h3>Tendencia (últimas 60) &nbsp; <span id="trendMeta" class="small"></span></h3>
@@ -137,24 +99,23 @@ button.red{background:#2b1416;border-color:#4a2226;color:#ffd7dc}
         <span><span class="leg-dot" style="background:var(--pink)"></span>Regresión</span>
       </div>
     </div>
-
     <div class="card col-4">
       <div id="riskBanner" class="banner dn">
         <div class="title">Por su seguridad, evite apostar</div>
         <div class="small">Tendencia bajista</div>
       </div>
-      <div class="hr"></div>
-      <div class="bigcrash">
+      <div class="bigcrash" style="margin-top:12px">
         <div class="small">¡Se fue volando!</div>
         <div class="value" id="lastCrash">—</div>
       </div>
     </div>
   </div>
 
+  <!-- DISTRIBUCIÓN + PANEL ANALIZADOR -->
   <div class="grid" style="margin-top:12px">
     <div class="card col-6">
       <h3>Distribución por rangos</h3>
-      <div class="canvas-wrap" style="height:260px"><canvas id="donut"></canvas></div>
+      <div class="canvas-wrap" style="height:240px"><canvas id="donut"></canvas></div>
       <div class="legend" style="margin-top:8px">
         <span><span class="leg-dot" style="background:#2f9be1"></span>1.00–1.50</span>
         <span><span class="leg-dot" style="background:#5ec2ff"></span>1.51–2.00</span>
@@ -165,209 +126,235 @@ button.red{background:#2b1416;border-color:#4a2226;color:#ffd7dc}
     </div>
 
     <div class="card col-6">
-      <h3>Reseña</h3>
-      <div id="log" class="card" style="height:260px;overflow:auto;background:#0c1218"></div>
-      <div class="footer">Feeds: BroadcastChannel("<b>gocho</b>") · <code>window.postMessage({aviatorRound:1.26}, "*")</code> · <code>localStorage["gocho:round"]=1.26</code></div>
+      <h3>Gocho Analyzer • Señales (3 óptimas por sesión de 60) <span class="small">| objetivo ≥1.70</span></h3>
+      <div class="controls" style="margin-bottom:8px">
+        <label class="switch"><input id="swAutoSignal" type="checkbox" checked>Auto-señal</label>
+        <label class="switch"><input id="swHuntRosa" type="checkbox" checked>Caza Rosa (≥10x, máx. 1/ sesión)</label>
+        <span class="badge" id="sessionBadge">Sesión 1 • ronda 0/60 • señales 0/3</span>
+      </div>
+      <table class="table" id="signalsTbl">
+        <thead>
+          <tr>
+            <th>#</th><th>Sesión</th><th>Ronda</th><th>Tag</th><th>Objetivo</th><th>Hora</th><th>Crash</th><th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="signalsBody"></tbody>
+      </table>
     </div>
   </div>
+
+  <div class="card" style="margin-top:12px">
+    <h3>Reseña</h3>
+    <div id="log" style="height:220px;overflow:auto;background:#0c1218;border-radius:8px;padding:10px;border:1px solid var(--line)"></div>
+    <div class="footer">
+      Feeds: BroadcastChannel("<b>gocho</b>") ·
+      <code>window.postMessage({aviatorRound:1.26}, "*")</code> ·
+      <code>localStorage["gocho:round"]=1.26</code>.
+      Métricas opcionales: <code>postMessage({players,totalBet,totalCashout,casinoGain})</code>
+    </div>
+  </div>
+
 </div>
 
 <script>
-/*** ---------- Estado + util ---------- ***/
-const $ = s=>document.querySelector(s);
-const chipsEl = $("#chips"), logEl=$("#log");
-const fmtUSD = n => (n==null?'$0': '$'+ n.toLocaleString('en-US'));
-const now = ()=> new Date().toLocaleTimeString();
-function log(t, cls=''){ const d=document.createElement('div'); d.textContent='['+now()+'] '+t; if(cls) d.style.color=cls; logEl.appendChild(d); logEl.scrollTop=logEl.scrollHeight; }
-function beep(){ if(!swBeep.checked) return; const ctx=new (window.AudioContext||window.webkitAudioContext)(); const o=ctx.createOscillator(), g=ctx.createGain(); o.type='sine',o.frequency.value=880; g.gain.value=0.03; o.connect(g).connect(ctx.destination); o.start(); setTimeout(()=>o.stop(),120); }
+/*** ====== Util & sonido ====== ***/
+const $=s=>document.querySelector(s);
+const chipsEl=$("#chips"), logEl=$("#log");
+const fmtUSD=n=>'$'+(n||0).toLocaleString('en-US');
+const now=()=>new Date().toLocaleTimeString();
+function log(t,c){const d=document.createElement('div');d.textContent='['+now()+'] '+t;if(c)d.style.color=c;logEl.appendChild(d);logEl.scrollTop=logEl.scrollHeight;}
+function tone(freq=880,ms=120,vol=.03){ if(!$("#swBeep").checked) return; const a=new (window.AudioContext||window.webkitAudioContext)(); const o=a.createOscillator(), g=a.createGain(); o.type='sine'; o.frequency.value=freq; g.gain.value=vol; o.connect(g).connect(a.destination); o.start(); setTimeout(()=>o.stop(),ms); }
 
-/*** ---------- Rondas ---------- ***/
+/*** ====== Conexión de feed ====== ***/
 let feed='gocho', bc=null, last=0, lastAt=0;
-let rounds=[], // más reciente primero
-    betsCount=0;
-
+let rounds=[]; // más reciente primero
 let players=null, betSum=0, cashout=0, gain=0;
+$("#btnConnect").onclick=start; $("#btnDisconnect").onclick=stop;
+function start(){ stop(); feed=$("#feed").value.trim()||'gocho';
+  try{ bc=new BroadcastChannel(feed); bc.onmessage=e=>ingest(e.data); log('Conectado a feed "'+feed+'"','#9cffc2'); }catch(e){ log('BroadcastChannel no disponible: '+e.message,'#ffc857'); }
+  window.addEventListener('message', onMsg); window.addEventListener('storage', onStorage);
+}
+function stop(){ try{bc&&bc.close()}catch{} bc=null; window.removeEventListener('message',onMsg); window.removeEventListener('storage',onStorage); log('Desconectado.','#ffb3b3'); }
+function onMsg(e){ const d=e.data||{}; if(d.aviatorRound!=null) ingest(d.aviatorRound);
+  if(d.players!=null){players=d.players; $("#mPlayers").textContent=players;}
+  if(d.totalBet!=null){betSum=+d.totalBet; $("#mBetSum").textContent=fmtUSD(betSum);}
+  if(d.totalCashout!=null){cashout=+d.totalCashout; $("#mCashout").textContent=fmtUSD(cashout);}
+  if(d.casinoGain!=null){gain=+d.casinoGain; $("#mGain").textContent=fmtUSD(gain);}
+}
+function onStorage(e){ if(e.key===feed+':round'||e.key==='gocho:round'){ ingest(parseFloat(e.newValue)); } }
+window.gochoPush=(x)=>ingest(Number(x));
 
-function start(){
-  stop();
-  feed=$("#feed").value.trim()||'gocho';
-  try{
-    bc=new BroadcastChannel(feed);
-    bc.onmessage = ev => accept(ev.data);
-    log('Conectado a feed "'+feed+'" por BroadcastChannel','#9cffc2');
-  }catch(e){ log('BroadcastChannel no disponible: '+e.message, '#ffc857'); }
-  // fallback postMessage
-  window.addEventListener('message', onMsg);
-  window.addEventListener('storage', onStorage);
-}
-function stop(){
-  try{ if(bc) bc.close(); }catch(e){}
-  bc=null;
-  window.removeEventListener('message', onMsg);
-  window.removeEventListener('storage', onStorage);
-  log('Desconectado.','#ffb3b3');
-}
-function onMsg(ev){
-  const d=ev.data||{};
-  if(d.aviatorRound!=null) accept(d.aviatorRound);
-  if(d.players!=null){ players=d.players; $("#mPlayers").textContent=players; }
-  if(d.totalBet!=null){ betSum=+d.totalBet; $("#mBetSum").textContent=fmtUSD(betSum); }
-  if(d.totalCashout!=null){ cashout=+d.totalCashout; $("#mCashout").textContent=fmtUSD(cashout); }
-  if(d.casinoGain!=null){ gain=+d.casinoGain; $("#mGain").textContent=fmtUSD(gain); }
-}
-function onStorage(ev){
-  if(ev.key===feed+':round' || ev.key==='gocho:round'){
-    accept(parseFloat(ev.newValue));
-  }
-}
-window.gochoPush = (x)=>accept(Number(x));
-
-function accept(vRaw){
-  let v=parseFloat(vRaw); if(!isFinite(v)||v<=0) return;
-  const t=performance.now();
-  if(v===last && (t-lastAt)<2500) return; // antiduplicado
-  last=v; lastAt=t;
-
-  rounds.unshift(v); if(rounds.length>120) rounds.pop();
-  betsCount++; $("#mBets").textContent=betsCount.toLocaleString('es-ES');
-  $("#lastCrash").textContent=v.toFixed(2)+'x';
-  renderChips(); renderTrend(); renderDonut(); updateBanner(); beep();
-}
-
+/*** ====== Analítica de portal ====== ***/
 function renderChips(){
   chipsEl.innerHTML='';
-  const take = rounds.slice(0,60);
-  for(const x of take){
-    const c=document.createElement('span'); c.className='chip';
-    if(x<2) c.classList.add('blue'); else if(x<10) c.classList.add('purple'); else c.classList.add('pink');
-    c.textContent=x.toFixed(2)+'x'; chipsEl.appendChild(c);
+  for(const x of rounds.slice(0,60)){
+    const s=document.createElement('span'); s.className='chip';
+    if(x<2) s.classList.add('blue'); else if(x<10) s.classList.add('purple'); else s.classList.add('pink');
+    s.textContent=x.toFixed(2)+'x'; chipsEl.appendChild(s);
   }
 }
-
-/*** ---------- Gráfico tendencia ---------- ***/
-const tcv = $("#trend"), tctx = tcv.getContext('2d');
-const dcv = $("#donut"), dctx = dcv.getContext('2d');
+const tcv=$("#trend"), tctx=tcv.getContext('2d');
+const dcv=$("#donut"), dctx=dcv.getContext('2d');
 function clear(ctx){ ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height); }
+function movingAvg(arr,win){ const out=[]; let s=0; for(let i=0;i<arr.length;i++){ s+=arr[i]; if(i>=win) s-=arr[i-win]; if(i>=win-1) out.push(s/win);} return out;}
+function linReg(arr){ const n=arr.length; if(!n) return {m:0,b:0}; let sx=0,sy=0,sxy=0,sxx=0; for(let i=0;i<n;i++){sx+=i;sy+=arr[i];sxy+=i*arr[i];sxx+=i*i} const m=(n*sxy - sx*sy)/(n*sxx - sx*sx || 1); const b=(sy - m*sx)/n; return {m,b}; }
 function renderTrend(){
-  const w=tcv.width = tcv.clientWidth * devicePixelRatio;
-  const h=tcv.height= tcv.clientHeight* devicePixelRatio;
-  clear(tctx); tctx.lineWidth=2*devicePixelRatio;
-
-  const data = rounds.slice(0,60).reverse(); // izq→der
-  if(!data.length) return;
-
-  const max = Math.max(10, ...data), min = Math.min(1, ...data);
-  const pad=10*devicePixelRatio;
-  const X=i=> pad + (w-2*pad) * (i/(data.length-1||1));
-  const Y=v=> h-pad - (h-2*pad) * ((v-min)/(max-min||1));
-
-  // Puntos
-  tctx.strokeStyle = getCSS('--line'); tctx.beginPath();
-  tctx.moveTo(X(0),Y(data[0]));
-  for(let i=1;i<data.length;i++) tctx.lineTo(X(i),Y(data[i]));
-  tctx.stroke();
-
-  // scatter cyan
-  tctx.fillStyle='#5ad7ff';
-  for(let i=0;i<data.length;i++){
-    tctx.beginPath(); tctx.arc(X(i),Y(data[i]), 2.5*devicePixelRatio,0,Math.PI*2); tctx.fill();
-  }
-
-  // MA20 (ámbar)
-  const ma20 = movingAvg(data,20);
-  tctx.strokeStyle='#ffc857'; tctx.beginPath();
-  for(let i=0;i<ma20.length;i++){
-    const xi = i+(data.length-ma20.length);
-    if(i===0) tctx.moveTo(X(xi),Y(ma20[i])); else tctx.lineTo(X(xi),Y(ma20[i]));
-  }
-  tctx.stroke();
-
-  // Regresión lineal
-  const {m,b} = linReg(data);
-  const y0 = m*0 + b, yN = m*(data.length-1)+b;
-  tctx.strokeStyle='#ff6aa9';
-  tctx.beginPath(); tctx.moveTo(X(0),Y(y0)); tctx.lineTo(X(data.length-1),Y(yN)); tctx.stroke();
-
-  $("#trendMeta").textContent = `MA20: ${ (ma20.at(-1)||0).toFixed(2)}x · pendiente: ${m.toFixed(3)}`;
+  const w=tcv.width=tcv.clientWidth*devicePixelRatio,h=tcv.height=tcv.clientHeight*devicePixelRatio; clear(tctx); tctx.lineWidth=2*devicePixelRatio;
+  const data=rounds.slice(0,60).reverse(); if(!data.length) return;
+  const max=Math.max(10,...data), min=Math.min(1,...data), pad=10*devicePixelRatio;
+  const X=i=>pad+(w-2*pad)*(i/(data.length-1||1)), Y=v=>h-pad-(h-2*pad)*((v-min)/(max-min||1));
+  tctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--line'); tctx.beginPath(); tctx.moveTo(X(0),Y(data[0])); for(let i=1;i<data.length;i++) tctx.lineTo(X(i),Y(data[i])); tctx.stroke();
+  tctx.fillStyle='#5ad7ff'; for(let i=0;i<data.length;i++){ tctx.beginPath(); tctx.arc(X(i),Y(data[i]),2.5*devicePixelRatio,0,Math.PI*2); tctx.fill(); }
+  const ma20=movingAvg(data,20); tctx.strokeStyle='#ffc857'; tctx.beginPath(); for(let i=0;i<ma20.length;i++){ const xi=i+(data.length-ma20.length); if(i===0)tctx.moveTo(X(xi),Y(ma20[i])); else tctx.lineTo(X(xi),Y(ma20[i])); } tctx.stroke();
+  const {m,b}=linReg(data); const y0=m*0+b, yN=m*(data.length-1)+b; tctx.strokeStyle='#ff6aa9'; tctx.beginPath(); tctx.moveTo(X(0),Y(y0)); tctx.lineTo(X(data.length-1),Y(yN)); tctx.stroke();
+  $("#trendMeta").textContent=`MA20 ${(ma20.at(-1)||0).toFixed(2)}x · pendiente ${m.toFixed(3)}`;
 }
-function movingAvg(arr,win){
-  const out=[]; let s=0;
-  for(let i=0;i<arr.length;i++){
-    s += arr[i]; if(i>=win) s -= arr[i-win];
-    if(i>=win-1) out.push(s/win);
-  }
-  return out;
-}
-function linReg(arr){
-  const n=arr.length; if(!n) return {m:0,b:0};
-  let sx=0, sy=0, sxy=0, sxx=0;
-  for(let i=0;i<n;i++){ sx+=i; sy+=arr[i]; sxy+=i*arr[i]; sxx+=i*i; }
-  const m = (n*sxy - sx*sy) / (n*sxx - sx*sx || 1);
-  const b = (sy - m*sx)/n;
-  return {m,b};
-}
-function getCSS(name){ return getComputedStyle(document.documentElement).getPropertyValue(name); }
-
-/*** ---------- Donut ---------- ***/
 function renderDonut(){
-  const w=dcv.width = dcv.clientWidth*devicePixelRatio;
-  const h=dcv.height= dcv.clientHeight*devicePixelRatio;
-  clear(dctx);
-  const data = rounds.slice(0,200);
-  const buckets = [
-    data.filter(x=>x>=1.00&&x<=1.50).length,
-    data.filter(x=>x>1.50&&x<=2.00).length,
-    data.filter(x=>x>2.00&&x<=3.00).length,
-    data.filter(x=>x>3.00&&x<10.00).length,
-    data.filter(x=>x>=10.00).length,
-  ];
-  const colors = ['#2f9be1','#5ec2ff','#a48bff','#d7c1ff','#ff87bc'];
-  const total = buckets.reduce((a,b)=>a+b,0)||1;
-  const cx=w/2, cy=h/2, R=Math.min(w,h)*0.42, r=R*0.62;
-  let a0=-Math.PI/2;
-  buckets.forEach((v,i)=>{
-    const a1 = a0 + 2*Math.PI*(v/total);
-    dctx.fillStyle = colors[i];
-    dctx.beginPath();
-    dctx.moveTo(cx,cy);
-    dctx.arc(cx,cy, R, a0, a1);
-    dctx.closePath(); dctx.fill();
-    a0=a1;
-  });
-  // agujero
-  dctx.globalCompositeOperation='destination-out';
-  dctx.beginPath(); dctx.arc(cx,cy,r,0,2*Math.PI); dctx.fill();
-  dctx.globalCompositeOperation='source-over';
-  // texto
-  dctx.fillStyle='#8fa1b2'; dctx.font=(14*devicePixelRatio)+'px system-ui';
-  dctx.textAlign='center';
-  dctx.fillText('muestras: '+total, cx, cy+6*devicePixelRatio);
+  const w=dcv.width=dcv.clientWidth*devicePixelRatio,h=dcv.height=dcv.clientHeight*devicePixelRatio; clear(dctx);
+  const data=rounds.slice(0,200); const b=[ data.filter(x=>x>=1&&x<=1.5).length, data.filter(x=>x>1.5&&x<=2).length, data.filter(x=>x>2&&x<=3).length, data.filter(x=>x>3&&x<10).length, data.filter(x=>x>=10).length ];
+  const col=['#2f9be1','#5ec2ff','#a48bff','#d7c1ff','#ff87bc']; const tot=b.reduce((a,c)=>a+c,0)||1;
+  const cx=w/2,cy=h/2,R=Math.min(w,h)*0.42,r=R*0.62; let a0=-Math.PI/2; for(let i=0;i<b.length;i++){ const a1=a0+2*Math.PI*(b[i]/tot); dctx.fillStyle=col[i]; dctx.beginPath(); dctx.moveTo(cx,cy); dctx.arc(cx,cy,R,a0,a1); dctx.closePath(); dctx.fill(); a0=a1;}
+  dctx.globalCompositeOperation='destination-out'; dctx.beginPath(); dctx.arc(cx,cy,r,0,2*Math.PI); dctx.fill(); dctx.globalCompositeOperation='source-over';
+}
+function updateBanner(){ const data=rounds.slice(0,60).reverse(); const {m}=linReg(data); const ma20=movingAvg(data,20).at(-1)||0; const b=$("#riskBanner");
+  if(m<-0.02 && ma20<1.60){ b.className='banner dn'; b.querySelector('.small').textContent='Tendencia bajista'; }
+  else if(m>0.02 && ma20>=1.80){ b.className='banner up'; b.querySelector('.small').textContent='Tendencia alcista'; }
+  else{ b.className='banner'; b.querySelector('.small').textContent='Tendencia neutra'; }
 }
 
-/*** ---------- Banner riesgo ---------- ***/
-function updateBanner(){
-  const take = rounds.slice(0,60).reverse();
-  const {m} = linReg(take);
-  const ma20 = movingAvg(take,20).at(-1)||0;
-  const banner=$("#riskBanner");
-  if(m<-0.02 && ma20<1.60){ // bajista
-    banner.className='banner dn';
-    banner.querySelector('.small').textContent='Tendencia bajista';
-  }else if(m>0.02 && ma20>=1.80){
-    banner.className='banner up';
-    banner.querySelector('.small').textContent='Tendencia alcista';
-  }else{
-    banner.className='banner';
-    banner.querySelector('.small').textContent='Tendencia neutra';
+/*** ====== ANÁLISIS + SEÑALES (Gocho) ====== ***/
+const session={id:1,round:0,signals:0,maxSignals:3,rosaUsed:false};
+const signals=[]; // historial
+let pending=null; // {tag:'AUTO_1p7'|'ROSA_10x', target, sess, roundEmit}
+const tblBody=$("#signalsBody");
+function refreshSessionBadge(){ $("#sessionBadge").textContent(`Sesión ${session.id} • ronda ${session.round}/60 • señales ${session.signals}/3`); }
+function pushSignal(tag,target,state='pend',crash='—'){
+  const row={id:signals.length+1,sess:session.id,round:session.round,tag,target,time:now(),crash,state};
+  signals.push(row); renderSignalRow(row);
+}
+function renderSignalRow(r){
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td>${r.id}</td><td>${r.sess}</td><td>${r.round}</td>
+  <td><span class="tag ${r.tag==='ROSA_10x'?'rosa':'auto'}">${r.tag}</span></td>
+  <td>${r.target.toFixed(2)}x</td><td>${r.time}</td><td>${(r.crash==='—'?r.crash:Number(r.crash).toFixed?Number(r.crash).toFixed(2)+'x':r.crash)}</td>
+  <td class="state ${r.state}">${r.state}</td>`;
+  tblBody.prepend(tr);
+}
+
+function scoreHeat(){
+  // Señal cuando el contexto está "hot": más 2x recientes, momentum positivo y sin trampa 1.00–1.15.
+  const arr=rounds.slice(0,25); if(arr.length<12) return {s:0,meta:''};
+  const ma10 = arr.slice(0,10).reduce((a,b)=>a+b,0)/10;
+  const p2   = arr.filter(x=>x>=2).length / arr.length;
+  const blues17 = arr.filter(x=>x<1.70).length / arr.length;
+  const old = arr.slice(12).reduce((a,b)=>a+b,0)/(arr.length-12||1);
+  const recent = arr.slice(0,12).reduce((a,b)=>a+b,0)/(12);
+  const momentum = recent-old; // >0 alcista
+  const lowTrap = arr.slice(0,3).some(x=>x>=1 && x<=1.15) ? 1 : 0;
+  let s = 0.50*norm(ma10,1.2,3.4) + 0.30*norm(p2,0,0.70) + 0.25*norm(momentum,-0.6,0.8) - 0.40*lowTrap - 0.20*norm(blues17,0.2,0.7);
+  s=Math.max(0,Math.min(1.2,s));
+  const meta=`ma10:${ma10.toFixed(2)} p2:${(p2*100|0)}% mom:${momentum.toFixed(2)} trap:${lowTrap}`;
+  return {s,meta};
+}
+function norm(x,a,b){ return (x-a)/(b-a||1); }
+
+function mayEmitAuto(){
+  if(!$("#swAutoSignal").checked) return false;
+  if(session.signals>=session.maxSignals) return false;
+  // Cooldown por racha de 2 pérdidas seguidas
+  const last2 = signals.slice(0,2);
+  if(last2.length===2 && last2[0].state==='lose' && last2[1].state==='lose') return false;
+
+  // Puede dar 2 seguidas si heat alto.
+  const {s,meta} = scoreHeat();
+  const heat = s;
+  // ventanas blandas para distribuir 3 señales: preferimos 1 en 1–20, 1 en 21–40, 1 en 41–60
+  const slot = (session.signals===0? [1,22] : session.signals===1? [18,42] : [36,60]);
+  const inSlot = session.round>=slot[0] && session.round<=slot[1];
+  const allowBurst = heat>=0.92; // puede ser casi consecutiva
+  if( (inSlot && heat>=0.72) || allowBurst ){
+    const target = 1.70;
+    pending={tag:'AUTO_1p7',target,sess:session.id,roundEmit:session.round+1};
+    session.signals++; pushSignal('AUTO_1p7',target,'pend','—');
+    log(`Señal AUTO ≥1.70 emitida (entra T+1). heat:${heat.toFixed(2)} ${meta}`,'#bfe6ff');
+    tone(940,140,.035);
+    return true;
   }
+  return false;
 }
 
-/*** ---------- UI y reloj ---------- ***/
-const swBeep=$("#swBeep");
-$("#btnConnect").onclick=start;
-$("#btnDisconnect").onclick=stop;
+function mayEmitRosa(){
+  if(!$("#swHuntRosa").checked || session.rosaUsed) return false;
+  const look=rounds.slice(0,90);
+  if(look.length<40) return false;
+  const lastRoseAt = look.findIndex(x=>x>=10);
+  const roseGap = (lastRoseAt<0? 99 : lastRoseAt); // distancia desde la más reciente
+  const ma10 = look.slice(0,10).reduce((a,b)=>a+b,0)/10;
+  const p2   = look.slice(0,30).filter(x=>x>=2).length/30;
+  const momentum = (look.slice(0,12).reduce((a,b)=>a+b,0)/12) - (look.slice(12,30).reduce((a,b)=>a+b,0)/18);
+  const heat = 0.45*norm(ma10,1.4,3.6) + 0.35*norm(p2,0.1,0.7) + 0.25*norm(momentum,-0.6,0.9) + 0.10*norm(roseGap,18,80);
+  if(heat>=0.95 && session.signals<=2){ // sólo si hay “espacio mental”
+    pending={tag:'ROSA_10x',target:10.0,sess:session.id,roundEmit:session.round+1, why:`ma10:${ma10.toFixed(2)} p2:${(p2*100|0)}% mom:${momentum.toFixed(2)} gap:${roseGap}`};
+    session.rosaUsed=true;
+    pushSignal('ROSA_10x',10,'pend','—');
+    log(`Caza ROSA (≥10x) armada para T+1 | ${pending.why}`,'#ffb3cf');
+    tone(520,140,.045); setTimeout(()=>tone(820,160,.04),160);
+    return true;
+  }
+  return false;
+}
+
+/*** ====== Ingesta de rondas ====== ***/
+function ingest(vRaw){
+  let v=parseFloat(vRaw); if(!isFinite(v)||v<=0) return;
+  const t=performance.now(); if(v===last && (t-lastAt)<2500) return; // anti-duplicado
+  last=v; lastAt=t;
+
+  // actualizar listas
+  rounds.unshift(v); if(rounds.length>200) rounds.pop();
+  $("#lastCrash").textContent=v.toFixed(2)+'x';
+  $("#mBets").textContent=(+$("#mBets").textContent.replace(/\D/g,'')+1).toLocaleString('es-ES');
+
+  // Sesión / evaluación de pendiente
+  session.round++; if(session.round>60){ // auto-sesión
+    if($("#swAutoSession").checked){ session.id++; session.round=1; session.signals=0; session.rosaUsed=false; log(`Empieza sesión ${session.id} • objetivo ≥1.70 • tope 3/60`,'#a7ffcf'); }
+    else { session.round=60; }
+  }
+  refreshSessionBadge();
+
+  // 1) si había señal pendiente, se evalúa con este crash
+  if(pending && pending.sess===session.id && pending.roundEmit===session.round){
+    const ok = v >= pending.target;
+    const state = ok?'win':'lose';
+    // actualiza última fila pendiente
+    const idx = signals.findIndex(s=>s.sess===pending.sess && s.round===pending.roundEmit && s.state==='pend');
+    if(idx>-1){ signals[idx].state=state; signals[idx].crash=v; renderTableFull(); }
+    log(`Resultado ${state.toUpperCase()} con crash ${v.toFixed(2)}x (objetivo ${pending.target.toFixed(2)}x)`, ok?'#9fffcf':'#ffb6b6');
+    if(pending.tag==='ROSA_10x'){
+      const wonTxt = ok?'ROSA GANADA.':'ROSA PERDIDA.';
+      log(`${wonTxt} Explicación: ${pending.why}`, ok?'#ffc7e5':'#ffd1dc');
+    }
+    pending=null;
+  }
+
+  // 2) Pintar portal
+  renderChips(); renderTrend(); renderDonut(); updateBanner();
+
+  // 3) Decidir nuevas señales (3 por sesión; permite 2 seguidas con heat alto)
+  mayEmitRosa();
+  mayEmitAuto();
+}
+
+function renderTableFull(){
+  tblBody.innerHTML=''; signals.slice(-80).forEach(renderSignalRow); // últimos 80
+}
+
+/*** ====== Reloj ====== ***/
 setInterval(()=>$("#clock").textContent=new Date().toLocaleTimeString(),1000);
+
+/*** ====== Init ====== ***/
 log('Listo. Esperando rondas…','#9ab');
+refreshSessionBadge();
 </script>
 </body>
 </html>
