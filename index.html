@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Gocho v26.6b • 3 señales óptimas / sesión (conexión robusta)</title>
+<title>Gocho v27.0 PRO • Señales Multi-Objetivo (IA Avanzada)</title>
 <style>
 :root{--bg:#0b0f14;--panel:#121821;--line:#1e2633;--text:#e7edf5;--mut:#8fa1b2;
 --cyan:#5ad7ff;--pink:#ff6aa9;--amber:#ffc857;--green:#42d392;--red:#ff6b6b;
@@ -30,26 +30,54 @@ button{cursor:pointer}button.red{background:#2b1416;color:#ffd7dc;border-color:#
 .table tr td:first-child{border-radius:8px 0 0 8px}.table tr td:last-child{border-radius:0 8px 8px 0}
 .tag{padding:2px 8px;border-radius:999px;border:1px solid var(--line);font-weight:800;font-size:12px}
 .tag.auto{background:#0f1f2b;color:#9dd8ff}.tag.rosa{background:#2a0f1c;color:#ffb3cf}
+.tag.triple{background:#1f2f0f;color:#c8ff9d}
 .state.win{color:#c9ffd8}.state.lose{color:#ffb3b3}.state.pend{color:#ffe0a6}
 .small{color:var(--mut)} .ok{color:#90ffcf}.err{color:#ffb3b3}
 .canvas{height:220px}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+.metric{background:#0c1218;border:1px solid var(--line);border-radius:8px;padding:10px;text-align:center}
+.metric .label{font-size:10px;color:var(--mut);text-transform:uppercase}
+.metric .value{font-size:18px;font-weight:800;margin-top:4px}
 </style>
 </head>
 <body>
 <div class="container">
   <div class="card">
     <div class="controls">
-      <strong>Gocho Analyzer v26.6b</strong>
+      <strong>Gocho Analyzer v27.0 PRO</strong>
       <span class="badge" id="clock">—</span>
       <span style="flex:1"></span>
       <label class="small"><input id="swBeep" type="checkbox"> Beep</label>
       <label class="small"><input id="swAutoSession" type="checkbox" checked> Auto-sesión</label>
-      <label class="small"><input id="swAutoSignal" type="checkbox" checked> Auto-señal ≥1.70</label>
-      <label class="small"><input id="swRosa" type="checkbox" checked> Caza ROSA ≥10x (1/sesión)</label>
+      <label class="small"><input id="swAuto170" type="checkbox" checked> Auto ≥1.70x (3/sesión)</label>
+      <label class="small"><input id="swAuto3x" type="checkbox" checked> Auto ≥3.0x (3/sesión)</label>
+      <label class="small"><input id="swRosa" type="checkbox" checked> Caza ROSA ≥10x (1-2/sesión)</label>
       <button id="btnTest">Test feed</button>
       <button id="btnStop" class="red">Desconectar</button>
     </div>
     <div class="small">Entradas aceptadas: <code>BroadcastChannel("gocho"|"aviator")</code>, <code>postMessage</code>, <code>localStorage</code>, <code>CustomEvent</code>, <code>window.gochoPush(x)</code>. Fuente activa: <b id="src">—</b></div>
+  </div>
+
+  <div class="card">
+    <h3>Métricas de Análisis en Tiempo Real</h3>
+    <div class="metrics">
+      <div class="metric">
+        <div class="label">Heat Score</div>
+        <div class="value" id="metricHeat">—</div>
+      </div>
+      <div class="metric">
+        <div class="label">Volatilidad</div>
+        <div class="value" id="metricVol">—</div>
+      </div>
+      <div class="metric">
+        <div class="label">Momentum</div>
+        <div class="value" id="metricMom">—</div>
+      </div>
+      <div class="metric">
+        <div class="label">Gap Rosa</div>
+        <div class="value" id="metricGap">—</div>
+      </div>
+    </div>
   </div>
 
   <div class="card">
@@ -59,16 +87,16 @@ button{cursor:pointer}button.red{background:#2b1416;color:#ffd7dc;border-color:#
 
   <div class="grid">
     <div class="card col-6">
-      <h3>Señales (Sesión <span id="sessId">1</span> • ronda <span id="sessRound">0</span>/60 • <span id="sessUsed">0</span>/3)</h3>
+      <h3>Señales (Sesión <span id="sessId">1</span> • ronda <span id="sessRound">0</span>/60 • 1.7x:<span id="sess170">0</span>/3 • 3x:<span id="sess3x">0</span>/3 • Rosa:<span id="sessRosa">0</span>/2)</h3>
       <table class="table"><thead><tr>
         <th>#</th><th>Sesión</th><th>Ronda</th><th>Tag</th><th>Objetivo</th><th>Hora</th><th>Crash</th><th>Estado</th>
       </tr></thead><tbody id="signals"></tbody></table>
     </div>
     <div class="card col-6">
-      <h3>Reseña</h3>
+      <h3>Reseña y Diagnóstico</h3>
       <div id="log" style="height:260px;overflow:auto;background:#0c1218;border:1px solid var(--line);border-radius:8px;padding:8px"></div>
       <div class="small" style="margin-top:6px">
-        Si el capturador no publica, puedes usar este bookmarklet en la pestaña del juego:
+        Bookmarklet de prueba:
         <code>javascript:(()=>{const bc=new BroadcastChannel('gocho');setInterval(()=>{const t=[1+Math.random()*1.2,1.2+Math.random()*5.3,10+Math.random()*40];const x=(Math.random()<.1?t[2]:(Math.random()<.6?t[0]:t[1])).toFixed(2);bc.postMessage(parseFloat(x));},1200)})()</code>
       </div>
     </div>
@@ -88,18 +116,25 @@ setInterval(()=>$("#clock").textContent=now(),1000);
 /*** estado ***/
 let rounds=[]; // más reciente primero
 let lastVal=0,lastAt=0,lastLS=null, source='—';
-const session={id:1,round:0,used:0,rosa:false};
+const session={id:1,round:0,used170:0,used3x:0,usedRosa:0};
 const rows=$("#signals");const list=[];
-function badge(){ $("#sessId").textContent=session.id; $("#sessRound").textContent=session.round; $("#sessUsed").textContent=session.used; }
+function badge(){ 
+  $("#sessId").textContent=session.id; 
+  $("#sessRound").textContent=session.round; 
+  $("#sess170").textContent=session.used170;
+  $("#sess3x").textContent=session.used3x;
+  $("#sessRosa").textContent=session.usedRosa;
+}
 function addSignal(tag,target,state='pend',crash='—',why=''){
   const r={n:list.length+1, s:session.id, k:session.round, tag, target, time:now(), crash, state, why};
   list.push(r); const tr=document.createElement('tr');
+  const tagClass = tag.includes('ROSA')?'rosa':(tag.includes('3X')?'triple':'auto');
   tr.innerHTML=`<td>${r.n}</td><td>${r.s}</td><td>${r.k}</td>
-  <td><span class="tag ${tag==='ROSA_10x'?'rosa':'auto'}">${tag}</span></td>
+  <td><span class="tag ${tagClass}">${tag}</span></td>
   <td>${target.toFixed(2)}x</td><td>${r.time}</td><td>${crash==='—'?'—':(+crash).toFixed(2)+'x'}</td><td class="state ${state}">${state}</td>`;
   rows.prepend(tr);
 }
-function updateLastSource(s){ if(source!==s){ source=s; $("#src").textContent(source); }}
+function updateLastSource(s){ if(source!==s){ source=s; $("#src").textContent=source; }}
 
 /*** render chips ***/
 function paintChips(){
@@ -111,45 +146,211 @@ function paintChips(){
   }
 }
 
-/*** señales (igual lógica v26.6) ***/
-function norm(x,a,b){return (x-a)/(b-a||1)}
-function heatScore(){
-  const arr=rounds.slice(0,25); if(arr.length<12) return 0;
+/*** análisis avanzado multi-capa ***/
+function norm(x,a,b){return Math.max(0,Math.min(1,(x-a)/(b-a||1)))}
+
+function calcStdDev(arr){
+  if(arr.length<2) return 0;
+  const mean = arr.reduce((a,b)=>a+b,0)/arr.length;
+  const variance = arr.reduce((a,b)=>a+Math.pow(b-mean,2),0)/arr.length;
+  return Math.sqrt(variance);
+}
+
+function calcVolatility(){
+  const arr=rounds.slice(0,30);
+  if(arr.length<10) return 0;
+  const mean = arr.reduce((a,b)=>a+b,0)/arr.length;
+  const sd = calcStdDev(arr);
+  const cv = mean>0 ? sd/mean : 0; // coeficiente de variación
+  return Math.min(1, cv);
+}
+
+function calcMomentum(){
+  const arr=rounds.slice(0,25);
+  if(arr.length<16) return 0;
+  const recent = arr.slice(0,8).reduce((a,b)=>a+b,0)/8;
+  const old = arr.slice(8,16).reduce((a,b)=>a+b,0)/8;
+  const mom = recent - old;
+  return mom; // puede ser negativo
+}
+
+function detectPattern(target){
+  // Busca patrones históricos similares antes de multiplicadores altos
+  const arr=rounds.slice(0,100);
+  let matches=0;
+  for(let i=0; i<arr.length-5; i++){
+    if(arr[i]>=target){
+      // Analiza las 5 rondas previas
+      const prevPattern = arr.slice(i+1,i+6);
+      const currentPattern = rounds.slice(0,5);
+      if(prevPattern.length===5 && currentPattern.length===5){
+        // Similitud simple: diferencia promedio
+        let diff=0;
+        for(let j=0;j<5;j++){ diff+=Math.abs(prevPattern[j]-currentPattern[j]); }
+        if(diff/5 < 1.5) matches++; // patrón similar
+      }
+    }
+  }
+  return matches;
+}
+
+function heatScore170(){
+  const arr=rounds.slice(0,30); 
+  if(arr.length<15) return 0;
+  
   const ma10 = arr.slice(0,10).reduce((a,b)=>a+b,0)/10;
   const p2   = arr.filter(x=>x>=2).length/arr.length;
-  const old=arr.slice(12).reduce((a,b)=>a+b,0)/(arr.length-12||1);
-  const recent=arr.slice(0,12).reduce((a,b)=>a+b,0)/12;
-  const mom=recent-old;
-  const lowTrap = arr.slice(0,3).some(x=>x>=1 && x<=1.15)?1:0;
-  let s=0.50*norm(ma10,1.2,3.4)+0.30*norm(p2,0,0.7)+0.25*norm(mom,-0.6,0.8)-0.40*lowTrap-0.20*norm(arr.filter(x=>x<1.7).length/arr.length,0.2,0.7);
+  const mom  = calcMomentum();
+  const vol  = calcVolatility();
+  const last4avg = arr.slice(0,4).reduce((a,b)=>a+b,0)/4;
+  
+  // Anti-trampa: rechazar si promedio últimas 4 < 1.40
+  const trapPenalty = last4avg<1.40 ? 0.35 : 0;
+  
+  // Bonus por volatilidad controlada
+  const volBonus = (vol>0.25 && vol<0.6) ? 0.08 : 0;
+  
+  let s = 0.40*norm(ma10,1.5,3.2) + 
+          0.25*norm(p2,0.15,0.65) + 
+          0.20*norm(mom,-0.4,0.9) + 
+          volBonus - 
+          trapPenalty;
+  
   return Math.max(0,Math.min(1.2,s));
 }
+
+function heatScore3X(){
+  const arr=rounds.slice(0,35); 
+  if(arr.length<20) return 0;
+  
+  const ma10 = arr.slice(0,10).reduce((a,b)=>a+b,0)/10;
+  const p3   = arr.filter(x=>x>=3).length/arr.length;
+  const mom  = calcMomentum();
+  const vol  = calcVolatility();
+  
+  // Detectar "zona caliente": MA alta + momentum sostenido
+  const recentHigh = arr.slice(0,8).filter(x=>x>=2.5).length;
+  const hotZone = (ma10>2.8 && recentHigh>=5) ? 0.15 : 0;
+  
+  // Penalizar si hay muchos crashes bajos recientes
+  const lowCrashes = arr.slice(0,10).filter(x=>x<1.5).length;
+  const lowPenalty = lowCrashes>=5 ? 0.25 : 0;
+  
+  let s = 0.45*norm(ma10,2.0,4.0) + 
+          0.30*norm(p3,0.05,0.40) + 
+          0.18*norm(mom,0,1.2) + 
+          hotZone - 
+          lowPenalty;
+  
+  return Math.max(0,Math.min(1.2,s));
+}
+
+function rosaScore(){
+  const look=rounds.slice(0,100); 
+  if(look.length<45) return 0;
+  
+  const lastRoseAt = look.findIndex(x=>x>=10);
+  const gap = lastRoseAt<0 ? 99 : lastRoseAt;
+  
+  const ma15 = look.slice(0,15).reduce((a,b)=>a+b,0)/15;
+  const p2   = look.slice(0,40).filter(x=>x>=2).length/40;
+  const mom  = calcMomentum();
+  const vol  = calcVolatility();
+  
+  // Detectar patrón histórico antes de 10x
+  const patternMatch = detectPattern(10);
+  const patternBonus = patternMatch>=2 ? 0.12 : 0;
+  
+  // Bonus fuerte por gap grande
+  const gapBonus = gap>=30 ? 0.18 : (gap>=20 ? 0.10 : 0);
+  
+  // Requiere volatilidad alta
+  const volRequirement = vol>=0.45 ? 0.15 : -0.20;
+  
+  let s = 0.30*norm(ma15,1.8,3.8) + 
+          0.25*norm(p2,0.20,0.70) + 
+          0.20*norm(mom,0.2,1.0) + 
+          volRequirement +
+          gapBonus +
+          patternBonus;
+  
+  return Math.max(0,Math.min(1.3,s));
+}
+
+function updateMetrics(){
+  const h170 = heatScore170();
+  const h3x = heatScore3X();
+  const hr = rosaScore();
+  const vol = calcVolatility();
+  const mom = calcMomentum();
+  const gap = rounds.slice(0,100).findIndex(x=>x>=10);
+  
+  $("#metricHeat").textContent = `${Math.max(h170,h3x,hr).toFixed(2)}`;
+  $("#metricVol").textContent = `${vol.toFixed(2)}`;
+  $("#metricMom").textContent = `${mom>=0?'+':''}${mom.toFixed(2)}`;
+  $("#metricGap").textContent = gap<0?'99+':`${gap}`;
+}
+
+/*** señales inteligentes ***/
 let pending=null; // {tag,target,sess,enterAt,why}
-function maybeAuto(){
-  if(!$("#swAutoSignal").checked) return;
-  if(session.used>=3) return;
-  const h=heatScore();
-  const slot = session.used===0?[1,22] : session.used===1?[18,42] : [36,60];
+
+function maybe170(){
+  if(!$("#swAuto170").checked) return;
+  if(session.used170>=3) return;
+  
+  const h=heatScore170();
+  const slot = session.used170===0?[5,22] : session.used170===1?[23,42] : [43,58];
   const inSlot = session.round>=slot[0] && session.round<=slot[1];
-  const allowBurst = h>=0.92;
-  if( (inSlot && h>=0.72) || allowBurst ){
-    pending={tag:'AUTO_1p7',target:1.70,sess:session.id,enterAt:session.round+1};
-    session.used++; addSignal('AUTO_1p7',1.70,'pend','—');
-    log(`Señal ≥1.70 emitida (T+1). heat=${h.toFixed(2)}`,'ok'); tone(940,140,.035);
+  const allowBurst = h>=0.90;
+  
+  if( (inSlot && h>=0.65) || allowBurst ){
+    pending={tag:'AUTO_1.70X',target:1.70,sess:session.id,enterAt:session.round+1,why:`heat=${h.toFixed(2)}`};
+    session.used170++; 
+    addSignal('AUTO_1.70X',1.70,'pend','—',pending.why);
+    log(`Señal ≥1.70x emitida (T+1). ${pending.why}`,'ok'); 
+    tone(940,140,.035);
   }
 }
+
+function maybe3X(){
+  if(!$("#swAuto3x").checked) return;
+  if(session.used3x>=3) return;
+  
+  const h=heatScore3X();
+  const slot = session.used3x===0?[8,24] : session.used3x===1?[25,44] : [45,58];
+  const inSlot = session.round>=slot[0] && session.round<=slot[1];
+  const allowBurst = h>=0.95;
+  
+  if( (inSlot && h>=0.68) || allowBurst ){
+    pending={tag:'AUTO_3.0X',target:3.0,sess:session.id,enterAt:session.round+1,why:`heat=${h.toFixed(2)}`};
+    session.used3x++; 
+    addSignal('AUTO_3.0X',3.0,'pend','—',pending.why);
+    log(`Señal ≥3.0x emitida (T+1). ${pending.why}`,'ok'); 
+    tone(820,150,.04);
+  }
+}
+
 function maybeRosa(){
-  if(!$("#swRosa").checked || session.rosa) return;
-  const look=rounds.slice(0,90); if(look.length<40) return;
-  const lastRoseAt = look.findIndex(x=>x>=10); const gap=lastRoseAt<0?99:lastRoseAt;
-  const ma10=look.slice(0,10).reduce((a,b)=>a+b,0)/10;
-  const p2=look.slice(0,30).filter(x=>x>=2).length/30;
-  const mom=(look.slice(0,12).reduce((a,b)=>a+b,0)/12)-(look.slice(12,30).reduce((a,b)=>a+b,0)/18);
-  const heat=0.45*norm(ma10,1.4,3.6)+0.35*norm(p2,0.1,0.7)+0.25*norm(mom,-0.6,0.9)+0.10*norm(gap,18,80);
-  if(heat>=0.95 && session.used<=2){
-    pending={tag:'ROSA_10x',target:10.0,sess:session.id,enterAt:session.round+1,why:`ma10:${ma10.toFixed(2)} p2:${(p2*100|0)}% mom:${mom.toFixed(2)} gap:${gap}`};
-    session.rosa=true; addSignal('ROSA_10x',10,'pend','—');
-    log(`Caza ROSA armada (T+1). ${pending.why}`,'ok'); tone(520,140,.045); setTimeout(()=>tone(820,160,.04),160);
+  if(!$("#swRosa").checked || session.usedRosa>=2) return;
+  
+  const rs = rosaScore();
+  const gap = rounds.slice(0,100).findIndex(x=>x>=10);
+  const vol = calcVolatility();
+  
+  // Condiciones estrictas para ROSA
+  const gapOK = gap<0 || gap>=25;
+  const volOK = vol>=0.45;
+  const heatOK = rs>=0.92;
+  const slotOK = session.round>=12 && session.round<=55;
+  
+  if(gapOK && volOK && heatOK && slotOK){
+    const patterns = detectPattern(10);
+    pending={tag:'ROSA_10X',target:10.0,sess:session.id,enterAt:session.round+1,
+      why:`rosa=${rs.toFixed(2)} gap=${gap<0?'99+':gap} vol=${vol.toFixed(2)} patterns=${patterns}`};
+    session.usedRosa++; 
+    addSignal('ROSA_10X',10,'pend','—',pending.why);
+    log(`Caza ROSA armada (T+1). ${pending.why}`,'ok'); 
+    tone(520,140,.045); setTimeout(()=>tone(820,160,.04),160);
   }
 }
 
@@ -161,30 +362,55 @@ function ingest(x,src='?'){
   lastVal=v; lastAt=t; updateLastSource(src);
 
   rounds.unshift(v); if(rounds.length>200) rounds.pop();
-  session.round++; if(session.round>60){ if($("#swAutoSession").checked){ session.id++; session.round=1; session.used=0; session.rosa=false; log(`Empieza sesión ${session.id} • objetivo ≥1.70 • tope 3/60`,'ok'); } else { session.round=60; } }
-  badge(); paintChips();
+  session.round++; 
+  
+  if(session.round>60){ 
+    if($("#swAutoSession").checked){ 
+      session.id++; 
+      session.round=1; 
+      session.used170=0; 
+      session.used3x=0; 
+      session.usedRosa=0; 
+      log(`Nueva sesión ${session.id} • objetivos: 3×≥1.70x + 3×≥3.0x + 1-2×≥10x`,'ok'); 
+    } else { 
+      session.round=60; 
+    } 
+  }
+  
+  badge(); paintChips(); updateMetrics();
 
   // resolver señal pendiente
   if(pending && pending.sess===session.id && pending.enterAt===session.round){
     const win = v>=pending.target; const state = win?'win':'lose';
     const row=list.find(r=>r.s===pending.sess && r.k===pending.enterAt && r.state==='pend');
-    if(row){ row.state=state; row.crash=v;
-      // reimprimir fila (rápido: volver a pintar tabla)
-      rows.innerHTML=''; list.slice(-80).forEach(r=>{
+    if(row){ 
+      row.state=state; 
+      row.crash=v;
+      // reimprimir tabla
+      rows.innerHTML=''; 
+      list.slice().reverse().slice(0,80).forEach(r=>{
         const tr=document.createElement('tr');
+        const tagClass = r.tag.includes('ROSA')?'rosa':(r.tag.includes('3X')?'triple':'auto');
         tr.innerHTML=`<td>${r.n}</td><td>${r.s}</td><td>${r.k}</td>
-        <td><span class="tag ${r.tag==='ROSA_10x'?'rosa':'auto'}">${r.tag}</span></td>
+        <td><span class="tag ${tagClass}">${r.tag}</span></td>
         <td>${r.target.toFixed(2)}x</td><td>${r.time}</td><td>${r.crash==='—'?'—':(+r.crash).toFixed(2)+'x'}</td><td class="state ${r.state}">${r.state}</td>`;
         rows.prepend(tr);
       });
     }
-    log(`Resultado ${state.toUpperCase()} con crash ${v.toFixed(2)}x (obj ${pending.target.toFixed(2)}x)`, state==='win'?'ok':'err');
-    if(pending.tag==='ROSA_10x'){ log(`${state==='win'?'ROSA GANADA':'ROSA PERDIDA'} • ${pending.why}`, state==='win'?'ok':'err'); }
+    
+    const profit = win ? ((v/pending.target)*100-100).toFixed(1) : '-100';
+    log(`${pending.tag} ${state.toUpperCase()} • crash:${v.toFixed(2)}x obj:${pending.target.toFixed(2)}x • ROI:${profit}%`, state==='win'?'ok':'err');
+    
+    if(pending.tag==='ROSA_10X'){ 
+      log(`ROSA ${state==='win'?'GANADA ✓':'PERDIDA ✗'} • ${pending.why}`, state==='win'?'ok':'err'); 
+    }
     pending=null;
   }
 
-  // decidir nuevas
-  maybeRosa(); maybeAuto();
+  // decidir nuevas señales (prioridad: Rosa > 3X > 1.70X)
+  maybeRosa(); 
+  maybe3X();
+  maybe170();
 }
 
 /*** listeners múltiples ***/
@@ -207,31 +433,36 @@ function attachAll(){
 
   window.gochoPush=(x)=>ingest(x,'gochoPush()');
 
-  // Poll de seguridad por si alguien sólo escribe en LS sin evento (algunos navegadores)
   let lastSeen=null;
   lsPoll=setInterval(()=>{
     const v=localStorage.getItem('gocho:round')||localStorage.getItem('aviator:round');
     if(v && v!==lastSeen){ lastSeen=v; ingest(parseFloat(v),'LS:poll'); }
   },500);
 
-  log('Listo. Esperando rondas…','#9ab');
+  log('Sistema PRO v27.0 iniciado. Algoritmo multi-objetivo activado.','ok');
 }
+
 function detachAll(){
   try{bc1&&bc1.close()}catch{} try{bc2&&bc2.close()}catch{} bc1=bc2=null;
-  window.gochoPush=null; window.removeEventListener('message',()=>{}); window.removeEventListener('storage',()=>{});
-  clearInterval(lsPoll); lsPoll=null; updateLastSource('—'); log('Desconectado.','err');
+  window.gochoPush=null; 
+  clearInterval(lsPoll); lsPoll=null; 
+  updateLastSource('—'); 
+  log('Desconectado.','err');
 }
+
 attachAll();
 
 $("#btnStop").onclick=detachAll;
 $("#btnTest").onclick=()=>{
-  // generador de prueba local (no afecta anti-duplicado real)
   const seq=[ ()=>1+Math.random()*1.2, ()=>1.2+Math.random()*5.3, ()=>10+Math.random()*40 ];
-  let id=setInterval(()=>{ const pick=Math.random()<.1?2:(Math.random()<.6?0:1); ingest(+seq[pick]().toFixed(2),'Test'); },1200);
-  log('Test feed iniciado. Recarga o Desconectar para parar.','ok');
+  let id=setInterval(()=>{ 
+    const pick=Math.random()<.1?2:(Math.random()<.6?0:1); 
+    ingest(+seq[pick]().toFixed(2),'Test'); 
+  },1200);
+  log('Test feed iniciado (generador realista).','ok');
 };
 
-badge(); paintChips();
+badge(); paintChips(); updateMetrics();
 </script>
 </body>
 </html>
