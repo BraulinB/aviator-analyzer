@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema Aviator 1Win • Gocho IA Predictiva</title>
+    <title>Sistema Aviator 1Win • IA Predictiva Agresiva</title>
     <style>
         * {
             margin: 0;
@@ -303,11 +303,21 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            display: block;
+        }
+
+        .history-table thead,
+        .history-table tbody {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
         }
 
         .history-table th,
         .history-table td {
-            padding: 14px;
+            padding: 12px;
             text-align: center;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
@@ -318,6 +328,9 @@
             text-transform: uppercase;
             font-size: 0.85em;
             letter-spacing: 0.5px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
 
         .history-table tr:hover {
@@ -410,7 +423,7 @@
         }
 
         .countdown {
-            font-size: 2.8em;
+            font-size: 2.2em;
             font-weight: 900;
             text-align: center;
             margin: 25px 0;
@@ -485,14 +498,13 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚀 Sistema Aviator 1Win <span class="ai-badge">IA PREDICTIVA</span></h1>
-            <p class="subtitle">Algoritmo Inteligente • Análisis de 60 Rondas • Señales Optimizadas</p>
+            <h1>🚀 Sistema Aviator 1Win <span class="ai-badge">IA AGRESIVA</span></h1>
+            <p class="subtitle">Análisis Instantáneo • Señales Inmediatas • Máxima Precisión</p>
             <div style="margin-top: 15px;">
                 <span class="live-badge">EN VIVO</span>
             </div>
         </div>
 
-        <!-- Barra de Sesión -->
         <div class="session-bar">
             <div class="session-title">📊 SESIÓN ACTUAL (60 RONDAS)</div>
             <div class="session-progress">
@@ -515,7 +527,7 @@
                 </div>
                 <div class="session-stat">
                     <div class="session-stat-label">Aciertos</div>
-                    <div class="session-stat-value" id="sessionHits">0</div>
+                    <div class="session-stat-value" id="sessionHits">0%</div>
                 </div>
             </div>
         </div>
@@ -526,12 +538,12 @@
                 <div class="status-value" id="connectionStatus">🔄</div>
             </div>
             <div class="status-item">
-                <div class="status-label">Resultados Hoy</div>
+                <div class="status-label">Rondas Analizadas</div>
                 <div class="status-value" id="resultsToday">0</div>
             </div>
             <div class="status-item">
-                <div class="status-label">Precisión IA</div>
-                <div class="status-value" id="aiAccuracy">0%</div>
+                <div class="status-label">Señales Emitidas</div>
+                <div class="status-value" id="totalSignals">0</div>
             </div>
             <div class="status-item">
                 <div class="status-label">Último Crash</div>
@@ -551,7 +563,7 @@
                     <div class="signal-title">PRÓXIMA JUGADA RECOMENDADA</div>
                     <div class="signal-value" id="signalMultiplier">--</div>
                     <div class="signal-confidence">Confianza: <span id="confidence">--</span></div>
-                    <div class="signal-type" id="signalType">Esperando análisis...</div>
+                    <div class="signal-type" id="signalType">Analizando...</div>
                     <div class="pattern-indicator" id="patternIndicator">
                         <div class="pattern-dot"></div>
                         <div class="pattern-dot"></div>
@@ -564,12 +576,12 @@
                 <div class="countdown" id="countdown">Esperando datos...</div>
 
                 <div class="alert success" id="alertBox">
-                    <strong>⏳ Inicializando:</strong> Cargando motor de IA y datos históricos...
+                    <strong>⏳ Inicializando:</strong> Cargando IA y últimas 60 rondas...
                 </div>
             </div>
 
             <div class="panel">
-                <h2 class="panel-title">📊 Análisis IA en Tiempo Real</h2>
+                <h2 class="panel-title">📊 Análisis IA</h2>
                 
                 <div class="stats-grid">
                     <div class="stat-card">
@@ -578,47 +590,47 @@
                     </div>
                     <div class="stat-card">
                         <div class="stat-card-value" id="highMultCount">0</div>
-                        <div class="stat-card-label">Altos (>5x)</div>
+                        <div class="stat-card-label">Altos >5x</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-card-value" id="cooldownStatus">NO</div>
-                        <div class="stat-card-label">Cooldown</div>
+                        <div class="stat-card-value" id="mediumCount">0</div>
+                        <div class="stat-card-label">Medios 1.7-3x</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-card-value" id="totalAnalyzed">0</div>
-                        <div class="stat-card-label">Analizados</div>
+                        <div class="stat-card-value" id="ultraCount">0</div>
+                        <div class="stat-card-label">Ultra >10x</div>
                     </div>
                 </div>
 
-                <h3 style="margin-top: 35px; margin-bottom: 20px; font-size: 1.3em;">Distribución de Probabilidad IA</h3>
+                <h3 style="margin-top: 35px; margin-bottom: 20px; font-size: 1.3em;">Patrones Detectados (Últimas 60)</h3>
                 <table class="history-table">
                     <thead>
                         <tr>
-                            <th>Rango</th>
-                            <th>Prob. IA</th>
-                            <th>Estado</th>
+                            <th>Patrón</th>
+                            <th>Frecuencia</th>
+                            <th>Tendencia</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="patternsTable">
                         <tr>
-                            <td><span class="multiplier low">1.00x - 1.04x</span></td>
-                            <td id="probInstaloss">8%</td>
-                            <td>❌ Evitar</td>
+                            <td>Instaloss Consecutivos</td>
+                            <td id="patternInstaloss">0</td>
+                            <td id="trendInstaloss">--</td>
                         </tr>
                         <tr>
-                            <td><span class="multiplier high">1.70x - 2.50x</span></td>
-                            <td id="prob170">72%</td>
-                            <td>✅ Óptimo</td>
+                            <td>Secuencia Baja</td>
+                            <td id="patternLow">0</td>
+                            <td id="trendLow">--</td>
                         </tr>
                         <tr>
-                            <td><span class="multiplier medium">3.00x - 5.00x</span></td>
-                            <td id="prob3x">45%</td>
-                            <td>⚠️ Media</td>
+                            <td>Secuencia Media</td>
+                            <td id="patternMedium">0</td>
+                            <td id="trendMedium">--</td>
                         </tr>
                         <tr>
-                            <td><span class="multiplier ultra">10.00x+</span></td>
-                            <td id="prob10x">12%</td>
-                            <td>🎰 Riesgo</td>
+                            <td>Secuencia Alta</td>
+                            <td id="patternHigh">0</td>
+                            <td id="trendHigh">--</td>
                         </tr>
                     </tbody>
                 </table>
@@ -626,24 +638,26 @@
         </div>
 
         <div class="panel">
-            <h2 class="panel-title">📈 Historial de Señales IA (Sesión Actual)</h2>
-            <table class="history-table">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Hora</th>
-                        <th>Crash</th>
-                        <th>Tipo</th>
-                        <th>Señal IA</th>
-                        <th>Resultado</th>
-                    </tr>
-                </thead>
-                <tbody id="historyTableBody">
-                    <tr>
-                        <td colspan="6" style="opacity: 0.6; padding: 30px;">Esperando datos...</td>
-                    </tr>
-                </tbody>
-            </table>
+            <h2 class="panel-title">📈 Historial Completo (Últimas 60 Rondas)</h2>
+            <div style="max-height: 500px; overflow-y: auto;">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Hora</th>
+                            <th>Crash</th>
+                            <th>Tipo</th>
+                            <th>Señal IA</th>
+                            <th>Resultado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                        <tr>
+                            <td colspan="6" style="opacity: 0.6; padding: 30px;">Cargando historial...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -664,76 +678,65 @@
 
         const CONFIG = {
             SESSION_SIZE: 60,
-            SIGNALS_170: 4,
-            SIGNALS_3X: 3,
-            SIGNALS_10X: 2,
-            MIN_CONFIDENCE: 85,
-            INSTALOSS_MIN: 1.00,
-            INSTALOSS_MAX: 1.04,
-            TARGET_170: 1.70,
-            TARGET_3X: 3.00,
-            TARGET_10X: 10.00
+            SIGNALS_170_MAX: 4,
+            SIGNALS_3X_MAX: 3,
+            SIGNALS_10X_MAX: 2,
+            MIN_CONFIDENCE: 75,  // Reducido de 85 a 75
+            SIGNAL_COOLDOWN: 15000,  // 15 segundos entre señales
         };
 
-        // ESTADO GLOBAL
         let gameHistory = [];
         let currentSession = {
             rounds: 0,
             signals170: 0,
             signals3x: 0,
             signals10x: 0,
-            hits: 0,
-            startTime: Date.now()
+            totalSignals: 0,
+            hits: 0
         };
 
         let stats = {
             resultsToday: 0,
-            totalSignals: 0,
-            successfulSignals: 0,
             instalossCount: 0,
             highMultCount: 0,
-            inCooldown: false,
-            cooldownCounter: 0
+            mediumCount: 0,
+            ultraCount: 0
         };
 
-        let lastSignalTimestamp = 0;
-        let currentSignal = null;
+        let lastSignalTime = 0;
+        let signalHistory = [];
 
-        // AUDIO CONTEXTS PARA NOTIFICACIONES
+        // AUDIO
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         const audioCtx = new AudioContext();
 
         function playSignalSound(type) {
             const oscillator = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
-            
             oscillator.connect(gainNode);
             gainNode.connect(audioCtx.destination);
             
             if (type === '170') {
-                // Sonido suave para 1.70x
-                oscillator.frequency.value = 523.25; // C5
+                oscillator.frequency.value = 523.25;
                 oscillator.type = 'sine';
                 gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
                 oscillator.start(audioCtx.currentTime);
                 oscillator.stop(audioCtx.currentTime + 0.5);
             } else if (type === '3x') {
-                // Sonido medio para 3x
-                oscillator.frequency.value = 659.25; // E5
+                oscillator.frequency.value = 659.25;
                 oscillator.type = 'square';
                 gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.8);
                 oscillator.start(audioCtx.currentTime);
                 oscillator.stop(audioCtx.currentTime + 0.8);
                 
-                // Segundo tono
                 setTimeout(() => {
                     const osc2 = audioCtx.createOscillator();
                     const gain2 = audioCtx.createGain();
                     osc2.connect(gain2);
                     gain2.connect(audioCtx.destination);
-                    osc2.frequency.value = 783.99; // G5
+                    osc2.frequency.value = 783.99;
                     osc2.type = 'square';
                     gain2.gain.setValueAtTime(0.4, audioCtx.currentTime);
                     gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.8);
@@ -741,14 +744,13 @@
                     osc2.stop(audioCtx.currentTime + 0.8);
                 }, 200);
             } else if (type === '10x') {
-                // Sonido intenso para 10x+
                 for (let i = 0; i < 3; i++) {
                     setTimeout(() => {
                         const osc = audioCtx.createOscillator();
                         const gain = audioCtx.createGain();
                         osc.connect(gain);
                         gain.connect(audioCtx.destination);
-                        osc.frequency.value = 1046.50; // C6
+                        osc.frequency.value = 1046.50;
                         osc.type = 'sawtooth';
                         gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
                         gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
@@ -759,14 +761,12 @@
             }
         }
 
-        // INICIALIZAR FIREBASE
         console.log('🔥 Inicializando Firebase...');
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
         updateConnectionStatus('🟡 Buscando datos...', false);
 
-        // BUSCAR Y CONECTAR A DATOS
         const possiblePaths = ['feeds/gocho/crashes', 'crashes', 'historial', 'last_final'];
 
         async function tryAllPaths() {
@@ -777,7 +777,7 @@
                     const snapshot = await get(testRef);
                     
                     if (snapshot.exists()) {
-                        console.log(`✅ Datos en /${path}`);
+                        console.log(`✅ Datos encontrados en /${path}`);
                         listenToPath(path);
                         return;
                     }
@@ -787,7 +787,7 @@
             }
             
             updateConnectionStatus('🔴 SIN DATOS', false);
-            showAlert('❌ <strong>No hay datos.</strong> Activa la extensión y juega Aviator.', 'warning');
+            showAlert('❌ <strong>Sin datos.</strong> Activa la extensión en 1win.', 'warning');
         }
 
         function listenToPath(path) {
@@ -801,14 +801,11 @@
                         
                         processData(data);
                         updateConnectionStatus('🟢 CONECTADO', true);
-                        runAIAnalysis();
+                        runAggressiveAI();
                     }
                 } catch (error) {
                     console.error('❌ Error:', error);
                 }
-            }, (error) => {
-                console.error(`❌ Error en listener:`, error);
-                updateConnectionStatus('🔴 ERROR', false);
             });
         }
 
@@ -836,8 +833,9 @@
 
             crashesArray.sort((a, b) => b.timestamp - a.timestamp);
             
-            gameHistory = crashesArray.slice(0, CONFIG.SESSION_SIZE).map((crash, index) => ({
-                id: index + 1,
+            // CARGAR ÚLTIMAS 60 RONDAS
+            gameHistory = crashesArray.slice(0, 60).map((crash, index) => ({
+                id: crashesArray.length - index,
                 ts: crash.timestamp,
                 timestamp: new Date(crash.timestamp),
                 multiplier: crash.value,
@@ -847,243 +845,254 @@
             }));
 
             stats.resultsToday = crashesArray.length;
-            currentSession.rounds = Math.min(gameHistory.length, CONFIG.SESSION_SIZE);
+            currentSession.rounds = gameHistory.length;
             
-            console.log(`✅ Procesados ${gameHistory.length} crashes`);
+            console.log(`✅ ${gameHistory.length} rondas cargadas para análisis`);
         }
 
         function classifyMultiplier(mult) {
             mult = parseFloat(mult);
             if (isNaN(mult)) return 'DESCONOCIDO';
             
-            if (mult >= CONFIG.INSTALOSS_MIN && mult <= CONFIG.INSTALOSS_MAX) {
-                return 'INSTALOSS';
-            } else if (mult >= CONFIG.TARGET_10X) {
-                return 'ULTRA';
-            } else if (mult >= CONFIG.TARGET_3X) {
-                return 'ALTO';
-            } else if (mult >= CONFIG.TARGET_170) {
-                return 'MEDIO';
-            } else {
-                return 'BAJO';
-            }
+            if (mult >= 1.00 && mult <= 1.04) return 'INSTALOSS';
+            else if (mult >= 10.00) return 'ULTRA';
+            else if (mult >= 5.00) return 'ALTO';
+            else if (mult >= 1.70) return 'MEDIO';
+            else return 'BAJO';
         }
 
-        // ===== MOTOR DE IA PREDICTIVA =====
-        function runAIAnalysis() {
+        // ===== IA AGRESIVA =====
+        function runAggressiveAI() {
             if (gameHistory.length < 10) {
-                showAlert('⏳ <strong>Recolectando datos IA...</strong> Se necesitan al menos 10 resultados.', 'warning');
+                showAlert('⏳ <strong>Insuficientes datos.</strong> Mínimo 10 rondas requeridas.', 'warning');
                 updateUI();
                 return;
             }
 
-            // Análisis de patrones
-            const last60 = gameHistory.slice(0, CONFIG.SESSION_SIZE);
+            console.log('🤖 Ejecutando análisis IA agresivo...');
+
+            const last60 = gameHistory.slice(0, Math.min(60, gameHistory.length));
             const last20 = gameHistory.slice(0, 20);
             const last10 = gameHistory.slice(0, 10);
+            const last5 = gameHistory.slice(0, 5);
 
-            // Contadores
-            const instalossRecent = last10.filter(r => r.type === 'INSTALOSS').length;
-            const highRecent = last10.filter(r => r.type === 'ALTO' || r.type === 'ULTRA').length;
-            const mediumRecent = last10.filter(r => r.type === 'MEDIO').length;
-            
-            // Promedios
+            // CONTADORES
+            stats.instalossCount = last60.filter(r => r.type === 'INSTALOSS').length;
+            stats.highMultCount = last60.filter(r => r.type === 'ALTO').length;
+            stats.mediumCount = last60.filter(r => r.type === 'MEDIO').length;
+            stats.ultraCount = last60.filter(r => r.type === 'ULTRA').length;
+
+            const instalossLast10 = last10.filter(r => r.type === 'INSTALOSS').length;
+            const highLast10 = last10.filter(r => r.type === 'ALTO' || r.type === 'ULTRA').length;
+            const mediumLast10 = last10.filter(r => r.type === 'MEDIO').length;
+            const lowLast5 = last5.filter(r => r.type === 'BAJO' || r.type === 'INSTALOSS').length;
+
+            // PROMEDIOS
             const avg10 = last10.reduce((sum, r) => sum + r.multiplier, 0) / last10.length;
             const avg20 = last20.reduce((sum, r) => sum + r.multiplier, 0) / last20.length;
+            const avg60 = last60.reduce((sum, r) => sum + r.multiplier, 0) / last60.length;
 
-            // Tendencia
-            const trend = avg10 > avg20 ? 'UP' : 'DOWN';
+            // TENDENCIA
+            const trend = avg10 < avg20 ? 'DOWN' : 'UP';
 
-            // Volatilidad
+            // VOLATILIDAD
             const variance = last10.reduce((sum, r) => sum + Math.pow(r.multiplier - avg10, 2), 0) / last10.length;
             const volatility = Math.sqrt(variance);
 
-            // Estadísticas de sesión
-            stats.instalossCount = last60.filter(r => r.type === 'INSTALOSS').length;
-            stats.highMultCount = last60.filter(r => r.type === 'ALTO' || r.type === 'ULTRA').length;
+            // PATRONES
+            updatePatterns(last60, trend);
 
-            // Cooldown management
-            if (instalossRecent >= 2) {
-                stats.inCooldown = true;
-                stats.cooldownCounter = 2;
-            } else if (stats.cooldownCounter > 0) {
-                stats.cooldownCounter--;
-                if (stats.cooldownCounter === 0) stats.inCooldown = false;
-            }
-
-            // Calcular probabilidades dinámicas
-            updateProbabilities(last60, trend, volatility);
-
-            // Generar señal inteligente
-            generateAISignal(instalossRecent, highRecent, avg10, trend, volatility);
+            // GENERAR SEÑAL AGRESIVA
+            generateAggressiveSignal(instalossLast10, highLast10, mediumLast10, lowLast5, avg10, avg20, trend, volatility);
 
             updateUI();
         }
 
-        function updateProbabilities(data, trend, volatility) {
-            const total = data.length;
-            const instaloss = data.filter(r => r.type === 'INSTALOSS').length;
-            const range170 = data.filter(r => r.multiplier >= 1.70 && r.multiplier < 3.00).length;
-            const range3x = data.filter(r => r.multiplier >= 3.00 && r.multiplier < 10.00).length;
-            const range10x = data.filter(r => r.multiplier >= 10.00).length;
+        function updatePatterns(data, trend) {
+            let instalossStreak = 0;
+            let lowStreak = 0;
+            let mediumStreak = 0;
+            let highStreak = 0;
 
-            document.getElementById('probInstaloss').textContent = `${((instaloss / total) * 100).toFixed(0)}%`;
-            document.getElementById('prob170').textContent = `${((range170 / total) * 100).toFixed(0)}%`;
-            document.getElementById('prob3x').textContent = `${((range3x / total) * 100).toFixed(0)}%`;
-            document.getElementById('prob10x').textContent = `${((range10x / total) * 100).toFixed(0)}%`;
+            for (const entry of data) {
+                if (entry.type === 'INSTALOSS') instalossStreak++;
+                if (entry.type === 'BAJO' || entry.multiplier < 1.70) lowStreak++;
+                if (entry.type === 'MEDIO') mediumStreak++;
+                if (entry.type === 'ALTO' || entry.type === 'ULTRA') highStreak++;
+            }
+
+            document.getElementById('patternInstaloss').textContent = instalossStreak;
+            document.getElementById('trendInstaloss').textContent = instalossStreak > 5 ? '⬆️ Alto' : '✅ Normal';
+            
+            document.getElementById('patternLow').textContent = lowStreak;
+            document.getElementById('trendLow').textContent = lowStreak > 15 ? '⚠️ Crítico' : '✅ Normal';
+            
+            document.getElementById('patternMedium').textContent = mediumStreak;
+            document.getElementById('trendMedium').textContent = trend === 'UP' ? '⬆️ Subiendo' : '⬇️ Bajando';
+            
+            document.getElementById('patternHigh').textContent = highStreak;
+            document.getElementById('trendHigh').textContent = highStreak > 10 ? '⚠️ Saturado' : '✅ Saludable';
         }
 
-        // ===== GENERADOR DE SEÑALES IA =====
-        function generateAISignal(instalossCount, highCount, avgMult, trend, volatility) {
+        // ===== GENERADOR AGRESIVO DE SEÑALES =====
+        function generateAggressiveSignal(instaloss10, high10, medium10, low5, avg10, avg20, trend, volatility) {
+            const now = Date.now();
+            const timeSinceLastSignal = now - lastSignalTime;
+
+            // Cooldown entre señales
+            if (timeSinceLastSignal < CONFIG.SIGNAL_COOLDOWN) {
+                console.log('⏳ Cooldown activo...');
+                return;
+            }
+
             let recommendedMult = 0;
             let confidence = 0;
-            let alertType = 'success';
-            let boxColor = 'green';
-            let alertMessage = '';
             let signalType = '';
+            let boxColor = 'green';
+            let alertType = 'success';
+            let alertMessage = '';
             let soundType = null;
 
-            // Verificar si podemos emitir señales
-            const now = Date.now();
-            const timeSinceLastSignal = now - lastSignalTimestamp;
-            
-            // Resetear sesión si alcanzó 60 rondas
-            if (currentSession.rounds >= CONFIG.SESSION_SIZE) {
-                resetSession();
-            }
+            // LÓGICA AGRESIVA DE SEÑALES
 
-            // LÓGICA DE IA PARA SEÑALES
-
-            // 1. SEÑALES 1.70x+ (4 por sesión)
-            if (currentSession.signals170 < CONFIG.SIGNALS_170) {
-                if (instalossCount >= 2 && trend === 'DOWN' && volatility < 1.5) {
+            // PRIORIDAD 1: SEÑALES 1.70x+ (Más frecuentes)
+            if (currentSession.signals170 < CONFIG.SIGNALS_170_MAX) {
+                // Condición 1: Instalosses recientes
+                if (instaloss10 >= 1) {
+                    recommendedMult = 1.85;
+                    confidence = 88;
+                    signalType = '🎯 SEÑAL 1.70x+';
+                    soundType = '170';
+                    currentSession.signals170++;
+                    alertMessage = `✅ <strong>Instaloss detectado:</strong> ${instaloss10} en últimas 10. Alta probabilidad 1.70x-2.50x.`;
+                }
+                // Condición 2: Promedio muy bajo
+                else if (avg10 < 2.0 && medium10 < 3) {
                     recommendedMult = 1.90;
-                    confidence = 92;
-                    signalType = '🎯 SEÑAL ÓPTIMA 1.70x+';
-                    boxColor = 'green';
-                    alertType = 'success';
-                    alertMessage = '✅ <strong>IA DETECTÓ:</strong> Patrón de recuperación tras instalosses. Probabilidad alta de 1.70x-2.50x.';
-                    soundType = '170';
-                    currentSession.signals170++;
-                } else if (avgMult < 1.8 && highCount === 0 && timeSinceLastSignal > 60000) {
-                    recommendedMult = 1.80;
-                    confidence = 88;
-                    signalType = '🎯 SEÑAL ÓPTIMA 1.70x+';
-                    boxColor = 'green';
-                    alertType = 'success';
-                    alertMessage = '✅ <strong>IA ANALIZÓ:</strong> Promedio bajo sin altos recientes. Momento ideal para 1.70x+.';
-                    soundType = '170';
-                    currentSession.signals170++;
-                }
-            }
-
-            // 2. SEÑALES 3x+ (3 por sesión)
-            if (currentSession.signals3x < CONFIG.SIGNALS_3X && recommendedMult === 0) {
-                if (instalossCount >= 1 && highCount === 0 && avgMult < 2.5 && volatility < 2.0) {
-                    recommendedMult = 3.50;
-                    confidence = 87;
-                    signalType = '🌟 SEÑAL PREMIUM 3x+';
-                    boxColor = 'gold';
-                    alertType = 'gold';
-                    alertMessage = '🌟 <strong>OPORTUNIDAD IA:</strong> Condiciones favorables para multiplicador 3x-5x. Tendencia positiva.';
-                    soundType = '3x';
-                    currentSession.signals3x++;
-                } else if (trend === 'DOWN' && avgMult < 2.2 && timeSinceLastSignal > 90000) {
-                    recommendedMult = 3.20;
                     confidence = 85;
-                    signalType = '🌟 SEÑAL PREMIUM 3x+';
+                    signalType = '🎯 SEÑAL 1.70x+';
+                    soundType = '170';
+                    currentSession.signals170++;
+                    alertMessage = `✅ <strong>Promedio bajo (${avg10.toFixed(2)}x):</strong> Sistema debe compensar. Target 1.70x+.`;
+                }
+                // Condición 3: Secuencia de bajos
+                else if (low5 >= 3) {
+                    recommendedMult = 2.00;
+                    confidence = 82;
+                    signalType = '🎯 SEÑAL 1.70x+';
+                    soundType = '170';
+                    currentSession.signals170++;
+                    alertMessage = `✅ <strong>Secuencia baja:</strong> ${low5}/5 bajos. Rebote inminente a 1.70x+.`;
+                }
+                // Condición 4: Tendencia DOWN sin altos
+                else if (trend === 'DOWN' && high10 === 0) {
+                    recommendedMult = 1.75;
+                    confidence = 80;
+                    signalType = '🎯 SEÑAL 1.70x+';
+                    soundType = '170';
+                    currentSession.signals170++;
+                    alertMessage = `✅ <strong>Tendencia bajista:</strong> Sin altos recientes. Momento óptimo 1.70x+.`;
+                }
+            }
+
+            // PRIORIDAD 2: SEÑALES 3x+
+            if (currentSession.signals3x < CONFIG.SIGNALS_3X_MAX && recommendedMult === 0) {
+                // Condición 1: Múltiples instalosses + promedio bajo
+                if (instaloss10 >= 2 && avg10 < 2.5) {
+                    recommendedMult = 3.50;
+                    confidence = 86;
+                    signalType = '🌟 SEÑAL 3x+';
                     boxColor = 'gold';
                     alertType = 'gold';
-                    alertMessage = '🌟 <strong>IA CALCULÓ:</strong> Tendencia bajista con promedio bajo. Probable rebote a 3x+.';
                     soundType = '3x';
                     currentSession.signals3x++;
+                    alertMessage = `🌟 <strong>Patrón fuerte:</strong> ${instaloss10} instalosses + promedio ${avg10.toFixed(2)}x. Target 3x-5x.`;
+                }
+                // Condición 2: Volatilidad baja + tendencia DOWN
+                else if (volatility < 1.5 && trend === 'DOWN' && high10 < 2) {
+                    recommendedMult = 3.20;
+                    confidence = 83;
+                    signalType = '🌟 SEÑAL 3x+';
+                    boxColor = 'gold';
+                    alertType = 'gold';
+                    soundType = '3x';
+                    currentSession.signals3x++;
+                    alertMessage = `🌟 <strong>Baja volatilidad + tendencia:</strong> Condiciones ideales para 3x+.`;
+                }
+                // Condición 3: Muchos medios sin altos
+                else if (medium10 >= 5 && high10 === 0) {
+                    recommendedMult = 3.80;
+                    confidence = 81;
+                    signalType = '🌟 SEÑAL 3x+';
+                    boxColor = 'gold';
+                    alertType = 'gold';
+                    soundType = '3x';
+                    currentSession.signals3x++;
+                    alertMessage = `🌟 <strong>Acumulación media:</strong> ${medium10} medios sin altos. Probable salto a 3x+.`;
                 }
             }
 
-            // 3. SEÑALES 10x+ (1-2 por sesión)
-            if (currentSession.signals10x < CONFIG.SIGNALS_10X && recommendedMult === 0) {
-                if (instalossCount >= 2 && highCount === 0 && avgMult < 2.0 && volatility > 1.5 && trend === 'DOWN') {
+            // PRIORIDAD 3: SEÑALES 10x+
+            if (currentSession.signals10x < CONFIG.SIGNALS_10X_MAX && recommendedMult === 0) {
+                // Condición 1: Múltiples instalosses + sin altos + volatilidad alta
+                if (instaloss10 >= 3 && high10 === 0 && volatility > 1.8) {
                     recommendedMult = 12.00;
-                    confidence = 90;
-                    signalType = '💎 SEÑAL ULTRA 10x+';
-                    boxColor = 'purple';
-                    alertType = 'purple';
-                    alertMessage = '💎 <strong>¡SEÑAL ESPECIAL IA!</strong> Patrón raro detectado. Alta volatilidad + bajos = oportunidad 10x+.';
-                    soundType = '10x';
-                    currentSession.signals10x++;
-                } else if (stats.instalossCount >= 5 && highCount === 0 && timeSinceLastSignal > 120000) {
-                    recommendedMult = 15.00;
                     confidence = 88;
-                    signalType = '💎 SEÑAL ULTRA 10x+';
+                    signalType = '💎 SEÑAL 10x+';
                     boxColor = 'purple';
                     alertType = 'purple';
-                    alertMessage = '💎 <strong>¡ALERTA IA!</strong> Múltiples instalosses sin altos. Sistema debe compensar con 10x+.';
                     soundType = '10x';
                     currentSession.signals10x++;
+                    alertMessage = `💎 <strong>¡OPORTUNIDAD ULTRA!</strong> ${instaloss10} instalosses + alta volatilidad. Target 10x+.`;
+                }
+                // Condición 2: Promedio extremadamente bajo + muchos bajos
+                else if (avg10 < 1.8 && low5 >= 4) {
+                    recommendedMult = 15.00;
+                    confidence = 85;
+                    signalType = '💎 SEÑAL 10x+';
+                    boxColor = 'purple';
+                    alertType = 'purple';
+                    soundType = '10x';
+                    currentSession.signals10x++;
+                    alertMessage = `💎 <strong>¡PATRÓN RARO!</strong> Promedio ${avg10.toFixed(2)}x extremadamente bajo. Compensación 10x+ probable.`;
                 }
             }
 
-            // 4. ESPERAR (Cooldown o sin condiciones)
-            if (recommendedMult === 0) {
-                if (stats.inCooldown) {
-                    signalType = '⏸️ MODO ESPERA';
-                    boxColor = 'yellow';
-                    alertType = 'warning';
-                    alertMessage = `⏸️ <strong>IA EN COOLDOWN:</strong> Esperar ${stats.cooldownCounter} ronda(s) más.`;
-                } else if (highCount >= 3) {
-                    signalType = '⚠️ ALTO RIESGO';
-                    boxColor = 'yellow';
-                    alertType = 'warning';
-                    alertMessage = '⚠️ <strong>IA ADVIERTE:</strong> Múltiples altos detectados. Sistema podría compensar.';
-                } else {
-                    recommendedMult = 1.50;
-                    confidence = 75;
-                    signalType = 'ℹ️ SEÑAL ESTÁNDAR';
-                    boxColor = 'green';
-                    alertType = 'success';
-                    alertMessage = 'ℹ️ <strong>IA:</strong> Condiciones normales. Juego conservador recomendado.';
-                }
-            }
+            // VALIDAR CONFIANZA MÍNIMA
+            if (confidence > 0 && confidence >= CONFIG.MIN_CONFIDENCE) {
+                // EMITIR SEÑAL
+                lastSignalTime = now;
+                currentSession.totalSignals++;
 
-            // Verificar confianza mínima
-            if (confidence > 0 && confidence < CONFIG.MIN_CONFIDENCE) {
-                recommendedMult = 0;
-                signalType = '⚠️ CONFIANZA BAJA';
-                alertMessage = '⚠️ <strong>IA:</strong> Confianza insuficiente. Esperando mejores condiciones.';
-            }
-
-            // Emitir señal si es válida
-            if (recommendedMult > 0 && confidence >= CONFIG.MIN_CONFIDENCE) {
-                currentSignal = {
+                // Registrar en historial
+                signalHistory.push({
+                    timestamp: now,
                     mult: recommendedMult,
                     confidence: confidence,
-                    type: signalType,
-                    timestamp: now
-                };
-                lastSignalTimestamp = now;
-                stats.totalSignals++;
+                    type: signalType
+                });
 
                 // Reproducir sonido
                 if (soundType) {
                     playSignalSound(soundType);
                 }
+
+                // Actualizar última señal en historial
+                if (gameHistory.length > 0) {
+                    gameHistory[0].signalSent = `${recommendedMult.toFixed(2)}x`;
+                }
+
+                console.log(`🎯 SEÑAL EMITIDA: ${recommendedMult.toFixed(2)}x con ${confidence}% confianza`);
+            } else {
+                // SIN SEÑAL
+                recommendedMult = 0;
+                confidence = 0;
+                signalType = 'ℹ️ ANALIZANDO';
+                alertMessage = 'ℹ️ <strong>IA analizando...</strong> Esperando condiciones óptimas para próxima señal.';
             }
 
             updateSignalDisplay(recommendedMult, confidence, alertType, alertMessage, boxColor, signalType);
             updateSessionDisplay();
-        }
-
-        function resetSession() {
-            console.log('🔄 Reseteando sesión...');
-            currentSession = {
-                rounds: 0,
-                signals170: 0,
-                signals3x: 0,
-                signals10x: 0,
-                hits: 0,
-                startTime: Date.now()
-            };
-            showAlert('🔄 <strong>NUEVA SESIÓN:</strong> Iniciando análisis de 60 nuevas rondas.', 'success');
         }
 
         function updateSignalDisplay(mult, conf, alertType, message, boxColor, signalTypeText) {
@@ -1119,23 +1128,21 @@
             const progress = (currentSession.rounds / CONFIG.SESSION_SIZE) * 100;
             document.getElementById('sessionProgress').style.width = progress + '%';
             document.getElementById('sessionProgress').textContent = `${currentSession.rounds}/${CONFIG.SESSION_SIZE}`;
-            document.getElementById('signals170').textContent = `${currentSession.signals170}/${CONFIG.SIGNALS_170}`;
-            document.getElementById('signals3x').textContent = `${currentSession.signals3x}/${CONFIG.SIGNALS_3X}`;
-            document.getElementById('signals10x').textContent = `${currentSession.signals10x}/${CONFIG.SIGNALS_10X}`;
-            document.getElementById('sessionHits').textContent = currentSession.hits;
+            document.getElementById('signals170').textContent = `${currentSession.signals170}/${CONFIG.SIGNALS_170_MAX}`;
+            document.getElementById('signals3x').textContent = `${currentSession.signals3x}/${CONFIG.SIGNALS_3X_MAX}`;
+            document.getElementById('signals10x').textContent = `${currentSession.signals10x}/${CONFIG.SIGNALS_10X_MAX}`;
+            
+            const hitRate = currentSession.totalSignals > 0 ? ((currentSession.hits / currentSession.totalSignals) * 100).toFixed(0) : 0;
+            document.getElementById('sessionHits').textContent = hitRate + '%';
         }
 
         function updateUI() {
             document.getElementById('resultsToday').textContent = stats.resultsToday;
-            document.getElementById('totalAnalyzed').textContent = gameHistory.length;
+            document.getElementById('totalSignals').textContent = currentSession.totalSignals;
             document.getElementById('instalossCount').textContent = stats.instalossCount;
             document.getElementById('highMultCount').textContent = stats.highMultCount;
-            document.getElementById('cooldownStatus').textContent = stats.inCooldown ? 'SÍ' : 'NO';
-
-            const aiAccuracy = stats.totalSignals > 0
-                ? ((stats.successfulSignals / stats.totalSignals) * 100).toFixed(1)
-                : '0.0';
-            document.getElementById('aiAccuracy').textContent = aiAccuracy + '%';
+            document.getElementById('mediumCount').textContent = stats.mediumCount;
+            document.getElementById('ultraCount').textContent = stats.ultraCount;
 
             if (gameHistory.length > 0) {
                 const last = gameHistory[0];
@@ -1158,8 +1165,7 @@
                 return;
             }
 
-            const sessionData = gameHistory.slice(0, currentSession.rounds);
-            sessionData.forEach((result, index) => {
+            gameHistory.forEach((result, index) => {
                 const row = tbody.insertRow();
                 let typeClass = 'medium';
                 
@@ -1168,13 +1174,15 @@
                 else if (result.type === 'ALTO') typeClass = 'high';
                 else if (result.type === 'MEDIO') typeClass = 'high';
 
+                const outcome = result.signalSent ? '⏳ Pendiente' : '--';
+
                 row.innerHTML = `
                     <td>${index + 1}</td>
                     <td>${result.timestamp.toLocaleTimeString('es-VE')}</td>
                     <td><span class="multiplier ${typeClass}">${result.multiplier.toFixed(2)}x</span></td>
                     <td>${result.type}</td>
-                    <td>${result.signalSent || '—'}</td>
-                    <td>${result.outcome || '⏳'}</td>
+                    <td>${result.signalSent || '--'}</td>
+                    <td>${outcome}</td>
                 `;
             });
         }
@@ -1198,21 +1206,27 @@
             }
         }
 
+        // Countdown
         setInterval(() => {
             const countdownEl = document.getElementById('countdown');
             if (gameHistory.length > 0) {
                 const last = gameHistory[0];
                 const elapsed = Math.floor((Date.now() - last.ts) / 1000);
-                countdownEl.textContent = `Última captura hace ${elapsed}s`;
+                countdownEl.textContent = `Última ronda hace ${elapsed}s`;
             } else {
                 countdownEl.textContent = 'Esperando datos...';
             }
+
+            // Re-analizar cada 20 segundos
+            if (elapsed % 20 === 0 && gameHistory.length >= 10) {
+                runAggressiveAI();
+            }
         }, 1000);
 
-        // INICIAR SISTEMA
+        // INICIAR
         tryAllPaths();
 
-        console.log('✅ Sistema IA inicializado');
+        console.log('✅ IA Agresiva lista');
     </script>
 </body>
 </html>
