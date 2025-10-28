@@ -496,12 +496,10 @@
         <span>Conectando a Firebase...</span>
     </div>
 
-    <!-- Firebase SDK v9 -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getDatabase, ref, onValue, query, orderByKey, limitToLast } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+        import { getDatabase, ref, onValue, query, orderByKey, limitToLast, get } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
-        // ===== CONFIGURACIÓN =====
         const firebaseConfig = {
             apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
             databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com",
@@ -518,7 +516,6 @@
             COOLDOWN_ROUNDS: 2
         };
 
-        // ===== ESTADO GLOBAL =====
         let gameHistory = [];
         let stats = {
             resultsToday: 0,
@@ -530,79 +527,106 @@
             cooldownCounter: 0
         };
 
-        // ===== INICIALIZACIÓN FIREBASE =====
         console.log('🔥 Inicializando Firebase...');
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        updateConnectionStatus('🟡 Conectando...', false);
+        updateConnectionStatus('🟡 Buscando datos...', false);
 
-        // ===== ESCUCHAR CRASHES EN TIEMPO REAL =====
-        const crashesRef = ref(db, 'crashes');
-        
-        console.log('📡 Configurando listener en /crashes...');
+        // INTENTAR MÚLTIPLES RUTAS
+        const possiblePaths = [
+            'feeds/gocho/crashes',
+            'crashes', 
+            'historial',
+            'last_final'
+        ];
 
-        onValue(crashesRef, (snapshot) => {
-            try {
-                console.log('📊 Snapshot recibido');
-                
-                if (snapshot.exists()) {
-                    const data = snapshot.val();
-                    console.log('✅ Datos encontrados:', data);
+        async function tryAllPaths() {
+            for (const path of possiblePaths) {
+                console.log(`📡 Intentando leer desde: /${path}`);
+                try {
+                    const testRef = ref(db, path);
+                    const snapshot = await get(testRef);
                     
-                    // Convertir objeto a array
-                    const crashesArray = Object.entries(data).map(([key, value]) => {
-                        // Extraer valor (v o value) y timestamp (t o ts)
-                        const crashValue = value.value || value.v || parseFloat(key.split('_')[0]) || 0;
-                        const crashTime = value.t || value.ts || parseInt(key) || Date.now();
-                        
-                        return {
-                            key: key,
-                            value: parseFloat(crashValue),
-                            timestamp: crashTime
-                        };
-                    });
-
-                    // Ordenar por timestamp descendente (más reciente primero)
-                    crashesArray.sort((a, b) => b.timestamp - a.timestamp);
-                    
-                    console.log(`📈 Procesados ${crashesArray.length} crashes`);
-                    
-                    // Actualizar historial
-                    gameHistory = crashesArray.slice(0, 100).map((crash, index) => ({
-                        id: index + 1,
-                        ts: crash.timestamp,
-                        timestamp: new Date(crash.timestamp),
-                        multiplier: crash.value,
-                        type: classifyMultiplier(crash.value),
-                        signalSent: null,
-                        outcome: null
-                    }));
-
-                    stats.resultsToday = gameHistory.length;
-                    
-                    updateConnectionStatus('🟢 CONECTADO', true);
-                    updateUI();
-                    analyzeAndPredict();
-                    
-                } else {
-                    console.log('⚠️ No hay datos en /crashes');
-                    updateConnectionStatus('🟡 Sin datos', false);
-                    showAlert('⚠️ <strong>No hay datos:</strong> Asegúrate de que la extensión esté capturando en 1win.', 'warning');
+                    if (snapshot.exists()) {
+                        console.log(`✅ ¡Datos encontrados en /${path}!`);
+                        listenToPath(path);
+                        return;
+                    } else {
+                        console.log(`⚠️ Ruta /${path} está vacía`);
+                    }
+                } catch (error) {
+                    console.error(`❌ Error en /${path}:`, error.message);
                 }
-            } catch (error) {
-                console.error('❌ Error procesando snapshot:', error);
-                updateConnectionStatus('🔴 ERROR', false);
             }
-        }, (error) => {
-            console.error('❌ Error al leer Firebase:', error);
-            console.error('Código:', error.code);
-            console.error('Mensaje:', error.message);
-            updateConnectionStatus('🔴 ERROR', false);
-            showAlert(`❌ <strong>Error de conexión:</strong> ${error.message}`, 'warning');
-        });
+            
+            console.log('❌ No se encontraron datos en ninguna ruta');
+            updateConnectionStatus('🔴 SIN DATOS', false);
+            showAlert('❌ <strong>No hay datos capturados aún.</strong> Abre 1win y juega Aviator con la extensión activada.', 'warning');
+        }
 
-        // ===== CLASIFICACIÓN DE MULTIPLICADORES =====
+        function listenToPath(path) {
+            const dataRef = ref(db, path);
+            
+            onValue(dataRef, (snapshot) => {
+                try {
+                    if (snapshot.exists()) {
+                        const data = snapshot.val();
+                        console.log(`📊 Datos recibidos de /${path}:`, data);
+                        
+                        processData(data);
+                        updateConnectionStatus('🟢 CONECTADO', true);
+                        updateUI();
+                        analyzeAndPredict();
+                    }
+                } catch (error) {
+                    console.error('❌ Error procesando datos:', error);
+                }
+            }, (error) => {
+                console.error(`❌ Error en listener de /${path}:`, error);
+                updateConnectionStatus('🔴 ERROR', false);
+            });
+        }
+
+        function processData(data) {
+            const crashesArray = [];
+            
+            // Procesar objeto de Firebase
+            for (const [key, value] of Object.entries(data)) {
+                let crashValue, crashTime;
+                
+                if (typeof value === 'object') {
+                    crashValue = value.v || value.value || value.multiplier || 0;
+                    crashTime = value.ts || value.t || value.i || value.timestamp || parseInt(key) || Date.now();
+                } else {
+                    crashValue = parseFloat(value);
+                    crashTime = parseInt(key) || Date.now();
+                }
+                
+                if (crashValue > 0 && crashValue < 1000) {
+                    crashesArray.push({
+                        value: parseFloat(crashValue),
+                        timestamp: crashTime
+                    });
+                }
+            }
+
+            crashesArray.sort((a, b) => b.timestamp - a.timestamp);
+            
+            gameHistory = crashesArray.slice(0, 100).map((crash, index) => ({
+                id: index + 1,
+                ts: crash.timestamp,
+                timestamp: new Date(crash.timestamp),
+                multiplier: crash.value,
+                type: classifyMultiplier(crash.value),
+                signalSent: null,
+                outcome: null
+            }));
+
+            stats.resultsToday = gameHistory.length;
+            console.log(`✅ Procesados ${gameHistory.length} crashes`);
+        }
+
         function classifyMultiplier(mult) {
             mult = parseFloat(mult);
             if (isNaN(mult)) return 'DESCONOCIDO';
@@ -618,10 +642,9 @@
             }
         }
 
-        // ===== ANÁLISIS Y PREDICCIÓN =====
         function analyzeAndPredict() {
             if (gameHistory.length < 5) {
-                showAlert('⏳ <strong>Recolectando datos iniciales...</strong> Se necesitan al menos 10 resultados para análisis predictivo.', 'warning');
+                showAlert('⏳ <strong>Recolectando datos...</strong> Se necesitan al menos 10 resultados.', 'warning');
                 return;
             }
 
@@ -630,27 +653,22 @@
             const highInLast10 = last10.filter(r => r.type === 'ALTO').length;
             const avg = last10.reduce((sum, r) => sum + r.multiplier, 0) / last10.length;
 
-            // Actualizar estadísticas
             stats.instalossCount = gameHistory.filter(r => r.type === 'INSTALOSS').length;
             stats.highMultCount = gameHistory.filter(r => r.type === 'ALTO').length;
 
-            // Gestionar cooldown
             if (stats.inCooldown && stats.cooldownCounter > 0) {
                 stats.cooldownCounter--;
                 if (stats.cooldownCounter === 0) stats.inCooldown = false;
             }
 
-            // Activar cooldown si hay instaloss reciente
             if (last10.length > 0 && last10[0].type === 'INSTALOSS') {
                 stats.inCooldown = true;
                 stats.cooldownCounter = CONFIG.COOLDOWN_ROUNDS;
             }
 
-            // Generar señal
             generateSignal(instalossInLast10, highInLast10, avg);
         }
 
-        // ===== GENERACIÓN DE SEÑALES =====
         function generateSignal(instalossCount, highCount, avgMult) {
             let recommendedMult = 1.50;
             let confidence = 85;
@@ -663,37 +681,37 @@
                 confidence = 0;
                 alertType = 'warning';
                 boxColor = 'yellow';
-                alertMessage = `⏸️ <strong>Modo Cooldown:</strong> Esperar ${stats.cooldownCounter} ronda(s) más tras instaloss detectado.`;
+                alertMessage = `⏸️ <strong>Modo Cooldown:</strong> Esperar ${stats.cooldownCounter} ronda(s).`;
             } else if (instalossCount >= 2) {
                 recommendedMult = 1.50;
                 confidence = 95;
                 alertType = 'success';
                 boxColor = 'green';
-                alertMessage = '✅ <strong>Patrón de Recuperación:</strong> Múltiples instaloss detectados. Alta probabilidad de multiplicador seguro.';
+                alertMessage = '✅ <strong>Recuperación:</strong> Alta probabilidad de multiplicador seguro.';
             } else if (highCount >= 3) {
                 recommendedMult = 0;
                 confidence = 0;
                 alertType = 'warning';
                 boxColor = 'yellow';
-                alertMessage = '⚠️ <strong>ALERTA ROJA:</strong> Sistema distribuyó múltiples altos. Probable compensación inminente.';
+                alertMessage = '⚠️ <strong>ALERTA:</strong> Múltiples altos detectados.';
             } else if (avgMult < 1.8) {
                 recommendedMult = 2.00;
                 confidence = 78;
                 alertType = 'success';
                 boxColor = 'green';
-                alertMessage = '📊 <strong>Promedio Bajo:</strong> Estadística indica probabilidad de multiplicador medio-alto próximo.';
+                alertMessage = '📊 <strong>Promedio Bajo:</strong> Probabilidad de multiplicador medio.';
             } else if (avgMult > 3.5) {
                 recommendedMult = 1.20;
                 confidence = 90;
                 alertType = 'warning';
                 boxColor = 'yellow';
-                alertMessage = '⚠️ <strong>Promedio Elevado:</strong> Jugar ultra-conservador. Sistema podría corregir.';
+                alertMessage = '⚠️ <strong>Promedio Alto:</strong> Jugar conservador.';
             } else {
                 recommendedMult = 1.50;
                 confidence = 85;
                 alertType = 'success';
                 boxColor = 'green';
-                alertMessage = '✅ <strong>Patrón Estándar:</strong> Condiciones normales. Multiplicador seguro recomendado.';
+                alertMessage = '✅ <strong>Patrón Normal:</strong> Multiplicador seguro recomendado.';
             }
 
             updateSignalDisplay(recommendedMult, confidence, alertType, alertMessage, boxColor);
@@ -703,7 +721,6 @@
             }
         }
 
-        // ===== ACTUALIZAR DISPLAY DE SEÑALES =====
         function updateSignalDisplay(mult, conf, alertType, message, boxColor) {
             const signalBox = document.getElementById('signalBox');
             const signalMultiplier = document.getElementById('signalMultiplier');
@@ -711,13 +728,7 @@
             const alertBox = document.getElementById('alertBox');
 
             signalBox.className = `signal-box ${boxColor}`;
-
-            if (mult === 0) {
-                signalMultiplier.textContent = 'ESPERAR';
-            } else {
-                signalMultiplier.textContent = mult.toFixed(2) + 'x';
-            }
-
+            signalMultiplier.textContent = mult === 0 ? 'ESPERAR' : mult.toFixed(2) + 'x';
             confidence.textContent = conf + '%';
             alertBox.className = 'alert ' + alertType;
             alertBox.innerHTML = message;
@@ -725,7 +736,6 @@
             updatePatternIndicator(mult);
         }
 
-        // ===== ACTUALIZAR PATTERN INDICATOR =====
         function updatePatternIndicator(mult) {
             const dots = document.querySelectorAll('.pattern-dot');
             dots.forEach((dot, i) => {
@@ -737,7 +747,6 @@
             });
         }
 
-        // ===== ACTUALIZAR UI COMPLETA =====
         function updateUI() {
             document.getElementById('resultsToday').textContent = stats.resultsToday;
             document.getElementById('totalAnalyzed').textContent = gameHistory.length;
@@ -762,13 +771,12 @@
             updateHistoryTable();
         }
 
-        // ===== ACTUALIZAR TABLA DE HISTORIAL =====
         function updateHistoryTable() {
             const tbody = document.getElementById('historyTableBody');
             tbody.innerHTML = '';
 
             if (gameHistory.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="opacity: 0.6; padding: 30px;">Sin datos aún...</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="opacity: 0.6; padding: 30px;">Sin datos...</td></tr>';
                 return;
             }
 
@@ -789,7 +797,6 @@
             });
         }
 
-        // ===== ACTUALIZAR ESTADO DE CONEXIÓN =====
         function updateConnectionStatus(text, connected) {
             const statusEl = document.getElementById('connectionStatus');
             const fbStatusEl = document.getElementById('fbStatus');
@@ -801,7 +808,6 @@
             }
         }
 
-        // ===== MOSTRAR ALERTA =====
         function showAlert(message, type) {
             const alertBox = document.getElementById('alertBox');
             if (alertBox) {
@@ -810,7 +816,6 @@
             }
         }
 
-        // ===== COUNTDOWN =====
         setInterval(() => {
             const countdownEl = document.getElementById('countdown');
             if (gameHistory.length > 0) {
@@ -818,11 +823,14 @@
                 const elapsed = Math.floor((Date.now() - last.ts) / 1000);
                 countdownEl.textContent = `Última captura hace ${elapsed}s`;
             } else {
-                countdownEl.textContent = 'Esperando primera captura...';
+                countdownEl.textContent = 'Esperando datos...';
             }
         }, 1000);
 
-        console.log('✅ Sistema inicializado y escuchando Firebase');
+        // INICIAR
+        tryAllPaths();
+
+        console.log('✅ Sistema listo');
     </script>
 </body>
 </html>
