@@ -1,602 +1,237 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Gocho v5.2.0</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gocho v26.6b • 3 señales óptimas / sesión (conexión robusta)</title>
 <style>
-  :root{
-    --bg:#0f1115; --panel:#171a20; --muted:#98a2b3; --text:#eaeef5;
-    --ok:#2ecc71; --warn:#e67e22; --bad:#e74c3c; --brand:#8ab4ff; --pink:#ff5ac3;
-    --chip:#232837; --chip-on:#3b4257;
-  }
-  html,body{background:var(--bg);color:var(--text);font:14px/1.4 system-ui,Inter,Segoe UI,Roboto,Arial,sans-serif;margin:0}
-  .wrap{max-width:1080px;margin:20px auto;padding:0 12px}
-  .card{background:var(--panel);border-radius:12px;padding:14px;margin:10px 0;border:1px solid #222836}
-  h1{font-size:18px;margin:0 0 8px 0;display:flex;gap:8px;align-items:center}
-  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .grow{flex:1}
-  .chip{padding:6px 10px;border-radius:999px;background:var(--chip);cursor:pointer;user-select:none}
-  .chip.on{background:var(--chip-on)}
-  .btn{background:#2a3042;color:var(--text);border:0;border-radius:8px;padding:8px 12px;cursor:pointer}
-  .btn.primary{background:#3c4360}
-  .btn.ok{background:var(--ok);color:#0c0f12;font-weight:700}
-  .btn.bad{background:var(--bad)}
-  .btn.pink{background:var(--pink);color:#190818;font-weight:700}
-  .muted{color:var(--muted)}
-  label{display:inline-flex;gap:6px;align-items:center}
-  input[type="number"]{width:72px;background:#0f121a;color:var(--text);border:1px solid #2a3144;border-radius:6px;padding:6px}
-  input[type="text"]{width:140px;background:#0f121a;color:var(--text);border:1px solid #2a3144;border-radius:6px;padding:6px}
-  input[type="range"]{width:180px}
-  .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#1f2432;margin:2px}
-  .pill.win{background:rgba(46,204,113,.15);color:#7ff5b0;border:1px solid rgba(46,204,113,.4)}
-  .pill.lose{background:rgba(231,76,60,.12);color:#ff9b9b;border:1px solid rgba(231,76,60,.35)}
-  .pill.neu{background:#1c2130}
-  .table{width:100%;border-collapse:collapse;font-size:13px}
-  .table th,.table td{padding:8px;border-bottom:1px solid #22283a;text-align:left}
-  .kpi{display:flex;gap:16px;flex-wrap:wrap}
-  .kpi .box{background:#0f121a;border:1px solid #22283a;border-radius:10px;padding:10px 12px}
-  .flag{padding:4px 8px;border-radius:6px;background:#22283a}
-  .flag.ok{background:rgba(46,204,113,.15);color:#7ff5b0}
-  .flag.bad{background:rgba(231,76,60,.12);color:#ff9b9b}
-  .flag.warn{background:rgba(230,126,34,.12);color:#ffbf7a}
-  .flag.pink{background:rgba(255,90,195,.14);color:#ffb2e3}
+:root{--bg:#0b0f14;--panel:#121821;--line:#1e2633;--text:#e7edf5;--mut:#8fa1b2;
+--cyan:#5ad7ff;--pink:#ff6aa9;--amber:#ffc857;--green:#42d392;--red:#ff6b6b;
+--chipB:#0f2431;--chipP:#1b1634;--chipR:#2a0f1c}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px system-ui,Segoe UI,Roboto}
+.container{max-width:1280px;margin:16px auto;padding:0 12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:12px}
+h3{margin:0 0 8px;color:var(--mut);font-size:12px;letter-spacing:.4px;text-transform:uppercase}
+.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+input,select,button{border-radius:10px;border:1px solid var(--line);background:#0c1219;color:var(--text);padding:7px 10px}
+button{cursor:pointer}button.red{background:#2b1416;color:#ffd7dc;border-color:#4a2226}
+.badge{padding:4px 8px;border:1px solid var(--line);border-radius:999px;background:#0c121a;color:var(--mut);font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+.col-6{grid-column:span 6}.col-12{grid-column:span 12}
+@media(max-width:1000px){.col-6{grid-column:span 12}}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:6px 8px;border-radius:10px;font-weight:800;font-size:12px}
+.chip.blue{background:var(--chipB);color:#9ee1ff}
+.chip.purple{background:var(--chipP);color:#d7c7ff}
+.chip.pink{background:var(--chipR);color:#ffc2da}
+.table{width:100%;border-collapse:separate;border-spacing:0 6px}
+.table th{color:var(--mut);font-size:12px;text-align:left;padding:6px}
+.table td{padding:9px;background:#0c1218;border:1px solid var(--line)}
+.table tr td:first-child{border-radius:8px 0 0 8px}.table tr td:last-child{border-radius:0 8px 8px 0}
+.tag{padding:2px 8px;border-radius:999px;border:1px solid var(--line);font-weight:800;font-size:12px}
+.tag.auto{background:#0f1f2b;color:#9dd8ff}.tag.rosa{background:#2a0f1c;color:#ffb3cf}
+.state.win{color:#c9ffd8}.state.lose{color:#ffb3b3}.state.pend{color:#ffe0a6}
+.small{color:var(--mut)} .ok{color:#90ffcf}.err{color:#ffb3b3}
+.canvas{height:220px}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>✈️ Aviator Analyzer • <span style="color:#8ab4ff">Gocho v5.2.0</span></h1>
-
+<div class="container">
   <div class="card">
-    <div class="row">
-      <div class="row">
-        <span class="muted">Objetivo</span>
-        <div id="objChips" class="row">
-          <div data-v="2"   class="chip on">2x</div>
-          <div data-v="2.5" class="chip">2.5x</div>
-          <div data-v="3"   class="chip">3x</div>
-          <div data-v="3.5" class="chip">3.5x</div>
-          <div data-v="4"   class="chip">4x</div>
-          <div data-v="5"   class="chip">5x</div>
-        </div>
-      </div>
-
-      <div class="row" style="margin-left:8px">
-        <span class="muted">Modo:</span>
-        <div id="modeChips" class="row">
-          <div data-m="agresivo"     class="chip">Agresivo</div>
-          <div data-m="normal"       class="chip on">Normal</div>
-          <div data-m="conservador"  class="chip">Conservador</div>
-        </div>
-        <label style="margin-left:8px"><input id="autoSignal" type="checkbox" checked> Auto‑señal</label>
-      </div>
-
-      <div class="row" style="margin-left:auto">
-        <span class="muted">Conf. mín.:</span>
-        <input id="minConf" type="range" min="50" max="95" value="80"/>
-        <span id="minConfVal">80%</span>
-        <span class="muted" style="margin-left:8px">CoolDown:</span>
-        <input id="cooldown" type="number" min="0" max="50" value="8"/>
-      </div>
+    <div class="controls">
+      <strong>Gocho Analyzer v26.6b</strong>
+      <span class="badge" id="clock">—</span>
+      <span style="flex:1"></span>
+      <label class="small"><input id="swBeep" type="checkbox"> Beep</label>
+      <label class="small"><input id="swAutoSession" type="checkbox" checked> Auto-sesión</label>
+      <label class="small"><input id="swAutoSignal" type="checkbox" checked> Auto-señal ≥1.70</label>
+      <label class="small"><input id="swRosa" type="checkbox" checked> Caza ROSA ≥10x (1/sesión)</label>
+      <button id="btnTest">Test feed</button>
+      <button id="btnStop" class="red">Desconectar</button>
     </div>
-
-    <div class="row" style="margin-top:10px">
-      <button id="startBtn" class="btn ok">Iniciar sesión</button>
-      <button id="stopBtn" class="btn">Cerrar sesión</button>
-      <button id="resetBtn" class="btn">Reset</button>
-
-      <div class="row" style="margin-left:10px">
-        <label><input id="beepToggle" type="checkbox" checked> Beep señal</label>
-      </div>
-
-      <div class="row" style="margin-left:auto">
-        <span class="muted">Feed:</span>
-        <input id="feedId" type="text" value="gocho"/>
-        <button id="connectBtn" class="btn">Conectar feed</button>
-        <button id="disconnectBtn" class="btn">Desconectar</button>
-      </div>
-    </div>
+    <div class="small">Entradas aceptadas: <code>BroadcastChannel("gocho"|"aviator")</code>, <code>postMessage</code>, <code>localStorage</code>, <code>CustomEvent</code>, <code>window.gochoPush(x)</code>. Fuente activa: <b id="src">—</b></div>
   </div>
 
   <div class="card">
-    <div class="kpi">
-      <div class="box">Rondas: <b id="rounds">0</b> <span class="muted">(base)</span></div>
-      <div class="box">P(≥2x): <b id="p2">0%</b></div>
-      <div class="box">P(≥2.5x): <b id="p25">0%</b></div>
-      <div class="box">P(≥3x): <b id="p3">0%</b></div>
-      <div class="box">P(≥5x): <b id="p5">0%</b></div>
-      <div class="box">P(≥10x): <b id="p10">0%</b></div>
-      <div class="box">MA10: <b id="ma10">–</b></div>
-      <div class="box">Racha &lt;1.70: <b id="badRun">0</b></div>
-      <div class="box">CoolDown: <b id="cdLeft">0</b></div>
-      <div class="box">Señales: <b id="signals">0</b></div>
-    </div>
-
-    <div class="row" style="margin-top:10px;gap:8px">
-      <span id="zoneFlag" class="flag">Sin señal</span>
-      <span id="hiFlag"   class="flag pink" style="display:none">Radar ALTO listo…</span>
-      <span id="lastSignal" class="flag ok" style="display:none">Señal emitida</span>
-    </div>
-
-    <div style="margin-top:12px">
-      <div class="muted" style="margin-bottom:6px">Últimas rondas (más reciente primero)</div>
-      <div id="lastRounds"></div>
-    </div>
+    <h3>Historial de rondas (Azul &lt;2.00 • Morado 2.00–9.99 • Rosa ≥10)</h3>
+    <div id="chips" class="chips"></div>
   </div>
 
-  <div class="card">
-    <div class="row">
-      <h3 style="margin:0">Apuestas registradas</h3>
-      <div class="row" style="margin-left:auto;gap:6px">
-        <button id="hardResetBtn" class="btn bad" title="Borra solo el modelo local (no la historia del feed)">Hard reset modelo (local)</button>
-        <label><input id="autoBackup" type="checkbox"/> Auto‑backup modelo</label>
-        <button id="saveModelBtn" class="btn">Guardar modelo</button>
-        <button id="loadModelBtn" class="btn">Restaurar modelo</button>
+  <div class="grid">
+    <div class="card col-6">
+      <h3>Señales (Sesión <span id="sessId">1</span> • ronda <span id="sessRound">0</span>/60 • <span id="sessUsed">0</span>/3)</h3>
+      <table class="table"><thead><tr>
+        <th>#</th><th>Sesión</th><th>Ronda</th><th>Tag</th><th>Objetivo</th><th>Hora</th><th>Crash</th><th>Estado</th>
+      </tr></thead><tbody id="signals"></tbody></table>
+    </div>
+    <div class="card col-6">
+      <h3>Reseña</h3>
+      <div id="log" style="height:260px;overflow:auto;background:#0c1218;border:1px solid var(--line);border-radius:8px;padding:8px"></div>
+      <div class="small" style="margin-top:6px">
+        Si el capturador no publica, puedes usar este bookmarklet en la pestaña del juego:
+        <code>javascript:(()=>{const bc=new BroadcastChannel('gocho');setInterval(()=>{const t=[1+Math.random()*1.2,1.2+Math.random()*5.3,10+Math.random()*40];const x=(Math.random()<.1?t[2]:(Math.random()<.6?t[0]:t[1])).toFixed(2);bc.postMessage(parseFloat(x));},1200)})()</code>
       </div>
     </div>
-    <table class="table" style="margin-top:8px">
-      <thead>
-        <tr><th>#</th><th>Objetivo</th><th>Stake</th><th>Crash</th><th>Resultado</th><th>P/L</th></tr>
-      </thead>
-      <tbody id="betsTbody"></tbody>
-    </table>
-  </div>
-
-  <div class="card">
-    <h3 style="margin:0 0 10px 0">Opcionales</h3>
-    <div class="row">
-      <label><input id="modeEV" type="checkbox"> Modo Pro (EV): elegir 2x/2.5x/3x automáticamente si EV &gt; 0</label>
-    </div>
-    <div class="row" style="margin-top:8px">
-      <span class="muted">Radar altos:</span>
-      <label> ≥10x <input id="thr10" type="number" value="8" min="1" max="50"/>%</label>
-      <label> ≥20x <input id="thr20" type="number" value="4" min="1" max="50"/>%</label>
-      <label> ≥50x <input id="thr50" type="number" value="1.5" min="0.1" max="20" step="0.1"/>%</label>
-      <label> ≥100x <input id="thr100" type="number" value="0.6" min="0.05" max="10" step="0.05"/>%</label>
-      <span class="muted"> (solo alerta rosa; no cambia tu objetivo)</span>
-    </div>
-  </div>
-
-  <div class="card muted" style="font-size:12px">
-    Uso educativo/análisis. No garantiza resultados. “Ganada” = crash &gt; objetivo (igual o menor = pérdida), según tu regla.
   </div>
 </div>
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-
 <script>
-/*** ===== CONFIG FIREBASE (TU PROYECTO) ===== ***/
-const firebaseConfig = {
-  apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
-  authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
-  projectId: "aviator-analyzer-b29a7",
-  storageBucket: "aviator-analyzer-b29a7.firebasestorage.app",
-  messagingSenderId: "575063626276",
-  appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
-  measurementId: "G-325QCBSQMH",
-  databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com"
-};
-firebase.initializeApp(firebaseConfig);
-const db  = firebase.database();
-const auth= firebase.auth();
+/*** util ***/
+const $=s=>document.querySelector(s);
+const logEl=$("#log"), chips=$("#chips");
+const beepOn = ()=>$("#swBeep").checked;
+const tone=(f=880,ms=140,vol=.035)=>{ if(!beepOn())return; const a=new (window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();o.frequency.value=f;o.type='sine';g.gain.value=vol;o.connect(g).connect(a.destination);o.start();setTimeout(()=>o.stop(),ms);};
+const now=()=>new Date().toLocaleTimeString();
+function log(msg,cls){const d=document.createElement('div');d.textContent='['+now()+'] '+msg;if(cls)d.className=cls;logEl.appendChild(d);logEl.scrollTop=logEl.scrollHeight;}
+setInterval(()=>$("#clock").textContent=now(),1000);
 
-/*** ====== ESTADO UI/MODELO ====== ***/
-let FEED_ID = "gocho";
-let connected = false;
-let rounds = [];           // lista completa (valor reciente al final)
-let lastShown = [];        // para el “Últimas rondas”
-let sub = null;            // suscripción child_added
-let baseCount = 0;
-
-let pendings = [];         // [{id, target, stake, ts}]
-let bets = [];             // historial visible
-let signalsCount = 0;
-let cooldownLeft = 0;
-
-const model = {
-  // priors bayesianos por umbral
-  priors: { "2": [10,10], "2.5":[8,10], "3":[6,10], "5":[3,9], "10":[1.5,8.5] },
-  // ventana base para probabilidades (adaptativa simple)
-  winN: 120,
-  // pesos/flags internos (se pueden ajustar con backup/restore)
-  wSlope: 0.6, wBonus: 0.4, wDry: -0.3
-};
-
-const ui = {
-  selTarget: 2.0,
-  mode: "normal",
-  autoSignal: true,
-  minConf: 80,
-  cooldown: 8,
-  beep: true,
-  modeEV: false,
-  radar: {thr10:8,thr20:4,thr50:1.5,thr100:0.6}
-};
-
-/*** ====== UTIL ====== ***/
-function fmtPct(x){ return (x*100).toFixed(1) + "%"; }
-function clamp(v,min,max){ return v<min?min:(v>max?max:v); }
-function now(){ return Date.now(); }
-
-/*** ====== AUDIO (beep verde / beep rosa) ====== ***/
-let audioCtx=null;
-function beep(freq=880, ms=120, gain=0.03){
-  if(!ui.beep) return;
-  try{
-    if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    o.type="sine"; o.frequency.value=freq;
-    g.gain.value=gain;
-    o.connect(g); g.connect(audioCtx.destination);
-    o.start();
-    setTimeout(()=>{o.stop();}, ms);
-  }catch(_){}
+/*** estado ***/
+let rounds=[]; // más reciente primero
+let lastVal=0,lastAt=0,lastLS=null, source='—';
+const session={id:1,round:0,used:0,rosa:false};
+const rows=$("#signals");const list=[];
+function badge(){ $("#sessId").textContent=session.id; $("#sessRound").textContent=session.round; $("#sessUsed").textContent=session.used; }
+function addSignal(tag,target,state='pend',crash='—',why=''){
+  const r={n:list.length+1, s:session.id, k:session.round, tag, target, time:now(), crash, state, why};
+  list.push(r); const tr=document.createElement('tr');
+  tr.innerHTML=`<td>${r.n}</td><td>${r.s}</td><td>${r.k}</td>
+  <td><span class="tag ${tag==='ROSA_10x'?'rosa':'auto'}">${tag}</span></td>
+  <td>${target.toFixed(2)}x</td><td>${r.time}</td><td>${crash==='—'?'—':(+crash).toFixed(2)+'x'}</td><td class="state ${state}">${state}</td>`;
+  rows.prepend(tr);
 }
-function beepPink(){ beep(520,160,0.035); setTimeout(()=>beep(980,80,0.03),100); }
+function updateLastSource(s){ if(source!==s){ source=s; $("#src").textContent(source); }}
 
-/*** ===== BAYES + MÉTRICAS ===== ***/
-function probGE(k){
-  const v = rounds.slice(-model.winN);
-  const s = v.filter(x=>x>=k).length;
-  const n = v.length;
-  const [a,b] = model.priors[String(k)] || [2,2];
-  return (s+a)/(n+a+b);
-}
-function movingAverage(arr, n){
-  const L = Math.min(arr.length, n);
-  if(!L) return NaN;
-  let sum=0; for(let i=arr.length-L;i<arr.length;i++) sum+=arr[i];
-  return sum/L;
-}
-function slopeMA(arr, n){
-  // pendiente simple: MA(n) actual – MA(n) anterior
-  if(arr.length < n+1) return 0;
-  const nowMA = movingAverage(arr, n);
-  const prevMA = movingAverage(arr.slice(0,-1), n);
-  return nowMA - prevMA;
-}
-function countBad170(arr, window=8){
-  const L = arr.slice(-window);
-  return L.filter(x=>x<1.70).length;
-}
-function inBonusZone(){
-  // heurística: últimas 14 rondas con >=60% >=2x y >=1 pico >=5x y pendiente positiva
-  const w = rounds.slice(-14);
-  if(w.length<14) return false;
-  const p2  = w.filter(x=>x>=2).length / w.length;
-  const has5= w.some(x=>x>=5);
-  const sl  = slopeMA(rounds,10);
-  return (p2>=0.60 && has5 && sl>=0);
-}
-function drynessSince5x(){
-  let d=0;
-  for(let i=rounds.length-1;i>=0;i--){
-    if(rounds[i]>=5) break; else d++;
-  }
-  return d;
-}
-
-/*** ===== EV (opcional) ===== ***/
-function expectedValueForTarget(k){
-  // EV estimado al estilo: Pr(win)*1 - Pr(lose)*1 (neutral, stake fijo = 1)
-  // regla de decisión real de banca no se implementa aquí; esto es selector simple
-  const p = { "2":probGE(2), "2.5":probGE(2.5), "3":probGE(3) }[String(k)] || 0;
-  const q = 1-p;
-  // Para crash > k : “ganada”; crash <= k : “perdida”.
-  // Sin multiplicar por “pago neto” porque tu staking es disciplinado por objetivo.
-  return p - q;
-}
-function bestTargetEV(){
-  const cand=[2,2.5,3];
-  let best=cand[0], bestEV=-999;
-  for(const k of cand){
-    const ev=expectedValueForTarget(k);
-    if(ev>bestEV){ bestEV=ev; best=k; }
-  }
-  return {target:best, ev:bestEV};
-}
-
-/*** ===== RADAR HIGH-X ===== ***/
-function radarHighX(){
-  // probas con suavizado y ligero sesgo por bonus/dryness
-  let p10=probGE(10), p20=probGE(20), p50=probGE(50), p100=probGE(100);
-  // bonus sube un poco, sequía también sube por "regreso a media"
-  const bonus = inBonusZone()? 1.15 : 1.0;
-  const dry   = clamp(drynessSince5x()/60, 0, 0.4); // hasta +40%
-  p10*= bonus*(1+dry); p20*= bonus*(1+dry); p50*= bonus*(1+dry); p100*= bonus*(1+dry);
-
-  const hit10 = (p10*100) >= ui.radar.thr10;
-  const hit20 = (p20*100) >= ui.radar.thr20;
-  const hit50 = (p50*100) >= ui.radar.thr50;
-  const hit100= (p100*100) >= ui.radar.thr100;
-  return {hit10,hit20,hit50,hit100, p:{p10,p20,p50,p100}};
-}
-
-/*** ===== SEÑALES ===== ***/
-function gatesPass(target){
-  const pTarget = probGE(target);
-  const minP = ui.minConf/100;
-
-  const slope = slopeMA(rounds,10);
-  const bad = countBad170(rounds,8);
-
-  // puertas por modo
-  let slopeOK=true;
-  if(ui.mode==="conservador") slopeOK = slope >= 0.00;
-  if(ui.mode==="normal")      slopeOK = slope >= -0.02;
-  if(ui.mode==="agresivo")    slopeOK = true;
-
-  const bonusOK = true; // ya lo usamos como modificador, no como bloqueo
-  const notBadZone = !(bad>=7); // si 7/8 <1.70 bloquea
-
-  return (pTarget>=minP) && slopeOK && notBadZone && bonusOK && (cooldownLeft<=0);
-}
-
-function maybeSignal(){
-  if(rounds.length<12) return;
-
-  // Radar alto (solo alerta, no cambia objetivo)
-  const hi = radarHighX();
-  const hiEl = document.getElementById("hiFlag");
-  if(hi.hit10 || hi.hit20 || hi.hit50 || hi.hit100){
-    hiEl.style.display="inline-block";
-    hiEl.textContent = `Radar ALTO: ${(hi.hit100?"≥100x":hi.hit50?"≥50x":hi.hit20?"≥20x":"≥10x")} posible`;
-    beepPink();
-  }else{
-    hiEl.style.display="none";
-  }
-
-  if(!ui.autoSignal) return;
-
-  // Objetivo: fijo por UI, salvo que actives Modo EV
-  let target = ui.selTarget;
-  if(ui.modeEV){
-    const {target:t} = bestTargetEV();
-    target = t;
-  }
-
-  if(gatesPass(target)){
-    emitSignal(target);
+/*** render chips ***/
+function paintChips(){
+  chips.innerHTML='';
+  for(const x of rounds.slice(0,60)){
+    const sp=document.createElement('span'); sp.className='chip';
+    if(x<2) sp.classList.add('blue'); else if(x<10) sp.classList.add('purple'); else sp.classList.add('pink');
+    sp.textContent=x.toFixed(2)+'x'; chips.appendChild(sp);
   }
 }
 
-function emitSignal(target){
-  // crea una apuesta pendiente con el target seleccionado
-  const id = "S"+now();
-  pendings.push({id, target, stake:1, ts:now(), state:"pend"});
-
-  signalsCount++; cooldownLeft = ui.cooldown;
-
-  renderBets();
-  const sig = document.getElementById("lastSignal");
-  sig.style.display="inline-block"; sig.textContent = `Señal: ${target}x`;
-  setTimeout(()=>sig.style.display="none", 3500);
-  beep(880,140,0.04);
+/*** señales (igual lógica v26.6) ***/
+function norm(x,a,b){return (x-a)/(b-a||1)}
+function heatScore(){
+  const arr=rounds.slice(0,25); if(arr.length<12) return 0;
+  const ma10 = arr.slice(0,10).reduce((a,b)=>a+b,0)/10;
+  const p2   = arr.filter(x=>x>=2).length/arr.length;
+  const old=arr.slice(12).reduce((a,b)=>a+b,0)/(arr.length-12||1);
+  const recent=arr.slice(0,12).reduce((a,b)=>a+b,0)/12;
+  const mom=recent-old;
+  const lowTrap = arr.slice(0,3).some(x=>x>=1 && x<=1.15)?1:0;
+  let s=0.50*norm(ma10,1.2,3.4)+0.30*norm(p2,0,0.7)+0.25*norm(mom,-0.6,0.8)-0.40*lowTrap-0.20*norm(arr.filter(x=>x<1.7).length/arr.length,0.2,0.7);
+  return Math.max(0,Math.min(1.2,s));
 }
-
-/*** ===== ASIGNACIÓN DE CRASH A SEÑALES ===== ***/
-function onNewCrash(v){
-  rounds.push(v);
-  if(rounds.length>2000) rounds.shift();
-
-  // cooldown
-  if(cooldownLeft>0) cooldownLeft--;
-
-  // asigna crash a la apuesta más antigua pendiente
-  if(pendings.length){
-    const bet = pendings.shift();
-    const win = (v > bet.target); // tu regla: igual o menor = pérdida
-    bet.crash = v;
-    bet.state = win?"win":"lose";
-    bet.pl = win? "+1" : "−1";
-    bets.push(bet);
-    renderBets();
+let pending=null; // {tag,target,sess,enterAt,why}
+function maybeAuto(){
+  if(!$("#swAutoSignal").checked) return;
+  if(session.used>=3) return;
+  const h=heatScore();
+  const slot = session.used===0?[1,22] : session.used===1?[18,42] : [36,60];
+  const inSlot = session.round>=slot[0] && session.round<=slot[1];
+  const allowBurst = h>=0.92;
+  if( (inSlot && h>=0.72) || allowBurst ){
+    pending={tag:'AUTO_1p7',target:1.70,sess:session.id,enterAt:session.round+1};
+    session.used++; addSignal('AUTO_1p7',1.70,'pend','—');
+    log(`Señal ≥1.70 emitida (T+1). heat=${h.toFixed(2)}`,'ok'); tone(940,140,.035);
   }
-
-  // UI de últimas rondas
-  lastShown.unshift(v);
-  if(lastShown.length>60) lastShown.pop();
-  renderStats();
-  maybeSignal();
+}
+function maybeRosa(){
+  if(!$("#swRosa").checked || session.rosa) return;
+  const look=rounds.slice(0,90); if(look.length<40) return;
+  const lastRoseAt = look.findIndex(x=>x>=10); const gap=lastRoseAt<0?99:lastRoseAt;
+  const ma10=look.slice(0,10).reduce((a,b)=>a+b,0)/10;
+  const p2=look.slice(0,30).filter(x=>x>=2).length/30;
+  const mom=(look.slice(0,12).reduce((a,b)=>a+b,0)/12)-(look.slice(12,30).reduce((a,b)=>a+b,0)/18);
+  const heat=0.45*norm(ma10,1.4,3.6)+0.35*norm(p2,0.1,0.7)+0.25*norm(mom,-0.6,0.9)+0.10*norm(gap,18,80);
+  if(heat>=0.95 && session.used<=2){
+    pending={tag:'ROSA_10x',target:10.0,sess:session.id,enterAt:session.round+1,why:`ma10:${ma10.toFixed(2)} p2:${(p2*100|0)}% mom:${mom.toFixed(2)} gap:${gap}`};
+    session.rosa=true; addSignal('ROSA_10x',10,'pend','—');
+    log(`Caza ROSA armada (T+1). ${pending.why}`,'ok'); tone(520,140,.045); setTimeout(()=>tone(820,160,.04),160);
+  }
 }
 
-/*** ===== RENDER ===== ***/
-function renderStats(){
-  const p2=probGE(2), p25=probGE(2.5), p3=probGE(3), p5=probGE(5), p10=probGE(10);
-  const ma10 = movingAverage(rounds,10);
-  const bad = countBad170(rounds,8);
+/*** ingesta robusta ***/
+function ingest(x,src='?'){
+  const v=parseFloat(x); if(!isFinite(v)||v<=0) return;
+  const t=performance.now();
+  if(v===lastVal && (t-lastAt)<2500) return; // anti-duplicado
+  lastVal=v; lastAt=t; updateLastSource(src);
 
-  document.getElementById("rounds").textContent = `${rounds.length} (base ${baseCount})`;
-  document.getElementById("p2").textContent  = fmtPct(p2);
-  document.getElementById("p25").textContent = fmtPct(p25);
-  document.getElementById("p3").textContent  = fmtPct(p3);
-  document.getElementById("p5").textContent  = fmtPct(p5);
-  document.getElementById("p10").textContent = fmtPct(p10);
-  document.getElementById("ma10").textContent= isNaN(ma10)?"–":(ma10.toFixed(2)+"x");
-  document.getElementById("badRun").textContent = bad;
-  document.getElementById("cdLeft").textContent = cooldownLeft;
-  document.getElementById("signals").textContent= signalsCount;
+  rounds.unshift(v); if(rounds.length>200) rounds.pop();
+  session.round++; if(session.round>60){ if($("#swAutoSession").checked){ session.id++; session.round=1; session.used=0; session.rosa=false; log(`Empieza sesión ${session.id} • objetivo ≥1.70 • tope 3/60`,'ok'); } else { session.round=60; } }
+  badge(); paintChips();
 
-  const zone = document.getElementById("zoneFlag");
-  if(bad>=7) { zone.className="flag bad"; zone.textContent="Zona mala: bloqueo <1.70"; }
-  else if(inBonusZone()) { zone.className="flag ok"; zone.textContent="Bonus zone (tendencia alcista)"; }
-  else { zone.className="flag"; zone.textContent="Sin señal"; }
-
-  // últimas rondas
-  const cont=document.getElementById("lastRounds");
-  cont.innerHTML="";
-  lastShown.forEach(x=>{
-    const d=document.createElement("span");
-    d.className="pill neu";
-    d.textContent = x.toFixed(2)+"x";
-    cont.appendChild(d);
-  });
-}
-
-function renderBets(){
-  const tb=document.getElementById("betsTbody");
-  tb.innerHTML="";
-  bets.concat(pendings).forEach((b,idx)=>{
-    const tr=document.createElement("tr");
-    const st = b.state==="win"?"win": b.state==="lose"?"lose":"pend";
-    tr.innerHTML = `
-      <td>${idx+1}</td>
-      <td>${b.target}x</td>
-      <td>$${b.stake.toFixed?b.stake.toFixed(2):b.stake}</td>
-      <td>${b.crash? b.crash.toFixed(2)+"x":"—"}</td>
-      <td>${st}</td>
-      <td>${b.pl||"—"}</td>`;
-    tb.appendChild(tr);
-  });
-}
-
-/*** ===== CONEXIÓN FEED ===== ***/
-function connectFeed(){
-  if(connected) return;
-  FEED_ID = document.getElementById("feedId").value.trim() || "gocho";
-  auth.signInAnonymously().then(()=>{
-    // Carga base (últimas 800) y luego escucha child_added para nuevas
-    const refBase = db.ref(`feeds/${FEED_ID}/crashes`).orderByKey().limitToLast(800);
-    refBase.once("value", snap=>{
-      const data = snap.val()||{};
-      const keys = Object.keys(data).sort();
-      baseCount = keys.length;
-      rounds = []; lastShown = [];
-      keys.forEach(k=>{
-        const v = Number(data[k].v||data[k]); if(v>=1) onNewCrash(v); // procesa también base
+  // resolver señal pendiente
+  if(pending && pending.sess===session.id && pending.enterAt===session.round){
+    const win = v>=pending.target; const state = win?'win':'lose';
+    const row=list.find(r=>r.s===pending.sess && r.k===pending.enterAt && r.state==='pend');
+    if(row){ row.state=state; row.crash=v;
+      // reimprimir fila (rápido: volver a pintar tabla)
+      rows.innerHTML=''; list.slice(-80).forEach(r=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td>${r.n}</td><td>${r.s}</td><td>${r.k}</td>
+        <td><span class="tag ${r.tag==='ROSA_10x'?'rosa':'auto'}">${r.tag}</span></td>
+        <td>${r.target.toFixed(2)}x</td><td>${r.time}</td><td>${r.crash==='—'?'—':(+r.crash).toFixed(2)+'x'}</td><td class="state ${r.state}">${r.state}</td>`;
+        rows.prepend(tr);
       });
-      // Suscripción a nuevas
-      const refNew = db.ref(`feeds/${FEED_ID}/crashes`).orderByKey().startAt(String((Date.now()-1)));
-      sub = refNew.on("child_added", s=>{
-        const d=s.val(); const v=Number(d.v||d); if(v>=1) onNewCrash(v);
-      });
-      connected = true;
-      renderStats();
-    });
-  });
-}
-function disconnectFeed(){
-  if(!connected) return;
-  const refNew = db.ref(`feeds/${FEED_ID}/crashes`);
-  if(sub) refNew.off("child_added", sub);
-  sub=null; connected=false;
-}
-
-/*** ===== BACKUP / RESTORE MODELO ===== ***/
-function saveModel(){
-  const obj = {model, ui:{minConf:ui.minConf, cooldown:ui.cooldown, mode:ui.mode}};
-  auth.currentUser? Promise.resolve():auth.signInAnonymously();
-  return db.ref(`feeds/${FEED_ID}/state/model_v1`).set(obj);
-}
-function loadModel(){
-  return db.ref(`feeds/${FEED_ID}/state/model_v1`).once("value").then(s=>{
-    const v=s.val(); if(!v) return;
-    if(v.model) Object.assign(model, v.model);
-    if(v.ui){
-      ui.minConf = v.ui.minConf ?? ui.minConf;
-      ui.cooldown= v.ui.cooldown ?? ui.cooldown;
-      ui.mode    = v.ui.mode ?? ui.mode;
-      applyUIFromState();
     }
-  });
+    log(`Resultado ${state.toUpperCase()} con crash ${v.toFixed(2)}x (obj ${pending.target.toFixed(2)}x)`, state==='win'?'ok':'err');
+    if(pending.tag==='ROSA_10x'){ log(`${state==='win'?'ROSA GANADA':'ROSA PERDIDA'} • ${pending.why}`, state==='win'?'ok':'err'); }
+    pending=null;
+  }
+
+  // decidir nuevas
+  maybeRosa(); maybeAuto();
 }
 
-/*** ===== UI BINDINGS ===== ***/
-function applyUIFromState(){
-  // objetivo chips
-  document.querySelectorAll("#objChips .chip").forEach(el=>{
-    el.classList.toggle("on", Number(el.dataset.v)==ui.selTarget);
+/*** listeners múltiples ***/
+let bc1=null, bc2=null, lsPoll=null;
+function attachAll(){
+  try{ bc1=new BroadcastChannel('gocho'); bc1.onmessage=e=>ingest(e.data,'BC:gocho'); log('Escuchando BroadcastChannel "gocho"','ok'); }catch(e){ log('BC gocho no disponible: '+e.message,'err'); }
+  try{ bc2=new BroadcastChannel('aviator'); bc2.onmessage=e=>ingest(e.data,'BC:aviator'); log('Escuchando BroadcastChannel "aviator"','ok'); }catch(e){}
+
+  window.addEventListener('message', e=>{
+    const d=e.data||{};
+    const v=d.aviatorRound??d.round??d.value??d.crash??(typeof d==='number'?d:null);
+    if(v!=null) ingest(v,'postMessage');
   });
-  // modo chips
-  document.querySelectorAll("#modeChips .chip").forEach(el=>{
-    el.classList.toggle("on", el.dataset.m===ui.mode);
+
+  window.addEventListener('storage', e=>{
+    if(e.key==='gocho:round'||e.key==='aviator:round'){ if(e.newValue!=null){ lastLS=e.newValue; ingest(parseFloat(e.newValue),'localStorage'); } }
   });
-  document.getElementById("minConf").value = ui.minConf;
-  document.getElementById("minConfVal").textContent = ui.minConf+"%";
-  document.getElementById("cooldown").value = ui.cooldown;
-  document.getElementById("beepToggle").checked = ui.beep;
-  document.getElementById("modeEV").checked = ui.modeEV;
-  document.getElementById("thr10").value = ui.radar.thr10;
-  document.getElementById("thr20").value = ui.radar.thr20;
-  document.getElementById("thr50").value = ui.radar.thr50;
-  document.getElementById("thr100").value= ui.radar.thr100;
+  window.addEventListener('gocho:round', ev=>ingest(ev.detail,'CustomEvent:gocho'));
+  window.addEventListener('aviator:round', ev=>ingest(ev.detail,'CustomEvent:aviator'));
+
+  window.gochoPush=(x)=>ingest(x,'gochoPush()');
+
+  // Poll de seguridad por si alguien sólo escribe en LS sin evento (algunos navegadores)
+  let lastSeen=null;
+  lsPoll=setInterval(()=>{
+    const v=localStorage.getItem('gocho:round')||localStorage.getItem('aviator:round');
+    if(v && v!==lastSeen){ lastSeen=v; ingest(parseFloat(v),'LS:poll'); }
+  },500);
+
+  log('Listo. Esperando rondas…','#9ab');
 }
+function detachAll(){
+  try{bc1&&bc1.close()}catch{} try{bc2&&bc2.close()}catch{} bc1=bc2=null;
+  window.gochoPush=null; window.removeEventListener('message',()=>{}); window.removeEventListener('storage',()=>{});
+  clearInterval(lsPoll); lsPoll=null; updateLastSource('—'); log('Desconectado.','err');
+}
+attachAll();
 
-document.getElementById("objChips").addEventListener("click",e=>{
-  const el=e.target.closest(".chip"); if(!el) return;
-  document.querySelectorAll("#objChips .chip").forEach(x=>x.classList.remove("on"));
-  el.classList.add("on");
-  ui.selTarget = Number(el.dataset.v);
-});
+$("#btnStop").onclick=detachAll;
+$("#btnTest").onclick=()=>{
+  // generador de prueba local (no afecta anti-duplicado real)
+  const seq=[ ()=>1+Math.random()*1.2, ()=>1.2+Math.random()*5.3, ()=>10+Math.random()*40 ];
+  let id=setInterval(()=>{ const pick=Math.random()<.1?2:(Math.random()<.6?0:1); ingest(+seq[pick]().toFixed(2),'Test'); },1200);
+  log('Test feed iniciado. Recarga o Desconectar para parar.','ok');
+};
 
-document.getElementById("modeChips").addEventListener("click",e=>{
-  const el=e.target.closest(".chip"); if(!el) return;
-  document.querySelectorAll("#modeChips .chip").forEach(x=>x.classList.remove("on"));
-  el.classList.add("on");
-  ui.mode = el.dataset.m;
-});
-
-document.getElementById("autoSignal").addEventListener("change",e=> ui.autoSignal=e.target.checked);
-document.getElementById("minConf").addEventListener("input",e=>{
-  ui.minConf = Number(e.target.value); document.getElementById("minConfVal").textContent=ui.minConf+"%";
-});
-document.getElementById("cooldown").addEventListener("change",e=> ui.cooldown = Number(e.target.value));
-document.getElementById("beepToggle").addEventListener("change",e=> ui.beep = e.target.checked);
-document.getElementById("modeEV").addEventListener("change",e=> ui.modeEV = e.target.checked);
-
-["thr10","thr20","thr50","thr100"].forEach(id=>{
-  document.getElementById(id).addEventListener("change",e=>{
-    ui.radar[id.replace("thr","thr")] = Number(e.target.value);
-  });
-});
-
-document.getElementById("connectBtn").addEventListener("click", connectFeed);
-document.getElementById("disconnectBtn").addEventListener("click", disconnectFeed);
-
-document.getElementById("startBtn").addEventListener("click", ()=>{
-  // “iniciar sesión” aquí significa solo preparar audio y reset de sesión
-  signalsCount=0; cooldownLeft=0; bets=[]; pendings=[]; renderBets(); renderStats(); beep(660,90,0.03);
-});
-document.getElementById("stopBtn").addEventListener("click", ()=>{
-  // cierra sesión (no borra historia)
-  bets=[]; pendings=[]; signalsCount=0; cooldownLeft=0; renderBets(); renderStats();
-});
-document.getElementById("resetBtn").addEventListener("click", ()=>{
-  // soft reset del analizador (recalcula desde rounds)
-  bets=[]; pendings=[]; signalsCount=0; cooldownLeft=0; renderBets(); renderStats();
-});
-
-document.getElementById("hardResetBtn").addEventListener("click", ()=>{
-  // wipe del modelo local (NO borra tu feed)
-  localStorage.clear();
-  // restablece defaults
-  ui.selTarget=2.0; ui.mode="normal"; ui.autoSignal=true; ui.minConf=80; ui.cooldown=8; ui.beep=true; ui.modeEV=false;
-  ui.radar={thr10:8,thr20:4,thr50:1.5,thr100:0.6};
-  applyUIFromState();
-});
-
-document.getElementById("saveModelBtn").addEventListener("click", ()=>{ saveModel(); });
-document.getElementById("loadModelBtn").addEventListener("click", ()=>{ loadModel().then(()=>renderStats()); });
-
-document.getElementById("autoBackup").addEventListener("change",e=>{
-  const on=e.target.checked;
-  if(on){ saveModel(); }
-});
-
-// carga estado UI guardado local (si existiera)
-(function bootstrap(){
-  try{
-    const st = JSON.parse(localStorage.getItem("gocho_ui_state")||"{}");
-    Object.assign(ui, st);
-  }catch(_){}
-  applyUIFromState();
-  // guarda periódicamente UI
-  setInterval(()=>{ localStorage.setItem("gocho_ui_state", JSON.stringify(ui)); }, 2000);
-})();
+badge(); paintChips();
 </script>
 </body>
 </html>
