@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema Aviator 1Win • IA Predictiva Agresiva</title>
+    <title>Sistema Aviator 1Win • Modo Francotirador</title>
     <style>
         * {
             margin: 0;
@@ -43,11 +43,6 @@
             background-clip: text;
         }
 
-        .header .subtitle {
-            opacity: 0.85;
-            font-size: 1.1em;
-        }
-
         .session-bar {
             background: rgba(255, 255, 255, 0.05);
             padding: 20px;
@@ -76,7 +71,6 @@
             background: rgba(255, 255, 255, 0.1);
             border-radius: 15px;
             overflow: hidden;
-            position: relative;
         }
 
         .progress-fill {
@@ -116,6 +110,14 @@
             color: #667eea;
         }
 
+        .session-stat-value.success {
+            color: #00ff88;
+        }
+
+        .session-stat-value.fail {
+            color: #ff6b6b;
+        }
+
         .status-bar {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -129,7 +131,6 @@
             border-radius: 12px;
             text-align: center;
             border: 2px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.3s ease;
         }
 
         .status-item.active {
@@ -143,7 +144,6 @@
             opacity: 0.7;
             margin-bottom: 10px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
 
         .status-value {
@@ -194,49 +194,39 @@
             text-align: center;
             margin-bottom: 25px;
             box-shadow: 0 15px 40px rgba(245, 87, 108, 0.4);
-            animation: pulse 3s infinite;
             position: relative;
-            overflow: hidden;
             border: 3px solid transparent;
+        }
+
+        .signal-box.waiting {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
+            animation: none;
         }
 
         .signal-box.green {
             background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
             box-shadow: 0 15px 40px rgba(79, 172, 254, 0.4);
-        }
-
-        .signal-box.yellow {
-            background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
-            box-shadow: 0 15px 40px rgba(253, 203, 110, 0.4);
+            animation: pulse-signal 2s infinite;
         }
 
         .signal-box.gold {
             background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
             box-shadow: 0 15px 40px rgba(255, 210, 0, 0.6);
             border-color: #ffd700;
-            animation: pulse-gold 2s infinite;
+            animation: pulse-signal 2s infinite;
         }
 
         .signal-box.purple {
             background: linear-gradient(135deg, #b06ab3 0%, #4568dc 100%);
             box-shadow: 0 15px 40px rgba(176, 106, 179, 0.6);
             border-color: #b06ab3;
-            animation: pulse-purple 2s infinite;
+            animation: pulse-signal 2s infinite;
         }
 
-        @keyframes pulse {
+        @keyframes pulse-signal {
             0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.03); }
-        }
-
-        @keyframes pulse-gold {
-            0%, 100% { transform: scale(1); box-shadow: 0 15px 40px rgba(255, 210, 0, 0.6); }
-            50% { transform: scale(1.05); box-shadow: 0 20px 50px rgba(255, 210, 0, 0.8); }
-        }
-
-        @keyframes pulse-purple {
-            0%, 100% { transform: scale(1); box-shadow: 0 15px 40px rgba(176, 106, 179, 0.6); }
-            50% { transform: scale(1.05); box-shadow: 0 20px 50px rgba(176, 106, 179, 0.8); }
+            50% { transform: scale(1.05); }
         }
 
         .signal-title {
@@ -245,8 +235,6 @@
             opacity: 0.95;
             text-transform: uppercase;
             letter-spacing: 1px;
-            position: relative;
-            z-index: 1;
         }
 
         .signal-value {
@@ -254,16 +242,12 @@
             font-weight: 900;
             margin: 20px 0;
             text-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-            position: relative;
-            z-index: 1;
         }
 
         .signal-confidence {
             font-size: 1.3em;
             opacity: 0.95;
             font-weight: 600;
-            position: relative;
-            z-index: 1;
         }
 
         .signal-type {
@@ -276,43 +260,10 @@
             display: inline-block;
         }
 
-        .pattern-indicator {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-            margin: 20px 0;
-            position: relative;
-            z-index: 1;
-        }
-
-        .pattern-dot {
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.3);
-            transition: all 0.3s ease;
-        }
-
-        .pattern-dot.active {
-            background: #fff;
-            box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
-            transform: scale(1.3);
-        }
-
         .history-table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
-            max-height: 400px;
-            overflow-y: auto;
-            display: block;
-        }
-
-        .history-table thead,
-        .history-table tbody {
-            display: table;
-            width: 100%;
-            table-layout: fixed;
         }
 
         .history-table th,
@@ -320,28 +271,34 @@
             padding: 12px;
             text-align: center;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.9em;
         }
 
         .history-table th {
             background: rgba(102, 126, 234, 0.2);
             font-weight: 700;
             text-transform: uppercase;
-            font-size: 0.85em;
-            letter-spacing: 0.5px;
-            position: sticky;
-            top: 0;
-            z-index: 10;
+            font-size: 0.8em;
         }
 
         .history-table tr:hover {
             background: rgba(255, 255, 255, 0.05);
         }
 
+        .history-table tr.hit {
+            background: rgba(0, 255, 136, 0.1);
+        }
+
+        .history-table tr.miss {
+            background: rgba(255, 107, 107, 0.1);
+        }
+
         .multiplier {
-            padding: 6px 14px;
+            padding: 6px 12px;
             border-radius: 8px;
             font-weight: 700;
             display: inline-block;
+            font-size: 0.85em;
         }
 
         .multiplier.low {
@@ -359,6 +316,28 @@
 
         .multiplier.ultra {
             background: linear-gradient(135deg, #b06ab3 0%, #4568dc 100%);
+        }
+
+        .result-badge {
+            padding: 4px 8px;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 0.8em;
+        }
+
+        .result-badge.hit {
+            background: #00ff88;
+            color: #000;
+        }
+
+        .result-badge.miss {
+            background: #ff6b6b;
+            color: #fff;
+        }
+
+        .result-badge.pending {
+            background: #ffd93d;
+            color: #000;
         }
 
         .stats-grid {
@@ -390,7 +369,6 @@
             opacity: 0.7;
             margin-top: 8px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
 
         .alert {
@@ -423,10 +401,10 @@
         }
 
         .countdown {
-            font-size: 2.2em;
+            font-size: 1.8em;
             font-weight: 900;
             text-align: center;
-            margin: 25px 0;
+            margin: 20px 0;
             background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -443,7 +421,6 @@
             font-size: 0.85em;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
 
         .live-badge::before {
@@ -460,46 +437,49 @@
             50% { opacity: 0.3; }
         }
 
-        .connection-status {
-            position: fixed;
-            bottom: 25px;
-            right: 25px;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 12px 20px;
-            border-radius: 30px;
-            font-size: 0.9em;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            z-index: 1000;
-            border: 2px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .connection-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #4facfe;
-            animation: blink 2s infinite;
-        }
-
-        .ai-badge {
+        .sniper-badge {
             display: inline-block;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #ff6b6b 0%, #ffd93d 100%);
             padding: 5px 12px;
             border-radius: 15px;
             font-size: 0.75em;
             font-weight: bold;
             margin-left: 10px;
         }
+
+        .validation-box {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-size: 0.9em;
+        }
+
+        .validation-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .validation-item:last-child {
+            border-bottom: none;
+        }
+
+        .validation-check {
+            color: #00ff88;
+        }
+
+        .validation-cross {
+            color: #ff6b6b;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚀 Sistema Aviator 1Win <span class="ai-badge">IA AGRESIVA</span></h1>
-            <p class="subtitle">Análisis Instantáneo • Señales Inmediatas • Máxima Precisión</p>
+            <h1>🎯 Sistema Aviator 1Win <span class="sniper-badge">FRANCOTIRADOR</span></h1>
+            <p style="opacity: 0.85; font-size: 1.1em;">Precisión Quirúrgica • Validación Múltiple • Máxima Efectividad</p>
             <div style="margin-top: 15px;">
                 <span class="live-badge">EN VIVO</span>
             </div>
@@ -526,111 +506,126 @@
                     <div class="session-stat-value" id="signals10x">0/2</div>
                 </div>
                 <div class="session-stat">
-                    <div class="session-stat-label">Aciertos</div>
-                    <div class="session-stat-value" id="sessionHits">0%</div>
+                    <div class="session-stat-label">Efectividad</div>
+                    <div class="session-stat-value" id="sessionEffectiveness">0%</div>
                 </div>
             </div>
         </div>
 
         <div class="status-bar">
-            <div class="status-item active" id="statusConnection">
-                <div class="status-label">Estado Firebase</div>
+            <div class="status-item active">
+                <div class="status-label">Estado</div>
                 <div class="status-value" id="connectionStatus">🔄</div>
             </div>
             <div class="status-item">
-                <div class="status-label">Rondas Analizadas</div>
-                <div class="status-value" id="resultsToday">0</div>
+                <div class="status-label">Rondas</div>
+                <div class="status-value" id="totalRounds">0</div>
             </div>
             <div class="status-item">
-                <div class="status-label">Señales Emitidas</div>
+                <div class="status-label">Señales</div>
                 <div class="status-value" id="totalSignals">0</div>
             </div>
             <div class="status-item">
-                <div class="status-label">Último Crash</div>
-                <div class="status-value" id="lastCrash">--</div>
+                <div class="status-label">Aciertos</div>
+                <div class="status-value success" id="totalHits">0</div>
             </div>
             <div class="status-item">
-                <div class="status-label">Promedio 10</div>
-                <div class="status-value" id="avg10">--</div>
+                <div class="status-label">Fallos</div>
+                <div class="status-value fail" id="totalMisses">0</div>
             </div>
         </div>
 
         <div class="main-grid">
             <div class="panel">
-                <h2 class="panel-title">🎯 Señal IA Actual</h2>
+                <h2 class="panel-title">🎯 Señal Francotirador</h2>
                 
-                <div class="signal-box green" id="signalBox">
-                    <div class="signal-title">PRÓXIMA JUGADA RECOMENDADA</div>
+                <div class="signal-box waiting" id="signalBox">
+                    <div class="signal-title">ANALIZANDO PATRONES</div>
                     <div class="signal-value" id="signalMultiplier">--</div>
                     <div class="signal-confidence">Confianza: <span id="confidence">--</span></div>
-                    <div class="signal-type" id="signalType">Analizando...</div>
-                    <div class="pattern-indicator" id="patternIndicator">
-                        <div class="pattern-dot"></div>
-                        <div class="pattern-dot"></div>
-                        <div class="pattern-dot"></div>
-                        <div class="pattern-dot"></div>
-                        <div class="pattern-dot"></div>
-                    </div>
+                    <div class="signal-type" id="signalType">Esperando oportunidad...</div>
                 </div>
 
-                <div class="countdown" id="countdown">Esperando datos...</div>
+                <div class="validation-box" id="validationBox" style="display: none;">
+                    <strong>✅ Validaciones Cumplidas:</strong>
+                    <div id="validationList"></div>
+                </div>
+
+                <div class="countdown" id="countdown">Cargando...</div>
 
                 <div class="alert success" id="alertBox">
-                    <strong>⏳ Inicializando:</strong> Cargando IA y últimas 60 rondas...
+                    <strong>⏳ Iniciando:</strong> Modo Francotirador activado. Solo señales de alta precisión.
                 </div>
             </div>
 
             <div class="panel">
-                <h2 class="panel-title">📊 Análisis IA</h2>
+                <h2 class="panel-title">📊 Indicadores Técnicos</h2>
                 
                 <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-card-value" id="avgLast10">--</div>
+                        <div class="stat-card-label">Promedio 10</div>
+                    </div>
                     <div class="stat-card">
                         <div class="stat-card-value" id="instalossCount">0</div>
                         <div class="stat-card-label">Instaloss</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-card-value" id="highMultCount">0</div>
+                        <div class="stat-card-value" id="highCount">0</div>
                         <div class="stat-card-label">Altos >5x</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-card-value" id="mediumCount">0</div>
-                        <div class="stat-card-label">Medios 1.7-3x</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-card-value" id="ultraCount">0</div>
-                        <div class="stat-card-label">Ultra >10x</div>
+                        <div class="stat-card-value" id="volatility">--</div>
+                        <div class="stat-card-label">Volatilidad</div>
                     </div>
                 </div>
 
-                <h3 style="margin-top: 35px; margin-bottom: 20px; font-size: 1.3em;">Patrones Detectados (Últimas 60)</h3>
+                <h3 style="margin-top: 30px; margin-bottom: 15px; font-size: 1.2em;">Condiciones de Señal</h3>
+                <table class="history-table">
+                    <tbody>
+                        <tr>
+                            <td style="text-align: left;">Instalosses (últimos 15)</td>
+                            <td id="cond1">--</td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: left;">Promedio bajo</td>
+                            <td id="cond2">--</td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: left;">Sin altos recientes</td>
+                            <td id="cond3">--</td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: left;">Tendencia favorable</td>
+                            <td id="cond4">--</td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: left;">Cooldown OK</td>
+                            <td id="cond5">--</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2 class="panel-title">🎯 Historial de Señales Emitidas</h2>
+            <div style="max-height: 400px; overflow-y: auto;">
                 <table class="history-table">
                     <thead>
                         <tr>
-                            <th>Patrón</th>
-                            <th>Frecuencia</th>
-                            <th>Tendencia</th>
+                            <th>#</th>
+                            <th>Hora Señal</th>
+                            <th>Target</th>
+                            <th>Tipo</th>
+                            <th>Confianza</th>
+                            <th>Resultado Real</th>
+                            <th>Estado</th>
                         </tr>
                     </thead>
-                    <tbody id="patternsTable">
+                    <tbody id="signalsTableBody">
                         <tr>
-                            <td>Instaloss Consecutivos</td>
-                            <td id="patternInstaloss">0</td>
-                            <td id="trendInstaloss">--</td>
-                        </tr>
-                        <tr>
-                            <td>Secuencia Baja</td>
-                            <td id="patternLow">0</td>
-                            <td id="trendLow">--</td>
-                        </tr>
-                        <tr>
-                            <td>Secuencia Media</td>
-                            <td id="patternMedium">0</td>
-                            <td id="trendMedium">--</td>
-                        </tr>
-                        <tr>
-                            <td>Secuencia Alta</td>
-                            <td id="patternHigh">0</td>
-                            <td id="trendHigh">--</td>
+                            <td colspan="7" style="opacity: 0.6; padding: 30px;">No hay señales emitidas aún</td>
                         </tr>
                     </tbody>
                 </table>
@@ -639,7 +634,7 @@
 
         <div class="panel">
             <h2 class="panel-title">📈 Historial Completo (Últimas 60 Rondas)</h2>
-            <div style="max-height: 500px; overflow-y: auto;">
+            <div style="max-height: 400px; overflow-y: auto;">
                 <table class="history-table">
                     <thead>
                         <tr>
@@ -647,23 +642,16 @@
                             <th>Hora</th>
                             <th>Crash</th>
                             <th>Tipo</th>
-                            <th>Señal IA</th>
-                            <th>Resultado</th>
                         </tr>
                     </thead>
                     <tbody id="historyTableBody">
                         <tr>
-                            <td colspan="6" style="opacity: 0.6; padding: 30px;">Cargando historial...</td>
+                            <td colspan="4" style="opacity: 0.6; padding: 30px;">Cargando...</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
-    </div>
-
-    <div class="connection-status" id="fbStatus">
-        <div class="connection-dot"></div>
-        <span>Conectando...</span>
     </div>
 
     <script type="module">
@@ -678,33 +666,28 @@
 
         const CONFIG = {
             SESSION_SIZE: 60,
-            SIGNALS_170_MAX: 4,
-            SIGNALS_3X_MAX: 3,
-            SIGNALS_10X_MAX: 2,
-            MIN_CONFIDENCE: 75,  // Reducido de 85 a 75
-            SIGNAL_COOLDOWN: 15000,  // 15 segundos entre señales
+            MAX_SIGNALS_170: 4,
+            MAX_SIGNALS_3X: 3,
+            MAX_SIGNALS_10X: 2,
+            MIN_CONFIDENCE: 90,  // MUY ALTA
+            SIGNAL_COOLDOWN: 180000,  // 3 MINUTOS entre señales
+            MIN_DATA_POINTS: 20  // Mínimo 20 rondas para analizar
         };
 
         let gameHistory = [];
+        let signalHistory = [];
         let currentSession = {
             rounds: 0,
             signals170: 0,
             signals3x: 0,
             signals10x: 0,
             totalSignals: 0,
-            hits: 0
-        };
-
-        let stats = {
-            resultsToday: 0,
-            instalossCount: 0,
-            highMultCount: 0,
-            mediumCount: 0,
-            ultraCount: 0
+            hits: 0,
+            misses: 0
         };
 
         let lastSignalTime = 0;
-        let signalHistory = [];
+        let pendingSignal = null;
 
         // AUDIO
         const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -719,32 +702,27 @@
             if (type === '170') {
                 oscillator.frequency.value = 523.25;
                 oscillator.type = 'sine';
-                gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
-                oscillator.start(audioCtx.currentTime);
-                oscillator.stop(audioCtx.currentTime + 0.5);
-            } else if (type === '3x') {
-                oscillator.frequency.value = 659.25;
-                oscillator.type = 'square';
                 gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.8);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.0);
                 oscillator.start(audioCtx.currentTime);
-                oscillator.stop(audioCtx.currentTime + 0.8);
-                
-                setTimeout(() => {
-                    const osc2 = audioCtx.createOscillator();
-                    const gain2 = audioCtx.createGain();
-                    osc2.connect(gain2);
-                    gain2.connect(audioCtx.destination);
-                    osc2.frequency.value = 783.99;
-                    osc2.type = 'square';
-                    gain2.gain.setValueAtTime(0.4, audioCtx.currentTime);
-                    gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.8);
-                    osc2.start(audioCtx.currentTime);
-                    osc2.stop(audioCtx.currentTime + 0.8);
-                }, 200);
+                oscillator.stop(audioCtx.currentTime + 1.0);
+            } else if (type === '3x') {
+                for (let i = 0; i < 2; i++) {
+                    setTimeout(() => {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.frequency.value = 659.25 + (i * 100);
+                        osc.type = 'square';
+                        gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.8);
+                        osc.start(audioCtx.currentTime);
+                        osc.stop(audioCtx.currentTime + 0.8);
+                    }, i * 300);
+                }
             } else if (type === '10x') {
-                for (let i = 0; i < 3; i++) {
+                for (let i = 0; i < 4; i++) {
                     setTimeout(() => {
                         const osc = audioCtx.createOscillator();
                         const gain = audioCtx.createGain();
@@ -753,10 +731,10 @@
                         osc.frequency.value = 1046.50;
                         osc.type = 'sawtooth';
                         gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
-                        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
                         osc.start(audioCtx.currentTime);
-                        osc.stop(audioCtx.currentTime + 0.3);
-                    }, i * 150);
+                        osc.stop(audioCtx.currentTime + 0.4);
+                    }, i * 200);
                 }
             }
         }
@@ -765,7 +743,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        updateConnectionStatus('🟡 Buscando datos...', false);
+        updateConnectionStatus('🟡 Conectando...', false);
 
         const possiblePaths = ['feeds/gocho/crashes', 'crashes', 'historial', 'last_final'];
 
@@ -777,7 +755,7 @@
                     const snapshot = await get(testRef);
                     
                     if (snapshot.exists()) {
-                        console.log(`✅ Datos encontrados en /${path}`);
+                        console.log(`✅ Datos en /${path}`);
                         listenToPath(path);
                         return;
                     }
@@ -787,8 +765,9 @@
             }
             
             updateConnectionStatus('🔴 SIN DATOS', false);
-            showAlert('❌ <strong>Sin datos.</strong> Activa la extensión en 1win.', 'warning');
         }
+
+        let lastProcessedTimestamp = 0;
 
         function listenToPath(path) {
             const dataRef = ref(db, path);
@@ -797,11 +776,23 @@
                 try {
                     if (snapshot.exists()) {
                         const data = snapshot.val();
-                        console.log(`📊 Datos recibidos de /${path}`);
-                        
                         processData(data);
-                        updateConnectionStatus('🟢 CONECTADO', true);
-                        runAggressiveAI();
+                        updateConnectionStatus('🟢 ACTIVO', true);
+                        
+                        // Verificar si hay nueva ronda
+                        if (gameHistory.length > 0) {
+                            const latest = gameHistory[0];
+                            if (latest.ts !== lastProcessedTimestamp) {
+                                lastProcessedTimestamp = latest.ts;
+                                console.log(`🆕 Nueva ronda: ${latest.multiplier}x`);
+                                
+                                // Verificar señal pendiente
+                                checkPendingSignal(latest.multiplier);
+                                
+                                // Analizar para nueva señal
+                                setTimeout(() => analyzeSniper(), 2000);
+                            }
+                        }
                     }
                 } catch (error) {
                     console.error('❌ Error:', error);
@@ -833,27 +824,20 @@
 
             crashesArray.sort((a, b) => b.timestamp - a.timestamp);
             
-            // CARGAR ÚLTIMAS 60 RONDAS
-            gameHistory = crashesArray.slice(0, 60).map((crash, index) => ({
-                id: crashesArray.length - index,
+            gameHistory = crashesArray.slice(0, CONFIG.SESSION_SIZE).map((crash, index) => ({
+                id: index + 1,
                 ts: crash.timestamp,
                 timestamp: new Date(crash.timestamp),
                 multiplier: crash.value,
-                type: classifyMultiplier(crash.value),
-                signalSent: null,
-                outcome: null
+                type: classifyMultiplier(crash.value)
             }));
 
-            stats.resultsToday = crashesArray.length;
             currentSession.rounds = gameHistory.length;
-            
-            console.log(`✅ ${gameHistory.length} rondas cargadas para análisis`);
+            updateUI();
         }
 
         function classifyMultiplier(mult) {
             mult = parseFloat(mult);
-            if (isNaN(mult)) return 'DESCONOCIDO';
-            
             if (mult >= 1.00 && mult <= 1.04) return 'INSTALOSS';
             else if (mult >= 10.00) return 'ULTRA';
             else if (mult >= 5.00) return 'ALTO';
@@ -861,297 +845,240 @@
             else return 'BAJO';
         }
 
-        // ===== IA AGRESIVA =====
-        function runAggressiveAI() {
-            if (gameHistory.length < 10) {
-                showAlert('⏳ <strong>Insuficientes datos.</strong> Mínimo 10 rondas requeridas.', 'warning');
+        function checkPendingSignal(actualCrash) {
+            if (!pendingSignal) return;
+
+            const targetMin = pendingSignal.target * 0.95; // Margen 5%
+            const hit = actualCrash >= targetMin;
+
+            pendingSignal.actualCrash = actualCrash;
+            pendingSignal.hit = hit;
+            pendingSignal.checked = true;
+
+            if (hit) {
+                currentSession.hits++;
+                showAlert(`✅ <strong>¡ACIERTO!</strong> Target ${pendingSignal.target.toFixed(2)}x → Resultado ${actualCrash.toFixed(2)}x`, 'success');
+            } else {
+                currentSession.misses++;
+                showAlert(`❌ <strong>Fallo.</strong> Target ${pendingSignal.target.toFixed(2)}x → Resultado ${actualCrash.toFixed(2)}x`, 'warning');
+            }
+
+            // Agregar a historial
+            signalHistory.unshift(pendingSignal);
+            pendingSignal = null;
+
+            updateSignalsTable();
+            updateUI();
+        }
+
+        // ===== ANÁLISIS FRANCOTIRADOR =====
+        function analyzeSniper() {
+            if (gameHistory.length < CONFIG.MIN_DATA_POINTS) {
+                console.log(`⏳ Datos insuficientes: ${gameHistory.length}/${CONFIG.MIN_DATA_POINTS}`);
                 updateUI();
                 return;
             }
 
-            console.log('🤖 Ejecutando análisis IA agresivo...');
+            // Cooldown
+            const now = Date.now();
+            const timeSinceLastSignal = now - lastSignalTime;
+            if (timeSinceLastSignal < CONFIG.SIGNAL_COOLDOWN) {
+                const remaining = Math.ceil((CONFIG.SIGNAL_COOLDOWN - timeSinceLastSignal) / 1000);
+                console.log(`⏸️ Cooldown activo: ${remaining}s restantes`);
+                document.getElementById('countdown').textContent = `Próximo análisis en ${remaining}s`;
+                updateConditions(false, false, false, false, false);
+                return;
+            }
 
-            const last60 = gameHistory.slice(0, Math.min(60, gameHistory.length));
-            const last20 = gameHistory.slice(0, 20);
+            // Si hay señal pendiente, no emitir otra
+            if (pendingSignal) {
+                console.log('⏳ Esperando resultado de señal anterior...');
+                return;
+            }
+
+            console.log('🎯 Analizando modo Francotirador...');
+
+            const last15 = gameHistory.slice(0, 15);
             const last10 = gameHistory.slice(0, 10);
             const last5 = gameHistory.slice(0, 5);
 
-            // CONTADORES
-            stats.instalossCount = last60.filter(r => r.type === 'INSTALOSS').length;
-            stats.highMultCount = last60.filter(r => r.type === 'ALTO').length;
-            stats.mediumCount = last60.filter(r => r.type === 'MEDIO').length;
-            stats.ultraCount = last60.filter(r => r.type === 'ULTRA').length;
+            // INDICADORES
+            const instaloss15 = last15.filter(r => r.type === 'INSTALOSS').length;
+            const instaloss5 = last5.filter(r => r.type === 'INSTALOSS').length;
+            const high10 = last10.filter(r => r.type === 'ALTO' || r.type === 'ULTRA').length;
+            const low5 = last5.filter(r => r.type === 'BAJO' || r.type === 'INSTALOSS').length;
 
-            const instalossLast10 = last10.filter(r => r.type === 'INSTALOSS').length;
-            const highLast10 = last10.filter(r => r.type === 'ALTO' || r.type === 'ULTRA').length;
-            const mediumLast10 = last10.filter(r => r.type === 'MEDIO').length;
-            const lowLast5 = last5.filter(r => r.type === 'BAJO' || r.type === 'INSTALOSS').length;
+            const avg10 = last10.reduce((sum, r) => sum + r.multiplier, 0) / 10;
+            const avg5 = last5.reduce((sum, r) => sum + r.multiplier, 0) / 5;
 
-            // PROMEDIOS
-            const avg10 = last10.reduce((sum, r) => sum + r.multiplier, 0) / last10.length;
-            const avg20 = last20.reduce((sum, r) => sum + r.multiplier, 0) / last20.length;
-            const avg60 = last60.reduce((sum, r) => sum + r.multiplier, 0) / last60.length;
-
-            // TENDENCIA
-            const trend = avg10 < avg20 ? 'DOWN' : 'UP';
-
-            // VOLATILIDAD
-            const variance = last10.reduce((sum, r) => sum + Math.pow(r.multiplier - avg10, 2), 0) / last10.length;
+            const variance = last10.reduce((sum, r) => sum + Math.pow(r.multiplier - avg10, 2), 0) / 10;
             const volatility = Math.sqrt(variance);
 
-            // PATRONES
-            updatePatterns(last60, trend);
+            const trend = avg5 < avg10 ? 'DOWN' : 'UP';
 
-            // GENERAR SEÑAL AGRESIVA
-            generateAggressiveSignal(instalossLast10, highLast10, mediumLast10, lowLast5, avg10, avg20, trend, volatility);
+            // CONDICIONES FRANCOTIRADOR (TODAS DEBEN CUMPLIRSE)
+            const cond1 = instaloss15 >= 3;  // Al menos 3 instalosses en últimos 15
+            const cond2 = avg10 < 2.5;  // Promedio bajo
+            const cond3 = high10 <= 1;  // Máximo 1 alto en últimos 10
+            const cond4 = trend === 'DOWN';  // Tendencia bajista
+            const cond5 = true;  // Cooldown OK (ya verificado arriba)
+
+            updateConditions(cond1, cond2, cond3, cond4, cond5);
+
+            // ACTUALIZAR STATS
+            document.getElementById('avgLast10').textContent = avg10.toFixed(2) + 'x';
+            document.getElementById('instalossCount').textContent = instaloss15;
+            document.getElementById('highCount').textContent = high10;
+            document.getElementById('volatility').textContent = volatility.toFixed(2);
+
+            let signal = null;
+
+            // SEÑAL 1.70x+ (ULTRA CONSERVADORA)
+            if (currentSession.signals170 < CONFIG.MAX_SIGNALS_170) {
+                if (cond1 && cond2 && cond3 && cond4 && instaloss5 >= 2 && low5 >= 4) {
+                    signal = {
+                        target: 1.85,
+                        confidence: 94,
+                        type: '🎯 SEÑAL 1.70x+',
+                        color: 'green',
+                        soundType: '170',
+                        category: '170'
+                    };
+                    currentSession.signals170++;
+                }
+            }
+
+            // SEÑAL 3x+ (CONDICIONES EXTREMAS)
+            if (!signal && currentSession.signals3x < CONFIG.MAX_SIGNALS_3X) {
+                if (cond1 && cond2 && cond3 && cond4 && instaloss15 >= 5 && volatility < 1.5 && avg10 < 2.0) {
+                    signal = {
+                        target: 3.50,
+                        confidence: 92,
+                        type: '🌟 SEÑAL 3x+',
+                        color: 'gold',
+                        soundType: '3x',
+                        category: '3x'
+                    };
+                    currentSession.signals3x++;
+                }
+            }
+
+            // SEÑAL 10x+ (PATRÓN RARÍSIMO)
+            if (!signal && currentSession.signals10x < CONFIG.MAX_SIGNALS_10X) {
+                if (instaloss15 >= 7 && high10 === 0 && avg10 < 1.8 && volatility > 2.0) {
+                    signal = {
+                        target: 12.00,
+                        confidence: 90,
+                        type: '💎 SEÑAL 10x+',
+                        color: 'purple',
+                        soundType: '10x',
+                        category: '10x'
+                    };
+                    currentSession.signals10x++;
+                }
+            }
+
+            if (signal) {
+                emitSignal(signal);
+            } else {
+                console.log('⏸️ No hay oportunidad clara de señal');
+                clearSignalDisplay();
+            }
 
             updateUI();
         }
 
-        function updatePatterns(data, trend) {
-            let instalossStreak = 0;
-            let lowStreak = 0;
-            let mediumStreak = 0;
-            let highStreak = 0;
+        function emitSignal(signal) {
+            console.log(`🎯 EMITIENDO SEÑAL: ${signal.target.toFixed(2)}x con ${signal.confidence}% confianza`);
 
-            for (const entry of data) {
-                if (entry.type === 'INSTALOSS') instalossStreak++;
-                if (entry.type === 'BAJO' || entry.multiplier < 1.70) lowStreak++;
-                if (entry.type === 'MEDIO') mediumStreak++;
-                if (entry.type === 'ALTO' || entry.type === 'ULTRA') highStreak++;
-            }
+            lastSignalTime = Date.now();
+            currentSession.totalSignals++;
 
-            document.getElementById('patternInstaloss').textContent = instalossStreak;
-            document.getElementById('trendInstaloss').textContent = instalossStreak > 5 ? '⬆️ Alto' : '✅ Normal';
-            
-            document.getElementById('patternLow').textContent = lowStreak;
-            document.getElementById('trendLow').textContent = lowStreak > 15 ? '⚠️ Crítico' : '✅ Normal';
-            
-            document.getElementById('patternMedium').textContent = mediumStreak;
-            document.getElementById('trendMedium').textContent = trend === 'UP' ? '⬆️ Subiendo' : '⬇️ Bajando';
-            
-            document.getElementById('patternHigh').textContent = highStreak;
-            document.getElementById('trendHigh').textContent = highStreak > 10 ? '⚠️ Saturado' : '✅ Saludable';
-        }
+            pendingSignal = {
+                timestamp: Date.now(),
+                target: signal.target,
+                confidence: signal.confidence,
+                type: signal.type,
+                category: signal.category,
+                actualCrash: null,
+                hit: null,
+                checked: false
+            };
 
-        // ===== GENERADOR AGRESIVO DE SEÑALES =====
-        function generateAggressiveSignal(instaloss10, high10, medium10, low5, avg10, avg20, trend, volatility) {
-            const now = Date.now();
-            const timeSinceLastSignal = now - lastSignalTime;
-
-            // Cooldown entre señales
-            if (timeSinceLastSignal < CONFIG.SIGNAL_COOLDOWN) {
-                console.log('⏳ Cooldown activo...');
-                return;
-            }
-
-            let recommendedMult = 0;
-            let confidence = 0;
-            let signalType = '';
-            let boxColor = 'green';
-            let alertType = 'success';
-            let alertMessage = '';
-            let soundType = null;
-
-            // LÓGICA AGRESIVA DE SEÑALES
-
-            // PRIORIDAD 1: SEÑALES 1.70x+ (Más frecuentes)
-            if (currentSession.signals170 < CONFIG.SIGNALS_170_MAX) {
-                // Condición 1: Instalosses recientes
-                if (instaloss10 >= 1) {
-                    recommendedMult = 1.85;
-                    confidence = 88;
-                    signalType = '🎯 SEÑAL 1.70x+';
-                    soundType = '170';
-                    currentSession.signals170++;
-                    alertMessage = `✅ <strong>Instaloss detectado:</strong> ${instaloss10} en últimas 10. Alta probabilidad 1.70x-2.50x.`;
-                }
-                // Condición 2: Promedio muy bajo
-                else if (avg10 < 2.0 && medium10 < 3) {
-                    recommendedMult = 1.90;
-                    confidence = 85;
-                    signalType = '🎯 SEÑAL 1.70x+';
-                    soundType = '170';
-                    currentSession.signals170++;
-                    alertMessage = `✅ <strong>Promedio bajo (${avg10.toFixed(2)}x):</strong> Sistema debe compensar. Target 1.70x+.`;
-                }
-                // Condición 3: Secuencia de bajos
-                else if (low5 >= 3) {
-                    recommendedMult = 2.00;
-                    confidence = 82;
-                    signalType = '🎯 SEÑAL 1.70x+';
-                    soundType = '170';
-                    currentSession.signals170++;
-                    alertMessage = `✅ <strong>Secuencia baja:</strong> ${low5}/5 bajos. Rebote inminente a 1.70x+.`;
-                }
-                // Condición 4: Tendencia DOWN sin altos
-                else if (trend === 'DOWN' && high10 === 0) {
-                    recommendedMult = 1.75;
-                    confidence = 80;
-                    signalType = '🎯 SEÑAL 1.70x+';
-                    soundType = '170';
-                    currentSession.signals170++;
-                    alertMessage = `✅ <strong>Tendencia bajista:</strong> Sin altos recientes. Momento óptimo 1.70x+.`;
-                }
-            }
-
-            // PRIORIDAD 2: SEÑALES 3x+
-            if (currentSession.signals3x < CONFIG.SIGNALS_3X_MAX && recommendedMult === 0) {
-                // Condición 1: Múltiples instalosses + promedio bajo
-                if (instaloss10 >= 2 && avg10 < 2.5) {
-                    recommendedMult = 3.50;
-                    confidence = 86;
-                    signalType = '🌟 SEÑAL 3x+';
-                    boxColor = 'gold';
-                    alertType = 'gold';
-                    soundType = '3x';
-                    currentSession.signals3x++;
-                    alertMessage = `🌟 <strong>Patrón fuerte:</strong> ${instaloss10} instalosses + promedio ${avg10.toFixed(2)}x. Target 3x-5x.`;
-                }
-                // Condición 2: Volatilidad baja + tendencia DOWN
-                else if (volatility < 1.5 && trend === 'DOWN' && high10 < 2) {
-                    recommendedMult = 3.20;
-                    confidence = 83;
-                    signalType = '🌟 SEÑAL 3x+';
-                    boxColor = 'gold';
-                    alertType = 'gold';
-                    soundType = '3x';
-                    currentSession.signals3x++;
-                    alertMessage = `🌟 <strong>Baja volatilidad + tendencia:</strong> Condiciones ideales para 3x+.`;
-                }
-                // Condición 3: Muchos medios sin altos
-                else if (medium10 >= 5 && high10 === 0) {
-                    recommendedMult = 3.80;
-                    confidence = 81;
-                    signalType = '🌟 SEÑAL 3x+';
-                    boxColor = 'gold';
-                    alertType = 'gold';
-                    soundType = '3x';
-                    currentSession.signals3x++;
-                    alertMessage = `🌟 <strong>Acumulación media:</strong> ${medium10} medios sin altos. Probable salto a 3x+.`;
-                }
-            }
-
-            // PRIORIDAD 3: SEÑALES 10x+
-            if (currentSession.signals10x < CONFIG.SIGNALS_10X_MAX && recommendedMult === 0) {
-                // Condición 1: Múltiples instalosses + sin altos + volatilidad alta
-                if (instaloss10 >= 3 && high10 === 0 && volatility > 1.8) {
-                    recommendedMult = 12.00;
-                    confidence = 88;
-                    signalType = '💎 SEÑAL 10x+';
-                    boxColor = 'purple';
-                    alertType = 'purple';
-                    soundType = '10x';
-                    currentSession.signals10x++;
-                    alertMessage = `💎 <strong>¡OPORTUNIDAD ULTRA!</strong> ${instaloss10} instalosses + alta volatilidad. Target 10x+.`;
-                }
-                // Condición 2: Promedio extremadamente bajo + muchos bajos
-                else if (avg10 < 1.8 && low5 >= 4) {
-                    recommendedMult = 15.00;
-                    confidence = 85;
-                    signalType = '💎 SEÑAL 10x+';
-                    boxColor = 'purple';
-                    alertType = 'purple';
-                    soundType = '10x';
-                    currentSession.signals10x++;
-                    alertMessage = `💎 <strong>¡PATRÓN RARO!</strong> Promedio ${avg10.toFixed(2)}x extremadamente bajo. Compensación 10x+ probable.`;
-                }
-            }
-
-            // VALIDAR CONFIANZA MÍNIMA
-            if (confidence > 0 && confidence >= CONFIG.MIN_CONFIDENCE) {
-                // EMITIR SEÑAL
-                lastSignalTime = now;
-                currentSession.totalSignals++;
-
-                // Registrar en historial
-                signalHistory.push({
-                    timestamp: now,
-                    mult: recommendedMult,
-                    confidence: confidence,
-                    type: signalType
-                });
-
-                // Reproducir sonido
-                if (soundType) {
-                    playSignalSound(soundType);
-                }
-
-                // Actualizar última señal en historial
-                if (gameHistory.length > 0) {
-                    gameHistory[0].signalSent = `${recommendedMult.toFixed(2)}x`;
-                }
-
-                console.log(`🎯 SEÑAL EMITIDA: ${recommendedMult.toFixed(2)}x con ${confidence}% confianza`);
-            } else {
-                // SIN SEÑAL
-                recommendedMult = 0;
-                confidence = 0;
-                signalType = 'ℹ️ ANALIZANDO';
-                alertMessage = 'ℹ️ <strong>IA analizando...</strong> Esperando condiciones óptimas para próxima señal.';
-            }
-
-            updateSignalDisplay(recommendedMult, confidence, alertType, alertMessage, boxColor, signalType);
-            updateSessionDisplay();
-        }
-
-        function updateSignalDisplay(mult, conf, alertType, message, boxColor, signalTypeText) {
+            // Mostrar señal
             const signalBox = document.getElementById('signalBox');
             const signalMultiplier = document.getElementById('signalMultiplier');
             const confidence = document.getElementById('confidence');
             const signalType = document.getElementById('signalType');
             const alertBox = document.getElementById('alertBox');
+            const validationBox = document.getElementById('validationBox');
 
-            signalBox.className = `signal-box ${boxColor}`;
-            signalMultiplier.textContent = mult === 0 ? 'ESPERAR' : mult.toFixed(2) + 'x';
-            confidence.textContent = conf > 0 ? conf + '%' : '--';
-            signalType.textContent = signalTypeText;
-            alertBox.className = 'alert ' + alertType;
-            alertBox.innerHTML = message;
+            signalBox.className = `signal-box ${signal.color}`;
+            signalMultiplier.textContent = signal.target.toFixed(2) + 'x';
+            confidence.textContent = signal.confidence + '%';
+            signalType.textContent = signal.type;
 
-            updatePatternIndicator(mult);
+            validationBox.style.display = 'block';
+            validationBox.innerHTML = `
+                <strong>✅ Validaciones Cumplidas:</strong>
+                <div style="margin-top: 10px;">
+                    ✓ Múltiples instalosses detectados<br>
+                    ✓ Promedio extremadamente bajo<br>
+                    ✓ Sin altos recientes<br>
+                    ✓ Tendencia bajista confirmada<br>
+                    ✓ Cooldown completado
+                </div>
+            `;
+
+            alertBox.className = `alert ${signal.color === 'green' ? 'success' : signal.color === 'gold' ? 'gold' : 'purple'}`;
+            alertBox.innerHTML = `<strong>🎯 SEÑAL EMITIDA:</strong> ${signal.type} con ${signal.confidence}% de confianza. Target: ${signal.target.toFixed(2)}x`;
+
+            // Sonido
+            playSignalSound(signal.soundType);
+
+            updateUI();
         }
 
-        function updatePatternIndicator(mult) {
-            const dots = document.querySelectorAll('.pattern-dot');
-            dots.forEach((dot, i) => {
-                dot.classList.remove('active');
-                if (mult === 0 && i === 2) dot.classList.add('active');
-                else if (mult > 0 && mult < 1.70 && i === 0) dot.classList.add('active');
-                else if (mult >= 1.70 && mult < 3.00 && i === 1) dot.classList.add('active');
-                else if (mult >= 3.00 && mult < 10.00 && i === 3) dot.classList.add('active');
-                else if (mult >= 10.00 && i === 4) dot.classList.add('active');
-            });
+        function clearSignalDisplay() {
+            const signalBox = document.getElementById('signalBox');
+            const signalMultiplier = document.getElementById('signalMultiplier');
+            const confidence = document.getElementById('confidence');
+            const signalType = document.getElementById('signalType');
+            const validationBox = document.getElementById('validationBox');
+
+            signalBox.className = 'signal-box waiting';
+            signalMultiplier.textContent = '--';
+            confidence.textContent = '--';
+            signalType.textContent = 'Esperando oportunidad...';
+            validationBox.style.display = 'none';
         }
 
-        function updateSessionDisplay() {
-            const progress = (currentSession.rounds / CONFIG.SESSION_SIZE) * 100;
-            document.getElementById('sessionProgress').style.width = progress + '%';
-            document.getElementById('sessionProgress').textContent = `${currentSession.rounds}/${CONFIG.SESSION_SIZE}`;
-            document.getElementById('signals170').textContent = `${currentSession.signals170}/${CONFIG.SIGNALS_170_MAX}`;
-            document.getElementById('signals3x').textContent = `${currentSession.signals3x}/${CONFIG.SIGNALS_3X_MAX}`;
-            document.getElementById('signals10x').textContent = `${currentSession.signals10x}/${CONFIG.SIGNALS_10X_MAX}`;
-            
-            const hitRate = currentSession.totalSignals > 0 ? ((currentSession.hits / currentSession.totalSignals) * 100).toFixed(0) : 0;
-            document.getElementById('sessionHits').textContent = hitRate + '%';
+        function updateConditions(c1, c2, c3, c4, c5) {
+            document.getElementById('cond1').innerHTML = c1 ? '<span class="validation-check">✓</span>' : '<span class="validation-cross">✗</span>';
+            document.getElementById('cond2').innerHTML = c2 ? '<span class="validation-check">✓</span>' : '<span class="validation-cross">✗</span>';
+            document.getElementById('cond3').innerHTML = c3 ? '<span class="validation-check">✓</span>' : '<span class="validation-cross">✗</span>';
+            document.getElementById('cond4').innerHTML = c4 ? '<span class="validation-check">✓</span>' : '<span class="validation-cross">✗</span>';
+            document.getElementById('cond5').innerHTML = c5 ? '<span class="validation-check">✓</span>' : '<span class="validation-cross">✗</span>';
         }
 
         function updateUI() {
-            document.getElementById('resultsToday').textContent = stats.resultsToday;
-            document.getElementById('totalSignals').textContent = currentSession.totalSignals;
-            document.getElementById('instalossCount').textContent = stats.instalossCount;
-            document.getElementById('highMultCount').textContent = stats.highMultCount;
-            document.getElementById('mediumCount').textContent = stats.mediumCount;
-            document.getElementById('ultraCount').textContent = stats.ultraCount;
+            const progress = (currentSession.rounds / CONFIG.SESSION_SIZE) * 100;
+            document.getElementById('sessionProgress').style.width = progress + '%';
+            document.getElementById('sessionProgress').textContent = `${currentSession.rounds}/${CONFIG.SESSION_SIZE}`;
 
-            if (gameHistory.length > 0) {
-                const last = gameHistory[0];
-                document.getElementById('lastCrash').textContent = last.multiplier.toFixed(2) + 'x';
-                
-                const last10 = gameHistory.slice(0, Math.min(10, gameHistory.length));
-                const avg = last10.reduce((sum, r) => sum + r.multiplier, 0) / last10.length;
-                document.getElementById('avg10').textContent = avg.toFixed(2) + 'x';
-            }
+            document.getElementById('signals170').textContent = `${currentSession.signals170}/${CONFIG.MAX_SIGNALS_170}`;
+            document.getElementById('signals3x').textContent = `${currentSession.signals3x}/${CONFIG.MAX_SIGNALS_3X}`;
+            document.getElementById('signals10x').textContent = `${currentSession.signals10x}/${CONFIG.MAX_SIGNALS_10X}`;
+
+            const effectiveness = currentSession.totalSignals > 0 
+                ? ((currentSession.hits / currentSession.totalSignals) * 100).toFixed(0)
+                : 0;
+            document.getElementById('sessionEffectiveness').textContent = effectiveness + '%';
+
+            document.getElementById('totalRounds').textContent = currentSession.rounds;
+            document.getElementById('totalSignals').textContent = currentSession.totalSignals;
+            document.getElementById('totalHits').textContent = currentSession.hits;
+            document.getElementById('totalMisses').textContent = currentSession.misses;
 
             updateHistoryTable();
         }
@@ -1161,7 +1088,7 @@
             tbody.innerHTML = '';
 
             if (gameHistory.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="opacity: 0.6; padding: 30px;">Sin datos...</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4" style="opacity: 0.6; padding: 30px;">Sin datos...</td></tr>';
                 return;
             }
 
@@ -1174,59 +1101,84 @@
                 else if (result.type === 'ALTO') typeClass = 'high';
                 else if (result.type === 'MEDIO') typeClass = 'high';
 
-                const outcome = result.signalSent ? '⏳ Pendiente' : '--';
-
                 row.innerHTML = `
                     <td>${index + 1}</td>
                     <td>${result.timestamp.toLocaleTimeString('es-VE')}</td>
                     <td><span class="multiplier ${typeClass}">${result.multiplier.toFixed(2)}x</span></td>
                     <td>${result.type}</td>
-                    <td>${result.signalSent || '--'}</td>
-                    <td>${outcome}</td>
                 `;
             });
         }
 
-        function updateConnectionStatus(text, connected) {
-            const statusEl = document.getElementById('connectionStatus');
-            const fbStatusEl = document.getElementById('fbStatus');
+        function updateSignalsTable() {
+            const tbody = document.getElementById('signalsTableBody');
+            tbody.innerHTML = '';
 
-            if (statusEl) statusEl.textContent = text;
-            if (fbStatusEl) {
-                fbStatusEl.querySelector('span').textContent = connected ? '🔥 Firebase + IA' : text;
-                fbStatusEl.querySelector('.connection-dot').style.background = connected ? '#4facfe' : '#f5576c';
+            if (signalHistory.length === 0 && !pendingSignal) {
+                tbody.innerHTML = '<tr><td colspan="7" style="opacity: 0.6; padding: 30px;">No hay señales emitidas aún</td></tr>';
+                return;
             }
+
+            // Señal pendiente
+            if (pendingSignal) {
+                const row = tbody.insertRow();
+                row.className = 'pending';
+                row.innerHTML = `
+                    <td>${currentSession.totalSignals}</td>
+                    <td>${new Date(pendingSignal.timestamp).toLocaleTimeString('es-VE')}</td>
+                    <td><strong>${pendingSignal.target.toFixed(2)}x</strong></td>
+                    <td>${pendingSignal.type}</td>
+                    <td>${pendingSignal.confidence}%</td>
+                    <td>--</td>
+                    <td><span class="result-badge pending">⏳ ESPERANDO</span></td>
+                `;
+            }
+
+            // Historial
+            signalHistory.forEach((sig, index) => {
+                const row = tbody.insertRow();
+                row.className = sig.hit ? 'hit' : 'miss';
+                row.innerHTML = `
+                    <td>${currentSession.totalSignals - index - (pendingSignal ? 1 : 0)}</td>
+                    <td>${new Date(sig.timestamp).toLocaleTimeString('es-VE')}</td>
+                    <td><strong>${sig.target.toFixed(2)}x</strong></td>
+                    <td>${sig.type}</td>
+                    <td>${sig.confidence}%</td>
+                    <td>${sig.actualCrash ? sig.actualCrash.toFixed(2) + 'x' : '--'}</td>
+                    <td><span class="result-badge ${sig.hit ? 'hit' : 'miss'}">${sig.hit ? '✅ ACIERTO' : '❌ FALLO'}</span></td>
+                `;
+            });
+        }
+
+        function updateConnectionStatus(text) {
+            document.getElementById('connectionStatus').textContent = text;
         }
 
         function showAlert(message, type) {
             const alertBox = document.getElementById('alertBox');
-            if (alertBox) {
-                alertBox.className = 'alert ' + type;
-                alertBox.innerHTML = message;
-            }
+            alertBox.className = 'alert ' + type;
+            alertBox.innerHTML = message;
         }
 
-        // Countdown
+        // Countdown timer
         setInterval(() => {
-            const countdownEl = document.getElementById('countdown');
-            if (gameHistory.length > 0) {
-                const last = gameHistory[0];
-                const elapsed = Math.floor((Date.now() - last.ts) / 1000);
-                countdownEl.textContent = `Última ronda hace ${elapsed}s`;
-            } else {
-                countdownEl.textContent = 'Esperando datos...';
-            }
-
-            // Re-analizar cada 20 segundos
-            if (elapsed % 20 === 0 && gameHistory.length >= 10) {
-                runAggressiveAI();
+            if (gameHistory.length > 0 && !pendingSignal) {
+                const timeSince = Date.now() - lastSignalTime;
+                if (timeSince < CONFIG.SIGNAL_COOLDOWN) {
+                    const remaining = Math.ceil((CONFIG.SIGNAL_COOLDOWN - timeSince) / 1000);
+                    document.getElementById('countdown').textContent = `Próximo análisis en ${remaining}s`;
+                } else {
+                    document.getElementById('countdown').textContent = 'Analizando patrones...';
+                }
+            } else if (pendingSignal) {
+                document.getElementById('countdown').textContent = '⏳ Esperando resultado de señal...';
             }
         }, 1000);
 
         // INICIAR
         tryAllPaths();
 
-        console.log('✅ IA Agresiva lista');
+        console.log('✅ Modo Francotirador activado');
     </script>
 </body>
 </html>
