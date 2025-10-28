@@ -41,7 +41,6 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            text-shadow: 0 4px 20px rgba(102, 126, 234, 0.5);
         }
 
         .header .subtitle {
@@ -130,22 +129,6 @@
             animation: pulse 3s infinite;
             position: relative;
             overflow: hidden;
-        }
-
-        .signal-box::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
-            animation: shine 3s infinite;
-        }
-
-        @keyframes shine {
-            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
         }
 
         .signal-box.green {
@@ -318,22 +301,6 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            text-shadow: 0 0 30px rgba(253, 203, 110, 0.5);
-        }
-
-        .prob-bar {
-            height: 8px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            overflow: hidden;
-            margin-top: 8px;
-        }
-
-        .prob-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-            border-radius: 10px;
-            transition: width 0.5s ease;
         }
 
         .live-badge {
@@ -479,22 +446,22 @@
                     <tbody>
                         <tr>
                             <td><span class="multiplier low">1.00x - 1.04x</span></td>
-                            <td id="prob1">8%</td>
+                            <td>8%</td>
                             <td>❌ Evitar</td>
                         </tr>
                         <tr>
                             <td><span class="multiplier high">1.05x - 1.50x</span></td>
-                            <td id="prob2">92%</td>
+                            <td>92%</td>
                             <td>✅ Alta</td>
                         </tr>
                         <tr>
                             <td><span class="multiplier medium">1.51x - 2.75x</span></td>
-                            <td id="prob3">65%</td>
+                            <td>65%</td>
                             <td>⚠️ Media</td>
                         </tr>
                         <tr>
                             <td><span class="multiplier high">2.76x+</span></td>
-                            <td id="prob4">35%</td>
+                            <td>35%</td>
                             <td>⚠️ Riesgo</td>
                         </tr>
                     </tbody>
@@ -529,12 +496,12 @@
         <span>Conectando a Firebase...</span>
     </div>
 
-    <!-- Firebase SDK -->
+    <!-- Firebase SDK v9 -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getDatabase, ref, onValue, query, orderByKey, limitToLast } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
-        // ===== CONFIGURACIÓN FIREBASE =====
+        // ===== CONFIGURACIÓN =====
         const firebaseConfig = {
             apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
             databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com",
@@ -563,71 +530,86 @@
             cooldownCounter: 0
         };
 
-        // ===== INICIALIZACIÓN =====
+        // ===== INICIALIZACIÓN FIREBASE =====
+        console.log('🔥 Inicializando Firebase...');
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        console.log('🔥 Firebase inicializado');
-        updateConnectionStatus('🟢 CONECTADO', true);
+        updateConnectionStatus('🟡 Conectando...', false);
 
-        // ===== ESCUCHAR FEED "gocho" EN TIEMPO REAL =====
-        const feedRef = ref(db, 'feeds/gocho/crashes');
-        const feedQuery = query(feedRef, orderByKey(), limitToLast(100));
+        // ===== ESCUCHAR CRASHES EN TIEMPO REAL =====
+        const crashesRef = ref(db, 'crashes');
+        
+        console.log('📡 Configurando listener en /crashes...');
 
-        onValue(feedQuery, (snapshot) => {
-            if (snapshot.exists()) {
-                const data = snapshot.val();
-                const crashes = Object.values(data).sort((a, b) => b.ts - a.ts);
+        onValue(crashesRef, (snapshot) => {
+            try {
+                console.log('📊 Snapshot recibido');
                 
-                console.log(`📊 ${crashes.length} crashes recibidos de Firebase`);
-                
-                // Procesar nuevos crashes
-                crashes.forEach(crash => {
-                    if (!gameHistory.find(h => h.ts === crash.ts)) {
-                        addCrashToHistory(crash);
-                    }
-                });
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    console.log('✅ Datos encontrados:', data);
+                    
+                    // Convertir objeto a array
+                    const crashesArray = Object.entries(data).map(([key, value]) => {
+                        // Extraer valor (v o value) y timestamp (t o ts)
+                        const crashValue = value.value || value.v || parseFloat(key.split('_')[0]) || 0;
+                        const crashTime = value.t || value.ts || parseInt(key) || Date.now();
+                        
+                        return {
+                            key: key,
+                            value: parseFloat(crashValue),
+                            timestamp: crashTime
+                        };
+                    });
 
-                updateUI();
-                analyzeAndPredict();
-            } else {
-                console.log('⏳ Esperando primeros datos...');
+                    // Ordenar por timestamp descendente (más reciente primero)
+                    crashesArray.sort((a, b) => b.timestamp - a.timestamp);
+                    
+                    console.log(`📈 Procesados ${crashesArray.length} crashes`);
+                    
+                    // Actualizar historial
+                    gameHistory = crashesArray.slice(0, 100).map((crash, index) => ({
+                        id: index + 1,
+                        ts: crash.timestamp,
+                        timestamp: new Date(crash.timestamp),
+                        multiplier: crash.value,
+                        type: classifyMultiplier(crash.value),
+                        signalSent: null,
+                        outcome: null
+                    }));
+
+                    stats.resultsToday = gameHistory.length;
+                    
+                    updateConnectionStatus('🟢 CONECTADO', true);
+                    updateUI();
+                    analyzeAndPredict();
+                    
+                } else {
+                    console.log('⚠️ No hay datos en /crashes');
+                    updateConnectionStatus('🟡 Sin datos', false);
+                    showAlert('⚠️ <strong>No hay datos:</strong> Asegúrate de que la extensión esté capturando en 1win.', 'warning');
+                }
+            } catch (error) {
+                console.error('❌ Error procesando snapshot:', error);
+                updateConnectionStatus('🔴 ERROR', false);
             }
         }, (error) => {
-            console.error('❌ Error en Firebase:', error);
+            console.error('❌ Error al leer Firebase:', error);
+            console.error('Código:', error.code);
+            console.error('Mensaje:', error.message);
             updateConnectionStatus('🔴 ERROR', false);
+            showAlert(`❌ <strong>Error de conexión:</strong> ${error.message}`, 'warning');
         });
 
-        // ===== AGREGAR CRASH AL HISTORIAL =====
-        function addCrashToHistory(crash) {
-            const result = {
-                id: gameHistory.length + 1,
-                ts: crash.ts || crash.i,
-                timestamp: new Date(crash.ts || crash.i),
-                multiplier: parseFloat(crash.v),
-                type: classifyMultiplier(crash.v),
-                signalSent: null,
-                outcome: null
-            };
-
-            gameHistory.unshift(result);
-            if (gameHistory.length > 100) gameHistory.pop();
-
-            stats.resultsToday++;
-            
-            console.log(`✅ Nuevo crash: ${result.multiplier}x (${result.type})`);
-        }
-
-        // ===== CLASIFICACIÓN =====
+        // ===== CLASIFICACIÓN DE MULTIPLICADORES =====
         function classifyMultiplier(mult) {
             mult = parseFloat(mult);
+            if (isNaN(mult)) return 'DESCONOCIDO';
+            
             if (mult >= CONFIG.INSTALOSS_MIN && mult <= CONFIG.INSTALOSS_MAX) {
-                stats.instalossCount++;
-                stats.inCooldown = true;
-                stats.cooldownCounter = CONFIG.COOLDOWN_ROUNDS;
                 return 'INSTALOSS';
             } else if (mult >= CONFIG.HIGH_MIN) {
-                stats.highMultCount++;
                 return 'ALTO';
             } else if (mult >= CONFIG.SAFE_MIN && mult <= CONFIG.SAFE_MAX) {
                 return 'SEGURO';
@@ -638,21 +620,19 @@
 
         // ===== ANÁLISIS Y PREDICCIÓN =====
         function analyzeAndPredict() {
-            if (gameHistory.length < 10) {
-                showAlert('⏳ Recolectando datos iniciales...', 'warning');
+            if (gameHistory.length < 5) {
+                showAlert('⏳ <strong>Recolectando datos iniciales...</strong> Se necesitan al menos 10 resultados para análisis predictivo.', 'warning');
                 return;
             }
 
-            const last10 = gameHistory.slice(0, 10);
+            const last10 = gameHistory.slice(0, Math.min(10, gameHistory.length));
             const instalossInLast10 = last10.filter(r => r.type === 'INSTALOSS').length;
             const highInLast10 = last10.filter(r => r.type === 'ALTO').length;
-            const avg = last10.reduce((sum, r) => sum + r.multiplier, 0) / 10;
+            const avg = last10.reduce((sum, r) => sum + r.multiplier, 0) / last10.length;
 
-            // Actualizar estadísticas visuales
-            document.getElementById('avgMultiplier')?.textContent = avg.toFixed(2) + 'x';
-            document.getElementById('avg10').textContent = avg.toFixed(2) + 'x';
-            document.getElementById('instalossCount').textContent = instalossInLast10;
-            document.getElementById('highMultCount').textContent = stats.highMultCount;
+            // Actualizar estadísticas
+            stats.instalossCount = gameHistory.filter(r => r.type === 'INSTALOSS').length;
+            stats.highMultCount = gameHistory.filter(r => r.type === 'ALTO').length;
 
             // Gestionar cooldown
             if (stats.inCooldown && stats.cooldownCounter > 0) {
@@ -660,7 +640,11 @@
                 if (stats.cooldownCounter === 0) stats.inCooldown = false;
             }
 
-            document.getElementById('cooldownStatus').textContent = stats.inCooldown ? 'SÍ' : 'NO';
+            // Activar cooldown si hay instaloss reciente
+            if (last10.length > 0 && last10[0].type === 'INSTALOSS') {
+                stats.inCooldown = true;
+                stats.cooldownCounter = CONFIG.COOLDOWN_ROUNDS;
+            }
 
             // Generar señal
             generateSignal(instalossInLast10, highInLast10, avg);
@@ -671,8 +655,8 @@
             let recommendedMult = 1.50;
             let confidence = 85;
             let alertType = 'success';
-            let alertMessage = '';
             let boxColor = 'green';
+            let alertMessage = '';
 
             if (stats.inCooldown) {
                 recommendedMult = 0;
@@ -738,7 +722,6 @@
             alertBox.className = 'alert ' + alertType;
             alertBox.innerHTML = message;
 
-            // Animar pattern indicator
             updatePatternIndicator(mult);
         }
 
@@ -758,6 +741,9 @@
         function updateUI() {
             document.getElementById('resultsToday').textContent = stats.resultsToday;
             document.getElementById('totalAnalyzed').textContent = gameHistory.length;
+            document.getElementById('instalossCount').textContent = stats.instalossCount;
+            document.getElementById('highMultCount').textContent = stats.highMultCount;
+            document.getElementById('cooldownStatus').textContent = stats.inCooldown ? 'SÍ' : 'NO';
 
             const successRate = stats.signalsIssued > 0
                 ? ((stats.successfulSignals / stats.signalsIssued) * 100).toFixed(1)
@@ -767,6 +753,10 @@
             if (gameHistory.length > 0) {
                 const last = gameHistory[0];
                 document.getElementById('lastCrash').textContent = last.multiplier.toFixed(2) + 'x';
+                
+                const last10 = gameHistory.slice(0, Math.min(10, gameHistory.length));
+                const avg = last10.reduce((sum, r) => sum + r.multiplier, 0) / last10.length;
+                document.getElementById('avg10').textContent = avg.toFixed(2) + 'x';
             }
 
             updateHistoryTable();
@@ -789,12 +779,12 @@
                                  result.type === 'SEGURO' ? 'high' : 'medium';
 
                 row.innerHTML = `
-                    <td>${gameHistory.length - index}</td>
+                    <td>${index + 1}</td>
                     <td>${result.timestamp.toLocaleTimeString('es-VE')}</td>
                     <td><span class="multiplier ${typeClass}">${result.multiplier.toFixed(2)}x</span></td>
                     <td>${result.type}</td>
-                    <td>${result.signalSent || '—'}</td>
-                    <td>${result.outcome || '⏳'}</td>
+                    <td>—</td>
+                    <td>⏳</td>
                 `;
             });
         }
@@ -806,7 +796,7 @@
 
             if (statusEl) statusEl.textContent = text;
             if (fbStatusEl) {
-                fbStatusEl.querySelector('span').textContent = connected ? '🔥 Firebase Conectado' : '🔴 Desconectado';
+                fbStatusEl.querySelector('span').textContent = connected ? '🔥 Firebase Conectado' : text;
                 fbStatusEl.querySelector('.connection-dot').style.background = connected ? '#4facfe' : '#f5576c';
             }
         }
@@ -814,28 +804,25 @@
         // ===== MOSTRAR ALERTA =====
         function showAlert(message, type) {
             const alertBox = document.getElementById('alertBox');
-            alertBox.className = 'alert ' + type;
-            alertBox.innerHTML = message;
+            if (alertBox) {
+                alertBox.className = 'alert ' + type;
+                alertBox.innerHTML = message;
+            }
         }
 
-        // ===== COUNTDOWN SIMULADO =====
+        // ===== COUNTDOWN =====
         setInterval(() => {
             const countdownEl = document.getElementById('countdown');
             if (gameHistory.length > 0) {
                 const last = gameHistory[0];
                 const elapsed = Math.floor((Date.now() - last.ts) / 1000);
                 countdownEl.textContent = `Última captura hace ${elapsed}s`;
+            } else {
+                countdownEl.textContent = 'Esperando primera captura...';
             }
         }, 1000);
 
-        // Exponer para debug
-        window.aviatorDebug = {
-            history: () => gameHistory,
-            stats: () => stats,
-            reanalyze: () => analyzeAndPredict()
-        };
-
-        console.log('✅ Sistema inicializado. Escuchando feed "gocho" en tiempo real.');
+        console.log('✅ Sistema inicializado y escuchando Firebase');
     </script>
 </body>
 </html>
