@@ -172,6 +172,7 @@ body{
 .button-group{
   display:flex;
   gap:12px;
+  flex-wrap:wrap;
 }
 
 button{
@@ -190,7 +191,7 @@ button{
   font-family:inherit;
 }
 
-button:hover{
+button:hover:not(:disabled){
   transform:translateY(-1px);
   box-shadow:var(--shadow-sm);
 }
@@ -202,7 +203,7 @@ button.primary{
   box-shadow:0 4px 16px rgba(0,212,255,0.3);
 }
 
-button.primary:hover{
+button.primary:hover:not(:disabled){
   box-shadow:0 6px 24px rgba(0,212,255,0.4);
 }
 
@@ -212,7 +213,7 @@ button.danger{
   color:var(--error);
 }
 
-button.danger:hover{
+button.danger:hover:not(:disabled){
   background:rgba(239,68,68,0.2);
 }
 
@@ -608,7 +609,7 @@ code{
     </div>
     <div class="metric-card">
       <div class="metric-label">Gap Rosa</div>
-      <div class="metric-value" id="metricGap">--</div>
+      <div class="metric-value" id="metricGap">99+</div>
     </div>
   </div>
 
@@ -662,7 +663,7 @@ code{
     <div class="card">
       <h2>Registro del Sistema</h2>
       <div class="log-container" id="logContainer">
-        <div class="log-entry" style="color:var(--text-muted)">Sistema iniciado. Esperando conexión...</div>
+        <div class="log-entry" style="color:var(--text-muted)">Sistema iniciado. Presiona "Conectar" para comenzar...</div>
       </div>
     </div>
 
@@ -673,7 +674,8 @@ code{
 <script>
 /*** Utilities ***/
 const $=s=>document.querySelector(s);
-const logEl=$("#logContainer"), chipsEl=$("#chipsContainer");
+const logEl=$("#logContainer");
+const chipsEl=$("#chipsContainer");
 const now=()=>new Date().toLocaleTimeString('es-ES');
 
 function log(msg,cls=''){
@@ -686,18 +688,20 @@ function log(msg,cls=''){
 
 function tone(f=880,ms=140,vol=.035){
   if(!$("#swBeep").checked) return;
-  const a=new (window.AudioContext||window.webkitAudioContext)();
-  const o=a.createOscillator(),g=a.createGain();
-  o.frequency.value=f;o.type='sine';g.gain.value=vol;
-  o.connect(g).connect(a.destination);
-  o.start();setTimeout(()=>o.stop(),ms);
+  try{
+    const a=new (window.AudioContext||window.webkitAudioContext)();
+    const o=a.createOscillator(),g=a.createGain();
+    o.frequency.value=f;o.type='sine';g.gain.value=vol;
+    o.connect(g).connect(a.destination);
+    o.start();setTimeout(()=>o.stop(),ms);
+  }catch(e){console.log('Audio no disponible');}
 }
 
 setInterval(()=>$("#clock").textContent=now(),1000);
 
 /*** State ***/
 let rounds=[];
-let lastVal=0,lastAt=0,source='—',connected=false;
+let lastVal=0,lastAt=0,source='Ninguna',connected=false;
 const session={id:1,round:0,used170:0,used3x:0,usedRosa:0};
 const signals=[];
 let pending=null;
@@ -753,7 +757,7 @@ function renderSignals(){
       <td>${s.n}</td>
       <td>${s.sess}</td>
       <td>${s.round}</td>
-      <td><span class="tag ${s.tag.includes('ROSA')?'rosa':s.tag.includes('3')?'triple':'auto'}">${s.tag}</span></td>
+      <td><span class="tag ${s.tag.includes('ROSA')?'rosa':s.tag.includes('3.0')?'triple':'auto'}">${s.tag}</span></td>
       <td>${s.target.toFixed(2)}x</td>
       <td>${s.time}</td>
       <td>${s.crash==='—'?'—':s.crash.toFixed(2)+'x'}</td>
@@ -915,12 +919,17 @@ function maybeRosa(){
 }
 
 /*** Ingestion ***/
-function ingest(x,src='?'){
+function ingest(x,src='Desconocido'){
   const v=parseFloat(x);
   if(!isFinite(v)||v<=0) return;
   const t=performance.now();
   if(v===lastVal&&(t-lastAt)<2500) return;
-  lastVal=v;lastAt=t;source=src;
+  lastVal=v;lastAt=t;
+  
+  if(src!=='Test' && src!=='Desconocido'){
+    source=src;
+    updateBadges();
+  }
 
   rounds.unshift(v);
   if(rounds.length>200) rounds.pop();
@@ -953,6 +962,7 @@ function ingest(x,src='?'){
 
 /*** Connection ***/
 let bc1=null,bc2=null,lsPoll=null;
+let msgListener=null,storageListener=null,customListener1=null,customListener2=null;
 
 function connect(){
   if(connected){log('Ya está conectado','err');return;}
@@ -961,34 +971,44 @@ function connect(){
     bc1=new BroadcastChannel('gocho');
     bc1.onmessage=e=>ingest(e.data,'BC:gocho');
     log('Canal "gocho" conectado','ok');
-  }catch(e){log('BC gocho no disponible','err');}
+  }catch(e){log('BC gocho error: '+e.message,'err');}
 
   try{
     bc2=new BroadcastChannel('aviator');
     bc2.onmessage=e=>ingest(e.data,'BC:aviator');
     log('Canal "aviator" conectado','ok');
-  }catch(e){}
+  }catch(e){log('BC aviator error: '+e.message,'err');}
 
-  window.addEventListener('message',e=>{
+  msgListener=(e)=>{
     const d=e.data||{};
     const v=d.aviatorRound??d.round??d.value??d.crash??(typeof d==='number'?d:null);
     if(v!=null) ingest(v,'postMessage');
-  });
+  };
+  window.addEventListener('message',msgListener);
 
-  window.addEventListener('storage',e=>{
+  storageListener=(e)=>{
     if(e.key==='gocho:round'||e.key==='aviator:round'){
       if(e.newValue!=null) ingest(parseFloat(e.newValue),'localStorage');
     }
-  });
+  };
+  window.addEventListener('storage',storageListener);
 
-  window.addEventListener('gocho:round',ev=>ingest(ev.detail,'CustomEvent'));
-  window.addEventListener('aviator:round',ev=>ingest(ev.detail,'CustomEvent'));
+  customListener1=(ev)=>ingest(ev.detail,'CustomEvent:gocho');
+  customListener2=(ev)=>ingest(ev.detail,'CustomEvent:aviator');
+  window.addEventListener('gocho:round',customListener1);
+  window.addEventListener('aviator:round',customListener2);
 
-  window.gochoPush=x=>ingest(x,'gochoPush()');
+  window.gochoPush=(x)=>ingest(x,'gochoPush()');
 
+  let lastLSSeen=null;
   lsPoll=setInterval(()=>{
-    const v=localStorage.getItem('gocho:round')||localStorage.getItem('aviator:round');
-    if(v) ingest(parseFloat(v),'LS:poll');
+    try{
+      const v=localStorage.getItem('gocho:round')||localStorage.getItem('aviator:round');
+      if(v&&v!==lastLSSeen){
+        lastLSSeen=v;
+        ingest(parseFloat(v),'LS:poll');
+      }
+    }catch(e){/* localStorage puede no estar disponible */}
   },500);
 
   connected=true;
@@ -1002,14 +1022,20 @@ function connect(){
 function disconnect(){
   if(!connected){log('Ya está desconectado','err');return;}
   
-  try{bc1&&bc1.close();}catch{}
-  try{bc2&&bc2.close();}catch{}
-  bc1=bc2=null;
+  try{if(bc1){bc1.close();bc1=null;}}catch(e){console.log(e);}
+  try{if(bc2){bc2.close();bc2=null;}}catch(e){console.log(e);}
+  
+  if(msgListener){window.removeEventListener('message',msgListener);msgListener=null;}
+  if(storageListener){window.removeEventListener('storage',storageListener);storageListener=null;}
+  if(customListener1){window.removeEventListener('gocho:round',customListener1);customListener1=null;}
+  if(customListener2){window.removeEventListener('aviator:round',customListener2);customListener2=null;}
+  
   window.gochoPush=null;
-  clearInterval(lsPoll);lsPoll=null;
+  
+  if(lsPoll){clearInterval(lsPoll);lsPoll=null;}
 
   connected=false;
-  source='—';
+  source='Ninguna';
   $("#btnConnect").disabled=false;
   $("#btnDisconnect").disabled=true;
   updateBadges();
@@ -1018,20 +1044,26 @@ function disconnect(){
 }
 
 function testFeed(){
-  if(!connected){log('Conecta el sistema primero','err');return;}
+  log('Feed de prueba iniciado','ok');
   const seq=[()=>1+Math.random()*1.2,()=>1.2+Math.random()*5.3,()=>10+Math.random()*40];
-  setInterval(()=>{
+  const interval=setInterval(()=>{
     const pick=Math.random()<.1?2:(Math.random()<.6?0:1);
     ingest(+seq[pick]().toFixed(2),'Test');
   },1200);
-  log('Feed de prueba iniciado','ok');
+  
+  // Guardar referencia para poder detenerlo
+  window.testInterval=interval;
 }
 
 $("#btnConnect").onclick=connect;
 $("#btnDisconnect").onclick=disconnect;
 $("#btnTest").onclick=testFeed;
 
-updateBadges();paintChips();updateMetrics();
+// Inicializar
+updateBadges();
+paintChips();
+updateMetrics();
+renderSignals();
 log('Sistema iniciado. Presiona "Conectar" para comenzar.','');
 </script>
 </body>
