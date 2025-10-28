@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema Aviator 1Win • Modo Francotirador</title>
+    <title>Sistema Aviator 1Win • Balanceado</title>
     <style>
         * {
             margin: 0;
@@ -41,6 +41,43 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+        }
+
+        .control-bar {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 12px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn.stop {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .session-bar {
@@ -87,7 +124,7 @@
 
         .session-stats {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(5, 1fr);
             gap: 15px;
         }
 
@@ -120,7 +157,7 @@
 
         .status-bar {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 15px;
             margin-bottom: 30px;
         }
@@ -201,7 +238,6 @@
         .signal-box.waiting {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
-            animation: none;
         }
 
         .signal-box.green {
@@ -342,21 +378,21 @@
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-            gap: 18px;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
             margin-top: 20px;
         }
 
         .stat-card {
             background: rgba(255, 255, 255, 0.05);
-            padding: 20px;
+            padding: 15px;
             border-radius: 12px;
             text-align: center;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .stat-card-value {
-            font-size: 2.2em;
+            font-size: 2em;
             font-weight: 900;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             -webkit-background-clip: text;
@@ -365,9 +401,9 @@
         }
 
         .stat-card-label {
-            font-size: 0.85em;
+            font-size: 0.8em;
             opacity: 0.7;
-            margin-top: 8px;
+            margin-top: 5px;
             text-transform: uppercase;
         }
 
@@ -401,7 +437,7 @@
         }
 
         .countdown {
-            font-size: 1.8em;
+            font-size: 1.5em;
             font-weight: 900;
             text-align: center;
             margin: 20px 0;
@@ -437,62 +473,45 @@
             50% { opacity: 0.3; }
         }
 
-        .sniper-badge {
+        .balanced-badge {
             display: inline-block;
-            background: linear-gradient(135deg, #ff6b6b 0%, #ffd93d 100%);
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
             padding: 5px 12px;
             border-radius: 15px;
             font-size: 0.75em;
             font-weight: bold;
             margin-left: 10px;
         }
-
-        .validation-box {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 15px;
-            border-radius: 10px;
-            margin: 15px 0;
-            font-size: 0.9em;
-        }
-
-        .validation-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 5px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .validation-item:last-child {
-            border-bottom: none;
-        }
-
-        .validation-check {
-            color: #00ff88;
-        }
-
-        .validation-cross {
-            color: #ff6b6b;
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎯 Sistema Aviator 1Win <span class="sniper-badge">FRANCOTIRADOR</span></h1>
-            <p style="opacity: 0.85; font-size: 1.1em;">Precisión Quirúrgica • Validación Múltiple • Máxima Efectividad</p>
+            <h1>🎯 Sistema Aviator 1Win <span class="balanced-badge">BALANCEADO</span></h1>
+            <p style="opacity: 0.85; font-size: 1.1em;">Análisis Inteligente • Señales Efectivas • Máxima Rentabilidad</p>
             <div style="margin-top: 15px;">
                 <span class="live-badge">EN VIVO</span>
             </div>
         </div>
 
+        <div class="control-bar">
+            <button class="btn" id="btnStart" onclick="startSession()">🚀 INICIAR SESIÓN</button>
+            <button class="btn stop" id="btnStop" onclick="stopSession()" disabled>⏹️ DETENER</button>
+            <button class="btn" onclick="resetSession()">🔄 RESETEAR</button>
+        </div>
+
         <div class="session-bar">
-            <div class="session-title">📊 SESIÓN ACTUAL (60 RONDAS)</div>
+            <div class="session-title">📊 SESIÓN ACTUAL</div>
             <div class="session-progress">
                 <div class="progress-bar">
                     <div class="progress-fill" id="sessionProgress" style="width: 0%">0/60</div>
                 </div>
             </div>
             <div class="session-stats">
+                <div class="session-stat">
+                    <div class="session-stat-label">Rondas Totales</div>
+                    <div class="session-stat-value" id="totalRoundsSession">0</div>
+                </div>
                 <div class="session-stat">
                     <div class="session-stat-label">Señales 1.70x+</div>
                     <div class="session-stat-value" id="signals170">0/4</div>
@@ -515,14 +534,10 @@
         <div class="status-bar">
             <div class="status-item active">
                 <div class="status-label">Estado</div>
-                <div class="status-value" id="connectionStatus">🔄</div>
+                <div class="status-value" id="connectionStatus">⚪ DETENIDO</div>
             </div>
             <div class="status-item">
-                <div class="status-label">Rondas</div>
-                <div class="status-value" id="totalRounds">0</div>
-            </div>
-            <div class="status-item">
-                <div class="status-label">Señales</div>
+                <div class="status-label">Señales Total</div>
                 <div class="status-value" id="totalSignals">0</div>
             </div>
             <div class="status-item">
@@ -533,33 +548,32 @@
                 <div class="status-label">Fallos</div>
                 <div class="status-value fail" id="totalMisses">0</div>
             </div>
+            <div class="status-item">
+                <div class="status-label">Última Señal</div>
+                <div class="status-value" id="lastSignalTime">--</div>
+            </div>
         </div>
 
         <div class="main-grid">
             <div class="panel">
-                <h2 class="panel-title">🎯 Señal Francotirador</h2>
+                <h2 class="panel-title">🎯 Señal Actual</h2>
                 
                 <div class="signal-box waiting" id="signalBox">
-                    <div class="signal-title">ANALIZANDO PATRONES</div>
+                    <div class="signal-title">ESPERANDO ANÁLISIS</div>
                     <div class="signal-value" id="signalMultiplier">--</div>
                     <div class="signal-confidence">Confianza: <span id="confidence">--</span></div>
-                    <div class="signal-type" id="signalType">Esperando oportunidad...</div>
+                    <div class="signal-type" id="signalType">Presiona INICIAR SESIÓN</div>
                 </div>
 
-                <div class="validation-box" id="validationBox" style="display: none;">
-                    <strong>✅ Validaciones Cumplidas:</strong>
-                    <div id="validationList"></div>
-                </div>
-
-                <div class="countdown" id="countdown">Cargando...</div>
+                <div class="countdown" id="countdown">Sistema detenido</div>
 
                 <div class="alert success" id="alertBox">
-                    <strong>⏳ Iniciando:</strong> Modo Francotirador activado. Solo señales de alta precisión.
+                    <strong>⏸️ Sistema detenido:</strong> Haz clic en "INICIAR SESIÓN" para comenzar el análisis.
                 </div>
             </div>
 
             <div class="panel">
-                <h2 class="panel-title">📊 Indicadores Técnicos</h2>
+                <h2 class="panel-title">📊 Análisis en Tiempo Real</h2>
                 
                 <div class="stats-grid">
                     <div class="stat-card">
@@ -571,37 +585,37 @@
                         <div class="stat-card-label">Instaloss</div>
                     </div>
                     <div class="stat-card">
+                        <div class="stat-card-value" id="lowCount">0</div>
+                        <div class="stat-card-label">Bajos <1.70x</div>
+                    </div>
+                    <div class="stat-card">
                         <div class="stat-card-value" id="highCount">0</div>
                         <div class="stat-card-label">Altos >5x</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-card-value" id="volatility">--</div>
-                        <div class="stat-card-label">Volatilidad</div>
+                        <div class="stat-card-value" id="mediumCount">0</div>
+                        <div class="stat-card-label">Medios 1.7-3x</div>
                     </div>
                 </div>
 
-                <h3 style="margin-top: 30px; margin-bottom: 15px; font-size: 1.2em;">Condiciones de Señal</h3>
+                <h3 style="margin-top: 30px; margin-bottom: 15px; font-size: 1.2em;">Indicadores Clave</h3>
                 <table class="history-table">
                     <tbody>
                         <tr>
-                            <td style="text-align: left;">Instalosses (últimos 15)</td>
-                            <td id="cond1">--</td>
+                            <td style="text-align: left;">Tendencia</td>
+                            <td id="trendIndicator">--</td>
                         </tr>
                         <tr>
-                            <td style="text-align: left;">Promedio bajo</td>
-                            <td id="cond2">--</td>
+                            <td style="text-align: left;">Racha Baja Actual</td>
+                            <td id="lowStreak">0</td>
                         </tr>
                         <tr>
-                            <td style="text-align: left;">Sin altos recientes</td>
-                            <td id="cond3">--</td>
+                            <td style="text-align: left;">Último Instaloss</td>
+                            <td id="lastInstaloss">--</td>
                         </tr>
                         <tr>
-                            <td style="text-align: left;">Tendencia favorable</td>
-                            <td id="cond4">--</td>
-                        </tr>
-                        <tr>
-                            <td style="text-align: left;">Cooldown OK</td>
-                            <td id="cond5">--</td>
+                            <td style="text-align: left;">Próximo Análisis</td>
+                            <td id="nextAnalysis">--</td>
                         </tr>
                     </tbody>
                 </table>
@@ -609,23 +623,23 @@
         </div>
 
         <div class="panel">
-            <h2 class="panel-title">🎯 Historial de Señales Emitidas</h2>
+            <h2 class="panel-title">🎯 Historial de Señales</h2>
             <div style="max-height: 400px; overflow-y: auto;">
                 <table class="history-table">
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>Hora Señal</th>
+                            <th>Hora</th>
                             <th>Target</th>
                             <th>Tipo</th>
-                            <th>Confianza</th>
-                            <th>Resultado Real</th>
+                            <th>Conf.</th>
+                            <th>Real</th>
                             <th>Estado</th>
                         </tr>
                     </thead>
                     <tbody id="signalsTableBody">
                         <tr>
-                            <td colspan="7" style="opacity: 0.6; padding: 30px;">No hay señales emitidas aún</td>
+                            <td colspan="7" style="opacity: 0.6; padding: 30px;">No hay señales aún</td>
                         </tr>
                     </tbody>
                 </table>
@@ -633,7 +647,7 @@
         </div>
 
         <div class="panel">
-            <h2 class="panel-title">📈 Historial Completo (Últimas 60 Rondas)</h2>
+            <h2 class="panel-title">📈 Últimas 30 Rondas</h2>
             <div style="max-height: 400px; overflow-y: auto;">
                 <table class="history-table">
                     <thead>
@@ -646,7 +660,7 @@
                     </thead>
                     <tbody id="historyTableBody">
                         <tr>
-                            <td colspan="4" style="opacity: 0.6; padding: 30px;">Cargando...</td>
+                            <td colspan="4" style="opacity: 0.6; padding: 30px;">Sin datos</td>
                         </tr>
                     </tbody>
                 </table>
@@ -656,7 +670,7 @@
 
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getDatabase, ref, onValue, get } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+        import { getDatabase, ref, onValue, get, off } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
@@ -669,15 +683,18 @@
             MAX_SIGNALS_170: 4,
             MAX_SIGNALS_3X: 3,
             MAX_SIGNALS_10X: 2,
-            MIN_CONFIDENCE: 90,  // MUY ALTA
-            SIGNAL_COOLDOWN: 180000,  // 3 MINUTOS entre señales
-            MIN_DATA_POINTS: 20  // Mínimo 20 rondas para analizar
+            MIN_CONFIDENCE: 80,  // Balanceado
+            SIGNAL_COOLDOWN: 45000,  // 45 segundos
+            MIN_DATA_POINTS: 10
         };
 
         let gameHistory = [];
         let signalHistory = [];
         let currentSession = {
-            rounds: 0,
+            active: false,
+            startTime: null,
+            totalRounds: 0,
+            sessionRounds: 0,
             signals170: 0,
             signals3x: 0,
             signals10x: 0,
@@ -688,8 +705,10 @@
 
         let lastSignalTime = 0;
         let pendingSignal = null;
+        let lastProcessedTimestamp = 0;
+        let dataListener = null;
+        let currentPath = null;
 
-        // AUDIO
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         const audioCtx = new AudioContext();
 
@@ -743,19 +762,77 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        updateConnectionStatus('🟡 Conectando...', false);
-
         const possiblePaths = ['feeds/gocho/crashes', 'crashes', 'historial', 'last_final'];
 
-        async function tryAllPaths() {
+        window.startSession = async function() {
+            if (currentSession.active) return;
+            
+            console.log('🚀 Iniciando sesión...');
+            currentSession.active = true;
+            currentSession.startTime = Date.now();
+            currentSession.totalRounds = 0;
+            currentSession.sessionRounds = 0;
+            
+            document.getElementById('btnStart').disabled = true;
+            document.getElementById('btnStop').disabled = false;
+            updateConnectionStatus('🟡 Conectando...', false);
+            
+            await findAndConnect();
+        };
+
+        window.stopSession = function() {
+            if (!currentSession.active) return;
+            
+            console.log('⏹️ Deteniendo sesión...');
+            currentSession.active = false;
+            
+            if (dataListener && currentPath) {
+                const dataRef = ref(db, currentPath);
+                off(dataRef);
+                dataListener = null;
+            }
+            
+            document.getElementById('btnStart').disabled = false;
+            document.getElementById('btnStop').disabled = true;
+            updateConnectionStatus('⚪ DETENIDO', false);
+            showAlert('⏹️ <strong>Sesión detenida.</strong> Haz clic en INICIAR para reanudar.', 'warning');
+        };
+
+        window.resetSession = function() {
+            if (confirm('¿Resetear todas las estadísticas de la sesión?')) {
+                stopSession();
+                currentSession = {
+                    active: false,
+                    startTime: null,
+                    totalRounds: 0,
+                    sessionRounds: 0,
+                    signals170: 0,
+                    signals3x: 0,
+                    signals10x: 0,
+                    totalSignals: 0,
+                    hits: 0,
+                    misses: 0
+                };
+                gameHistory = [];
+                signalHistory = [];
+                pendingSignal = null;
+                lastSignalTime = 0;
+                lastProcessedTimestamp = 0;
+                updateUI();
+                showAlert('🔄 <strong>Sistema reseteado.</strong> Listo para nueva sesión.', 'success');
+            }
+        };
+
+        async function findAndConnect() {
             for (const path of possiblePaths) {
-                console.log(`📡 Intentando: /${path}`);
+                console.log(`📡 Buscando en: /${path}`);
                 try {
                     const testRef = ref(db, path);
                     const snapshot = await get(testRef);
                     
                     if (snapshot.exists()) {
-                        console.log(`✅ Datos en /${path}`);
+                        console.log(`✅ Datos encontrados en /${path}`);
+                        currentPath = path;
                         listenToPath(path);
                         return;
                     }
@@ -765,32 +842,32 @@
             }
             
             updateConnectionStatus('🔴 SIN DATOS', false);
+            showAlert('❌ <strong>Sin datos.</strong> Verifica que la extensión esté activa.', 'warning');
         }
-
-        let lastProcessedTimestamp = 0;
 
         function listenToPath(path) {
             const dataRef = ref(db, path);
             
-            onValue(dataRef, (snapshot) => {
+            dataListener = onValue(dataRef, (snapshot) => {
+                if (!currentSession.active) return;
+                
                 try {
                     if (snapshot.exists()) {
                         const data = snapshot.val();
                         processData(data);
                         updateConnectionStatus('🟢 ACTIVO', true);
                         
-                        // Verificar si hay nueva ronda
                         if (gameHistory.length > 0) {
                             const latest = gameHistory[0];
                             if (latest.ts !== lastProcessedTimestamp) {
                                 lastProcessedTimestamp = latest.ts;
-                                console.log(`🆕 Nueva ronda: ${latest.multiplier}x`);
+                                currentSession.totalRounds++;
+                                currentSession.sessionRounds++;
                                 
-                                // Verificar señal pendiente
+                                console.log(`🆕 Ronda ${currentSession.totalRounds}: ${latest.multiplier}x`);
+                                
                                 checkPendingSignal(latest.multiplier);
-                                
-                                // Analizar para nueva señal
-                                setTimeout(() => analyzeSniper(), 2000);
+                                setTimeout(() => analyzeBalanced(), 1000);
                             }
                         }
                     }
@@ -832,7 +909,6 @@
                 type: classifyMultiplier(crash.value)
             }));
 
-            currentSession.rounds = gameHistory.length;
             updateUI();
         }
 
@@ -848,7 +924,7 @@
         function checkPendingSignal(actualCrash) {
             if (!pendingSignal) return;
 
-            const targetMin = pendingSignal.target * 0.95; // Margen 5%
+            const targetMin = pendingSignal.target * 0.90; // Margen 10%
             const hit = actualCrash >= targetMin;
 
             pendingSignal.actualCrash = actualCrash;
@@ -857,13 +933,12 @@
 
             if (hit) {
                 currentSession.hits++;
-                showAlert(`✅ <strong>¡ACIERTO!</strong> Target ${pendingSignal.target.toFixed(2)}x → Resultado ${actualCrash.toFixed(2)}x`, 'success');
+                showAlert(`✅ <strong>¡ACIERTO!</strong> Target ${pendingSignal.target.toFixed(2)}x → Real ${actualCrash.toFixed(2)}x`, 'success');
             } else {
                 currentSession.misses++;
-                showAlert(`❌ <strong>Fallo.</strong> Target ${pendingSignal.target.toFixed(2)}x → Resultado ${actualCrash.toFixed(2)}x`, 'warning');
+                showAlert(`❌ <strong>Fallo.</strong> Target ${pendingSignal.target.toFixed(2)}x → Real ${actualCrash.toFixed(2)}x`, 'warning');
             }
 
-            // Agregar a historial
             signalHistory.unshift(pendingSignal);
             pendingSignal = null;
 
@@ -871,108 +946,159 @@
             updateUI();
         }
 
-        // ===== ANÁLISIS FRANCOTIRADOR =====
-        function analyzeSniper() {
+        // ===== ANÁLISIS BALANCEADO =====
+        function analyzeBalanced() {
+            if (!currentSession.active) return;
             if (gameHistory.length < CONFIG.MIN_DATA_POINTS) {
                 console.log(`⏳ Datos insuficientes: ${gameHistory.length}/${CONFIG.MIN_DATA_POINTS}`);
                 updateUI();
                 return;
             }
 
-            // Cooldown
             const now = Date.now();
             const timeSinceLastSignal = now - lastSignalTime;
             if (timeSinceLastSignal < CONFIG.SIGNAL_COOLDOWN) {
                 const remaining = Math.ceil((CONFIG.SIGNAL_COOLDOWN - timeSinceLastSignal) / 1000);
-                console.log(`⏸️ Cooldown activo: ${remaining}s restantes`);
-                document.getElementById('countdown').textContent = `Próximo análisis en ${remaining}s`;
-                updateConditions(false, false, false, false, false);
+                document.getElementById('nextAnalysis').textContent = `${remaining}s`;
+                updateUI();
                 return;
             }
 
-            // Si hay señal pendiente, no emitir otra
             if (pendingSignal) {
-                console.log('⏳ Esperando resultado de señal anterior...');
+                console.log('⏳ Esperando resultado de señal...');
                 return;
             }
 
-            console.log('🎯 Analizando modo Francotirador...');
+            console.log('🤖 Analizando...');
 
             const last15 = gameHistory.slice(0, 15);
             const last10 = gameHistory.slice(0, 10);
             const last5 = gameHistory.slice(0, 5);
 
-            // INDICADORES
-            const instaloss15 = last15.filter(r => r.type === 'INSTALOSS').length;
+            // CONTADORES
+            const instaloss10 = last10.filter(r => r.type === 'INSTALOSS').length;
             const instaloss5 = last5.filter(r => r.type === 'INSTALOSS').length;
+            const low10 = last10.filter(r => r.type === 'BAJO').length;
+            const low5 = last5.filter(r => r.type === 'BAJO').length;
             const high10 = last10.filter(r => r.type === 'ALTO' || r.type === 'ULTRA').length;
-            const low5 = last5.filter(r => r.type === 'BAJO' || r.type === 'INSTALOSS').length;
+            const medium10 = last10.filter(r => r.type === 'MEDIO').length;
 
             const avg10 = last10.reduce((sum, r) => sum + r.multiplier, 0) / 10;
             const avg5 = last5.reduce((sum, r) => sum + r.multiplier, 0) / 5;
 
-            const variance = last10.reduce((sum, r) => sum + Math.pow(r.multiplier - avg10, 2), 0) / 10;
-            const volatility = Math.sqrt(variance);
+            const trend = avg5 < avg10 ? 'BAJISTA' : 'ALCISTA';
 
-            const trend = avg5 < avg10 ? 'DOWN' : 'UP';
+            // Racha baja actual
+            let lowStreak = 0;
+            for (const r of gameHistory) {
+                if (r.type === 'BAJO' || r.type === 'INSTALOSS') lowStreak++;
+                else break;
+            }
 
-            // CONDICIONES FRANCOTIRADOR (TODAS DEBEN CUMPLIRSE)
-            const cond1 = instaloss15 >= 3;  // Al menos 3 instalosses en últimos 15
-            const cond2 = avg10 < 2.5;  // Promedio bajo
-            const cond3 = high10 <= 1;  // Máximo 1 alto en últimos 10
-            const cond4 = trend === 'DOWN';  // Tendencia bajista
-            const cond5 = true;  // Cooldown OK (ya verificado arriba)
+            // Último instaloss
+            const lastInstalossIndex = gameHistory.findIndex(r => r.type === 'INSTALOSS');
+            const lastInstalossText = lastInstalossIndex >= 0 ? `Hace ${lastInstalossIndex + 1} rondas` : 'Sin instaloss reciente';
 
-            updateConditions(cond1, cond2, cond3, cond4, cond5);
-
-            // ACTUALIZAR STATS
+            // ACTUALIZAR INDICADORES
             document.getElementById('avgLast10').textContent = avg10.toFixed(2) + 'x';
-            document.getElementById('instalossCount').textContent = instaloss15;
+            document.getElementById('instalossCount').textContent = instaloss10;
+            document.getElementById('lowCount').textContent = low10;
             document.getElementById('highCount').textContent = high10;
-            document.getElementById('volatility').textContent = volatility.toFixed(2);
+            document.getElementById('mediumCount').textContent = medium10;
+            document.getElementById('trendIndicator').textContent = trend;
+            document.getElementById('lowStreak').textContent = lowStreak;
+            document.getElementById('lastInstaloss').textContent = lastInstalossText;
+            document.getElementById('nextAnalysis').textContent = 'Ahora';
 
             let signal = null;
 
-            // SEÑAL 1.70x+ (ULTRA CONSERVADORA)
+            // ===== LÓGICA BALANCEADA =====
+
+            // SEÑAL 1.70x+ (CONDICIONES REALISTAS)
             if (currentSession.signals170 < CONFIG.MAX_SIGNALS_170) {
-                if (cond1 && cond2 && cond3 && cond4 && instaloss5 >= 2 && low5 >= 4) {
+                // Opción 1: Instaloss reciente + tendencia baja
+                if (instaloss5 >= 1 && low5 >= 3 && avg5 < 2.0) {
                     signal = {
                         target: 1.85,
-                        confidence: 94,
+                        confidence: 88,
                         type: '🎯 SEÑAL 1.70x+',
                         color: 'green',
                         soundType: '170',
-                        category: '170'
+                        category: '170',
+                        reason: `Instaloss reciente + ${low5}/5 bajos`
+                    };
+                    currentSession.signals170++;
+                }
+                // Opción 2: Racha baja importante
+                else if (lowStreak >= 3 && avg10 < 2.3) {
+                    signal = {
+                        target: 1.80,
+                        confidence: 85,
+                        type: '🎯 SEÑAL 1.70x+',
+                        color: 'green',
+                        soundType: '170',
+                        category: '170',
+                        reason: `Racha baja de ${lowStreak} rondas`
+                    };
+                    currentSession.signals170++;
+                }
+                // Opción 3: Promedio muy bajo sin altos
+                else if (avg10 < 2.0 && high10 === 0 && low10 >= 5) {
+                    signal = {
+                        target: 1.90,
+                        confidence: 83,
+                        type: '🎯 SEÑAL 1.70x+',
+                        color: 'green',
+                        soundType: '170',
+                        category: '170',
+                        reason: 'Promedio bajo sin altos'
                     };
                     currentSession.signals170++;
                 }
             }
 
-            // SEÑAL 3x+ (CONDICIONES EXTREMAS)
+            // SEÑAL 3x+
             if (!signal && currentSession.signals3x < CONFIG.MAX_SIGNALS_3X) {
-                if (cond1 && cond2 && cond3 && cond4 && instaloss15 >= 5 && volatility < 1.5 && avg10 < 2.0) {
+                // Opción 1: Múltiples instalosses + sin altos
+                if (instaloss10 >= 2 && high10 === 0 && avg10 < 2.5) {
                     signal = {
                         target: 3.50,
-                        confidence: 92,
+                        confidence: 86,
                         type: '🌟 SEÑAL 3x+',
                         color: 'gold',
                         soundType: '3x',
-                        category: '3x'
+                        category: '3x',
+                        reason: `${instaloss10} instalosses sin altos`
+                    };
+                    currentSession.signals3x++;
+                }
+                // Opción 2: Tendencia bajista + muchos bajos
+                else if (trend === 'BAJISTA' && low10 >= 6 && high10 <= 1) {
+                    signal = {
+                        target: 3.20,
+                        confidence: 84,
+                        type: '🌟 SEÑAL 3x+',
+                        color: 'gold',
+                        soundType: '3x',
+                        category: '3x',
+                        reason: 'Tendencia bajista fuerte'
                     };
                     currentSession.signals3x++;
                 }
             }
 
-            // SEÑAL 10x+ (PATRÓN RARÍSIMO)
+            // SEÑAL 10x+
             if (!signal && currentSession.signals10x < CONFIG.MAX_SIGNALS_10X) {
-                if (instaloss15 >= 7 && high10 === 0 && avg10 < 1.8 && volatility > 2.0) {
+                // Condición extrema
+                if (instaloss10 >= 3 && high10 === 0 && avg10 < 1.9 && lowStreak >= 4) {
                     signal = {
                         target: 12.00,
-                        confidence: 90,
+                        confidence: 88,
                         type: '💎 SEÑAL 10x+',
                         color: 'purple',
                         soundType: '10x',
-                        category: '10x'
+                        category: '10x',
+                        reason: 'Patrón extremo detectado'
                     };
                     currentSession.signals10x++;
                 }
@@ -981,7 +1107,7 @@
             if (signal) {
                 emitSignal(signal);
             } else {
-                console.log('⏸️ No hay oportunidad clara de señal');
+                console.log('⏸️ Sin oportunidad clara');
                 clearSignalDisplay();
             }
 
@@ -989,7 +1115,7 @@
         }
 
         function emitSignal(signal) {
-            console.log(`🎯 EMITIENDO SEÑAL: ${signal.target.toFixed(2)}x con ${signal.confidence}% confianza`);
+            console.log(`🎯 SEÑAL: ${signal.target.toFixed(2)}x [${signal.confidence}%] - ${signal.reason}`);
 
             lastSignalTime = Date.now();
             currentSession.totalSignals++;
@@ -1000,42 +1126,27 @@
                 confidence: signal.confidence,
                 type: signal.type,
                 category: signal.category,
+                reason: signal.reason,
                 actualCrash: null,
                 hit: null,
                 checked: false
             };
 
-            // Mostrar señal
             const signalBox = document.getElementById('signalBox');
             const signalMultiplier = document.getElementById('signalMultiplier');
             const confidence = document.getElementById('confidence');
             const signalType = document.getElementById('signalType');
             const alertBox = document.getElementById('alertBox');
-            const validationBox = document.getElementById('validationBox');
 
             signalBox.className = `signal-box ${signal.color}`;
             signalMultiplier.textContent = signal.target.toFixed(2) + 'x';
             confidence.textContent = signal.confidence + '%';
             signalType.textContent = signal.type;
 
-            validationBox.style.display = 'block';
-            validationBox.innerHTML = `
-                <strong>✅ Validaciones Cumplidas:</strong>
-                <div style="margin-top: 10px;">
-                    ✓ Múltiples instalosses detectados<br>
-                    ✓ Promedio extremadamente bajo<br>
-                    ✓ Sin altos recientes<br>
-                    ✓ Tendencia bajista confirmada<br>
-                    ✓ Cooldown completado
-                </div>
-            `;
-
             alertBox.className = `alert ${signal.color === 'green' ? 'success' : signal.color === 'gold' ? 'gold' : 'purple'}`;
-            alertBox.innerHTML = `<strong>🎯 SEÑAL EMITIDA:</strong> ${signal.type} con ${signal.confidence}% de confianza. Target: ${signal.target.toFixed(2)}x`;
+            alertBox.innerHTML = `<strong>🎯 SEÑAL:</strong> ${signal.type} | ${signal.reason} | Conf: ${signal.confidence}%`;
 
-            // Sonido
             playSignalSound(signal.soundType);
-
             updateUI();
         }
 
@@ -1044,28 +1155,19 @@
             const signalMultiplier = document.getElementById('signalMultiplier');
             const confidence = document.getElementById('confidence');
             const signalType = document.getElementById('signalType');
-            const validationBox = document.getElementById('validationBox');
 
             signalBox.className = 'signal-box waiting';
             signalMultiplier.textContent = '--';
             confidence.textContent = '--';
-            signalType.textContent = 'Esperando oportunidad...';
-            validationBox.style.display = 'none';
-        }
-
-        function updateConditions(c1, c2, c3, c4, c5) {
-            document.getElementById('cond1').innerHTML = c1 ? '<span class="validation-check">✓</span>' : '<span class="validation-cross">✗</span>';
-            document.getElementById('cond2').innerHTML = c2 ? '<span class="validation-check">✓</span>' : '<span class="validation-cross">✗</span>';
-            document.getElementById('cond3').innerHTML = c3 ? '<span class="validation-check">✓</span>' : '<span class="validation-cross">✗</span>';
-            document.getElementById('cond4').innerHTML = c4 ? '<span class="validation-check">✓</span>' : '<span class="validation-cross">✗</span>';
-            document.getElementById('cond5').innerHTML = c5 ? '<span class="validation-check">✓</span>' : '<span class="validation-cross">✗</span>';
+            signalType.textContent = 'Analizando...';
         }
 
         function updateUI() {
-            const progress = (currentSession.rounds / CONFIG.SESSION_SIZE) * 100;
-            document.getElementById('sessionProgress').style.width = progress + '%';
-            document.getElementById('sessionProgress').textContent = `${currentSession.rounds}/${CONFIG.SESSION_SIZE}`;
+            const sessionProgress = Math.min((currentSession.sessionRounds / CONFIG.SESSION_SIZE) * 100, 100);
+            document.getElementById('sessionProgress').style.width = sessionProgress + '%';
+            document.getElementById('sessionProgress').textContent = `${currentSession.sessionRounds}/${CONFIG.SESSION_SIZE}`;
 
+            document.getElementById('totalRoundsSession').textContent = currentSession.totalRounds;
             document.getElementById('signals170').textContent = `${currentSession.signals170}/${CONFIG.MAX_SIGNALS_170}`;
             document.getElementById('signals3x').textContent = `${currentSession.signals3x}/${CONFIG.MAX_SIGNALS_3X}`;
             document.getElementById('signals10x').textContent = `${currentSession.signals10x}/${CONFIG.MAX_SIGNALS_10X}`;
@@ -1075,12 +1177,17 @@
                 : 0;
             document.getElementById('sessionEffectiveness').textContent = effectiveness + '%';
 
-            document.getElementById('totalRounds').textContent = currentSession.rounds;
             document.getElementById('totalSignals').textContent = currentSession.totalSignals;
             document.getElementById('totalHits').textContent = currentSession.hits;
             document.getElementById('totalMisses').textContent = currentSession.misses;
 
+            if (lastSignalTime > 0) {
+                const elapsed = Math.floor((Date.now() - lastSignalTime) / 1000);
+                document.getElementById('lastSignalTime').textContent = `${elapsed}s`;
+            }
+
             updateHistoryTable();
+            updateSignalsTable();
         }
 
         function updateHistoryTable() {
@@ -1088,11 +1195,11 @@
             tbody.innerHTML = '';
 
             if (gameHistory.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="opacity: 0.6; padding: 30px;">Sin datos...</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4" style="opacity: 0.6; padding: 30px;">Sin datos</td></tr>';
                 return;
             }
 
-            gameHistory.forEach((result, index) => {
+            gameHistory.slice(0, 30).forEach((result, index) => {
                 const row = tbody.insertRow();
                 let typeClass = 'medium';
                 
@@ -1115,11 +1222,10 @@
             tbody.innerHTML = '';
 
             if (signalHistory.length === 0 && !pendingSignal) {
-                tbody.innerHTML = '<tr><td colspan="7" style="opacity: 0.6; padding: 30px;">No hay señales emitidas aún</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="opacity: 0.6; padding: 30px;">No hay señales aún</td></tr>';
                 return;
             }
 
-            // Señal pendiente
             if (pendingSignal) {
                 const row = tbody.insertRow();
                 row.className = 'pending';
@@ -1134,7 +1240,6 @@
                 `;
             }
 
-            // Historial
             signalHistory.forEach((sig, index) => {
                 const row = tbody.insertRow();
                 row.className = sig.hit ? 'hit' : 'miss';
@@ -1160,25 +1265,24 @@
             alertBox.innerHTML = message;
         }
 
-        // Countdown timer
+        // Timer
         setInterval(() => {
-            if (gameHistory.length > 0 && !pendingSignal) {
+            if (currentSession.active && gameHistory.length > 0) {
                 const timeSince = Date.now() - lastSignalTime;
-                if (timeSince < CONFIG.SIGNAL_COOLDOWN) {
+                if (timeSince < CONFIG.SIGNAL_COOLDOWN && !pendingSignal) {
                     const remaining = Math.ceil((CONFIG.SIGNAL_COOLDOWN - timeSince) / 1000);
                     document.getElementById('countdown').textContent = `Próximo análisis en ${remaining}s`;
+                } else if (pendingSignal) {
+                    document.getElementById('countdown').textContent = '⏳ Esperando resultado...';
                 } else {
-                    document.getElementById('countdown').textContent = 'Analizando patrones...';
+                    document.getElementById('countdown').textContent = 'Analizando...';
                 }
-            } else if (pendingSignal) {
-                document.getElementById('countdown').textContent = '⏳ Esperando resultado de señal...';
+            } else if (!currentSession.active) {
+                document.getElementById('countdown').textContent = 'Sistema detenido';
             }
         }, 1000);
 
-        // INICIAR
-        tryAllPaths();
-
-        console.log('✅ Modo Francotirador activado');
+        console.log('✅ Sistema listo');
     </script>
 </body>
 </html>
