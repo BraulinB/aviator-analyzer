@@ -3,191 +3,803 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Gocho v27.0 PRO • Señales Multi-Objetivo (IA Avanzada)</title>
+<title>Gocho Analyzer v27.0 PRO</title>
 <style>
-:root{--bg:#0b0f14;--panel:#121821;--line:#1e2633;--text:#e7edf5;--mut:#8fa1b2;
---cyan:#5ad7ff;--pink:#ff6aa9;--amber:#ffc857;--green:#42d392;--red:#ff6b6b;
---chipB:#0f2431;--chipP:#1b1634;--chipR:#2a0f1c}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px system-ui,Segoe UI,Roboto}
-.container{max-width:1280px;margin:16px auto;padding:0 12px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:12px}
-h3{margin:0 0 8px;color:var(--mut);font-size:12px;letter-spacing:.4px;text-transform:uppercase}
-.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-input,select,button{border-radius:10px;border:1px solid var(--line);background:#0c1219;color:var(--text);padding:7px 10px}
-button{cursor:pointer}button.red{background:#2b1416;color:#ffd7dc;border-color:#4a2226}
-.badge{padding:4px 8px;border:1px solid var(--line);border-radius:999px;background:#0c121a;color:var(--mut);font-weight:700}
-.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
-.col-6{grid-column:span 6}.col-12{grid-column:span 12}
-@media(max-width:1000px){.col-6{grid-column:span 12}}
-.chips{display:flex;gap:6px;flex-wrap:wrap}
-.chip{padding:6px 8px;border-radius:10px;font-weight:800;font-size:12px}
-.chip.blue{background:var(--chipB);color:#9ee1ff}
-.chip.purple{background:var(--chipP);color:#d7c7ff}
-.chip.pink{background:var(--chipR);color:#ffc2da}
-.table{width:100%;border-collapse:separate;border-spacing:0 6px}
-.table th{color:var(--mut);font-size:12px;text-align:left;padding:6px}
-.table td{padding:9px;background:#0c1218;border:1px solid var(--line)}
-.table tr td:first-child{border-radius:8px 0 0 8px}.table tr td:last-child{border-radius:0 8px 8px 0}
-.tag{padding:2px 8px;border-radius:999px;border:1px solid var(--line);font-weight:800;font-size:12px}
-.tag.auto{background:#0f1f2b;color:#9dd8ff}.tag.rosa{background:#2a0f1c;color:#ffb3cf}
-.tag.triple{background:#1f2f0f;color:#c8ff9d}
-.state.win{color:#c9ffd8}.state.lose{color:#ffb3b3}.state.pend{color:#ffe0a6}
-.small{color:var(--mut)} .ok{color:#90ffcf}.err{color:#ffb3b3}
-.canvas{height:220px}
-.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
-.metric{background:#0c1218;border:1px solid var(--line);border-radius:8px;padding:10px;text-align:center}
-.metric .label{font-size:10px;color:var(--mut);text-transform:uppercase}
-.metric .value{font-size:18px;font-weight:800;margin-top:4px}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root{
+  --bg-primary:#0a0e1a;
+  --bg-secondary:#0f131f;
+  --surface:#1a1f2e;
+  --surface-glass:rgba(26,31,46,0.7);
+  --border:rgba(255,255,255,0.08);
+  --text-primary:#e8edf7;
+  --text-secondary:#8b92a8;
+  --text-muted:#5a5f6e;
+  --accent-cyan:#00d4ff;
+  --accent-green:#00ff88;
+  --accent-pink:#ff0080;
+  --accent-amber:#ffb800;
+  --accent-purple:#a855f7;
+  --success:#10b981;
+  --error:#ef4444;
+  --warning:#f59e0b;
+  --chip-low:rgba(0,212,255,0.15);
+  --chip-med:rgba(168,85,247,0.15);
+  --chip-high:rgba(255,0,128,0.15);
+  --shadow:0 20px 60px rgba(0,0,0,0.4);
+  --shadow-sm:0 4px 20px rgba(0,0,0,0.3);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+  background:var(--bg-primary);
+  background-image:
+    radial-gradient(at 0% 0%, rgba(0,212,255,0.12) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(168,85,247,0.1) 0px, transparent 50%);
+  color:var(--text-primary);
+  line-height:1.6;
+  overflow-x:hidden;
+}
+
+.container{
+  max-width:1400px;
+  margin:0 auto;
+  padding:24px;
+}
+
+.glass{
+  background:var(--surface-glass);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  border:1px solid var(--border);
+  box-shadow:var(--shadow);
+}
+
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:24px;
+  margin-bottom:24px;
+  transition:transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover{
+  transform:translateY(-2px);
+  box-shadow:var(--shadow);
+}
+
+/* Header */
+.header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:32px;
+  flex-wrap:wrap;
+  gap:16px;
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.logo{
+  width:48px;
+  height:48px;
+  background:linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+  border-radius:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:800;
+  font-size:24px;
+  box-shadow:0 4px 16px rgba(0,212,255,0.3);
+}
+
+.brand-info h1{
+  font-size:24px;
+  font-weight:800;
+  background:linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  margin-bottom:4px;
+}
+
+.brand-info p{
+  font-size:13px;
+  color:var(--text-muted);
+}
+
+.status-badge{
+  padding:8px 16px;
+  border-radius:100px;
+  font-weight:600;
+  font-size:13px;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  border:1px solid var(--border);
+  background:var(--surface);
+}
+
+.status-badge::before{
+  content:'';
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:var(--text-muted);
+  animation:pulse 2s ease-in-out infinite;
+}
+
+.status-badge.connected::before{
+  background:var(--success);
+}
+
+@keyframes pulse{
+  0%, 100%{opacity:1}
+  50%{opacity:0.3}
+}
+
+/* Controls */
+.controls{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:16px;
+  margin-bottom:24px;
+}
+
+.control-group{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.control-label{
+  font-size:11px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  color:var(--text-muted);
+  margin-bottom:4px;
+}
+
+.button-group{
+  display:flex;
+  gap:12px;
+}
+
+button{
+  padding:12px 24px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  background:var(--surface);
+  color:var(--text-primary);
+  font-weight:600;
+  font-size:14px;
+  cursor:pointer;
+  transition:all 0.2s ease;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-family:inherit;
+}
+
+button:hover{
+  transform:translateY(-1px);
+  box-shadow:var(--shadow-sm);
+}
+
+button.primary{
+  background:linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+  border:none;
+  color:#fff;
+  box-shadow:0 4px 16px rgba(0,212,255,0.3);
+}
+
+button.primary:hover{
+  box-shadow:0 6px 24px rgba(0,212,255,0.4);
+}
+
+button.danger{
+  background:rgba(239,68,68,0.1);
+  border-color:rgba(239,68,68,0.3);
+  color:var(--error);
+}
+
+button.danger:hover{
+  background:rgba(239,68,68,0.2);
+}
+
+button:disabled{
+  opacity:0.5;
+  cursor:not-allowed;
+  transform:none;
+}
+
+.checkbox-group{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.checkbox-label{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  cursor:pointer;
+  font-size:14px;
+  color:var(--text-secondary);
+  transition:color 0.2s ease;
+}
+
+.checkbox-label:hover{
+  color:var(--text-primary);
+}
+
+input[type="checkbox"]{
+  width:18px;
+  height:18px;
+  cursor:pointer;
+  accent-color:var(--accent-cyan);
+}
+
+/* Metrics Grid */
+.metrics-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:16px;
+  margin-bottom:24px;
+}
+
+.metric-card{
+  background:linear-gradient(135deg, var(--surface), var(--bg-secondary));
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:20px;
+  text-align:center;
+  transition:transform 0.2s ease;
+}
+
+.metric-card:hover{
+  transform:translateY(-2px);
+}
+
+.metric-label{
+  font-size:11px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  color:var(--text-muted);
+  margin-bottom:8px;
+}
+
+.metric-value{
+  font-size:32px;
+  font-weight:800;
+  background:linear-gradient(135deg, var(--accent-cyan), var(--accent-green));
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+
+/* Chips */
+.chips-container{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  padding:4px;
+}
+
+.chip{
+  padding:8px 14px;
+  border-radius:8px;
+  font-weight:700;
+  font-size:13px;
+  border:1px solid;
+  transition:transform 0.2s ease;
+}
+
+.chip:hover{
+  transform:scale(1.05);
+}
+
+.chip.low{
+  background:var(--chip-low);
+  border-color:var(--accent-cyan);
+  color:var(--accent-cyan);
+}
+
+.chip.med{
+  background:var(--chip-med);
+  border-color:var(--accent-purple);
+  color:var(--accent-purple);
+}
+
+.chip.high{
+  background:var(--chip-high);
+  border-color:var(--accent-pink);
+  color:var(--accent-pink);
+}
+
+/* Table */
+.table-container{
+  overflow-x:auto;
+  border-radius:12px;
+  border:1px solid var(--border);
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+thead{
+  background:var(--bg-secondary);
+}
+
+th{
+  padding:12px 16px;
+  text-align:left;
+  font-size:11px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  color:var(--text-muted);
+  border-bottom:1px solid var(--border);
+}
+
+td{
+  padding:16px;
+  border-bottom:1px solid var(--border);
+  font-size:14px;
+}
+
+tr:last-child td{
+  border-bottom:none;
+}
+
+tr:hover{
+  background:rgba(255,255,255,0.02);
+}
+
+.tag{
+  padding:4px 10px;
+  border-radius:6px;
+  font-weight:700;
+  font-size:11px;
+  text-transform:uppercase;
+  border:1px solid;
+  display:inline-block;
+}
+
+.tag.auto{
+  background:rgba(0,212,255,0.15);
+  border-color:var(--accent-cyan);
+  color:var(--accent-cyan);
+}
+
+.tag.triple{
+  background:rgba(0,255,136,0.15);
+  border-color:var(--accent-green);
+  color:var(--accent-green);
+}
+
+.tag.rosa{
+  background:rgba(255,0,128,0.15);
+  border-color:var(--accent-pink);
+  color:var(--accent-pink);
+}
+
+.state{
+  font-weight:700;
+  text-transform:uppercase;
+  font-size:12px;
+}
+
+.state.win{color:var(--success)}
+.state.lose{color:var(--error)}
+.state.pend{color:var(--warning)}
+
+/* Log */
+.log-container{
+  height:320px;
+  overflow-y:auto;
+  background:var(--bg-secondary);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:16px;
+  font-family:monospace;
+  font-size:13px;
+  line-height:1.8;
+}
+
+.log-container::-webkit-scrollbar{
+  width:8px;
+}
+
+.log-container::-webkit-scrollbar-track{
+  background:var(--bg-primary);
+  border-radius:4px;
+}
+
+.log-container::-webkit-scrollbar-thumb{
+  background:var(--border);
+  border-radius:4px;
+}
+
+.log-entry{
+  padding:4px 0;
+  color:var(--text-secondary);
+}
+
+.log-entry.ok{color:var(--success)}
+.log-entry.err{color:var(--error)}
+
+/* Grid Layout */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(500px,1fr));
+  gap:24px;
+}
+
+@media(max-width:1100px){
+  .grid{
+    grid-template-columns:1fr;
+  }
+}
+
+h2{
+  font-size:16px;
+  font-weight:700;
+  color:var(--text-primary);
+  margin-bottom:16px;
+  text-transform:uppercase;
+  letter-spacing:1px;
+}
+
+.info-text{
+  font-size:12px;
+  color:var(--text-muted);
+  line-height:1.6;
+  margin-top:12px;
+  padding:12px;
+  background:var(--bg-secondary);
+  border-left:3px solid var(--accent-cyan);
+  border-radius:4px;
+}
+
+code{
+  background:var(--bg-primary);
+  padding:2px 6px;
+  border-radius:4px;
+  font-size:11px;
+  color:var(--accent-cyan);
+  font-family:monospace;
+}
+
+.session-info{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  flex-wrap:wrap;
+  margin-bottom:16px;
+}
+
+.session-stat{
+  padding:6px 12px;
+  background:var(--bg-secondary);
+  border:1px solid var(--border);
+  border-radius:8px;
+  font-size:13px;
+}
+
+.session-stat strong{
+  color:var(--accent-cyan);
+  margin-left:4px;
+}
 </style>
 </head>
 <body>
 <div class="container">
+  
+  <!-- Header -->
+  <div class="header">
+    <div class="brand">
+      <div class="logo">G</div>
+      <div class="brand-info">
+        <h1>Gocho Analyzer v27.0</h1>
+        <p>Sistema de predicción avanzado con IA multi-objetivo</p>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center">
+      <span class="status-badge" id="statusBadge">Desconectado</span>
+      <span class="status-badge" id="clock">--:--:--</span>
+    </div>
+  </div>
+
+  <!-- Control Panel -->
   <div class="card">
+    <h2>Panel de Control</h2>
     <div class="controls">
-      <strong>Gocho Analyzer v27.0 PRO</strong>
-      <span class="badge" id="clock">—</span>
-      <span style="flex:1"></span>
-      <label class="small"><input id="swBeep" type="checkbox"> Beep</label>
-      <label class="small"><input id="swAutoSession" type="checkbox" checked> Auto-sesión</label>
-      <label class="small"><input id="swAuto170" type="checkbox" checked> Auto ≥1.70x (3/sesión)</label>
-      <label class="small"><input id="swAuto3x" type="checkbox" checked> Auto ≥3.0x (3/sesión)</label>
-      <label class="small"><input id="swRosa" type="checkbox" checked> Caza ROSA ≥10x (1-2/sesión)</label>
-      <button id="btnTest">Test feed</button>
-      <button id="btnStop" class="red">Desconectar</button>
+      
+      <div class="control-group">
+        <span class="control-label">Conexión del Sistema</span>
+        <div class="button-group">
+          <button id="btnConnect" class="primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+            Conectar
+          </button>
+          <button id="btnDisconnect" class="danger" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+            Desconectar
+          </button>
+          <button id="btnTest">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/>
+            </svg>
+            Test
+          </button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <span class="control-label">Configuración de Señales</span>
+        <div class="checkbox-group">
+          <label class="checkbox-label">
+            <input id="swBeep" type="checkbox">
+            <span>Alertas sonoras</span>
+          </label>
+          <label class="checkbox-label">
+            <input id="swAutoSession" type="checkbox" checked>
+            <span>Auto-sesión (60 rondas)</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <span class="control-label">Objetivos Activos</span>
+        <div class="checkbox-group">
+          <label class="checkbox-label">
+            <input id="swAuto170" type="checkbox" checked>
+            <span>Señales ≥1.70x (3/sesión)</span>
+          </label>
+          <label class="checkbox-label">
+            <input id="swAuto3x" type="checkbox" checked>
+            <span>Señales ≥3.0x (3/sesión)</span>
+          </label>
+          <label class="checkbox-label">
+            <input id="swRosa" type="checkbox" checked>
+            <span>Caza ROSA ≥10x (1-2/sesión)</span>
+          </label>
+        </div>
+      </div>
+
     </div>
-    <div class="small">Entradas aceptadas: <code>BroadcastChannel("gocho"|"aviator")</code>, <code>postMessage</code>, <code>localStorage</code>, <code>CustomEvent</code>, <code>window.gochoPush(x)</code>. Fuente activa: <b id="src">—</b></div>
-  </div>
 
-  <div class="card">
-    <h3>Métricas de Análisis en Tiempo Real</h3>
-    <div class="metrics">
-      <div class="metric">
-        <div class="label">Heat Score</div>
-        <div class="value" id="metricHeat">—</div>
-      </div>
-      <div class="metric">
-        <div class="label">Volatilidad</div>
-        <div class="value" id="metricVol">—</div>
-      </div>
-      <div class="metric">
-        <div class="label">Momentum</div>
-        <div class="value" id="metricMom">—</div>
-      </div>
-      <div class="metric">
-        <div class="label">Gap Rosa</div>
-        <div class="value" id="metricGap">—</div>
-      </div>
+    <div class="info-text">
+      <strong>Fuentes de datos activas:</strong> <code id="sourceInfo">Ninguna</code><br>
+      Canales soportados: BroadcastChannel, postMessage, localStorage, CustomEvent, window.gochoPush()
     </div>
   </div>
 
-  <div class="card">
-    <h3>Historial de rondas (Azul &lt;2.00 • Morado 2.00–9.99 • Rosa ≥10)</h3>
-    <div id="chips" class="chips"></div>
+  <!-- Metrics -->
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-label">Heat Score</div>
+      <div class="metric-value" id="metricHeat">0.00</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Volatilidad</div>
+      <div class="metric-value" id="metricVol">0.00</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Momentum</div>
+      <div class="metric-value" id="metricMom">+0.00</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Gap Rosa</div>
+      <div class="metric-value" id="metricGap">--</div>
+    </div>
   </div>
 
+  <!-- History Chips -->
+  <div class="card">
+    <h2>Historial de Rondas (últimas 60)</h2>
+    <div class="chips-container" id="chipsContainer">
+      <span style="color:var(--text-muted);font-size:13px">Esperando datos...</span>
+    </div>
+  </div>
+
+  <!-- Main Grid -->
   <div class="grid">
-    <div class="card col-6">
-      <h3>Señales (Sesión <span id="sessId">1</span> • ronda <span id="sessRound">0</span>/60 • 1.7x:<span id="sess170">0</span>/3 • 3x:<span id="sess3x">0</span>/3 • Rosa:<span id="sessRosa">0</span>/2)</h3>
-      <table class="table"><thead><tr>
-        <th>#</th><th>Sesión</th><th>Ronda</th><th>Tag</th><th>Objetivo</th><th>Hora</th><th>Crash</th><th>Estado</th>
-      </tr></thead><tbody id="signals"></tbody></table>
-    </div>
-    <div class="card col-6">
-      <h3>Reseña y Diagnóstico</h3>
-      <div id="log" style="height:260px;overflow:auto;background:#0c1218;border:1px solid var(--line);border-radius:8px;padding:8px"></div>
-      <div class="small" style="margin-top:6px">
-        Bookmarklet de prueba:
-        <code>javascript:(()=>{const bc=new BroadcastChannel('gocho');setInterval(()=>{const t=[1+Math.random()*1.2,1.2+Math.random()*5.3,10+Math.random()*40];const x=(Math.random()<.1?t[2]:(Math.random()<.6?t[0]:t[1])).toFixed(2);bc.postMessage(parseFloat(x));},1200)})()</code>
+    
+    <!-- Signals Table -->
+    <div class="card">
+      <h2>Señales Generadas</h2>
+      <div class="session-info">
+        <div class="session-stat">Sesión <strong id="sessId">1</strong></div>
+        <div class="session-stat">Ronda <strong id="sessRound">0</strong>/60</div>
+        <div class="session-stat">1.7x: <strong id="sess170">0</strong>/3</div>
+        <div class="session-stat">3x: <strong id="sess3x">0</strong>/3</div>
+        <div class="session-stat">Rosa: <strong id="sessRosa">0</strong>/2</div>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Sesión</th>
+              <th>Ronda</th>
+              <th>Tipo</th>
+              <th>Objetivo</th>
+              <th>Hora</th>
+              <th>Crash</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="signalsTable">
+            <tr>
+              <td colspan="8" style="text-align:center;color:var(--text-muted);padding:32px">
+                No hay señales generadas todavía
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
+
+    <!-- Log -->
+    <div class="card">
+      <h2>Registro del Sistema</h2>
+      <div class="log-container" id="logContainer">
+        <div class="log-entry" style="color:var(--text-muted)">Sistema iniciado. Esperando conexión...</div>
+      </div>
+    </div>
+
   </div>
+
 </div>
 
 <script>
-/*** util ***/
+/*** Utilities ***/
 const $=s=>document.querySelector(s);
-const logEl=$("#log"), chips=$("#chips");
-const beepOn = ()=>$("#swBeep").checked;
-const tone=(f=880,ms=140,vol=.035)=>{ if(!beepOn())return; const a=new (window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();o.frequency.value=f;o.type='sine';g.gain.value=vol;o.connect(g).connect(a.destination);o.start();setTimeout(()=>o.stop(),ms);};
-const now=()=>new Date().toLocaleTimeString();
-function log(msg,cls){const d=document.createElement('div');d.textContent='['+now()+'] '+msg;if(cls)d.className=cls;logEl.appendChild(d);logEl.scrollTop=logEl.scrollHeight;}
+const logEl=$("#logContainer"), chipsEl=$("#chipsContainer");
+const now=()=>new Date().toLocaleTimeString('es-ES');
+
+function log(msg,cls=''){
+  const d=document.createElement('div');
+  d.className='log-entry '+(cls||'');
+  d.textContent='['+now()+'] '+msg;
+  logEl.appendChild(d);
+  logEl.scrollTop=logEl.scrollHeight;
+}
+
+function tone(f=880,ms=140,vol=.035){
+  if(!$("#swBeep").checked) return;
+  const a=new (window.AudioContext||window.webkitAudioContext)();
+  const o=a.createOscillator(),g=a.createGain();
+  o.frequency.value=f;o.type='sine';g.gain.value=vol;
+  o.connect(g).connect(a.destination);
+  o.start();setTimeout(()=>o.stop(),ms);
+}
+
 setInterval(()=>$("#clock").textContent=now(),1000);
 
-/*** estado ***/
-let rounds=[]; // más reciente primero
-let lastVal=0,lastAt=0,lastLS=null, source='—';
+/*** State ***/
+let rounds=[];
+let lastVal=0,lastAt=0,source='—',connected=false;
 const session={id:1,round:0,used170:0,used3x:0,usedRosa:0};
-const rows=$("#signals");const list=[];
-function badge(){ 
-  $("#sessId").textContent=session.id; 
-  $("#sessRound").textContent=session.round; 
+const signals=[];
+let pending=null;
+
+function updateBadges(){
+  $("#sessId").textContent=session.id;
+  $("#sessRound").textContent=session.round;
   $("#sess170").textContent=session.used170;
   $("#sess3x").textContent=session.used3x;
   $("#sessRosa").textContent=session.usedRosa;
-}
-function addSignal(tag,target,state='pend',crash='—',why=''){
-  const r={n:list.length+1, s:session.id, k:session.round, tag, target, time:now(), crash, state, why};
-  list.push(r); const tr=document.createElement('tr');
-  const tagClass = tag.includes('ROSA')?'rosa':(tag.includes('3X')?'triple':'auto');
-  tr.innerHTML=`<td>${r.n}</td><td>${r.s}</td><td>${r.k}</td>
-  <td><span class="tag ${tagClass}">${tag}</span></td>
-  <td>${target.toFixed(2)}x</td><td>${r.time}</td><td>${crash==='—'?'—':(+crash).toFixed(2)+'x'}</td><td class="state ${state}">${state}</td>`;
-  rows.prepend(tr);
-}
-function updateLastSource(s){ if(source!==s){ source=s; $("#src").textContent=source; }}
-
-/*** render chips ***/
-function paintChips(){
-  chips.innerHTML='';
-  for(const x of rounds.slice(0,60)){
-    const sp=document.createElement('span'); sp.className='chip';
-    if(x<2) sp.classList.add('blue'); else if(x<10) sp.classList.add('purple'); else sp.classList.add('pink');
-    sp.textContent=x.toFixed(2)+'x'; chips.appendChild(sp);
+  $("#sourceInfo").textContent=source;
+  
+  const badge=$("#statusBadge");
+  if(connected){
+    badge.textContent='Conectado';
+    badge.classList.add('connected');
+  }else{
+    badge.textContent='Desconectado';
+    badge.classList.remove('connected');
   }
 }
 
-/*** análisis avanzado multi-capa ***/
+function paintChips(){
+  if(rounds.length===0){
+    chipsEl.innerHTML='<span style="color:var(--text-muted);font-size:13px">Esperando datos...</span>';
+    return;
+  }
+  chipsEl.innerHTML='';
+  rounds.slice(0,60).forEach(x=>{
+    const sp=document.createElement('span');
+    sp.className='chip '+(x<2?'low':x<10?'med':'high');
+    sp.textContent=x.toFixed(2)+'x';
+    chipsEl.appendChild(sp);
+  });
+}
+
+function addSignal(tag,target,state='pend',crash='—'){
+  const s={n:signals.length+1,sess:session.id,round:session.round,tag,target,time:now(),crash,state};
+  signals.push(s);
+  renderSignals();
+}
+
+function renderSignals(){
+  const tbody=$("#signalsTable");
+  if(signals.length===0){
+    tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:32px">No hay señales generadas todavía</td></tr>';
+    return;
+  }
+  tbody.innerHTML='';
+  signals.slice().reverse().slice(0,50).forEach(s=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td>${s.n}</td>
+      <td>${s.sess}</td>
+      <td>${s.round}</td>
+      <td><span class="tag ${s.tag.includes('ROSA')?'rosa':s.tag.includes('3')?'triple':'auto'}">${s.tag}</span></td>
+      <td>${s.target.toFixed(2)}x</td>
+      <td>${s.time}</td>
+      <td>${s.crash==='—'?'—':s.crash.toFixed(2)+'x'}</td>
+      <td><span class="state ${s.state}">${s.state}</span></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+/*** Analytics ***/
 function norm(x,a,b){return Math.max(0,Math.min(1,(x-a)/(b-a||1)))}
 
 function calcStdDev(arr){
   if(arr.length<2) return 0;
-  const mean = arr.reduce((a,b)=>a+b,0)/arr.length;
-  const variance = arr.reduce((a,b)=>a+Math.pow(b-mean,2),0)/arr.length;
+  const mean=arr.reduce((a,b)=>a+b,0)/arr.length;
+  const variance=arr.reduce((a,b)=>a+Math.pow(b-mean,2),0)/arr.length;
   return Math.sqrt(variance);
 }
 
 function calcVolatility(){
   const arr=rounds.slice(0,30);
   if(arr.length<10) return 0;
-  const mean = arr.reduce((a,b)=>a+b,0)/arr.length;
-  const sd = calcStdDev(arr);
-  const cv = mean>0 ? sd/mean : 0; // coeficiente de variación
-  return Math.min(1, cv);
+  const mean=arr.reduce((a,b)=>a+b,0)/arr.length;
+  const sd=calcStdDev(arr);
+  return mean>0?Math.min(1,sd/mean):0;
 }
 
 function calcMomentum(){
   const arr=rounds.slice(0,25);
   if(arr.length<16) return 0;
-  const recent = arr.slice(0,8).reduce((a,b)=>a+b,0)/8;
-  const old = arr.slice(8,16).reduce((a,b)=>a+b,0)/8;
-  const mom = recent - old;
-  return mom; // puede ser negativo
+  const recent=arr.slice(0,8).reduce((a,b)=>a+b,0)/8;
+  const old=arr.slice(8,16).reduce((a,b)=>a+b,0)/8;
+  return recent-old;
 }
 
 function detectPattern(target){
-  // Busca patrones históricos similares antes de multiplicadores altos
   const arr=rounds.slice(0,100);
   let matches=0;
-  for(let i=0; i<arr.length-5; i++){
+  for(let i=0;i<arr.length-5;i++){
     if(arr[i]>=target){
-      // Analiza las 5 rondas previas
-      const prevPattern = arr.slice(i+1,i+6);
-      const currentPattern = rounds.slice(0,5);
+      const prevPattern=arr.slice(i+1,i+6);
+      const currentPattern=rounds.slice(0,5);
       if(prevPattern.length===5 && currentPattern.length===5){
-        // Similitud simple: diferencia promedio
         let diff=0;
-        for(let j=0;j<5;j++){ diff+=Math.abs(prevPattern[j]-currentPattern[j]); }
-        if(diff/5 < 1.5) matches++; // patrón similar
+        for(let j=0;j<5;j++) diff+=Math.abs(prevPattern[j]-currentPattern[j]);
+        if(diff/5<1.5) matches++;
       }
     }
   }
@@ -195,274 +807,232 @@ function detectPattern(target){
 }
 
 function heatScore170(){
-  const arr=rounds.slice(0,30); 
+  const arr=rounds.slice(0,30);
   if(arr.length<15) return 0;
-  
-  const ma10 = arr.slice(0,10).reduce((a,b)=>a+b,0)/10;
-  const p2   = arr.filter(x=>x>=2).length/arr.length;
-  const mom  = calcMomentum();
-  const vol  = calcVolatility();
-  const last4avg = arr.slice(0,4).reduce((a,b)=>a+b,0)/4;
-  
-  // Anti-trampa: rechazar si promedio últimas 4 < 1.40
-  const trapPenalty = last4avg<1.40 ? 0.35 : 0;
-  
-  // Bonus por volatilidad controlada
-  const volBonus = (vol>0.25 && vol<0.6) ? 0.08 : 0;
-  
-  let s = 0.40*norm(ma10,1.5,3.2) + 
-          0.25*norm(p2,0.15,0.65) + 
-          0.20*norm(mom,-0.4,0.9) + 
-          volBonus - 
-          trapPenalty;
-  
+  const ma10=arr.slice(0,10).reduce((a,b)=>a+b,0)/10;
+  const p2=arr.filter(x=>x>=2).length/arr.length;
+  const mom=calcMomentum();
+  const vol=calcVolatility();
+  const last4avg=arr.slice(0,4).reduce((a,b)=>a+b,0)/4;
+  const trapPenalty=last4avg<1.40?0.35:0;
+  const volBonus=(vol>0.25&&vol<0.6)?0.08:0;
+  let s=0.40*norm(ma10,1.5,3.2)+0.25*norm(p2,0.15,0.65)+0.20*norm(mom,-0.4,0.9)+volBonus-trapPenalty;
   return Math.max(0,Math.min(1.2,s));
 }
 
 function heatScore3X(){
-  const arr=rounds.slice(0,35); 
+  const arr=rounds.slice(0,35);
   if(arr.length<20) return 0;
-  
-  const ma10 = arr.slice(0,10).reduce((a,b)=>a+b,0)/10;
-  const p3   = arr.filter(x=>x>=3).length/arr.length;
-  const mom  = calcMomentum();
-  const vol  = calcVolatility();
-  
-  // Detectar "zona caliente": MA alta + momentum sostenido
-  const recentHigh = arr.slice(0,8).filter(x=>x>=2.5).length;
-  const hotZone = (ma10>2.8 && recentHigh>=5) ? 0.15 : 0;
-  
-  // Penalizar si hay muchos crashes bajos recientes
-  const lowCrashes = arr.slice(0,10).filter(x=>x<1.5).length;
-  const lowPenalty = lowCrashes>=5 ? 0.25 : 0;
-  
-  let s = 0.45*norm(ma10,2.0,4.0) + 
-          0.30*norm(p3,0.05,0.40) + 
-          0.18*norm(mom,0,1.2) + 
-          hotZone - 
-          lowPenalty;
-  
+  const ma10=arr.slice(0,10).reduce((a,b)=>a+b,0)/10;
+  const p3=arr.filter(x=>x>=3).length/arr.length;
+  const mom=calcMomentum();
+  const recentHigh=arr.slice(0,8).filter(x=>x>=2.5).length;
+  const hotZone=(ma10>2.8&&recentHigh>=5)?0.15:0;
+  const lowCrashes=arr.slice(0,10).filter(x=>x<1.5).length;
+  const lowPenalty=lowCrashes>=5?0.25:0;
+  let s=0.45*norm(ma10,2.0,4.0)+0.30*norm(p3,0.05,0.40)+0.18*norm(mom,0,1.2)+hotZone-lowPenalty;
   return Math.max(0,Math.min(1.2,s));
 }
 
 function rosaScore(){
-  const look=rounds.slice(0,100); 
+  const look=rounds.slice(0,100);
   if(look.length<45) return 0;
-  
-  const lastRoseAt = look.findIndex(x=>x>=10);
-  const gap = lastRoseAt<0 ? 99 : lastRoseAt;
-  
-  const ma15 = look.slice(0,15).reduce((a,b)=>a+b,0)/15;
-  const p2   = look.slice(0,40).filter(x=>x>=2).length/40;
-  const mom  = calcMomentum();
-  const vol  = calcVolatility();
-  
-  // Detectar patrón histórico antes de 10x
-  const patternMatch = detectPattern(10);
-  const patternBonus = patternMatch>=2 ? 0.12 : 0;
-  
-  // Bonus fuerte por gap grande
-  const gapBonus = gap>=30 ? 0.18 : (gap>=20 ? 0.10 : 0);
-  
-  // Requiere volatilidad alta
-  const volRequirement = vol>=0.45 ? 0.15 : -0.20;
-  
-  let s = 0.30*norm(ma15,1.8,3.8) + 
-          0.25*norm(p2,0.20,0.70) + 
-          0.20*norm(mom,0.2,1.0) + 
-          volRequirement +
-          gapBonus +
-          patternBonus;
-  
+  const lastRoseAt=look.findIndex(x=>x>=10);
+  const gap=lastRoseAt<0?99:lastRoseAt;
+  const ma15=look.slice(0,15).reduce((a,b)=>a+b,0)/15;
+  const p2=look.slice(0,40).filter(x=>x>=2).length/40;
+  const mom=calcMomentum();
+  const vol=calcVolatility();
+  const patternMatch=detectPattern(10);
+  const patternBonus=patternMatch>=2?0.12:0;
+  const gapBonus=gap>=30?0.18:(gap>=20?0.10:0);
+  const volRequirement=vol>=0.45?0.15:-0.20;
+  let s=0.30*norm(ma15,1.8,3.8)+0.25*norm(p2,0.20,0.70)+0.20*norm(mom,0.2,1.0)+volRequirement+gapBonus+patternBonus;
   return Math.max(0,Math.min(1.3,s));
 }
 
 function updateMetrics(){
-  const h170 = heatScore170();
-  const h3x = heatScore3X();
-  const hr = rosaScore();
-  const vol = calcVolatility();
-  const mom = calcMomentum();
-  const gap = rounds.slice(0,100).findIndex(x=>x>=10);
+  const h170=heatScore170();
+  const h3x=heatScore3X();
+  const hr=rosaScore();
+  const vol=calcVolatility();
+  const mom=calcMomentum();
+  const gap=rounds.slice(0,100).findIndex(x=>x>=10);
   
-  $("#metricHeat").textContent = `${Math.max(h170,h3x,hr).toFixed(2)}`;
-  $("#metricVol").textContent = `${vol.toFixed(2)}`;
-  $("#metricMom").textContent = `${mom>=0?'+':''}${mom.toFixed(2)}`;
-  $("#metricGap").textContent = gap<0?'99+':`${gap}`;
+  $("#metricHeat").textContent=Math.max(h170,h3x,hr).toFixed(2);
+  $("#metricVol").textContent=vol.toFixed(2);
+  $("#metricMom").textContent=(mom>=0?'+':'')+mom.toFixed(2);
+  $("#metricGap").textContent=gap<0?'99+':gap.toString();
 }
 
-/*** señales inteligentes ***/
-let pending=null; // {tag,target,sess,enterAt,why}
-
+/*** Signal Logic ***/
 function maybe170(){
-  if(!$("#swAuto170").checked) return;
-  if(session.used170>=3) return;
-  
+  if(!$("#swAuto170").checked||session.used170>=3) return;
   const h=heatScore170();
-  const slot = session.used170===0?[5,22] : session.used170===1?[23,42] : [43,58];
-  const inSlot = session.round>=slot[0] && session.round<=slot[1];
-  const allowBurst = h>=0.90;
-  
-  if( (inSlot && h>=0.65) || allowBurst ){
-    pending={tag:'AUTO_1.70X',target:1.70,sess:session.id,enterAt:session.round+1,why:`heat=${h.toFixed(2)}`};
-    session.used170++; 
-    addSignal('AUTO_1.70X',1.70,'pend','—',pending.why);
-    log(`Señal ≥1.70x emitida (T+1). ${pending.why}`,'ok'); 
+  const slot=session.used170===0?[5,22]:session.used170===1?[23,42]:[43,58];
+  const inSlot=session.round>=slot[0]&&session.round<=slot[1];
+  const allowBurst=h>=0.90;
+  if((inSlot&&h>=0.65)||allowBurst){
+    pending={tag:'AUTO_1.70X',target:1.70,sess:session.id,enterAt:session.round+1};
+    session.used170++;
+    addSignal('AUTO_1.70X',1.70,'pend','—');
+    log(`Señal ≥1.70x emitida (T+1). Heat=${h.toFixed(2)}`,'ok');
     tone(940,140,.035);
   }
 }
 
 function maybe3X(){
-  if(!$("#swAuto3x").checked) return;
-  if(session.used3x>=3) return;
-  
+  if(!$("#swAuto3x").checked||session.used3x>=3) return;
   const h=heatScore3X();
-  const slot = session.used3x===0?[8,24] : session.used3x===1?[25,44] : [45,58];
-  const inSlot = session.round>=slot[0] && session.round<=slot[1];
-  const allowBurst = h>=0.95;
-  
-  if( (inSlot && h>=0.68) || allowBurst ){
-    pending={tag:'AUTO_3.0X',target:3.0,sess:session.id,enterAt:session.round+1,why:`heat=${h.toFixed(2)}`};
-    session.used3x++; 
-    addSignal('AUTO_3.0X',3.0,'pend','—',pending.why);
-    log(`Señal ≥3.0x emitida (T+1). ${pending.why}`,'ok'); 
+  const slot=session.used3x===0?[8,24]:session.used3x===1?[25,44]:[45,58];
+  const inSlot=session.round>=slot[0]&&session.round<=slot[1];
+  const allowBurst=h>=0.95;
+  if((inSlot&&h>=0.68)||allowBurst){
+    pending={tag:'AUTO_3.0X',target:3.0,sess:session.id,enterAt:session.round+1};
+    session.used3x++;
+    addSignal('AUTO_3.0X',3.0,'pend','—');
+    log(`Señal ≥3.0x emitida (T+1). Heat=${h.toFixed(2)}`,'ok');
     tone(820,150,.04);
   }
 }
 
 function maybeRosa(){
-  if(!$("#swRosa").checked || session.usedRosa>=2) return;
-  
-  const rs = rosaScore();
-  const gap = rounds.slice(0,100).findIndex(x=>x>=10);
-  const vol = calcVolatility();
-  
-  // Condiciones estrictas para ROSA
-  const gapOK = gap<0 || gap>=25;
-  const volOK = vol>=0.45;
-  const heatOK = rs>=0.92;
-  const slotOK = session.round>=12 && session.round<=55;
-  
-  if(gapOK && volOK && heatOK && slotOK){
-    const patterns = detectPattern(10);
-    pending={tag:'ROSA_10X',target:10.0,sess:session.id,enterAt:session.round+1,
-      why:`rosa=${rs.toFixed(2)} gap=${gap<0?'99+':gap} vol=${vol.toFixed(2)} patterns=${patterns}`};
-    session.usedRosa++; 
-    addSignal('ROSA_10X',10,'pend','—',pending.why);
-    log(`Caza ROSA armada (T+1). ${pending.why}`,'ok'); 
-    tone(520,140,.045); setTimeout(()=>tone(820,160,.04),160);
+  if(!$("#swRosa").checked||session.usedRosa>=2) return;
+  const rs=rosaScore();
+  const gap=rounds.slice(0,100).findIndex(x=>x>=10);
+  const vol=calcVolatility();
+  const gapOK=gap<0||gap>=25;
+  const volOK=vol>=0.45;
+  const heatOK=rs>=0.92;
+  const slotOK=session.round>=12&&session.round<=55;
+  if(gapOK&&volOK&&heatOK&&slotOK){
+    pending={tag:'ROSA_10X',target:10.0,sess:session.id,enterAt:session.round+1};
+    session.usedRosa++;
+    addSignal('ROSA_10X',10,'pend','—');
+    log(`Caza ROSA armada (T+1). Rosa=${rs.toFixed(2)} Gap=${gap<0?'99+':gap} Vol=${vol.toFixed(2)}`,'ok');
+    tone(520,140,.045);setTimeout(()=>tone(820,160,.04),160);
   }
 }
 
-/*** ingesta robusta ***/
+/*** Ingestion ***/
 function ingest(x,src='?'){
-  const v=parseFloat(x); if(!isFinite(v)||v<=0) return;
+  const v=parseFloat(x);
+  if(!isFinite(v)||v<=0) return;
   const t=performance.now();
-  if(v===lastVal && (t-lastAt)<2500) return; // anti-duplicado
-  lastVal=v; lastAt=t; updateLastSource(src);
+  if(v===lastVal&&(t-lastAt)<2500) return;
+  lastVal=v;lastAt=t;source=src;
 
-  rounds.unshift(v); if(rounds.length>200) rounds.pop();
-  session.round++; 
-  
-  if(session.round>60){ 
-    if($("#swAutoSession").checked){ 
-      session.id++; 
-      session.round=1; 
-      session.used170=0; 
-      session.used3x=0; 
-      session.usedRosa=0; 
-      log(`Nueva sesión ${session.id} • objetivos: 3×≥1.70x + 3×≥3.0x + 1-2×≥10x`,'ok'); 
-    } else { 
-      session.round=60; 
-    } 
+  rounds.unshift(v);
+  if(rounds.length>200) rounds.pop();
+  session.round++;
+
+  if(session.round>60){
+    if($("#swAutoSession").checked){
+      session.id++;session.round=1;session.used170=0;session.used3x=0;session.usedRosa=0;
+      log(`Nueva sesión ${session.id} iniciada`,'ok');
+    }else{
+      session.round=60;
+    }
   }
-  
-  badge(); paintChips(); updateMetrics();
 
-  // resolver señal pendiente
-  if(pending && pending.sess===session.id && pending.enterAt===session.round){
-    const win = v>=pending.target; const state = win?'win':'lose';
-    const row=list.find(r=>r.s===pending.sess && r.k===pending.enterAt && r.state==='pend');
-    if(row){ 
-      row.state=state; 
-      row.crash=v;
-      // reimprimir tabla
-      rows.innerHTML=''; 
-      list.slice().reverse().slice(0,80).forEach(r=>{
-        const tr=document.createElement('tr');
-        const tagClass = r.tag.includes('ROSA')?'rosa':(r.tag.includes('3X')?'triple':'auto');
-        tr.innerHTML=`<td>${r.n}</td><td>${r.s}</td><td>${r.k}</td>
-        <td><span class="tag ${tagClass}">${r.tag}</span></td>
-        <td>${r.target.toFixed(2)}x</td><td>${r.time}</td><td>${r.crash==='—'?'—':(+r.crash).toFixed(2)+'x'}</td><td class="state ${r.state}">${r.state}</td>`;
-        rows.prepend(tr);
-      });
-    }
-    
-    const profit = win ? ((v/pending.target)*100-100).toFixed(1) : '-100';
-    log(`${pending.tag} ${state.toUpperCase()} • crash:${v.toFixed(2)}x obj:${pending.target.toFixed(2)}x • ROI:${profit}%`, state==='win'?'ok':'err');
-    
-    if(pending.tag==='ROSA_10X'){ 
-      log(`ROSA ${state==='win'?'GANADA ✓':'PERDIDA ✗'} • ${pending.why}`, state==='win'?'ok':'err'); 
-    }
+  updateBadges();paintChips();updateMetrics();
+
+  // Resolver pending
+  if(pending&&pending.sess===session.id&&pending.enterAt===session.round){
+    const win=v>=pending.target;
+    const state=win?'win':'lose';
+    const sig=signals.find(s=>s.sess===pending.sess&&s.round===pending.enterAt&&s.state==='pend');
+    if(sig){sig.state=state;sig.crash=v;renderSignals();}
+    const roi=win?((v/pending.target)*100-100).toFixed(1):'-100';
+    log(`${pending.tag} ${state.toUpperCase()} • Crash:${v.toFixed(2)}x Obj:${pending.target.toFixed(2)}x • ROI:${roi}%`,state==='win'?'ok':'err');
     pending=null;
   }
 
-  // decidir nuevas señales (prioridad: Rosa > 3X > 1.70X)
-  maybeRosa(); 
-  maybe3X();
-  maybe170();
+  maybeRosa();maybe3X();maybe170();
 }
 
-/*** listeners múltiples ***/
-let bc1=null, bc2=null, lsPoll=null;
-function attachAll(){
-  try{ bc1=new BroadcastChannel('gocho'); bc1.onmessage=e=>ingest(e.data,'BC:gocho'); log('Escuchando BroadcastChannel "gocho"','ok'); }catch(e){ log('BC gocho no disponible: '+e.message,'err'); }
-  try{ bc2=new BroadcastChannel('aviator'); bc2.onmessage=e=>ingest(e.data,'BC:aviator'); log('Escuchando BroadcastChannel "aviator"','ok'); }catch(e){}
+/*** Connection ***/
+let bc1=null,bc2=null,lsPoll=null;
 
-  window.addEventListener('message', e=>{
+function connect(){
+  if(connected){log('Ya está conectado','err');return;}
+  
+  try{
+    bc1=new BroadcastChannel('gocho');
+    bc1.onmessage=e=>ingest(e.data,'BC:gocho');
+    log('Canal "gocho" conectado','ok');
+  }catch(e){log('BC gocho no disponible','err');}
+
+  try{
+    bc2=new BroadcastChannel('aviator');
+    bc2.onmessage=e=>ingest(e.data,'BC:aviator');
+    log('Canal "aviator" conectado','ok');
+  }catch(e){}
+
+  window.addEventListener('message',e=>{
     const d=e.data||{};
     const v=d.aviatorRound??d.round??d.value??d.crash??(typeof d==='number'?d:null);
     if(v!=null) ingest(v,'postMessage');
   });
 
-  window.addEventListener('storage', e=>{
-    if(e.key==='gocho:round'||e.key==='aviator:round'){ if(e.newValue!=null){ lastLS=e.newValue; ingest(parseFloat(e.newValue),'localStorage'); } }
+  window.addEventListener('storage',e=>{
+    if(e.key==='gocho:round'||e.key==='aviator:round'){
+      if(e.newValue!=null) ingest(parseFloat(e.newValue),'localStorage');
+    }
   });
-  window.addEventListener('gocho:round', ev=>ingest(ev.detail,'CustomEvent:gocho'));
-  window.addEventListener('aviator:round', ev=>ingest(ev.detail,'CustomEvent:aviator'));
 
-  window.gochoPush=(x)=>ingest(x,'gochoPush()');
+  window.addEventListener('gocho:round',ev=>ingest(ev.detail,'CustomEvent'));
+  window.addEventListener('aviator:round',ev=>ingest(ev.detail,'CustomEvent'));
 
-  let lastSeen=null;
+  window.gochoPush=x=>ingest(x,'gochoPush()');
+
   lsPoll=setInterval(()=>{
     const v=localStorage.getItem('gocho:round')||localStorage.getItem('aviator:round');
-    if(v && v!==lastSeen){ lastSeen=v; ingest(parseFloat(v),'LS:poll'); }
+    if(v) ingest(parseFloat(v),'LS:poll');
   },500);
 
-  log('Sistema PRO v27.0 iniciado. Algoritmo multi-objetivo activado.','ok');
+  connected=true;
+  $("#btnConnect").disabled=true;
+  $("#btnDisconnect").disabled=false;
+  updateBadges();
+  log('Sistema conectado y activo','ok');
+  tone(1200,100,.03);
 }
 
-function detachAll(){
-  try{bc1&&bc1.close()}catch{} try{bc2&&bc2.close()}catch{} bc1=bc2=null;
-  window.gochoPush=null; 
-  clearInterval(lsPoll); lsPoll=null; 
-  updateLastSource('—'); 
-  log('Desconectado.','err');
+function disconnect(){
+  if(!connected){log('Ya está desconectado','err');return;}
+  
+  try{bc1&&bc1.close();}catch{}
+  try{bc2&&bc2.close();}catch{}
+  bc1=bc2=null;
+  window.gochoPush=null;
+  clearInterval(lsPoll);lsPoll=null;
+
+  connected=false;
+  source='—';
+  $("#btnConnect").disabled=false;
+  $("#btnDisconnect").disabled=true;
+  updateBadges();
+  log('Sistema desconectado','err');
+  tone(800,100,.03);
 }
 
-attachAll();
-
-$("#btnStop").onclick=detachAll;
-$("#btnTest").onclick=()=>{
-  const seq=[ ()=>1+Math.random()*1.2, ()=>1.2+Math.random()*5.3, ()=>10+Math.random()*40 ];
-  let id=setInterval(()=>{ 
-    const pick=Math.random()<.1?2:(Math.random()<.6?0:1); 
-    ingest(+seq[pick]().toFixed(2),'Test'); 
+function testFeed(){
+  if(!connected){log('Conecta el sistema primero','err');return;}
+  const seq=[()=>1+Math.random()*1.2,()=>1.2+Math.random()*5.3,()=>10+Math.random()*40];
+  setInterval(()=>{
+    const pick=Math.random()<.1?2:(Math.random()<.6?0:1);
+    ingest(+seq[pick]().toFixed(2),'Test');
   },1200);
-  log('Test feed iniciado (generador realista).','ok');
-};
+  log('Feed de prueba iniciado','ok');
+}
 
-badge(); paintChips(); updateMetrics();
+$("#btnConnect").onclick=connect;
+$("#btnDisconnect").onclick=disconnect;
+$("#btnTest").onclick=testFeed;
+
+updateBadges();paintChips();updateMetrics();
+log('Sistema iniciado. Presiona "Conectar" para comenzar.','');
 </script>
 </body>
 </html>
