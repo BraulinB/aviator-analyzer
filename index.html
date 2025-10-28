@@ -50,14 +50,6 @@ body{
   padding:24px;
 }
 
-.glass{
-  background:var(--surface-glass);
-  backdrop-filter:blur(20px);
-  -webkit-backdrop-filter:blur(20px);
-  border:1px solid var(--border);
-  box-shadow:var(--shadow);
-}
-
 .card{
   background:var(--surface);
   border:1px solid var(--border);
@@ -72,7 +64,6 @@ body{
   box-shadow:var(--shadow);
 }
 
-/* Header */
 .header{
   display:flex;
   align-items:center;
@@ -146,7 +137,6 @@ body{
   50%{opacity:0.3}
 }
 
-/* Controls */
 .controls{
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
@@ -250,7 +240,6 @@ input[type="checkbox"]{
   accent-color:var(--accent-cyan);
 }
 
-/* Metrics Grid */
 .metrics-grid{
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
@@ -289,7 +278,6 @@ input[type="checkbox"]{
   background-clip:text;
 }
 
-/* Chips */
 .chips-container{
   display:flex;
   gap:8px;
@@ -328,7 +316,6 @@ input[type="checkbox"]{
   color:var(--accent-pink);
 }
 
-/* Table */
 .table-container{
   overflow-x:auto;
   border-radius:12px;
@@ -407,7 +394,6 @@ tr:hover{
 .state.lose{color:var(--error)}
 .state.pend{color:var(--warning)}
 
-/* Log */
 .log-container{
   height:320px;
   overflow-y:auto;
@@ -442,7 +428,6 @@ tr:hover{
 .log-entry.ok{color:var(--success)}
 .log-entry.err{color:var(--error)}
 
-/* Grid Layout */
 .grid{
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(500px,1fr));
@@ -482,6 +467,7 @@ code{
   font-size:11px;
   color:var(--accent-cyan);
   font-family:monospace;
+  word-break:break-all;
 }
 
 .session-info{
@@ -504,12 +490,32 @@ code{
   color:var(--accent-cyan);
   margin-left:4px;
 }
+
+.alert{
+  padding:16px;
+  border-radius:12px;
+  margin-bottom:16px;
+  border-left:4px solid;
+  font-size:14px;
+  line-height:1.6;
+}
+
+.alert.warning{
+  background:rgba(245,158,11,0.1);
+  border-color:var(--warning);
+  color:var(--warning);
+}
+
+.alert strong{
+  display:block;
+  margin-bottom:8px;
+  font-size:15px;
+}
 </style>
 </head>
 <body>
 <div class="container">
   
-  <!-- Header -->
   <div class="header">
     <div class="brand">
       <div class="logo">G</div>
@@ -524,7 +530,17 @@ code{
     </div>
   </div>
 
-  <!-- Control Panel -->
+  <div class="alert warning" id="captureAlert">
+    <strong>⚠️ Importante: Debes ejecutar el capturador</strong>
+    Para que este analizador reciba datos del juego Aviator, debes:<br>
+    1. Abrir la pestaña donde está el juego Aviator<br>
+    2. Presionar F12 (abrir consola del navegador)<br>
+    3. Copiar y pegar este código en la consola y presionar Enter:<br><br>
+    <code id="captureCode" style="display:block;padding:12px;cursor:pointer;user-select:all;" onclick="this.select();document.execCommand('copy');alert('¡Código copiado! Ahora pégalo en la consola del juego.')">
+(function(){const bc=new BroadcastChannel('gocho');let last=null;setInterval(()=>{try{const els=document.querySelectorAll('[class*="payouts"] [class*="payout"], .history-item, [data-history], .game-history span');for(const el of els){const txt=el.textContent.trim();const m=txt.match(/(\d+\.?\d*)x?/);if(m){const v=parseFloat(m[1]);if(v>0&&v!==last){last=v;bc.postMessage(v);localStorage.setItem('gocho:round',v);console.log('Gocho capturó:',v+'x');break;}}}}catch(e){console.log('Gocho error:',e.message)}},800);console.log('✅ Gocho Capturador activo');})();
+    </code>
+  </div>
+
   <div class="card">
     <h2>Panel de Control</h2>
     <div class="controls">
@@ -588,12 +604,10 @@ code{
     </div>
 
     <div class="info-text">
-      <strong>Fuentes de datos activas:</strong> <code id="sourceInfo">Ninguna</code><br>
-      Canales soportados: BroadcastChannel, postMessage, localStorage, CustomEvent, window.gochoPush()
+      <strong>Fuente de datos activa:</strong> <code id="sourceInfo">Ninguna</code>
     </div>
   </div>
 
-  <!-- Metrics -->
   <div class="metrics-grid">
     <div class="metric-card">
       <div class="metric-label">Heat Score</div>
@@ -613,7 +627,6 @@ code{
     </div>
   </div>
 
-  <!-- History Chips -->
   <div class="card">
     <h2>Historial de Rondas (últimas 60)</h2>
     <div class="chips-container" id="chipsContainer">
@@ -621,10 +634,8 @@ code{
     </div>
   </div>
 
-  <!-- Main Grid -->
   <div class="grid">
     
-    <!-- Signals Table -->
     <div class="card">
       <h2>Señales Generadas</h2>
       <div class="session-info">
@@ -659,7 +670,6 @@ code{
       </div>
     </div>
 
-    <!-- Log -->
     <div class="card">
       <h2>Registro del Sistema</h2>
       <div class="log-container" id="logContainer">
@@ -672,7 +682,6 @@ code{
 </div>
 
 <script>
-/*** Utilities ***/
 const $=s=>document.querySelector(s);
 const logEl=$("#logContainer");
 const chipsEl=$("#chipsContainer");
@@ -694,12 +703,11 @@ function tone(f=880,ms=140,vol=.035){
     o.frequency.value=f;o.type='sine';g.gain.value=vol;
     o.connect(g).connect(a.destination);
     o.start();setTimeout(()=>o.stop(),ms);
-  }catch(e){console.log('Audio no disponible');}
+  }catch(e){}
 }
 
 setInterval(()=>$("#clock").textContent=now(),1000);
 
-/*** State ***/
 let rounds=[];
 let lastVal=0,lastAt=0,source='Ninguna',connected=false;
 const session={id:1,round:0,used170:0,used3x:0,usedRosa:0};
@@ -767,7 +775,6 @@ function renderSignals(){
   });
 }
 
-/*** Analytics ***/
 function norm(x,a,b){return Math.max(0,Math.min(1,(x-a)/(b-a||1)))}
 
 function calcStdDev(arr){
@@ -869,7 +876,6 @@ function updateMetrics(){
   $("#metricGap").textContent=gap<0?'99+':gap.toString();
 }
 
-/*** Signal Logic ***/
 function maybe170(){
   if(!$("#swAuto170").checked||session.used170>=3) return;
   const h=heatScore170();
@@ -918,7 +924,6 @@ function maybeRosa(){
   }
 }
 
-/*** Ingestion ***/
 function ingest(x,src='Desconocido'){
   const v=parseFloat(x);
   if(!isFinite(v)||v<=0) return;
@@ -926,9 +931,10 @@ function ingest(x,src='Desconocido'){
   if(v===lastVal&&(t-lastAt)<2500) return;
   lastVal=v;lastAt=t;
   
-  if(src!=='Test' && src!=='Desconocido'){
+  if(src!=='Test'){
     source=src;
     updateBadges();
+    $("#captureAlert").style.display='none';
   }
 
   rounds.unshift(v);
@@ -946,7 +952,6 @@ function ingest(x,src='Desconocido'){
 
   updateBadges();paintChips();updateMetrics();
 
-  // Resolver pending
   if(pending&&pending.sess===session.id&&pending.enterAt===session.round){
     const win=v>=pending.target;
     const state=win?'win':'lose';
@@ -960,9 +965,8 @@ function ingest(x,src='Desconocido'){
   maybeRosa();maybe3X();maybe170();
 }
 
-/*** Connection ***/
 let bc1=null,bc2=null,lsPoll=null;
-let msgListener=null,storageListener=null,customListener1=null,customListener2=null;
+let msgListener=null,storageListener=null;
 
 function connect(){
   if(connected){log('Ya está conectado','err');return;}
@@ -979,24 +983,12 @@ function connect(){
     log('Canal "aviator" conectado','ok');
   }catch(e){log('BC aviator error: '+e.message,'err');}
 
-  msgListener=(e)=>{
-    const d=e.data||{};
-    const v=d.aviatorRound??d.round??d.value??d.crash??(typeof d==='number'?d:null);
-    if(v!=null) ingest(v,'postMessage');
-  };
-  window.addEventListener('message',msgListener);
-
   storageListener=(e)=>{
-    if(e.key==='gocho:round'||e.key==='aviator:round'){
-      if(e.newValue!=null) ingest(parseFloat(e.newValue),'localStorage');
+    if((e.key==='gocho:round'||e.key==='aviator:round')&&e.newValue){
+      ingest(parseFloat(e.newValue),'localStorage');
     }
   };
   window.addEventListener('storage',storageListener);
-
-  customListener1=(ev)=>ingest(ev.detail,'CustomEvent:gocho');
-  customListener2=(ev)=>ingest(ev.detail,'CustomEvent:aviator');
-  window.addEventListener('gocho:round',customListener1);
-  window.addEventListener('aviator:round',customListener2);
 
   window.gochoPush=(x)=>ingest(x,'gochoPush()');
 
@@ -1008,36 +1000,32 @@ function connect(){
         lastLSSeen=v;
         ingest(parseFloat(v),'LS:poll');
       }
-    }catch(e){/* localStorage puede no estar disponible */}
+    }catch(e){}
   },500);
 
   connected=true;
   $("#btnConnect").disabled=true;
   $("#btnDisconnect").disabled=false;
   updateBadges();
-  log('Sistema conectado y activo','ok');
+  log('Sistema conectado. Ejecuta el capturador en el juego.','ok');
   tone(1200,100,.03);
 }
 
 function disconnect(){
   if(!connected){log('Ya está desconectado','err');return;}
   
-  try{if(bc1){bc1.close();bc1=null;}}catch(e){console.log(e);}
-  try{if(bc2){bc2.close();bc2=null;}}catch(e){console.log(e);}
+  try{if(bc1){bc1.close();bc1=null;}}catch(e){}
+  try{if(bc2){bc2.close();bc2=null;}}catch(e){}
   
-  if(msgListener){window.removeEventListener('message',msgListener);msgListener=null;}
   if(storageListener){window.removeEventListener('storage',storageListener);storageListener=null;}
-  if(customListener1){window.removeEventListener('gocho:round',customListener1);customListener1=null;}
-  if(customListener2){window.removeEventListener('aviator:round',customListener2);customListener2=null;}
-  
   window.gochoPush=null;
-  
   if(lsPoll){clearInterval(lsPoll);lsPoll=null;}
 
   connected=false;
   source='Ninguna';
   $("#btnConnect").disabled=false;
   $("#btnDisconnect").disabled=true;
+  $("#captureAlert").style.display='block';
   updateBadges();
   log('Sistema desconectado','err');
   tone(800,100,.03);
@@ -1046,25 +1034,21 @@ function disconnect(){
 function testFeed(){
   log('Feed de prueba iniciado','ok');
   const seq=[()=>1+Math.random()*1.2,()=>1.2+Math.random()*5.3,()=>10+Math.random()*40];
-  const interval=setInterval(()=>{
+  setInterval(()=>{
     const pick=Math.random()<.1?2:(Math.random()<.6?0:1);
     ingest(+seq[pick]().toFixed(2),'Test');
   },1200);
-  
-  // Guardar referencia para poder detenerlo
-  window.testInterval=interval;
 }
 
 $("#btnConnect").onclick=connect;
 $("#btnDisconnect").onclick=disconnect;
 $("#btnTest").onclick=testFeed;
 
-// Inicializar
 updateBadges();
 paintChips();
 updateMetrics();
 renderSignals();
-log('Sistema iniciado. Presiona "Conectar" para comenzar.','');
+log('Sistema iniciado. Presiona "Conectar" y ejecuta el capturador en el juego.','');
 </script>
 </body>
 </html>
