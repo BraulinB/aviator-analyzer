@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Gocho Analyzer v27.0 PRO</title>
+<title>Gocho Analyzer v27.0 PRO - 1Win Edition</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
@@ -11,7 +11,6 @@
   --bg-primary:#0a0e1a;
   --bg-secondary:#0f131f;
   --surface:#1a1f2e;
-  --surface-glass:rgba(26,31,46,0.7);
   --border:rgba(255,255,255,0.08);
   --text-primary:#e8edf7;
   --text-secondary:#8b92a8;
@@ -19,7 +18,6 @@
   --accent-cyan:#00d4ff;
   --accent-green:#00ff88;
   --accent-pink:#ff0080;
-  --accent-amber:#ffb800;
   --accent-purple:#a855f7;
   --success:#10b981;
   --error:#ef4444;
@@ -56,12 +54,7 @@ body{
   border-radius:16px;
   padding:24px;
   margin-bottom:24px;
-  transition:transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.card:hover{
-  transform:translateY(-2px);
-  box-shadow:var(--shadow);
+  transition:transform 0.2s ease;
 }
 
 .header{
@@ -98,7 +91,6 @@ body{
   background:linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
   -webkit-background-clip:text;
   -webkit-text-fill-color:transparent;
-  background-clip:text;
   margin-bottom:4px;
 }
 
@@ -130,6 +122,10 @@ body{
 
 .status-badge.connected::before{
   background:var(--success);
+}
+
+.status-badge.receiving::before{
+  background:var(--accent-cyan);
 }
 
 @keyframes pulse{
@@ -193,30 +189,15 @@ button.primary{
   box-shadow:0 4px 16px rgba(0,212,255,0.3);
 }
 
-button.primary:hover:not(:disabled){
-  box-shadow:0 6px 24px rgba(0,212,255,0.4);
-}
-
 button.danger{
   background:rgba(239,68,68,0.1);
   border-color:rgba(239,68,68,0.3);
   color:var(--error);
 }
 
-button.danger:hover:not(:disabled){
-  background:rgba(239,68,68,0.2);
-}
-
 button:disabled{
   opacity:0.5;
   cursor:not-allowed;
-  transform:none;
-}
-
-.checkbox-group{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
 }
 
 .checkbox-label{
@@ -226,11 +207,6 @@ button:disabled{
   cursor:pointer;
   font-size:14px;
   color:var(--text-secondary);
-  transition:color 0.2s ease;
-}
-
-.checkbox-label:hover{
-  color:var(--text-primary);
 }
 
 input[type="checkbox"]{
@@ -253,11 +229,6 @@ input[type="checkbox"]{
   border-radius:12px;
   padding:20px;
   text-align:center;
-  transition:transform 0.2s ease;
-}
-
-.metric-card:hover{
-  transform:translateY(-2px);
 }
 
 .metric-label{
@@ -275,7 +246,6 @@ input[type="checkbox"]{
   background:linear-gradient(135deg, var(--accent-cyan), var(--accent-green));
   -webkit-background-clip:text;
   -webkit-text-fill-color:transparent;
-  background-clip:text;
 }
 
 .chips-container{
@@ -291,11 +261,6 @@ input[type="checkbox"]{
   font-weight:700;
   font-size:13px;
   border:1px solid;
-  transition:transform 0.2s ease;
-}
-
-.chip:hover{
-  transform:scale(1.05);
 }
 
 .chip.low{
@@ -337,7 +302,6 @@ th{
   font-size:11px;
   font-weight:700;
   text-transform:uppercase;
-  letter-spacing:1px;
   color:var(--text-muted);
   border-bottom:1px solid var(--border);
 }
@@ -346,10 +310,6 @@ td{
   padding:16px;
   border-bottom:1px solid var(--border);
   font-size:14px;
-}
-
-tr:last-child td{
-  border-bottom:none;
 }
 
 tr:hover{
@@ -406,20 +366,6 @@ tr:hover{
   line-height:1.8;
 }
 
-.log-container::-webkit-scrollbar{
-  width:8px;
-}
-
-.log-container::-webkit-scrollbar-track{
-  background:var(--bg-primary);
-  border-radius:4px;
-}
-
-.log-container::-webkit-scrollbar-thumb{
-  background:var(--border);
-  border-radius:4px;
-}
-
 .log-entry{
   padding:4px 0;
   color:var(--text-secondary);
@@ -435,9 +381,7 @@ tr:hover{
 }
 
 @media(max-width:1100px){
-  .grid{
-    grid-template-columns:1fr;
-  }
+  .grid{grid-template-columns:1fr;}
 }
 
 h2{
@@ -449,31 +393,19 @@ h2{
   letter-spacing:1px;
 }
 
-.info-text{
-  font-size:12px;
-  color:var(--text-muted);
-  line-height:1.6;
-  margin-top:12px;
-  padding:12px;
-  background:var(--bg-secondary);
-  border-left:3px solid var(--accent-cyan);
-  border-radius:4px;
-}
-
-code{
-  background:var(--bg-primary);
-  padding:2px 6px;
-  border-radius:4px;
-  font-size:11px;
-  color:var(--accent-cyan);
-  font-family:monospace;
-  word-break:break-all;
+.alert{
+  padding:16px;
+  border-radius:12px;
+  margin-bottom:16px;
+  border-left:4px solid var(--warning);
+  background:rgba(245,158,11,0.1);
+  color:var(--warning);
+  font-size:14px;
 }
 
 .session-info{
   display:flex;
   gap:12px;
-  align-items:center;
   flex-wrap:wrap;
   margin-bottom:16px;
 }
@@ -488,28 +420,6 @@ code{
 
 .session-stat strong{
   color:var(--accent-cyan);
-  margin-left:4px;
-}
-
-.alert{
-  padding:16px;
-  border-radius:12px;
-  margin-bottom:16px;
-  border-left:4px solid;
-  font-size:14px;
-  line-height:1.6;
-}
-
-.alert.warning{
-  background:rgba(245,158,11,0.1);
-  border-color:var(--warning);
-  color:var(--warning);
-}
-
-.alert strong{
-  display:block;
-  margin-bottom:8px;
-  font-size:15px;
 }
 </style>
 </head>
@@ -520,25 +430,24 @@ code{
     <div class="brand">
       <div class="logo">G</div>
       <div class="brand-info">
-        <h1>Gocho Analyzer v27.0</h1>
-        <p>Sistema de predicción avanzado con IA multi-objetivo</p>
+        <h1>Gocho Analyzer v27.0 PRO</h1>
+        <p>Sistema de predicción para 1Win Aviator</p>
       </div>
     </div>
-    <div style="display:flex;gap:12px;align-items:center">
+    <div style="display:flex;gap:12px">
       <span class="status-badge" id="statusBadge">Desconectado</span>
+      <span class="status-badge" id="dataBadge">Sin datos</span>
       <span class="status-badge" id="clock">--:--:--</span>
     </div>
   </div>
 
-  <div class="alert warning" id="captureAlert">
-    <strong>⚠️ Importante: Debes ejecutar el capturador</strong>
-    Para que este analizador reciba datos del juego Aviator, debes:<br>
-    1. Abrir la pestaña donde está el juego Aviator<br>
-    2. Presionar F12 (abrir consola del navegador)<br>
-    3. Copiar y pegar este código en la consola y presionar Enter:<br><br>
-    <code id="captureCode" style="display:block;padding:12px;cursor:pointer;user-select:all;" onclick="this.select();document.execCommand('copy');alert('¡Código copiado! Ahora pégalo en la consola del juego.')">
-(function(){const bc=new BroadcastChannel('gocho');let last=null;setInterval(()=>{try{const els=document.querySelectorAll('[class*="payouts"] [class*="payout"], .history-item, [data-history], .game-history span');for(const el of els){const txt=el.textContent.trim();const m=txt.match(/(\d+\.?\d*)x?/);if(m){const v=parseFloat(m[1]);if(v>0&&v!==last){last=v;bc.postMessage(v);localStorage.setItem('gocho:round',v);console.log('Gocho capturó:',v+'x');break;}}}}catch(e){console.log('Gocho error:',e.message)}},800);console.log('✅ Gocho Capturador activo');})();
-    </code>
+  <div class="alert" id="instructionsAlert">
+    <strong>📋 Instrucciones de Uso:</strong><br>
+    1. Haz clic en <strong>"Conectar"</strong> aquí abajo<br>
+    2. Ve a la pestaña del juego 1Win Aviator<br>
+    3. Presiona <strong>F12</strong> para abrir la consola<br>
+    4. Copia y pega el <strong>Script Capturador</strong> (ver documentación)<br>
+    5. Presiona Enter y regresa a esta pestaña
   </div>
 
   <div class="card">
@@ -548,30 +457,15 @@ code{
       <div class="control-group">
         <span class="control-label">Conexión del Sistema</span>
         <div class="button-group">
-          <button id="btnConnect" class="primary">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-            </svg>
-            Conectar
-          </button>
-          <button id="btnDisconnect" class="danger" disabled>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
-            </svg>
-            Desconectar
-          </button>
-          <button id="btnTest">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/>
-            </svg>
-            Test
-          </button>
+          <button id="btnConnect" class="primary">🔌 Conectar</button>
+          <button id="btnDisconnect" class="danger" disabled>❌ Desconectar</button>
+          <button id="btnTest">▶️ Modo Test</button>
         </div>
       </div>
 
       <div class="control-group">
-        <span class="control-label">Configuración de Señales</span>
-        <div class="checkbox-group">
+        <span class="control-label">Configuración</span>
+        <div style="display:flex;flex-direction:column;gap:10px">
           <label class="checkbox-label">
             <input id="swBeep" type="checkbox">
             <span>Alertas sonoras</span>
@@ -584,27 +478,23 @@ code{
       </div>
 
       <div class="control-group">
-        <span class="control-label">Objetivos Activos</span>
-        <div class="checkbox-group">
+        <span class="control-label">Objetivos</span>
+        <div style="display:flex;flex-direction:column;gap:10px">
           <label class="checkbox-label">
             <input id="swAuto170" type="checkbox" checked>
-            <span>Señales ≥1.70x (3/sesión)</span>
+            <span>≥1.70x (3/sesión)</span>
           </label>
           <label class="checkbox-label">
             <input id="swAuto3x" type="checkbox" checked>
-            <span>Señales ≥3.0x (3/sesión)</span>
+            <span>≥3.0x (3/sesión)</span>
           </label>
           <label class="checkbox-label">
             <input id="swRosa" type="checkbox" checked>
-            <span>Caza ROSA ≥10x (1-2/sesión)</span>
+            <span>≥10x ROSA (1-2/sesión)</span>
           </label>
         </div>
       </div>
 
-    </div>
-
-    <div class="info-text">
-      <strong>Fuente de datos activa:</strong> <code id="sourceInfo">Ninguna</code>
     </div>
   </div>
 
@@ -628,9 +518,9 @@ code{
   </div>
 
   <div class="card">
-    <h2>Historial de Rondas (últimas 60)</h2>
+    <h2>Historial de Rondas</h2>
     <div class="chips-container" id="chipsContainer">
-      <span style="color:var(--text-muted);font-size:13px">Esperando datos...</span>
+      <span style="color:var(--text-muted)">Esperando datos...</span>
     </div>
   </div>
 
@@ -649,22 +539,11 @@ code{
         <table>
           <thead>
             <tr>
-              <th>#</th>
-              <th>Sesión</th>
-              <th>Ronda</th>
-              <th>Tipo</th>
-              <th>Objetivo</th>
-              <th>Hora</th>
-              <th>Crash</th>
-              <th>Estado</th>
+              <th>#</th><th>Sesión</th><th>Ronda</th><th>Tipo</th><th>Objetivo</th><th>Hora</th><th>Crash</th><th>Estado</th>
             </tr>
           </thead>
           <tbody id="signalsTable">
-            <tr>
-              <td colspan="8" style="text-align:center;color:var(--text-muted);padding:32px">
-                No hay señales generadas todavía
-              </td>
-            </tr>
+            <tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:32px">Esperando señales...</td></tr>
           </tbody>
         </table>
       </div>
@@ -672,9 +551,7 @@ code{
 
     <div class="card">
       <h2>Registro del Sistema</h2>
-      <div class="log-container" id="logContainer">
-        <div class="log-entry" style="color:var(--text-muted)">Sistema iniciado. Presiona "Conectar" para comenzar...</div>
-      </div>
+      <div class="log-container" id="logContainer"></div>
     </div>
 
   </div>
@@ -683,24 +560,22 @@ code{
 
 <script>
 const $=s=>document.querySelector(s);
-const logEl=$("#logContainer");
-const chipsEl=$("#chipsContainer");
 const now=()=>new Date().toLocaleTimeString('es-ES');
 
 function log(msg,cls=''){
   const d=document.createElement('div');
   d.className='log-entry '+(cls||'');
   d.textContent='['+now()+'] '+msg;
-  logEl.appendChild(d);
-  logEl.scrollTop=logEl.scrollHeight;
+  $("#logContainer").appendChild(d);
+  $("#logContainer").scrollTop=$("#logContainer").scrollHeight;
 }
 
-function tone(f=880,ms=140,vol=.035){
+function tone(f,ms,vol){
   if(!$("#swBeep").checked) return;
   try{
-    const a=new (window.AudioContext||window.webkitAudioContext)();
+    const a=new AudioContext();
     const o=a.createOscillator(),g=a.createGain();
-    o.frequency.value=f;o.type='sine';g.gain.value=vol;
+    o.frequency.value=f;o.type='sine';g.gain.value=vol||0.03;
     o.connect(g).connect(a.destination);
     o.start();setTimeout(()=>o.stop(),ms);
   }catch(e){}
@@ -708,347 +583,217 @@ function tone(f=880,ms=140,vol=.035){
 
 setInterval(()=>$("#clock").textContent=now(),1000);
 
-let rounds=[];
-let lastVal=0,lastAt=0,source='Ninguna',connected=false;
+let rounds=[],signals=[],pending=null;
+let lastVal=0,lastAt=0,connected=false;
 const session={id:1,round:0,used170:0,used3x:0,usedRosa:0};
-const signals=[];
-let pending=null;
 
-function updateBadges(){
+function updateUI(){
   $("#sessId").textContent=session.id;
   $("#sessRound").textContent=session.round;
   $("#sess170").textContent=session.used170;
   $("#sess3x").textContent=session.used3x;
   $("#sessRosa").textContent=session.usedRosa;
-  $("#sourceInfo").textContent=source;
   
   const badge=$("#statusBadge");
-  if(connected){
-    badge.textContent='Conectado';
-    badge.classList.add('connected');
-  }else{
-    badge.textContent='Desconectado';
-    badge.classList.remove('connected');
-  }
+  badge.textContent=connected?'Conectado':'Desconectado';
+  if(connected) badge.classList.add('connected');
+  else badge.classList.remove('connected');
+  
+  const dataBadge=$("#dataBadge");
+  dataBadge.textContent=rounds.length>0?`${rounds.length} rondas`:'Sin datos';
+  if(rounds.length>0) dataBadge.classList.add('receiving');
 }
 
 function paintChips(){
-  if(rounds.length===0){
-    chipsEl.innerHTML='<span style="color:var(--text-muted);font-size:13px">Esperando datos...</span>';
-    return;
-  }
-  chipsEl.innerHTML='';
+  const c=$("#chipsContainer");
+  if(!rounds.length){c.innerHTML='<span style="color:var(--text-muted)">Esperando datos...</span>';return;}
+  c.innerHTML='';
   rounds.slice(0,60).forEach(x=>{
     const sp=document.createElement('span');
     sp.className='chip '+(x<2?'low':x<10?'med':'high');
     sp.textContent=x.toFixed(2)+'x';
-    chipsEl.appendChild(sp);
+    c.appendChild(sp);
   });
 }
 
-function addSignal(tag,target,state='pend',crash='—'){
-  const s={n:signals.length+1,sess:session.id,round:session.round,tag,target,time:now(),crash,state};
-  signals.push(s);
-  renderSignals();
-}
-
 function renderSignals(){
-  const tbody=$("#signalsTable");
-  if(signals.length===0){
-    tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:32px">No hay señales generadas todavía</td></tr>';
-    return;
-  }
-  tbody.innerHTML='';
+  const t=$("#signalsTable");
+  if(!signals.length){t.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:32px">Esperando señales...</td></tr>';return;}
+  t.innerHTML='';
   signals.slice().reverse().slice(0,50).forEach(s=>{
     const tr=document.createElement('tr');
-    tr.innerHTML=`
-      <td>${s.n}</td>
-      <td>${s.sess}</td>
-      <td>${s.round}</td>
-      <td><span class="tag ${s.tag.includes('ROSA')?'rosa':s.tag.includes('3.0')?'triple':'auto'}">${s.tag}</span></td>
-      <td>${s.target.toFixed(2)}x</td>
-      <td>${s.time}</td>
-      <td>${s.crash==='—'?'—':s.crash.toFixed(2)+'x'}</td>
-      <td><span class="state ${s.state}">${s.state}</span></td>
-    `;
-    tbody.appendChild(tr);
+    tr.innerHTML=`<td>${s.n}</td><td>${s.sess}</td><td>${s.round}</td>
+    <td><span class="tag ${s.tag.includes('ROSA')?'rosa':s.tag.includes('3.0')?'triple':'auto'}">${s.tag}</span></td>
+    <td>${s.target.toFixed(2)}x</td><td>${s.time}</td>
+    <td>${s.crash==='—'?'—':s.crash.toFixed(2)+'x'}</td>
+    <td><span class="state ${s.state}">${s.state}</span></td>`;
+    t.appendChild(tr);
   });
 }
 
 function norm(x,a,b){return Math.max(0,Math.min(1,(x-a)/(b-a||1)))}
-
-function calcStdDev(arr){
-  if(arr.length<2) return 0;
-  const mean=arr.reduce((a,b)=>a+b,0)/arr.length;
-  const variance=arr.reduce((a,b)=>a+Math.pow(b-mean,2),0)/arr.length;
-  return Math.sqrt(variance);
-}
-
-function calcVolatility(){
-  const arr=rounds.slice(0,30);
-  if(arr.length<10) return 0;
-  const mean=arr.reduce((a,b)=>a+b,0)/arr.length;
-  const sd=calcStdDev(arr);
-  return mean>0?Math.min(1,sd/mean):0;
-}
-
-function calcMomentum(){
-  const arr=rounds.slice(0,25);
-  if(arr.length<16) return 0;
-  const recent=arr.slice(0,8).reduce((a,b)=>a+b,0)/8;
-  const old=arr.slice(8,16).reduce((a,b)=>a+b,0)/8;
-  return recent-old;
-}
-
-function detectPattern(target){
-  const arr=rounds.slice(0,100);
-  let matches=0;
-  for(let i=0;i<arr.length-5;i++){
-    if(arr[i]>=target){
-      const prevPattern=arr.slice(i+1,i+6);
-      const currentPattern=rounds.slice(0,5);
-      if(prevPattern.length===5 && currentPattern.length===5){
-        let diff=0;
-        for(let j=0;j<5;j++) diff+=Math.abs(prevPattern[j]-currentPattern[j]);
-        if(diff/5<1.5) matches++;
-      }
-    }
-  }
-  return matches;
-}
+function calcStdDev(a){if(a.length<2)return 0;const m=a.reduce((x,y)=>x+y,0)/a.length;return Math.sqrt(a.reduce((x,y)=>x+Math.pow(y-m,2),0)/a.length);}
+function calcVol(){const a=rounds.slice(0,30);if(a.length<10)return 0;const m=a.reduce((x,y)=>x+y,0)/a.length;return m>0?Math.min(1,calcStdDev(a)/m):0;}
+function calcMom(){const a=rounds.slice(0,25);if(a.length<16)return 0;return a.slice(0,8).reduce((x,y)=>x+y,0)/8-a.slice(8,16).reduce((x,y)=>x+y,0)/8;}
 
 function heatScore170(){
-  const arr=rounds.slice(0,30);
-  if(arr.length<15) return 0;
-  const ma10=arr.slice(0,10).reduce((a,b)=>a+b,0)/10;
-  const p2=arr.filter(x=>x>=2).length/arr.length;
-  const mom=calcMomentum();
-  const vol=calcVolatility();
-  const last4avg=arr.slice(0,4).reduce((a,b)=>a+b,0)/4;
-  const trapPenalty=last4avg<1.40?0.35:0;
-  const volBonus=(vol>0.25&&vol<0.6)?0.08:0;
-  let s=0.40*norm(ma10,1.5,3.2)+0.25*norm(p2,0.15,0.65)+0.20*norm(mom,-0.4,0.9)+volBonus-trapPenalty;
-  return Math.max(0,Math.min(1.2,s));
+  const a=rounds.slice(0,30);if(a.length<15)return 0;
+  const ma10=a.slice(0,10).reduce((x,y)=>x+y,0)/10,p2=a.filter(x=>x>=2).length/a.length,mom=calcMom(),vol=calcVol();
+  const trap=a.slice(0,4).reduce((x,y)=>x+y,0)/4<1.40?0.35:0,vb=(vol>0.25&&vol<0.6)?0.08:0;
+  return Math.max(0,Math.min(1.2,0.40*norm(ma10,1.5,3.2)+0.25*norm(p2,0.15,0.65)+0.20*norm(mom,-0.4,0.9)+vb-trap));
 }
 
 function heatScore3X(){
-  const arr=rounds.slice(0,35);
-  if(arr.length<20) return 0;
-  const ma10=arr.slice(0,10).reduce((a,b)=>a+b,0)/10;
-  const p3=arr.filter(x=>x>=3).length/arr.length;
-  const mom=calcMomentum();
-  const recentHigh=arr.slice(0,8).filter(x=>x>=2.5).length;
-  const hotZone=(ma10>2.8&&recentHigh>=5)?0.15:0;
-  const lowCrashes=arr.slice(0,10).filter(x=>x<1.5).length;
-  const lowPenalty=lowCrashes>=5?0.25:0;
-  let s=0.45*norm(ma10,2.0,4.0)+0.30*norm(p3,0.05,0.40)+0.18*norm(mom,0,1.2)+hotZone-lowPenalty;
-  return Math.max(0,Math.min(1.2,s));
+  const a=rounds.slice(0,35);if(a.length<20)return 0;
+  const ma10=a.slice(0,10).reduce((x,y)=>x+y,0)/10,p3=a.filter(x=>x>=3).length/a.length,mom=calcMom();
+  const hot=(ma10>2.8&&a.slice(0,8).filter(x=>x>=2.5).length>=5)?0.15:0,lp=a.slice(0,10).filter(x=>x<1.5).length>=5?0.25:0;
+  return Math.max(0,Math.min(1.2,0.45*norm(ma10,2.0,4.0)+0.30*norm(p3,0.05,0.40)+0.18*norm(mom,0,1.2)+hot-lp));
 }
 
 function rosaScore(){
-  const look=rounds.slice(0,100);
-  if(look.length<45) return 0;
-  const lastRoseAt=look.findIndex(x=>x>=10);
-  const gap=lastRoseAt<0?99:lastRoseAt;
-  const ma15=look.slice(0,15).reduce((a,b)=>a+b,0)/15;
-  const p2=look.slice(0,40).filter(x=>x>=2).length/40;
-  const mom=calcMomentum();
-  const vol=calcVolatility();
-  const patternMatch=detectPattern(10);
-  const patternBonus=patternMatch>=2?0.12:0;
-  const gapBonus=gap>=30?0.18:(gap>=20?0.10:0);
-  const volRequirement=vol>=0.45?0.15:-0.20;
-  let s=0.30*norm(ma15,1.8,3.8)+0.25*norm(p2,0.20,0.70)+0.20*norm(mom,0.2,1.0)+volRequirement+gapBonus+patternBonus;
-  return Math.max(0,Math.min(1.3,s));
+  const a=rounds.slice(0,100);if(a.length<45)return 0;
+  const gap=a.findIndex(x=>x>=10),g=gap<0?99:gap,ma15=a.slice(0,15).reduce((x,y)=>x+y,0)/15;
+  const p2=a.slice(0,40).filter(x=>x>=2).length/40,mom=calcMom(),vol=calcVol();
+  const gb=g>=30?0.18:(g>=20?0.10:0),vr=vol>=0.45?0.15:-0.20;
+  return Math.max(0,Math.min(1.3,0.30*norm(ma15,1.8,3.8)+0.25*norm(p2,0.20,0.70)+0.20*norm(mom,0.2,1.0)+vr+gb));
 }
 
 function updateMetrics(){
-  const h170=heatScore170();
-  const h3x=heatScore3X();
-  const hr=rosaScore();
-  const vol=calcVolatility();
-  const mom=calcMomentum();
+  const h1=heatScore170(),h3=heatScore3X(),hr=rosaScore(),vol=calcVol(),mom=calcMom();
   const gap=rounds.slice(0,100).findIndex(x=>x>=10);
-  
-  $("#metricHeat").textContent=Math.max(h170,h3x,hr).toFixed(2);
+  $("#metricHeat").textContent=Math.max(h1,h3,hr).toFixed(2);
   $("#metricVol").textContent=vol.toFixed(2);
   $("#metricMom").textContent=(mom>=0?'+':'')+mom.toFixed(2);
-  $("#metricGap").textContent=gap<0?'99+':gap.toString();
+  $("#metricGap").textContent=gap<0?'99+':gap;
 }
 
 function maybe170(){
-  if(!$("#swAuto170").checked||session.used170>=3) return;
-  const h=heatScore170();
-  const slot=session.used170===0?[5,22]:session.used170===1?[23,42]:[43,58];
-  const inSlot=session.round>=slot[0]&&session.round<=slot[1];
-  const allowBurst=h>=0.90;
-  if((inSlot&&h>=0.65)||allowBurst){
+  if(!$("#swAuto170").checked||session.used170>=3)return;
+  const h=heatScore170(),slot=session.used170===0?[5,22]:session.used170===1?[23,42]:[43,58];
+  const ok=(session.round>=slot[0]&&session.round<=slot[1]&&h>=0.65)||h>=0.90;
+  if(ok){
     pending={tag:'AUTO_1.70X',target:1.70,sess:session.id,enterAt:session.round+1};
     session.used170++;
-    addSignal('AUTO_1.70X',1.70,'pend','—');
-    log(`Señal ≥1.70x emitida (T+1). Heat=${h.toFixed(2)}`,'ok');
-    tone(940,140,.035);
+    signals.push({n:signals.length+1,sess:session.id,round:session.round,tag:'AUTO_1.70X',target:1.70,time:now(),crash:'—',state:'pend'});
+    renderSignals();
+    log(`🎯 Señal ≥1.70x emitida (T+1). Heat=${h.toFixed(2)}`,'ok');
+    tone(940,140,0.035);
   }
 }
 
 function maybe3X(){
-  if(!$("#swAuto3x").checked||session.used3x>=3) return;
-  const h=heatScore3X();
-  const slot=session.used3x===0?[8,24]:session.used3x===1?[25,44]:[45,58];
-  const inSlot=session.round>=slot[0]&&session.round<=slot[1];
-  const allowBurst=h>=0.95;
-  if((inSlot&&h>=0.68)||allowBurst){
+  if(!$("#swAuto3x").checked||session.used3x>=3)return;
+  const h=heatScore3X(),slot=session.used3x===0?[8,24]:session.used3x===1?[25,44]:[45,58];
+  const ok=(session.round>=slot[0]&&session.round<=slot[1]&&h>=0.68)||h>=0.95;
+  if(ok){
     pending={tag:'AUTO_3.0X',target:3.0,sess:session.id,enterAt:session.round+1};
     session.used3x++;
-    addSignal('AUTO_3.0X',3.0,'pend','—');
-    log(`Señal ≥3.0x emitida (T+1). Heat=${h.toFixed(2)}`,'ok');
-    tone(820,150,.04);
+    signals.push({n:signals.length+1,sess:session.id,round:session.round,tag:'AUTO_3.0X',target:3.0,time:now(),crash:'—',state:'pend'});
+    renderSignals();
+    log(`🎯 Señal ≥3.0x emitida (T+1). Heat=${h.toFixed(2)}`,'ok');
+    tone(820,150,0.04);
   }
 }
 
 function maybeRosa(){
-  if(!$("#swRosa").checked||session.usedRosa>=2) return;
-  const rs=rosaScore();
-  const gap=rounds.slice(0,100).findIndex(x=>x>=10);
-  const vol=calcVolatility();
-  const gapOK=gap<0||gap>=25;
-  const volOK=vol>=0.45;
-  const heatOK=rs>=0.92;
-  const slotOK=session.round>=12&&session.round<=55;
-  if(gapOK&&volOK&&heatOK&&slotOK){
+  if(!$("#swRosa").checked||session.usedRosa>=2)return;
+  const rs=rosaScore(),gap=rounds.slice(0,100).findIndex(x=>x>=10),vol=calcVol();
+  const ok=(gap<0||gap>=25)&&vol>=0.45&&rs>=0.92&&session.round>=12&&session.round<=55;
+  if(ok){
     pending={tag:'ROSA_10X',target:10.0,sess:session.id,enterAt:session.round+1};
     session.usedRosa++;
-    addSignal('ROSA_10X',10,'pend','—');
-    log(`Caza ROSA armada (T+1). Rosa=${rs.toFixed(2)} Gap=${gap<0?'99+':gap} Vol=${vol.toFixed(2)}`,'ok');
-    tone(520,140,.045);setTimeout(()=>tone(820,160,.04),160);
+    signals.push({n:signals.length+1,sess:session.id,round:session.round,tag:'ROSA_10X',target:10,time:now(),crash:'—',state:'pend'});
+    renderSignals();
+    log(`🌹 ROSA armada (T+1). Score=${rs.toFixed(2)} Gap=${gap<0?'99+':gap}`,'ok');
+    tone(520,140,0.045);setTimeout(()=>tone(820,160,0.04),160);
   }
 }
 
-function ingest(x,src='Desconocido'){
-  const v=parseFloat(x);
-  if(!isFinite(v)||v<=0) return;
-  const t=performance.now();
-  if(v===lastVal&&(t-lastAt)<2500) return;
+function ingest(x){
+  const v=parseFloat(x);if(!isFinite(v)||v<=0)return;
+  const t=performance.now();if(v===lastVal&&(t-lastAt)<2500)return;
   lastVal=v;lastAt=t;
-  
-  if(src!=='Test'){
-    source=src;
-    updateBadges();
-    $("#captureAlert").style.display='none';
-  }
 
-  rounds.unshift(v);
-  if(rounds.length>200) rounds.pop();
+  rounds.unshift(v);if(rounds.length>200)rounds.pop();
   session.round++;
 
   if(session.round>60){
     if($("#swAutoSession").checked){
       session.id++;session.round=1;session.used170=0;session.used3x=0;session.usedRosa=0;
-      log(`Nueva sesión ${session.id} iniciada`,'ok');
-    }else{
-      session.round=60;
-    }
+      log(`📊 Nueva sesión ${session.id}`,'ok');
+    }else session.round=60;
   }
 
-  updateBadges();paintChips();updateMetrics();
+  updateUI();paintChips();updateMetrics();
 
   if(pending&&pending.sess===session.id&&pending.enterAt===session.round){
-    const win=v>=pending.target;
-    const state=win?'win':'lose';
+    const win=v>=pending.target,state=win?'win':'lose';
     const sig=signals.find(s=>s.sess===pending.sess&&s.round===pending.enterAt&&s.state==='pend');
     if(sig){sig.state=state;sig.crash=v;renderSignals();}
     const roi=win?((v/pending.target)*100-100).toFixed(1):'-100';
-    log(`${pending.tag} ${state.toUpperCase()} • Crash:${v.toFixed(2)}x Obj:${pending.target.toFixed(2)}x • ROI:${roi}%`,state==='win'?'ok':'err');
+    log(`${pending.tag} ${state.toUpperCase()} • ${v.toFixed(2)}x • ROI:${roi}%`,state==='win'?'ok':'err');
     pending=null;
   }
 
   maybeRosa();maybe3X();maybe170();
 }
 
-let bc1=null,bc2=null,lsPoll=null;
-let msgListener=null,storageListener=null;
+let bc1,bc2,poll;
 
 function connect(){
-  if(connected){log('Ya está conectado','err');return;}
-  
+  if(connected)return;
   try{
     bc1=new BroadcastChannel('gocho');
-    bc1.onmessage=e=>ingest(e.data,'BC:gocho');
-    log('Canal "gocho" conectado','ok');
-  }catch(e){log('BC gocho error: '+e.message,'err');}
-
-  try{
+    bc1.onmessage=e=>ingest(e.data);
     bc2=new BroadcastChannel('aviator');
-    bc2.onmessage=e=>ingest(e.data,'BC:aviator');
-    log('Canal "aviator" conectado','ok');
-  }catch(e){log('BC aviator error: '+e.message,'err');}
+    bc2.onmessage=e=>ingest(e.data);
+  }catch(e){log('Error BC: '+e.message,'err');}
 
-  storageListener=(e)=>{
-    if((e.key==='gocho:round'||e.key==='aviator:round')&&e.newValue){
-      ingest(parseFloat(e.newValue),'localStorage');
-    }
-  };
-  window.addEventListener('storage',storageListener);
+  window.addEventListener('storage',e=>{
+    if((e.key==='gocho:round'||e.key==='aviator:round')&&e.newValue)ingest(parseFloat(e.newValue));
+  });
 
-  window.gochoPush=(x)=>ingest(x,'gochoPush()');
-
-  let lastLSSeen=null;
-  lsPoll=setInterval(()=>{
-    try{
-      const v=localStorage.getItem('gocho:round')||localStorage.getItem('aviator:round');
-      if(v&&v!==lastLSSeen){
-        lastLSSeen=v;
-        ingest(parseFloat(v),'LS:poll');
-      }
-    }catch(e){}
+  poll=setInterval(()=>{
+    const v=localStorage.getItem('gocho:round')||localStorage.getItem('aviator:round');
+    if(v)ingest(parseFloat(v));
   },500);
 
   connected=true;
   $("#btnConnect").disabled=true;
   $("#btnDisconnect").disabled=false;
-  updateBadges();
-  log('Sistema conectado. Ejecuta el capturador en el juego.','ok');
-  tone(1200,100,.03);
+  $("#instructionsAlert").style.display='none';
+  updateUI();
+  log('✅ Sistema conectado','ok');
+  tone(1200,100,0.03);
 }
 
 function disconnect(){
-  if(!connected){log('Ya está desconectado','err');return;}
-  
-  try{if(bc1){bc1.close();bc1=null;}}catch(e){}
-  try{if(bc2){bc2.close();bc2=null;}}catch(e){}
-  
-  if(storageListener){window.removeEventListener('storage',storageListener);storageListener=null;}
-  window.gochoPush=null;
-  if(lsPoll){clearInterval(lsPoll);lsPoll=null;}
-
+  if(!connected)return;
+  try{bc1&&bc1.close();bc2&&bc2.close();}catch(e){}
+  clearInterval(poll);
   connected=false;
-  source='Ninguna';
   $("#btnConnect").disabled=false;
   $("#btnDisconnect").disabled=true;
-  $("#captureAlert").style.display='block';
-  updateBadges();
-  log('Sistema desconectado','err');
-  tone(800,100,.03);
+  $("#instructionsAlert").style.display='block';
+  updateUI();
+  log('⛔ Desconectado','err');
 }
 
-function testFeed(){
-  log('Feed de prueba iniciado','ok');
+function test(){
+  log('🧪 Modo test activado','ok');
   const seq=[()=>1+Math.random()*1.2,()=>1.2+Math.random()*5.3,()=>10+Math.random()*40];
   setInterval(()=>{
-    const pick=Math.random()<.1?2:(Math.random()<.6?0:1);
-    ingest(+seq[pick]().toFixed(2),'Test');
+    const v=seq[Math.random()<.1?2:(Math.random()<.6?0:1)]();
+    ingest(parseFloat(v.toFixed(2)));
   },1200);
 }
 
 $("#btnConnect").onclick=connect;
 $("#btnDisconnect").onclick=disconnect;
-$("#btnTest").onclick=testFeed;
+$("#btnTest").onclick=test;
 
-updateBadges();
-paintChips();
-updateMetrics();
-renderSignals();
-log('Sistema iniciado. Presiona "Conectar" y ejecuta el capturador en el juego.','');
+updateUI();
+log('Sistema iniciado. Haz clic en Conectar.','');
 </script>
 </body>
 </html>
