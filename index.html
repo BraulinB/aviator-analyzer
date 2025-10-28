@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema Aviator 1Win - Señales en Tiempo Real</title>
+    <title>Sistema Aviator 1Win • Gocho Feed</title>
     <style>
         * {
             margin: 0;
@@ -13,7 +13,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
             color: #fff;
             min-height: 100vh;
             padding: 20px;
@@ -26,141 +26,212 @@
 
         .header {
             text-align: center;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 15px;
+            padding: 25px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
             margin-bottom: 30px;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .header h1 {
-            font-size: 2.5em;
+            font-size: 2.8em;
             margin-bottom: 10px;
-            color: #00ff88;
-            text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 4px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .header .subtitle {
+            opacity: 0.85;
+            font-size: 1.1em;
         }
 
         .status-bar {
-            display: flex;
-            justify-content: space-around;
-            margin-bottom: 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 15px;
-            flex-wrap: wrap;
+            margin-bottom: 30px;
         }
 
         .status-item {
             background: rgba(255, 255, 255, 0.1);
             padding: 20px;
-            border-radius: 10px;
-            flex: 1;
-            min-width: 200px;
+            border-radius: 12px;
             text-align: center;
             border: 2px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
         }
 
         .status-item.active {
-            border-color: #00ff88;
-            box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+            border-color: #667eea;
+            box-shadow: 0 0 25px rgba(102, 126, 234, 0.4);
+            background: rgba(102, 126, 234, 0.15);
         }
 
         .status-label {
-            font-size: 0.9em;
+            font-size: 0.85em;
             opacity: 0.7;
             margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .status-value {
-            font-size: 1.8em;
+            font-size: 2em;
             font-weight: bold;
-            color: #00ff88;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .main-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 25px;
             margin-bottom: 30px;
         }
 
-        @media (max-width: 968px) {
+        @media (max-width: 1024px) {
             .main-grid {
                 grid-template-columns: 1fr;
             }
         }
 
         .panel {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 15px;
-            padding: 25px;
-            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(15px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .panel-title {
-            font-size: 1.5em;
-            margin-bottom: 20px;
-            color: #00ff88;
-            border-bottom: 2px solid rgba(0, 255, 136, 0.3);
-            padding-bottom: 10px;
+            font-size: 1.6em;
+            margin-bottom: 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            border-bottom: 2px solid rgba(102, 126, 234, 0.3);
+            padding-bottom: 12px;
         }
 
         .signal-box {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
-            padding: 30px;
-            border-radius: 15px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 35px;
+            border-radius: 20px;
             text-align: center;
-            margin-bottom: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            animation: pulse 2s infinite;
+            margin-bottom: 25px;
+            box-shadow: 0 15px 40px rgba(245, 87, 108, 0.4);
+            animation: pulse 3s infinite;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .signal-box::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
         }
 
         .signal-box.green {
-            background: linear-gradient(135deg, #00ff88 0%, #00d9ff 100%);
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            box-shadow: 0 15px 40px rgba(79, 172, 254, 0.4);
         }
 
         .signal-box.yellow {
-            background: linear-gradient(135deg, #ffd93d 0%, #ffb03b 100%);
+            background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+            box-shadow: 0 15px 40px rgba(253, 203, 110, 0.4);
         }
 
         @keyframes pulse {
             0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.02); }
+            50% { transform: scale(1.03); }
         }
 
         .signal-title {
-            font-size: 1.2em;
+            font-size: 1em;
             margin-bottom: 15px;
-            opacity: 0.9;
+            opacity: 0.95;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            z-index: 1;
         }
 
         .signal-value {
-            font-size: 3em;
-            font-weight: bold;
-            margin: 15px 0;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            font-size: 4em;
+            font-weight: 900;
+            margin: 20px 0;
+            text-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            position: relative;
+            z-index: 1;
         }
 
         .signal-confidence {
-            font-size: 1.1em;
-            opacity: 0.9;
+            font-size: 1.3em;
+            opacity: 0.95;
+            font-weight: 600;
+            position: relative;
+            z-index: 1;
+        }
+
+        .pattern-indicator {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin: 20px 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .pattern-dot {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .pattern-dot.active {
+            background: #fff;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+            transform: scale(1.3);
         }
 
         .history-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 15px;
+            margin-top: 20px;
         }
 
         .history-table th,
         .history-table td {
-            padding: 12px;
+            padding: 14px;
             text-align: center;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .history-table th {
-            background: rgba(0, 255, 136, 0.2);
-            font-weight: bold;
+            background: rgba(102, 126, 234, 0.2);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 0.5px;
         }
 
         .history-table tr:hover {
@@ -168,132 +239,152 @@
         }
 
         .multiplier {
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-weight: bold;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-weight: 700;
+            display: inline-block;
         }
 
         .multiplier.low {
-            background: #ff6b6b;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
         }
 
         .multiplier.medium {
-            background: #ffd93d;
-            color: #000;
+            background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+            color: #2d3436;
         }
 
         .multiplier.high {
-            background: #00ff88;
-            color: #000;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
         }
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 18px;
+            margin-top: 20px;
         }
 
         .stat-card {
             background: rgba(255, 255, 255, 0.05);
-            padding: 15px;
-            border-radius: 10px;
+            padding: 20px;
+            border-radius: 12px;
             text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .stat-card-value {
-            font-size: 2em;
-            font-weight: bold;
-            color: #00ff88;
+            font-size: 2.2em;
+            font-weight: 900;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .stat-card-label {
-            font-size: 0.9em;
+            font-size: 0.85em;
             opacity: 0.7;
-            margin-top: 5px;
+            margin-top: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .alert {
-            background: rgba(255, 107, 107, 0.2);
-            border-left: 4px solid #ff6b6b;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 15px 0;
+            background: rgba(245, 87, 108, 0.2);
+            border-left: 5px solid #f5576c;
+            padding: 18px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-weight: 500;
         }
 
         .alert.warning {
-            background: rgba(255, 217, 61, 0.2);
-            border-left-color: #ffd93d;
+            background: rgba(253, 203, 110, 0.2);
+            border-left-color: #fdcb6e;
         }
 
         .alert.success {
-            background: rgba(0, 255, 136, 0.2);
-            border-left-color: #00ff88;
-        }
-
-        .button {
-            background: linear-gradient(135deg, #00ff88 0%, #00d9ff 100%);
-            color: #000;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 10px;
-            font-size: 1.1em;
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 15px;
-            transition: transform 0.2s;
-        }
-
-        .button:hover {
-            transform: scale(1.05);
-        }
-
-        .button:active {
-            transform: scale(0.98);
-        }
-
-        .iframe-container {
-            width: 100%;
-            height: 600px;
-            border-radius: 15px;
-            overflow: hidden;
-            border: 2px solid rgba(0, 255, 136, 0.3);
-            background: #000;
-        }
-
-        .iframe-container iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-
-        .pattern-indicator {
-            display: flex;
-            gap: 5px;
-            justify-content: center;
-            margin: 15px 0;
-        }
-
-        .pattern-dot {
-            width: 15px;
-            height: 15px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        .pattern-dot.active {
-            background: #ff6b6b;
-            box-shadow: 0 0 10px #ff6b6b;
+            background: rgba(79, 172, 254, 0.2);
+            border-left-color: #4facfe;
         }
 
         .countdown {
-            font-size: 2.5em;
-            font-weight: bold;
+            font-size: 2.8em;
+            font-weight: 900;
             text-align: center;
-            margin: 20px 0;
-            color: #ffd93d;
-            text-shadow: 0 0 20px rgba(255, 217, 61, 0.5);
+            margin: 25px 0;
+            background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(253, 203, 110, 0.5);
+        }
+
+        .prob-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .prob-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+
+        .live-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(245, 87, 108, 0.2);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .live-badge::before {
+            content: '';
+            width: 10px;
+            height: 10px;
+            background: #f5576c;
+            border-radius: 50%;
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .connection-status {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 12px 20px;
+            border-radius: 30px;
+            font-size: 0.9em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .connection-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4facfe;
+            animation: blink 2s infinite;
         }
     </style>
 </head>
@@ -301,83 +392,88 @@
     <div class="container">
         <div class="header">
             <h1>🚀 Sistema Aviator 1Win</h1>
-            <p>Análisis Predictivo en Tiempo Real | Precisión 92%</p>
+            <p class="subtitle">Feed en Tiempo Real • Gocho • Precisión Estadística</p>
+            <div style="margin-top: 15px;">
+                <span class="live-badge">EN VIVO</span>
+            </div>
         </div>
 
         <div class="status-bar">
             <div class="status-item active" id="statusConnection">
-                <div class="status-label">Estado del Sistema</div>
-                <div class="status-value" id="connectionStatus">🟢 ACTIVO</div>
+                <div class="status-label">Estado Firebase</div>
+                <div class="status-value" id="connectionStatus">🔄</div>
             </div>
             <div class="status-item">
-                <div class="status-label">Señales Enviadas Hoy</div>
-                <div class="status-value" id="signalsToday">0</div>
+                <div class="status-label">Resultados Hoy</div>
+                <div class="status-value" id="resultsToday">0</div>
             </div>
             <div class="status-item">
                 <div class="status-label">Tasa de Acierto</div>
                 <div class="status-value" id="successRate">0%</div>
             </div>
             <div class="status-item">
-                <div class="status-label">Resultados Analizados</div>
-                <div class="status-value" id="resultsAnalyzed">0</div>
+                <div class="status-label">Último Crash</div>
+                <div class="status-value" id="lastCrash">--</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Promedio 10</div>
+                <div class="status-value" id="avg10">--</div>
             </div>
         </div>
 
         <div class="main-grid">
             <div class="panel">
-                <h2 class="panel-title">📡 Señal Actual</h2>
+                <h2 class="panel-title">📡 Señal Predictiva Actual</h2>
                 
                 <div class="signal-box green" id="signalBox">
                     <div class="signal-title">PRÓXIMA JUGADA RECOMENDADA</div>
-                    <div class="signal-value" id="signalMultiplier">1.50x</div>
-                    <div class="signal-confidence">Confianza: <span id="confidence">85%</span></div>
+                    <div class="signal-value" id="signalMultiplier">--</div>
+                    <div class="signal-confidence">Confianza: <span id="confidence">--</span></div>
                     <div class="pattern-indicator" id="patternIndicator">
                         <div class="pattern-dot"></div>
                         <div class="pattern-dot"></div>
-                        <div class="pattern-dot active"></div>
+                        <div class="pattern-dot"></div>
                         <div class="pattern-dot"></div>
                         <div class="pattern-dot"></div>
                     </div>
                 </div>
 
-                <div class="countdown" id="countdown">Esperando próxima ronda...</div>
+                <div class="countdown" id="countdown">Esperando datos...</div>
 
                 <div class="alert success" id="alertBox">
-                    <strong>✅ Patrón Detectado:</strong> Secuencia de cooldown identificada. Probabilidad alta de multiplicador medio.
+                    <strong>⏳ Inicializando:</strong> Conectando con Firebase y cargando datos históricos...
                 </div>
-
-                <button class="button" onclick="captureManualSignal()">🎯 Capturar Señal Manual</button>
             </div>
 
             <div class="panel">
-                <h2 class="panel-title">📊 Estadísticas en Tiempo Real</h2>
+                <h2 class="panel-title">📊 Estadísticas en Vivo</h2>
                 
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-card-value" id="avgMultiplier">2.34x</div>
-                        <div class="stat-card-label">Promedio Últimos 10</div>
+                        <div class="stat-card-value" id="instalossCount">0</div>
+                        <div class="stat-card-label">Instaloss</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-card-value" id="instalossCount">3</div>
-                        <div class="stat-card-label">Instaloss Detectados</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-card-value" id="highMultCount">12</div>
+                        <div class="stat-card-value" id="highMultCount">0</div>
                         <div class="stat-card-label">Altos (>5x)</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-card-value" id="cooldownStatus">NO</div>
-                        <div class="stat-card-label">En Cooldown</div>
+                        <div class="stat-card-label">Cooldown</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-value" id="totalAnalyzed">0</div>
+                        <div class="stat-card-label">Analizados</div>
                     </div>
                 </div>
 
-                <h3 style="margin-top: 30px; margin-bottom: 15px;">Distribución de Probabilidad</h3>
+                <h3 style="margin-top: 35px; margin-bottom: 20px; font-size: 1.3em;">Distribución de Probabilidad</h3>
                 <table class="history-table">
                     <thead>
                         <tr>
                             <th>Rango</th>
-                            <th>Probabilidad</th>
-                            <th>Recomendación</th>
+                            <th>Prob.</th>
+                            <th>Estado</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -387,7 +483,7 @@
                             <td>❌ Evitar</td>
                         </tr>
                         <tr>
-                            <td><span class="multiplier medium">1.05x - 1.50x</span></td>
+                            <td><span class="multiplier high">1.05x - 1.50x</span></td>
                             <td id="prob2">92%</td>
                             <td>✅ Alta</td>
                         </tr>
@@ -407,365 +503,339 @@
         </div>
 
         <div class="panel">
-            <h2 class="panel-title">📈 Historial de Resultados (Últimos 20)</h2>
+            <h2 class="panel-title">📈 Historial de Capturas (Últimos 30)</h2>
             <table class="history-table">
                 <thead>
                     <tr>
                         <th>#</th>
-                        <th>Hora</th>
-                        <th>Multiplicador</th>
+                        <th>Timestamp</th>
+                        <th>Crash</th>
                         <th>Tipo</th>
-                        <th>Señal Enviada</th>
+                        <th>Señal</th>
                         <th>Resultado</th>
                     </tr>
                 </thead>
                 <tbody id="historyTableBody">
-                    <!-- Datos dinámicos -->
+                    <tr>
+                        <td colspan="6" style="opacity: 0.6; padding: 30px;">Esperando datos de Firebase...</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
-
-        <div class="panel">
-            <h2 class="panel-title">🎮 Integración con 1Win</h2>
-            <div class="iframe-container">
-                <iframe id="gameFrame" src="about:blank"></iframe>
-            </div>
-            <button class="button" onclick="loadGame()">🚀 Cargar Juego Aviator</button>
-        </div>
     </div>
 
-    <script>
-        // CONFIGURACIÓN PRINCIPAL
+    <div class="connection-status" id="fbStatus">
+        <div class="connection-dot"></div>
+        <span>Conectando a Firebase...</span>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, onValue, query, orderByKey, limitToLast } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+        // ===== CONFIGURACIÓN FIREBASE =====
+        const firebaseConfig = {
+            apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
+            databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com",
+            projectId: "aviator-analyzer-b29a7"
+        };
+
         const CONFIG = {
             INSTALOSS_MIN: 1.00,
             INSTALOSS_MAX: 1.04,
-            SAFE_MULTIPLIER_MIN: 1.05,
-            SAFE_MULTIPLIER_MAX: 1.50,
-            MEDIUM_MULTIPLIER_MAX: 2.75,
-            HIGH_MULTIPLIER_MIN: 5.0,
-            COOLDOWN_AFTER_INSTALOSS: 2,
-            MAX_HISTORY: 1000,
-            SUCCESS_RATE_TARGET: 0.92
+            SAFE_MIN: 1.05,
+            SAFE_MAX: 1.50,
+            MEDIUM_MAX: 2.75,
+            HIGH_MIN: 5.0,
+            COOLDOWN_ROUNDS: 2
         };
 
-        // ALMACENAMIENTO DE DATOS
+        // ===== ESTADO GLOBAL =====
         let gameHistory = [];
-        let signals = [];
         let stats = {
-            signalsToday: 0,
+            resultsToday: 0,
             successfulSignals: 0,
-            totalResults: 0,
+            signalsIssued: 0,
             instalossCount: 0,
             highMultCount: 0,
             inCooldown: false,
             cooldownCounter: 0
         };
 
-        // INICIALIZACIÓN
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeSystem();
-            loadHistoricalData();
-            startSimulation();
+        // ===== INICIALIZACIÓN =====
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        console.log('🔥 Firebase inicializado');
+        updateConnectionStatus('🟢 CONECTADO', true);
+
+        // ===== ESCUCHAR FEED "gocho" EN TIEMPO REAL =====
+        const feedRef = ref(db, 'feeds/gocho/crashes');
+        const feedQuery = query(feedRef, orderByKey(), limitToLast(100));
+
+        onValue(feedQuery, (snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                const crashes = Object.values(data).sort((a, b) => b.ts - a.ts);
+                
+                console.log(`📊 ${crashes.length} crashes recibidos de Firebase`);
+                
+                // Procesar nuevos crashes
+                crashes.forEach(crash => {
+                    if (!gameHistory.find(h => h.ts === crash.ts)) {
+                        addCrashToHistory(crash);
+                    }
+                });
+
+                updateUI();
+                analyzeAndPredict();
+            } else {
+                console.log('⏳ Esperando primeros datos...');
+            }
+        }, (error) => {
+            console.error('❌ Error en Firebase:', error);
+            updateConnectionStatus('🔴 ERROR', false);
         });
 
-        function initializeSystem() {
-            console.log('🚀 Sistema inicializado');
-            updateUI();
-            
-            // Intentar conectar con 1Win (simulación)
-            setTimeout(() => {
-                document.getElementById('connectionStatus').textContent = '🟢 CONECTADO';
-                showAlert('Sistema conectado exitosamente a 1Win', 'success');
-            }, 2000);
-        }
-
-        // CAPTURA DE DATOS (Simulación - Adaptar a captura real de 1Win)
-        function captureResult(multiplier) {
+        // ===== AGREGAR CRASH AL HISTORIAL =====
+        function addCrashToHistory(crash) {
             const result = {
                 id: gameHistory.length + 1,
-                timestamp: new Date(),
-                multiplier: parseFloat(multiplier),
-                type: classifyMultiplier(multiplier),
+                ts: crash.ts || crash.i,
+                timestamp: new Date(crash.ts || crash.i),
+                multiplier: parseFloat(crash.v),
+                type: classifyMultiplier(crash.v),
                 signalSent: null,
                 outcome: null
             };
 
             gameHistory.unshift(result);
-            if (gameHistory.length > CONFIG.MAX_HISTORY) {
-                gameHistory.pop();
-            }
+            if (gameHistory.length > 100) gameHistory.pop();
 
-            stats.totalResults++;
-            analyzePattern(result);
-            updateUI();
-            saveToLocalStorage();
-
-            return result;
+            stats.resultsToday++;
+            
+            console.log(`✅ Nuevo crash: ${result.multiplier}x (${result.type})`);
         }
 
-        // CLASIFICACIÓN DE MULTIPLICADORES
+        // ===== CLASIFICACIÓN =====
         function classifyMultiplier(mult) {
+            mult = parseFloat(mult);
             if (mult >= CONFIG.INSTALOSS_MIN && mult <= CONFIG.INSTALOSS_MAX) {
                 stats.instalossCount++;
                 stats.inCooldown = true;
-                stats.cooldownCounter = CONFIG.COOLDOWN_AFTER_INSTALOSS;
+                stats.cooldownCounter = CONFIG.COOLDOWN_ROUNDS;
                 return 'INSTALOSS';
-            } else if (mult >= CONFIG.HIGH_MULTIPLIER_MIN) {
+            } else if (mult >= CONFIG.HIGH_MIN) {
                 stats.highMultCount++;
                 return 'ALTO';
-            } else if (mult >= CONFIG.SAFE_MULTIPLIER_MIN && mult <= CONFIG.SAFE_MULTIPLIER_MAX) {
+            } else if (mult >= CONFIG.SAFE_MIN && mult <= CONFIG.SAFE_MAX) {
                 return 'SEGURO';
             } else {
                 return 'MEDIO';
             }
         }
 
-        // ANÁLISIS DE PATRONES
-        function analyzePattern(currentResult) {
-            if (gameHistory.length < 10) return;
+        // ===== ANÁLISIS Y PREDICCIÓN =====
+        function analyzeAndPredict() {
+            if (gameHistory.length < 10) {
+                showAlert('⏳ Recolectando datos iniciales...', 'warning');
+                return;
+            }
 
             const last10 = gameHistory.slice(0, 10);
             const instalossInLast10 = last10.filter(r => r.type === 'INSTALOSS').length;
             const highInLast10 = last10.filter(r => r.type === 'ALTO').length;
             const avg = last10.reduce((sum, r) => sum + r.multiplier, 0) / 10;
 
-            // Actualizar estadísticas
-            document.getElementById('avgMultiplier').textContent = avg.toFixed(2) + 'x';
+            // Actualizar estadísticas visuales
+            document.getElementById('avgMultiplier')?.textContent = avg.toFixed(2) + 'x';
+            document.getElementById('avg10').textContent = avg.toFixed(2) + 'x';
             document.getElementById('instalossCount').textContent = instalossInLast10;
             document.getElementById('highMultCount').textContent = stats.highMultCount;
 
-            // Gestión de cooldown
+            // Gestionar cooldown
             if (stats.inCooldown && stats.cooldownCounter > 0) {
                 stats.cooldownCounter--;
-                if (stats.cooldownCounter === 0) {
-                    stats.inCooldown = false;
-                }
+                if (stats.cooldownCounter === 0) stats.inCooldown = false;
             }
 
             document.getElementById('cooldownStatus').textContent = stats.inCooldown ? 'SÍ' : 'NO';
 
-            // Generar señal basada en análisis
+            // Generar señal
             generateSignal(instalossInLast10, highInLast10, avg);
         }
 
-        // GENERACIÓN DE SEÑALES PREDICTIVAS
+        // ===== GENERACIÓN DE SEÑALES =====
         function generateSignal(instalossCount, highCount, avgMult) {
             let recommendedMult = 1.50;
             let confidence = 85;
             let alertType = 'success';
             let alertMessage = '';
+            let boxColor = 'green';
 
-            // LÓGICA DE PREDICCIÓN
             if (stats.inCooldown) {
-                // Después de instaloss, esperar
                 recommendedMult = 0;
                 confidence = 0;
                 alertType = 'warning';
-                alertMessage = '⏸️ Modo Cooldown: Esperar ' + stats.cooldownCounter + ' rondas más';
+                boxColor = 'yellow';
+                alertMessage = `⏸️ <strong>Modo Cooldown:</strong> Esperar ${stats.cooldownCounter} ronda(s) más tras instaloss detectado.`;
             } else if (instalossCount >= 2) {
-                // Alta probabilidad de recuperación
                 recommendedMult = 1.50;
                 confidence = 95;
                 alertType = 'success';
-                alertMessage = '✅ Patrón de recuperación detectado. Alta confianza.';
+                boxColor = 'green';
+                alertMessage = '✅ <strong>Patrón de Recuperación:</strong> Múltiples instaloss detectados. Alta probabilidad de multiplicador seguro.';
             } else if (highCount >= 3) {
-                // Después de varios altos, probable instaloss
                 recommendedMult = 0;
                 confidence = 0;
                 alertType = 'warning';
-                alertMessage = '⚠️ ALERTA: Múltiples altos detectados. Sistema podría compensar.';
-            } else if (avgMult < 1.5) {
-                // Promedio bajo indica próximo alto
+                boxColor = 'yellow';
+                alertMessage = '⚠️ <strong>ALERTA ROJA:</strong> Sistema distribuyó múltiples altos. Probable compensación inminente.';
+            } else if (avgMult < 1.8) {
                 recommendedMult = 2.00;
-                confidence = 75;
+                confidence = 78;
                 alertType = 'success';
-                alertMessage = '📊 Promedio bajo. Probabilidad de multiplicador medio-alto.';
-            } else if (avgMult > 3.0) {
-                // Promedio muy alto, precaución
+                boxColor = 'green';
+                alertMessage = '📊 <strong>Promedio Bajo:</strong> Estadística indica probabilidad de multiplicador medio-alto próximo.';
+            } else if (avgMult > 3.5) {
                 recommendedMult = 1.20;
                 confidence = 90;
                 alertType = 'warning';
-                alertMessage = '⚠️ Promedio elevado. Jugar conservador.';
+                boxColor = 'yellow';
+                alertMessage = '⚠️ <strong>Promedio Elevado:</strong> Jugar ultra-conservador. Sistema podría corregir.';
             } else {
-                // Patrón estándar
                 recommendedMult = 1.50;
                 confidence = 85;
                 alertType = 'success';
-                alertMessage = '✅ Patrón estándar. Multiplicador seguro recomendado.';
+                boxColor = 'green';
+                alertMessage = '✅ <strong>Patrón Estándar:</strong> Condiciones normales. Multiplicador seguro recomendado.';
             }
 
-            // Actualizar UI con la señal
-            updateSignalDisplay(recommendedMult, confidence, alertType, alertMessage);
+            updateSignalDisplay(recommendedMult, confidence, alertType, alertMessage, boxColor);
 
-            // Registrar señal
             if (recommendedMult > 0) {
-                const signal = {
-                    timestamp: new Date(),
-                    multiplier: recommendedMult,
-                    confidence: confidence
-                };
-                signals.unshift(signal);
-                stats.signalsToday++;
+                stats.signalsIssued++;
             }
         }
 
-        // ACTUALIZACIÓN DE DISPLAY DE SEÑALES
-        function updateSignalDisplay(mult, conf, alertType, message) {
+        // ===== ACTUALIZAR DISPLAY DE SEÑALES =====
+        function updateSignalDisplay(mult, conf, alertType, message, boxColor) {
             const signalBox = document.getElementById('signalBox');
             const signalMultiplier = document.getElementById('signalMultiplier');
             const confidence = document.getElementById('confidence');
             const alertBox = document.getElementById('alertBox');
 
+            signalBox.className = `signal-box ${boxColor}`;
+
             if (mult === 0) {
-                signalBox.className = 'signal-box yellow';
                 signalMultiplier.textContent = 'ESPERAR';
             } else {
-                signalBox.className = conf > 90 ? 'signal-box green' : 'signal-box yellow';
                 signalMultiplier.textContent = mult.toFixed(2) + 'x';
             }
 
             confidence.textContent = conf + '%';
             alertBox.className = 'alert ' + alertType;
             alertBox.innerHTML = message;
+
+            // Animar pattern indicator
+            updatePatternIndicator(mult);
         }
 
-        // ACTUALIZACIÓN DE UI
+        // ===== ACTUALIZAR PATTERN INDICATOR =====
+        function updatePatternIndicator(mult) {
+            const dots = document.querySelectorAll('.pattern-dot');
+            dots.forEach((dot, i) => {
+                dot.classList.remove('active');
+                if (mult === 0 && i === 2) dot.classList.add('active');
+                else if (mult > 0 && mult <= 1.50 && i === 1) dot.classList.add('active');
+                else if (mult > 1.50 && mult <= 2.50 && i === 3) dot.classList.add('active');
+                else if (mult > 2.50 && i === 4) dot.classList.add('active');
+            });
+        }
+
+        // ===== ACTUALIZAR UI COMPLETA =====
         function updateUI() {
-            document.getElementById('signalsToday').textContent = stats.signalsToday;
-            document.getElementById('resultsAnalyzed').textContent = stats.totalResults;
-            
-            const successRate = stats.signalsToday > 0 
-                ? ((stats.successfulSignals / stats.signalsToday) * 100).toFixed(1)
+            document.getElementById('resultsToday').textContent = stats.resultsToday;
+            document.getElementById('totalAnalyzed').textContent = gameHistory.length;
+
+            const successRate = stats.signalsIssued > 0
+                ? ((stats.successfulSignals / stats.signalsIssued) * 100).toFixed(1)
                 : '0.0';
             document.getElementById('successRate').textContent = successRate + '%';
+
+            if (gameHistory.length > 0) {
+                const last = gameHistory[0];
+                document.getElementById('lastCrash').textContent = last.multiplier.toFixed(2) + 'x';
+            }
 
             updateHistoryTable();
         }
 
-        // ACTUALIZACIÓN DE TABLA DE HISTORIAL
+        // ===== ACTUALIZAR TABLA DE HISTORIAL =====
         function updateHistoryTable() {
             const tbody = document.getElementById('historyTableBody');
             tbody.innerHTML = '';
 
-            gameHistory.slice(0, 20).forEach((result, index) => {
+            if (gameHistory.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="opacity: 0.6; padding: 30px;">Sin datos aún...</td></tr>';
+                return;
+            }
+
+            gameHistory.slice(0, 30).forEach((result, index) => {
                 const row = tbody.insertRow();
-                const typeClass = result.type === 'INSTALOSS' ? 'low' : 
-                                 result.type === 'ALTO' ? 'high' : 'medium';
-                
+                const typeClass = result.type === 'INSTALOSS' ? 'low' :
+                                 result.type === 'ALTO' ? 'high' : 
+                                 result.type === 'SEGURO' ? 'high' : 'medium';
+
                 row.innerHTML = `
-                    <td>${result.id}</td>
-                    <td>${result.timestamp.toLocaleTimeString()}</td>
+                    <td>${gameHistory.length - index}</td>
+                    <td>${result.timestamp.toLocaleTimeString('es-VE')}</td>
                     <td><span class="multiplier ${typeClass}">${result.multiplier.toFixed(2)}x</span></td>
                     <td>${result.type}</td>
-                    <td>${result.signalSent || '-'}</td>
+                    <td>${result.signalSent || '—'}</td>
                     <td>${result.outcome || '⏳'}</td>
                 `;
             });
         }
 
-        // SIMULACIÓN DE CAPTURA (Reemplazar con captura real de 1Win)
-        function startSimulation() {
-            setInterval(() => {
-                // Simular resultado aleatorio
-                const random = Math.random();
-                let multiplier;
+        // ===== ACTUALIZAR ESTADO DE CONEXIÓN =====
+        function updateConnectionStatus(text, connected) {
+            const statusEl = document.getElementById('connectionStatus');
+            const fbStatusEl = document.getElementById('fbStatus');
 
-                if (random < 0.08) {
-                    multiplier = (Math.random() * 0.04 + 1.00).toFixed(2); // Instaloss
-                } else if (random < 0.70) {
-                    multiplier = (Math.random() * 1.45 + 1.05).toFixed(2); // Seguro
-                } else if (random < 0.90) {
-                    multiplier = (Math.random() * 2.5 + 1.5).toFixed(2); // Medio
-                } else {
-                    multiplier = (Math.random() * 10 + 5).toFixed(2); // Alto
-                }
-
-                captureResult(multiplier);
-                startCountdown();
-            }, 8000); // Cada 8 segundos simula una ronda
-        }
-
-        // COUNTDOWN ENTRE RONDAS
-        function startCountdown() {
-            let seconds = 7;
-            const countdownEl = document.getElementById('countdown');
-            
-            const interval = setInterval(() => {
-                countdownEl.textContent = `Próxima ronda en: ${seconds}s`;
-                seconds--;
-                
-                if (seconds < 0) {
-                    clearInterval(interval);
-                    countdownEl.textContent = '🎮 ¡JUGANDO!';
-                }
-            }, 1000);
-        }
-
-        // CAPTURA MANUAL
-        function captureManualSignal() {
-            const mult = prompt('Ingresa el multiplicador manualmente:');
-            if (mult && !isNaN(mult)) {
-                captureResult(parseFloat(mult));
-                showAlert('Resultado capturado: ' + mult + 'x', 'success');
+            if (statusEl) statusEl.textContent = text;
+            if (fbStatusEl) {
+                fbStatusEl.querySelector('span').textContent = connected ? '🔥 Firebase Conectado' : '🔴 Desconectado';
+                fbStatusEl.querySelector('.connection-dot').style.background = connected ? '#4facfe' : '#f5576c';
             }
         }
 
-        // CARGAR JUEGO 1WIN
-        function loadGame() {
-            const iframe = document.getElementById('gameFrame');
-            // IMPORTANTE: Reemplazar con la URL real del juego Aviator en 1Win
-            iframe.src = 'https://1win.com/es/games/aviator';
-            showAlert('Cargando juego Aviator de 1Win...', 'success');
-        }
-
-        // SISTEMA DE ALERTAS
+        // ===== MOSTRAR ALERTA =====
         function showAlert(message, type) {
             const alertBox = document.getElementById('alertBox');
             alertBox.className = 'alert ' + type;
-            alertBox.innerHTML = '<strong>' + (type === 'success' ? '✅' : '⚠️') + '</strong> ' + message;
+            alertBox.innerHTML = message;
         }
 
-        // PERSISTENCIA DE DATOS
-        function saveToLocalStorage() {
-            localStorage.setItem('aviator_history', JSON.stringify(gameHistory.slice(0, 100)));
-            localStorage.setItem('aviator_stats', JSON.stringify(stats));
-        }
-
-        function loadHistoricalData() {
-            const savedHistory = localStorage.getItem('aviator_history');
-            const savedStats = localStorage.getItem('aviator_stats');
-
-            if (savedHistory) {
-                gameHistory = JSON.parse(savedHistory);
-                gameHistory.forEach(item => item.timestamp = new Date(item.timestamp));
+        // ===== COUNTDOWN SIMULADO =====
+        setInterval(() => {
+            const countdownEl = document.getElementById('countdown');
+            if (gameHistory.length > 0) {
+                const last = gameHistory[0];
+                const elapsed = Math.floor((Date.now() - last.ts) / 1000);
+                countdownEl.textContent = `Última captura hace ${elapsed}s`;
             }
+        }, 1000);
 
-            if (savedStats) {
-                stats = JSON.parse(savedStats);
-            }
+        // Exponer para debug
+        window.aviatorDebug = {
+            history: () => gameHistory,
+            stats: () => stats,
+            reanalyze: () => analyzeAndPredict()
+        };
 
-            updateUI();
-        }
-
-        // FUNCIÓN PARA INTEGRACIÓN REAL CON 1WIN
-        // Esta función debe ser adaptada según el método de captura real
-        function connectTo1Win() {
-            // OPCIÓN 1: Captura mediante DOM (si iframe permite)
-            // const gameFrame = document.getElementById('gameFrame');
-            // const gameDoc = gameFrame.contentDocument || gameFrame.contentWindow.document;
-            
-            // OPCIÓN 2: Captura mediante WebSocket (si 1Win lo expone)
-            // const ws = new WebSocket('wss://1win.com/aviator/stream');
-            
-            // OPCIÓN 3: Polling a API (si existe endpoint público)
-            // setInterval(() => {
-            //     fetch('https://1win.com/api/aviator/last-result')
-            //         .then(res => res.json())
-            //         .then(data => captureResult(data.multiplier));
-            // }, 5000);
-
-            console.log('⚠️ Implementar método de captura real según acceso a 1Win');
-        }
+        console.log('✅ Sistema inicializado. Escuchando feed "gocho" en tiempo real.');
     </script>
 </body>
 </html>
