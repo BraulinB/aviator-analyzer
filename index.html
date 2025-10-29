@@ -133,20 +133,24 @@
         }
 
         .debug-box {
-            background: rgba(255, 0, 0, 0.1);
-            border: 1px solid #ff6b6b;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(102, 126, 234, 0.3);
             padding: 15px;
             border-radius: 10px;
             margin: 15px 0;
             font-family: monospace;
-            font-size: 0.9em;
-            max-height: 200px;
+            font-size: 0.85em;
+            max-height: 300px;
             overflow-y: auto;
         }
 
         .debug-line {
             padding: 3px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .debug-line:last-child {
+            border-bottom: none;
         }
 
         .alert {
@@ -179,7 +183,7 @@
     <div class="container">
         <div class="header">
             <h1>🎯 Sistema Aviator 1Win <span class="sync-badge">DEBUG</span></h1>
-            <p style="opacity: 0.85; font-size: clamp(0.9em, 2vw, 1.1em);">Modo Debug - Versión de Prueba</p>
+            <p style="opacity: 0.85; font-size: clamp(0.9em, 2vw, 1.1em);">Modo Debug - Verificación de Conexión</p>
         </div>
 
         <div class="control-bar">
@@ -189,11 +193,11 @@
         </div>
 
         <div class="session-bar">
-            <div class="session-title">📊 DEBUG LOG</div>
+            <div class="session-title">📊 LOG DE DEBUG</div>
             
             <div class="device-info">
                 <span>📱 <strong id="deviceName">--</strong></span>
-                <span>🔗 ID: <strong id="deviceId">--</strong></span>
+                <span>🔗 Conectados: <strong id="devicesConnected">0</strong></span>
             </div>
 
             <div class="debug-box" id="debugBox">
@@ -202,7 +206,7 @@
         </div>
 
         <div class="alert success" id="alertBox">
-            <strong>⏸️ Sistema en modo debug:</strong> Haz clic en "INICIAR" y observa el log de debug arriba.
+            <strong>⏸️ Sistema en modo debug:</strong> Haz clic en "INICIAR" para probar la conexión.
         </div>
     </div>
 
@@ -246,14 +250,23 @@
             const DEVICE_NAME = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? '📱 Móvil' : '💻 PC';
 
             document.getElementById('deviceName').textContent = DEVICE_NAME;
-            document.getElementById('deviceId').textContent = DEVICE_ID;
-            debugLog(`📱 Dispositivo: ${DEVICE_NAME} (${DEVICE_ID})`);
+            debugLog(`📱 Dispositivo: ${DEVICE_NAME}`);
 
             const possiblePaths = ['feeds/gocho/crashes', 'crashes', 'historial', 'last_final'];
             let isMaster = false;
 
+            // Contador de dispositivos
+            const devicesRef = ref(db, 'connected_devices');
+            onValue(devicesRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    const count = Object.keys(snapshot.val()).length;
+                    document.getElementById('devicesConnected').textContent = count;
+                    debugLog(`🔗 Dispositivos conectados: ${count}`);
+                }
+            });
+
             async function registerDevice() {
-                debugLog('📝 Registrando dispositivo...');
+                debugLog('📝 Registrando dispositivo en Firebase...');
                 try {
                     const deviceRef = ref(db, `connected_devices/${DEVICE_ID}`);
                     await set(deviceRef, {
@@ -261,7 +274,7 @@
                         connectedAt: Date.now()
                     });
                     onDisconnect(deviceRef).remove();
-                    debugLog('✅ Dispositivo registrado');
+                    debugLog('✅ Dispositivo registrado correctamente');
                 } catch (error) {
                     debugLog(`❌ Error registrando dispositivo: ${error.message}`);
                     throw error;
@@ -269,15 +282,15 @@
             }
 
             async function checkIfMaster() {
-                debugLog('👑 Verificando rol maestro...');
+                debugLog('👑 Verificando rol (maestro/esclavo)...');
                 try {
                     const sessionSnapshot = await get(ref(db, 'shared_session'));
                     if (!sessionSnapshot.exists() || !sessionSnapshot.val().active) {
                         isMaster = true;
-                        debugLog('👑 Este dispositivo es MAESTRO');
+                        debugLog('👑 ROL ASIGNADO: MAESTRO (analizará y enviará señales)');
                     } else {
                         isMaster = false;
-                        debugLog('📱 Este dispositivo es ESCLAVO');
+                        debugLog('📱 ROL ASIGNADO: ESCLAVO (solo recibirá señales)');
                     }
                 } catch (error) {
                     debugLog(`❌ Error verificando rol: ${error.message}`);
@@ -286,40 +299,40 @@
             }
 
             async function findAndConnect() {
-                debugLog('🔍 Buscando datos en Firebase...');
+                debugLog('🔍 Buscando datos de crashes en Firebase...');
                 for (const path of possiblePaths) {
                     try {
-                        debugLog(`   Probando: /${path}`);
+                        debugLog(`   → Probando ruta: /${path}`);
                         const testRef = ref(db, path);
                         const snapshot = await get(testRef);
                         if (snapshot.exists()) {
-                            debugLog(`✅ Datos encontrados en /${path}`);
                             const dataCount = Object.keys(snapshot.val()).length;
-                            debugLog(`   📊 ${dataCount} registros encontrados`);
+                            debugLog(`✅ ¡DATOS ENCONTRADOS! Ruta: /${path} (${dataCount} registros)`);
                             return true;
                         } else {
-                            debugLog(`   ⚠️ Ruta /${path} está vacía`);
+                            debugLog(`   ⚠️ Ruta /${path} existe pero está vacía`);
                         }
                     } catch (error) {
                         debugLog(`   ❌ Error en /${path}: ${error.message}`);
                     }
                 }
                 debugLog('❌ No se encontraron datos en ninguna ruta');
+                debugLog('💡 SOLUCIÓN: Abre 1win y activa la extensión de captura');
                 return false;
             }
 
             async function startSession() {
-                debugLog('🚀 Iniciando sesión...');
+                debugLog('🚀 ===== INICIANDO SESIÓN =====');
                 
                 try {
-                    debugLog('Paso 1: Registrando dispositivo');
+                    debugLog('Paso 1/5: Registrando dispositivo...');
                     await registerDevice();
                     
-                    debugLog('Paso 2: Verificando rol');
+                    debugLog('Paso 2/5: Verificando rol...');
                     await checkIfMaster();
                     
                     if (isMaster) {
-                        debugLog('Paso 3: Inicializando sesión como MAESTRO');
+                        debugLog('Paso 3/5: Creando sesión en Firebase...');
                         await set(ref(db, 'shared_session'), {
                             active: true,
                             startTime: Date.now(),
@@ -333,36 +346,39 @@
                             misses: 0,
                             lastSignalTime: 0
                         });
-                        debugLog('✅ Sesión creada en Firebase');
+                        debugLog('✅ Sesión creada exitosamente');
 
-                        debugLog('Paso 4: Limpiando datos anteriores');
+                        debugLog('Paso 4/5: Limpiando datos anteriores...');
                         await set(ref(db, 'shared_signals'), {});
                         await remove(ref(db, 'current_signal'));
-                        debugLog('✅ Datos limpiados');
+                        debugLog('✅ Datos anteriores limpiados');
 
-                        debugLog('Paso 5: Buscando datos de crashes');
+                        debugLog('Paso 5/5: Buscando datos de crashes...');
                         const found = await findAndConnect();
                         if (found) {
-                            debugLog('✅ Sistema conectado y listo');
+                            debugLog('✅ ¡SISTEMA COMPLETAMENTE CONECTADO!');
+                            debugLog('   El analizador está escuchando nuevos crashes');
                         } else {
-                            debugLog('⚠️ No hay datos de crashes aún');
-                            debugLog('💡 Abre 1win y activa la extensión');
+                            debugLog('⚠️ Sistema conectado pero SIN DATOS de crashes');
+                            debugLog('   Abre 1win y juega Aviator con la extensión activa');
                         }
                     } else {
-                        debugLog('✅ Conectado como ESCLAVO');
-                        debugLog('   (Recibirás señales del maestro)');
+                        debugLog('Paso 3/5: Conectando como esclavo...');
+                        debugLog('✅ Conectado correctamente');
+                        debugLog('   Esperando señales del dispositivo maestro...');
                     }
 
                     document.getElementById('btnStart').disabled = true;
                     document.getElementById('btnStop').disabled = false;
                     
-                    showAlert('✅ <strong>Sesión iniciada correctamente!</strong> Revisa el log de debug arriba.', 'success');
-                    debugLog('🎉 Sesión iniciada con éxito');
+                    showAlert(`✅ <strong>¡Sesión iniciada!</strong><br>Rol: ${isMaster ? 'MAESTRO 👑' : 'ESCLAVO 📱'}<br>Revisa el log de debug arriba.`, 'success');
+                    debugLog('🎉 ===== SESIÓN INICIADA CORRECTAMENTE =====');
                     
                 } catch (error) {
-                    debugLog(`❌ ERROR CRÍTICO: ${error.message}`);
-                    debugLog(`   Stack: ${error.stack}`);
-                    showAlert(`❌ <strong>Error al iniciar:</strong> ${error.message}`, 'warning');
+                    debugLog(`❌ ===== ERROR CRÍTICO =====`);
+                    debugLog(`Error: ${error.message}`);
+                    debugLog(`Stack: ${error.stack}`);
+                    showAlert(`❌ <strong>Error al iniciar:</strong><br>${error.message}`, 'warning');
                 }
             }
 
@@ -373,21 +389,21 @@
                         await update(ref(db, 'shared_session'), { active: false });
                         debugLog('✅ Sesión marcada como inactiva');
                     }
-                    await remove(ref(db, `connected_devices/${DEVICE_ID}`);
-                    debugLog('✅ Dispositivo desregistrado');
+                    await remove(ref(db, `connected_devices/${DEVICE_ID}`));
+                    debugLog('✅ Dispositivo desconectado');
                     
                     document.getElementById('btnStart').disabled = false;
                     document.getElementById('btnStop').disabled = true;
-                    showAlert('⏹️ Sesión detenida', 'warning');
-                    debugLog('✅ Sesión detenida correctamente');
+                    showAlert('⏹️ Sesión detenida correctamente', 'warning');
+                    debugLog('✅ Sesión detenida');
                 } catch (error) {
                     debugLog(`❌ Error deteniendo: ${error.message}`);
                 }
             }
 
             async function resetSession() {
-                debugLog('🔄 Reseteando sesión...');
-                if (!confirm('¿Resetear todo el sistema?')) {
+                debugLog('🔄 Solicitando reset del sistema...');
+                if (!confirm('¿Resetear todo el sistema? Esto afectará a todos los dispositivos conectados.')) {
                     debugLog('❌ Reset cancelado por usuario');
                     return;
                 }
@@ -396,8 +412,8 @@
                     await set(ref(db, 'shared_session'), {});
                     await set(ref(db, 'shared_signals'), {});
                     await remove(ref(db, 'current_signal'));
-                    debugLog('✅ Sistema reseteado completamente');
-                    showAlert('🔄 Sistema reseteado', 'success');
+                    debugLog('✅ Sistema completamente reseteado');
+                    showAlert('🔄 Sistema reseteado en todos los dispositivos', 'success');
                 } catch (error) {
                     debugLog(`❌ Error reseteando: ${error.message}`);
                 }
@@ -409,29 +425,31 @@
                 alertBox.innerHTML = message;
             }
 
-            // Asignar eventos
+            // Asignar eventos a los botones
             document.getElementById('btnStart').addEventListener('click', () => {
-                debugLog('🖱️ Click en botón INICIAR');
+                debugLog('🖱️ Usuario hizo clic en INICIAR');
                 startSession();
             });
             
             document.getElementById('btnStop').addEventListener('click', () => {
-                debugLog('🖱️ Click en botón DETENER');
+                debugLog('🖱️ Usuario hizo clic en DETENER');
                 stopSession();
             });
             
             document.getElementById('btnReset').addEventListener('click', () => {
-                debugLog('🖱️ Click en botón RESET');
+                debugLog('🖱️ Usuario hizo clic en RESET');
                 resetSession();
             });
 
-            debugLog('✅ Eventos asignados a botones');
-            debugLog('🎯 Sistema listo - Haz clic en INICIAR');
+            debugLog('✅ Eventos de botones configurados');
+            debugLog('🎯 Sistema listo - Presiona INICIAR cuando quieras');
 
         } catch (error) {
-            debugLog(`❌ ERROR FATAL: ${error.message}`);
+            debugLog(`❌ ERROR FATAL AL CARGAR: ${error.message}`);
             console.error('Error completo:', error);
-            document.getElementById('alertBox').innerHTML = `❌ <strong>Error fatal:</strong> ${error.message}<br>Revisa la consola (F12) para más detalles.`;
+            const alertBox = document.getElementById('alertBox');
+            alertBox.className = 'alert warning';
+            alertBox.innerHTML = `❌ <strong>Error fatal al cargar el sistema:</strong><br>${error.message}<br><small>Revisa la consola (F12) para más detalles.</small>`;
         }
     </script>
 </body>
