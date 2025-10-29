@@ -644,9 +644,9 @@
         </div>
 
         <div class="control-bar">
-            <button class="btn" id="btnStart" onclick="startSession()">🚀 INICIAR</button>
-            <button class="btn stop" id="btnStop" onclick="stopSession()" disabled>⏹️ DETENER</button>
-            <button class="btn" onclick="resetSession()">🔄 RESET</button>
+            <button class="btn" id="btnStart">🚀 INICIAR</button>
+            <button class="btn stop" id="btnStop" disabled>⏹️ DETENER</button>
+            <button class="btn" id="btnReset">🔄 RESET</button>
         </div>
 
         <div class="session-bar">
@@ -914,7 +914,6 @@
 
         const possiblePaths = ['feeds/gocho/crashes', 'crashes', 'historial', 'last_final'];
 
-        // ===== GRÁFICA =====
         function initChart() {
             const canvas = document.getElementById('trendChart');
             const ctx = canvas.getContext('2d');
@@ -936,7 +935,6 @@
             const maxVal = Math.max(...data.map(r => r.multiplier), 10);
             const stepX = width / (data.length - 1 || 1);
 
-            // Línea de tendencia
             ctx.strokeStyle = '#667eea';
             ctx.lineWidth = 2;
             ctx.beginPath();
@@ -950,7 +948,6 @@
 
             ctx.stroke();
 
-            // Puntos
             data.forEach((round, i) => {
                 const x = i * stepX;
                 const y = height - (round.multiplier / maxVal) * height;
@@ -967,7 +964,6 @@
             });
         }
 
-        // ===== SINCRONIZACIÓN =====
         const sessionRef = ref(db, 'shared_session');
         onValue(sessionRef, (snapshot) => {
             if (snapshot.exists()) {
@@ -1027,7 +1023,8 @@
             }
         }
 
-        window.startSession = async function() {
+        // DEFINIR FUNCIONES ANTES DE ASIGNARLAS
+        async function startSession() {
             await registerDevice();
             await checkIfMaster();
             
@@ -1055,9 +1052,9 @@
             document.getElementById('btnStop').disabled = false;
             updateConnectionStatus('🟢 ON', true);
             showAlert(isMaster ? '👑 <strong>MAESTRO</strong> - Sesión iniciada' : '📱 <strong>ESCLAVO</strong> - Conectado a sesión', 'success');
-        };
+        }
 
-        window.stopSession = async function() {
+        async function stopSession() {
             if (isMaster) {
                 await update(ref(db, 'shared_session'), { active: false });
             }
@@ -1067,16 +1064,21 @@
             document.getElementById('btnStop').disabled = true;
             updateConnectionStatus('⚪ OFF', false);
             showAlert('⏹️ Detenido', 'warning');
-        };
+        }
 
-        window.resetSession = async function() {
+        async function resetSession() {
             if (!confirm('¿Resetear sesión en todos los dispositivos?')) return;
             await stopSession();
             await set(ref(db, 'shared_session'), {});
             await set(ref(db, 'shared_signals'), {});
             await remove(ref(db, 'current_signal'));
             showAlert('🔄 Reseteado', 'success');
-        };
+        }
+
+        // ASIGNAR EVENTOS A LOS BOTONES
+        document.getElementById('btnStart').addEventListener('click', startSession);
+        document.getElementById('btnStop').addEventListener('click', stopSession);
+        document.getElementById('btnReset').addEventListener('click', resetSession);
 
         async function findAndConnect() {
             for (const path of possiblePaths) {
@@ -1181,13 +1183,11 @@
             container.scrollLeft = container.scrollWidth;
         }
 
-        // ===== APRENDIZAJE DE PATRONES =====
         async function learnPattern(newRound) {
             if (gameHistory.length < 2) return;
 
             const prevRound = gameHistory[1];
             
-            // Patrón: Instaloss → Medio
             if (prevRound.type === 'INSTALOSS' && newRound.type === 'MEDIO') {
                 patternMemory.instalossToMedium.count++;
                 patternMemory.instalossToMedium.success++;
@@ -1195,7 +1195,6 @@
                 patternMemory.instalossToMedium.count++;
             }
 
-            // Patrón: Racha Baja → Alto
             let lowStreak = 0;
             for (const r of gameHistory.slice(1, 6)) {
                 if (r.type === 'BAJO' || r.type === 'INSTALOSS') lowStreak++;
@@ -1208,7 +1207,6 @@
                 patternMemory.lowStreakToHigh.count++;
             }
 
-            // Patrón: Alto → Instaloss
             if ((prevRound.type === 'ALTO' || prevRound.type === 'ULTRA') && newRound.type === 'INSTALOSS') {
                 patternMemory.highToInstaloss.count++;
                 patternMemory.highToInstaloss.success++;
@@ -1216,7 +1214,6 @@
                 patternMemory.highToInstaloss.count++;
             }
 
-            // Patrón: Medio → Medio
             if (prevRound.type === 'MEDIO' && newRound.type === 'MEDIO') {
                 patternMemory.mediumToMedium.count++;
                 patternMemory.mediumToMedium.success++;
@@ -1285,8 +1282,8 @@
             const instaloss10 = last10.filter(r => r.type === 'INSTALOSS').length;
             const instaloss5 = last5.filter(r => r.type === 'INSTALOSS').length;
             const instaloss3 = last3.filter(r => r.type === 'INSTALOSS').length;
-            const low10 = last10.filter(r => r.type === 'BAJO').length;
             const low5 = last5.filter(r => r.type === 'BAJO').length;
+            const low10 = last10.filter(r => r.type === 'BAJO').length;
             const high10 = last10.filter(r => r.type === 'ALTO' || r.type === 'ULTRA').length;
 
             const avg10 = last10.reduce((sum, r) => sum + r.multiplier, 0) / 10;
@@ -1298,11 +1295,9 @@
                 else break;
             }
 
-            // Patrón actual detectado
             const prevType = gameHistory[1]?.type || '';
             document.getElementById('currentPattern').textContent = prevType ? `${prevType} detectado` : '--';
 
-            // Usar patrones aprendidos
             const instalossToMediumProb = patternMemory.instalossToMedium.count > 5 
                 ? (patternMemory.instalossToMedium.success / patternMemory.instalossToMedium.count) 
                 : 0.7;
@@ -1313,9 +1308,7 @@
 
             let signal = null;
 
-            // SEÑALES MEJORADAS CON APRENDIZAJE
             if (session.signals170 < CONFIG.MAX_SIGNALS_170) {
-                // Opción 1: Instaloss reciente + patrón aprendido alto
                 if (instaloss3 >= 1 && low5 >= 3 && instalossToMediumProb > 0.65) {
                     signal = {
                         id: `signal_${Date.now()}`,
@@ -1329,9 +1322,8 @@
                         reason: `Instaloss + Patrón ${Math.round(instalossToMediumProb * 100)}%`,
                         checked: false
                     };
-                    await update(ref(db, 'shared_session'), { signals170: session.signals170 + 1 });
+                    session.signals170++;
                 }
-                // Opción 2: Racha baja fuerte
                 else if (lowStreak >= 4 && avg5 < 1.9) {
                     signal = {
                         id: `signal_${Date.now()}`,
@@ -1345,9 +1337,8 @@
                         reason: `Racha baja ${lowStreak}`,
                         checked: false
                     };
-                    await update(ref(db, 'shared_session'), { signals170: session.signals170 + 1 });
+                    session.signals170++;
                 }
-                // Opción 3: Promedio muy bajo + sin altos
                 else if (avg10 < 2.1 && high10 === 0 && low10 >= 6) {
                     signal = {
                         id: `signal_${Date.now()}`,
@@ -1361,7 +1352,7 @@
                         reason: `Prom ${avg10.toFixed(2)}x sin altos`,
                         checked: false
                     };
-                    await update(ref(db, 'shared_session'), { signals170: session.signals170 + 1 });
+                    session.signals170++;
                 }
             }
 
@@ -1379,7 +1370,7 @@
                         reason: `${instaloss10} instalosses + Patrón`,
                         checked: false
                     };
-                    await update(ref(db, 'shared_session'), { signals3x: session.signals3x + 1 });
+                    session.signals3x++;
                 }
             }
 
@@ -1388,7 +1379,7 @@
                     signal = {
                         id: `signal_${Date.now()}`,
                         timestamp: Date.now(),
-                        target: 11.00,
+                        target: 11.0,
                         confidence: 87,
                         type: '💎 SEÑAL 10x+',
                         color: 'purple',
@@ -1397,7 +1388,7 @@
                         reason: 'Patrón extremo',
                         checked: false
                     };
-                    await update(ref(db, 'shared_session'), { signals10x: session.signals10x + 1 });
+                    session.signals10x++;
                 }
             }
 
@@ -1406,7 +1397,10 @@
                 
                 await update(ref(db, 'shared_session'), {
                     totalSignals: (session.totalSignals || 0) + 1,
-                    lastSignalTime: now
+                    lastSignalTime: now,
+                    signals170: session.signals170,
+                    signals3x: session.signals3x,
+                    signals10x: session.signals10x
                 });
 
                 await set(ref(db, 'current_signal'), signal);
