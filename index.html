@@ -1323,6 +1323,7 @@
             const last3 = gameHistory.slice(0, 3);
 
             const instaloss10 = last10.filter(r => r.type === 'INSTALOSS').length;
+            const instaloss5 = last5.filter(r => r.type === 'INSTALOSS').length;
             const instaloss3 = last3.filter(r => r.type === 'INSTALOSS').length;
             const low10 = last10.filter(r => r.type === 'BAJO').length;
             const low5 = last5.filter(r => r.type === 'BAJO').length;
@@ -1339,8 +1340,21 @@
                 else break;
             }
 
+            // ✅ PROTECCIÓN 1: NO señales después de altos recientes
             if (high3 >= 1) {
-                console.log('⚠️ Alto reciente, esperando...');
+                console.log('⚠️ Alto reciente detectado, esperando condiciones más seguras...');
+                return;
+            }
+
+            // ✅ PROTECCIÓN 2: NO señales después de 2+ instalosses consecutivos (NUEVO)
+            if (instaloss3 >= 2) {
+                console.log('⚠️ Múltiples instalosses detectados - TRAMPA POSIBLE - esperando...');
+                return;
+            }
+
+            // ✅ PROTECCIÓN 3: NO señales si el promedio es DEMASIADO bajo (sospechoso)
+            if (avg5 < 1.30 && instaloss5 >= 2) {
+                console.log('⚠️ Promedio sospechosamente bajo - posible trampa - esperando...');
                 return;
             }
 
@@ -1349,114 +1363,127 @@
 
             let signal = null;
 
+            // ========== SEÑALES 1.70x+ (MÁS SELECTIVAS) ==========
             if (session.signals170 < CONFIG.MAX_SIGNALS_170) {
-                if (lowStreak >= 3 && avg5 < 2.2) {
+                
+                // OPCIÓN 1: Racha limpia de bajos (SIN instalosses recientes)
+                if (lowStreak >= 4 && avg5 < 2.2 && instaloss3 === 0) {
                     signal = {
                         id: `signal_${Date.now()}`,
                         timestamp: Date.now(),
                         target: 1.75,
-                        confidence: 85,
-                        type: '🎯 1.70x+',
-                        color: 'green',
-                        soundType: '170',
-                        category: '170',
-                        reason: `Racha ${lowStreak} bajos`,
-                        checked: false
-                    };
-                    session.signals170++;
-                }
-                else if (instaloss3 >= 1 && low5 >= 2 && avg5 < 2.5) {
-                    signal = {
-                        id: `signal_${Date.now()}`,
-                        timestamp: Date.now(),
-                        target: 1.80,
                         confidence: 87,
                         type: '🎯 1.70x+',
                         color: 'green',
                         soundType: '170',
                         category: '170',
-                        reason: `Instaloss + ${low5} bajos`,
+                        reason: `Racha ${lowStreak} bajos limpios`,
                         checked: false
                     };
                     session.signals170++;
                 }
-                else if (avg10 < 2.3 && low10 >= 5 && avg3 < 1.8) {
-                    signal = {
-                        id: `signal_${Date.now()}`,
-                        timestamp: Date.now(),
-                        target: 1.85,
-                        confidence: 83,
-                        type: '🎯 1.70x+',
-                        color: 'green',
-                        soundType: '170',
-                        category: '170',
-                        reason: `Prom ${avg10.toFixed(2)}x`,
-                        checked: false
-                    };
-                    session.signals170++;
-                }
-                else if (low5 >= 4 && avg5 < 2.0) {
+                // OPCIÓN 2: UN instaloss + varios bajos (pero con espacio)
+                else if (instaloss5 === 1 && low5 >= 3 && avg5 < 2.3 && instaloss3 === 0) {
                     signal = {
                         id: `signal_${Date.now()}`,
                         timestamp: Date.now(),
                         target: 1.78,
+                        confidence: 85,
+                        type: '🎯 1.70x+',
+                        color: 'green',
+                        soundType: '170',
+                        category: '170',
+                        reason: `1 instaloss + ${low5} bajos (seguro)`,
+                        checked: false
+                    };
+                    session.signals170++;
+                }
+                // OPCIÓN 3: Promedio bajo + sin altos + sin instalosses recientes
+                else if (avg10 < 2.1 && low10 >= 6 && avg3 < 1.70 && instaloss3 === 0) {
+                    signal = {
+                        id: `signal_${Date.now()}`,
+                        timestamp: Date.now(),
+                        target: 1.80,
                         confidence: 84,
                         type: '🎯 1.70x+',
                         color: 'green',
                         soundType: '170',
                         category: '170',
-                        reason: `${low5}/5 bajos`,
+                        reason: `Prom ${avg10.toFixed(2)}x - patrón limpio`,
+                        checked: false
+                    };
+                    session.signals170++;
+                }
+                // OPCIÓN 4: Muchos bajos sin trampas
+                else if (low5 >= 4 && avg5 < 1.90 && instaloss3 === 0 && avg3 > 1.20) {
+                    signal = {
+                        id: `signal_${Date.now()}`,
+                        timestamp: Date.now(),
+                        target: 1.77,
+                        confidence: 83,
+                        type: '🎯 1.70x+',
+                        color: 'green',
+                        soundType: '170',
+                        category: '170',
+                        reason: `${low5}/5 bajos (condición segura)`,
                         checked: false
                     };
                     session.signals170++;
                 }
             }
 
+            // ========== SEÑALES 3x+ (MUY SELECTIVAS) ==========
             if (!signal && session.signals3x < CONFIG.MAX_SIGNALS_3X) {
-                if (instaloss10 >= 2 && high5 === 0 && avg10 < 2.5 && lowStreak >= 2) {
+                
+                // OPCIÓN 1: Patrón fuerte - 2 instaloss ESPACIADOS + sin altos
+                if (instaloss10 >= 2 && instaloss5 <= 1 && high5 === 0 && avg10 < 2.3 && lowStreak >= 3) {
                     signal = {
                         id: `signal_${Date.now()}`,
                         timestamp: Date.now(),
-                        target: 3.00,
-                        confidence: 82,
-                        type: '🌟 3x+',
-                        color: 'gold',
-                        soundType: '3x',
-                        category: '3x',
-                        reason: `${instaloss10} instalosses`,
-                        checked: false
-                    };
-                    session.signals3x++;
-                }
-                else if (lowStreak >= 5 && avg10 < 2.2 && high5 === 0) {
-                    signal = {
-                        id: `signal_${Date.now()}`,
-                        timestamp: Date.now(),
-                        target: 3.20,
+                        target: 2.80,
                         confidence: 80,
                         type: '🌟 3x+',
                         color: 'gold',
                         soundType: '3x',
                         category: '3x',
-                        reason: `Racha ${lowStreak}`,
+                        reason: `${instaloss10} instalosses espaciados`,
+                        checked: false
+                    };
+                    session.signals3x++;
+                }
+                // OPCIÓN 2: Racha muy larga sin altos
+                else if (lowStreak >= 6 && avg10 < 2.0 && high5 === 0 && instaloss3 === 0) {
+                    signal = {
+                        id: `signal_${Date.now()}`,
+                        timestamp: Date.now(),
+                        target: 3.00,
+                        confidence: 78,
+                        type: '🌟 3x+',
+                        color: 'gold',
+                        soundType: '3x',
+                        category: '3x',
+                        reason: `Racha ${lowStreak} (patrón excepcional)`,
                         checked: false
                     };
                     session.signals3x++;
                 }
             }
 
+            // ========== SEÑALES 10x+ (EXTREMADAMENTE SELECTIVAS) ==========
             if (!signal && session.signals10x < CONFIG.MAX_SIGNALS_10X) {
-                if (instaloss10 >= 3 && high5 === 0 && avg10 < 2.0 && lowStreak >= 6) {
+                
+                // Solo en condiciones PERFECTAS
+                if (instaloss10 >= 3 && instaloss5 <= 1 && high5 === 0 && avg10 < 1.85 && lowStreak >= 7) {
                     signal = {
                         id: `signal_${Date.now()}`,
                         timestamp: Date.now(),
-                        target: 10.0,
-                        confidence: 78,
+                        target: 9.00,
+                        confidence: 75,
                         type: '💎 10x+',
                         color: 'purple',
                         soundType: '10x',
                         category: '10x',
-                        reason: 'Patrón extremo',
+                        reason: 'Patrón extremadamente raro',
                         checked: false
                     };
                     session.signals10x++;
@@ -1464,7 +1491,7 @@
             }
 
             if (signal) {
-                console.log(`🎯 SEÑAL: ${signal.target.toFixed(2)}x [${signal.confidence}%] - ${signal.reason}`);
+                console.log(`🎯 SEÑAL EMITIDA: ${signal.target.toFixed(2)}x [${signal.confidence}%] - ${signal.reason}`);
                 
                 await update(ref(db, 'shared_session'), {
                     totalSignals: (session.totalSignals || 0) + 1,
@@ -1478,7 +1505,7 @@
                 await set(ref(db, `shared_signals/${signal.id}`), signal);
                 playSignalSound(signal.soundType);
             } else {
-                console.log(`⏸️ Sin oportunidad | Racha:${lowStreak} | Avg5:${avg5.toFixed(2)} | Low5:${low5} | High3:${high3}`);
+                console.log(`⏸️ Esperando | Racha:${lowStreak} | Avg5:${avg5.toFixed(2)} | Low5:${low5} | High3:${high3} | Inst3:${instaloss3}`);
             }
         }
 
