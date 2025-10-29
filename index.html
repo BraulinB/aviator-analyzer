@@ -317,7 +317,6 @@
             border-radius: 8px;
             font-weight: bold;
             font-size: 0.85em;
-            position: relative;
         }
 
         .round-item .round-num {
@@ -383,7 +382,6 @@
             margin-bottom: 10px;
             opacity: 0.95;
             text-transform: uppercase;
-            letter-spacing: 1px;
         }
 
         .signal-value {
@@ -416,8 +414,7 @@
             font-size: 0.85em;
         }
 
-        .history-table th,
-        .history-table td {
+        .history-table th, .history-table td {
             padding: 8px 4px;
             text-align: center;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -601,42 +598,14 @@
         }
 
         @media (max-width: 768px) {
-            body {
-                padding: 8px;
-            }
-
-            .header h1 {
-                font-size: 1.5em;
-            }
-
-            .panel {
-                padding: 12px;
-            }
-
-            .rounds-grid {
-                grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
-                gap: 4px;
-                max-height: 180px;
-            }
-
-            .round-item {
-                height: 42px;
-                font-size: 0.75em;
-            }
-
-            .signal-value {
-                font-size: 2.5em;
-            }
-
-            .chart-controls {
-                grid-template-columns: 1fr 1fr;
-                gap: 6px;
-            }
-
-            .chart-toggle {
-                font-size: 0.7em;
-                padding: 6px 8px;
-            }
+            body { padding: 8px; }
+            .header h1 { font-size: 1.5em; }
+            .panel { padding: 12px; }
+            .rounds-grid { grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 4px; max-height: 180px; }
+            .round-item { height: 42px; font-size: 0.75em; }
+            .signal-value { font-size: 2.5em; }
+            .chart-controls { grid-template-columns: 1fr 1fr; gap: 6px; }
+            .chart-toggle { font-size: 0.7em; padding: 6px 8px; }
         }
     </style>
 </head>
@@ -645,9 +614,7 @@
         <div class="header">
             <h1>🎯 Sistema Aviator 1Win <span class="sync-badge">SYNC</span></h1>
             <p style="opacity: 0.85; font-size: 0.95em;">Aprendizaje de Patrones • Multi-Dispositivo</p>
-            <div style="margin-top: 8px;">
-                <span class="live-badge">EN VIVO</span>
-            </div>
+            <div style="margin-top: 8px;"><span class="live-badge">EN VIVO</span></div>
         </div>
 
         <div class="control-bar">
@@ -658,168 +625,78 @@
 
         <div class="session-bar">
             <div class="session-title">📊 SESIÓN SINCRONIZADA</div>
-            
             <div class="device-info">
                 <span>📱 <strong id="deviceName">--</strong></span>
                 <span>🔗 Conectados: <strong id="devicesConnected">0</strong></span>
             </div>
-
             <div class="session-progress">
                 <div class="progress-bar">
                     <div class="progress-fill" id="sessionProgress" style="width: 0%">0/60</div>
                 </div>
             </div>
-
             <div class="session-stats">
-                <div class="session-stat">
-                    <div class="session-stat-label">Rondas</div>
-                    <div class="session-stat-value" id="totalRoundsSession">0</div>
-                </div>
-                <div class="session-stat">
-                    <div class="session-stat-label">1.70x+</div>
-                    <div class="session-stat-value" id="signals170">0/4</div>
-                </div>
-                <div class="session-stat">
-                    <div class="session-stat-label">3x+</div>
-                    <div class="session-stat-value" id="signals3x">0/3</div>
-                </div>
-                <div class="session-stat">
-                    <div class="session-stat-label">10x+</div>
-                    <div class="session-stat-value" id="signals10x">0/2</div>
-                </div>
-                <div class="session-stat">
-                    <div class="session-stat-label">Efectividad</div>
-                    <div class="session-stat-value" id="sessionEffectiveness">0%</div>
-                </div>
+                <div class="session-stat"><div class="session-stat-label">Rondas</div><div class="session-stat-value" id="totalRoundsSession">0</div></div>
+                <div class="session-stat"><div class="session-stat-label">1.70x+</div><div class="session-stat-value" id="signals170">0/4</div></div>
+                <div class="session-stat"><div class="session-stat-label">3x+</div><div class="session-stat-value" id="signals3x">0/3</div></div>
+                <div class="session-stat"><div class="session-stat-label">10x+</div><div class="session-stat-value" id="signals10x">0/2</div></div>
+                <div class="session-stat"><div class="session-stat-label">Efectividad</div><div class="session-stat-value" id="sessionEffectiveness">0%</div></div>
             </div>
         </div>
 
         <div class="status-bar">
-            <div class="status-item active">
-                <div class="status-label">Estado</div>
-                <div class="status-value" id="connectionStatus">⚪ OFF</div>
-            </div>
-            <div class="status-item">
-                <div class="status-label">Señales</div>
-                <div class="status-value" id="totalSignals">0</div>
-            </div>
-            <div class="status-item">
-                <div class="status-label">Aciertos</div>
-                <div class="status-value" id="totalHits">0</div>
-            </div>
-            <div class="status-item">
-                <div class="status-label">Fallos</div>
-                <div class="status-value" id="totalMisses">0</div>
-            </div>
+            <div class="status-item active"><div class="status-label">Estado</div><div class="status-value" id="connectionStatus">⚪ OFF</div></div>
+            <div class="status-item"><div class="status-label">Señales</div><div class="status-value" id="totalSignals">0</div></div>
+            <div class="status-item"><div class="status-label">Aciertos</div><div class="status-value" id="totalHits">0</div></div>
+            <div class="status-item"><div class="status-label">Fallos</div><div class="status-value" id="totalMisses">0</div></div>
         </div>
 
         <div class="main-grid">
             <div class="panel">
                 <h2 class="panel-title">📈 Gráfica de Tendencia</h2>
-                
                 <div class="chart-controls">
-                    <button class="chart-toggle" id="toggleEMA">
-                        <span class="indicator"></span>
-                        Línea EMA
-                    </button>
-                    <button class="chart-toggle" id="toggleBollinger">
-                        <span class="indicator"></span>
-                        Bandas Bollinger
-                    </button>
-                    <button class="chart-toggle active" id="toggleGrid">
-                        <span class="indicator"></span>
-                        Cuadrícula
-                    </button>
-                    <button class="chart-toggle" id="toggleSR">
-                        <span class="indicator"></span>
-                        Soporte/Resistencia
-                    </button>
+                    <button class="chart-toggle" id="toggleEMA"><span class="indicator"></span>Línea EMA</button>
+                    <button class="chart-toggle" id="toggleBollinger"><span class="indicator"></span>Bandas Bollinger</button>
+                    <button class="chart-toggle active" id="toggleGrid"><span class="indicator"></span>Cuadrícula</button>
+                    <button class="chart-toggle" id="toggleSR"><span class="indicator"></span>Soporte/Resistencia</button>
                 </div>
-
-                <div class="chart-container">
-                    <canvas id="trendChart"></canvas>
-                </div>
-
+                <div class="chart-container"><canvas id="trendChart"></canvas></div>
                 <h3 style="font-size: 1.1em; margin-bottom: 10px;">Últimas 60 Rondas</h3>
                 <div class="rounds-grid" id="roundsDisplay">
                     <div style="opacity: 0.5; padding: 20px; text-align: center; grid-column: 1/-1;">Sin datos</div>
                 </div>
-
                 <h3 style="font-size: 1.1em; margin: 15px 0 10px 0;">🎯 Señal Actual</h3>
-                
                 <div class="signal-box waiting" id="signalBox">
                     <div class="signal-title">ESPERANDO</div>
                     <div class="signal-value" id="signalMultiplier">--</div>
                     <div class="signal-confidence">Confianza: <span id="confidence">--</span></div>
                     <div class="signal-type" id="signalType">Inicia sesión</div>
                 </div>
-
                 <div class="countdown" id="countdown">Sistema detenido</div>
-
-                <div class="alert success" id="alertBox">
-                    <strong>⏸️ Sistema detenido:</strong> Haz clic en "INICIAR".
-                </div>
+                <div class="alert success" id="alertBox"><strong>⏸️ Sistema detenido:</strong> Haz clic en "INICIAR".</div>
             </div>
 
             <div class="panel">
                 <h2 class="panel-title">🧠 Análisis IA</h2>
-                
                 <div class="patterns-box">
                     <h3 style="font-size: 0.95em; margin-bottom: 8px;">Patrones Detectados</h3>
-                    <div class="pattern-item">
-                        <span>Instaloss → Medio</span>
-                        <span class="pattern-badge high" id="patternInstalossToMedium">0%</span>
-                    </div>
-                    <div class="pattern-item">
-                        <span>Racha Baja → Alto</span>
-                        <span class="pattern-badge medium" id="patternLowStreakToHigh">0%</span>
-                    </div>
-                    <div class="pattern-item">
-                        <span>Alto → Instaloss</span>
-                        <span class="pattern-badge low" id="patternHighToInstaloss">0%</span>
-                    </div>
-                    <div class="pattern-item">
-                        <span>Medio → Medio</span>
-                        <span class="pattern-badge medium" id="patternMediumToMedium">0%</span>
-                    </div>
+                    <div class="pattern-item"><span>Instaloss → Medio</span><span class="pattern-badge high" id="patternInstalossToMedium">0%</span></div>
+                    <div class="pattern-item"><span>Racha Baja → Alto</span><span class="pattern-badge medium" id="patternLowStreakToHigh">0%</span></div>
+                    <div class="pattern-item"><span>Alto → Instaloss</span><span class="pattern-badge low" id="patternHighToInstaloss">0%</span></div>
+                    <div class="pattern-item"><span>Medio → Medio</span><span class="pattern-badge medium" id="patternMediumToMedium">0%</span></div>
                 </div>
-
                 <h3 style="font-size: 0.95em; margin: 15px 0 10px 0;">📊 Estadísticas</h3>
-                
                 <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-card-value" id="avgLast10">--</div>
-                        <div class="stat-card-label">Prom. 10</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-card-value" id="instalossCount">0</div>
-                        <div class="stat-card-label">Instaloss</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-card-value" id="lowCount">0</div>
-                        <div class="stat-card-label">Bajos</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-card-value" id="highCount">0</div>
-                        <div class="stat-card-label">Altos</div>
-                    </div>
+                    <div class="stat-card"><div class="stat-card-value" id="avgLast10">--</div><div class="stat-card-label">Prom. 10</div></div>
+                    <div class="stat-card"><div class="stat-card-value" id="instalossCount">0</div><div class="stat-card-label">Instaloss</div></div>
+                    <div class="stat-card"><div class="stat-card-value" id="lowCount">0</div><div class="stat-card-label">Bajos</div></div>
+                    <div class="stat-card"><div class="stat-card-value" id="highCount">0</div><div class="stat-card-label">Altos</div></div>
                 </div>
-
                 <h3 style="font-size: 0.95em; margin: 15px 0 10px 0;">Indicadores</h3>
                 <table class="history-table">
                     <tbody>
-                        <tr>
-                            <td style="text-align: left;">Tendencia</td>
-                            <td id="trendIndicator">--</td>
-                        </tr>
-                        <tr>
-                            <td style="text-align: left;">Racha Baja</td>
-                            <td id="lowStreak">0</td>
-                        </tr>
-                        <tr>
-                            <td style="text-align: left;">Patrón</td>
-                            <td id="currentPattern">--</td>
-                        </tr>
+                        <tr><td style="text-align: left;">Tendencia</td><td id="trendIndicator">--</td></tr>
+                        <tr><td style="text-align: left;">Racha Baja</td><td id="lowStreak">0</td></tr>
+                        <tr><td style="text-align: left;">Patrón</td><td id="currentPattern">--</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -830,20 +707,10 @@
             <div style="overflow-x: auto;">
                 <table class="history-table">
                     <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Hora</th>
-                            <th>Target</th>
-                            <th>Tipo</th>
-                            <th>Conf.</th>
-                            <th>Real</th>
-                            <th>Estado</th>
-                        </tr>
+                        <tr><th>#</th><th>Hora</th><th>Target</th><th>Tipo</th><th>Conf.</th><th>Real</th><th>Estado</th></tr>
                     </thead>
                     <tbody id="signalsTableBody">
-                        <tr>
-                            <td colspan="7" style="opacity: 0.6; padding: 15px;">No hay señales</td>
-                        </tr>
+                        <tr><td colspan="7" style="opacity: 0.6; padding: 15px;">No hay señales</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -865,9 +732,9 @@
             MAX_SIGNALS_170: 4,
             MAX_SIGNALS_3X: 3,
             MAX_SIGNALS_10X: 2,
-            MIN_CONFIDENCE: 82,
-            SIGNAL_COOLDOWN: 40000,
-            MIN_DATA_POINTS: 15
+            MIN_CONFIDENCE: 80,
+            SIGNAL_COOLDOWN: 25000,
+            MIN_DATA_POINTS: 12
         };
 
         const DEVICE_ID = `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -951,7 +818,6 @@
 
         const possiblePaths = ['feeds/gocho/crashes', 'crashes', 'historial', 'last_final'];
 
-        // Controles de gráfica
         document.getElementById('toggleEMA').addEventListener('click', function() {
             chartOptions.showEMA = !chartOptions.showEMA;
             this.classList.toggle('active');
@@ -1030,7 +896,6 @@
             const range = maxVal - minVal;
             const stepX = width / (data.length - 1 || 1);
 
-            // Cuadrícula
             if (chartOptions.showGrid) {
                 ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
                 ctx.lineWidth = 1;
@@ -1052,7 +917,6 @@
                 }
             }
 
-            // Bandas de Bollinger
             if (chartOptions.showBollinger && data.length >= 20) {
                 const bands = calculateBollingerBands(values);
                 
@@ -1078,7 +942,6 @@
                 ctx.stroke();
             }
 
-            // EMA
             if (chartOptions.showEMA && data.length >= 9) {
                 const ema = calculateEMA(values, 9);
                 ctx.strokeStyle = '#ffd700';
@@ -1093,7 +956,6 @@
                 ctx.stroke();
             }
 
-            // Soporte y Resistencia
             if (chartOptions.showSR) {
                 const resistance = Math.max(...values);
                 const support = Math.min(...values);
@@ -1117,7 +979,6 @@
                 ctx.setLineDash([]);
             }
 
-            // Línea principal
             ctx.strokeStyle = '#667eea';
             ctx.lineWidth = 2;
             ctx.beginPath();
@@ -1131,7 +992,6 @@
 
             ctx.stroke();
 
-            // Puntos
             data.forEach((round, i) => {
                 const x = i * stepX;
                 const y = height - ((round.multiplier - minVal) / range) * height;
@@ -1353,7 +1213,6 @@
             const container = document.getElementById('roundsDisplay');
             container.innerHTML = '';
             
-            // Invertir para que la última esté a la izquierda
             const reversedHistory = [...gameHistory].slice(0, 60);
             
             reversedHistory.forEach((round, index) => {
@@ -1367,7 +1226,6 @@
                 container.appendChild(div);
             });
         }
-
         async function learnPattern(newRound) {
             if (gameHistory.length < 2) return;
 
@@ -1466,12 +1324,14 @@
 
             const instaloss10 = last10.filter(r => r.type === 'INSTALOSS').length;
             const instaloss3 = last3.filter(r => r.type === 'INSTALOSS').length;
-            const low5 = last5.filter(r => r.type === 'BAJO').length;
             const low10 = last10.filter(r => r.type === 'BAJO').length;
-            const high10 = last10.filter(r => r.type === 'ALTO' || r.type === 'ULTRA').length;
+            const low5 = last5.filter(r => r.type === 'BAJO').length;
+            const high5 = last5.filter(r => r.type === 'ALTO' || r.type === 'ULTRA').length;
+            const high3 = last3.filter(r => r.type === 'ALTO' || r.type === 'ULTRA').length;
 
             const avg10 = last10.reduce((sum, r) => sum + r.multiplier, 0) / 10;
             const avg5 = last5.reduce((sum, r) => sum + r.multiplier, 0) / 5;
+            const avg3 = last3.reduce((sum, r) => sum + r.multiplier, 0) / 3;
 
             let lowStreak = 0;
             for (const r of gameHistory) {
@@ -1479,56 +1339,53 @@
                 else break;
             }
 
+            if (high3 >= 1) {
+                console.log('⚠️ Alto reciente, esperando...');
+                return;
+            }
+
             const prevType = gameHistory[1]?.type || '';
             document.getElementById('currentPattern').textContent = prevType || '--';
-
-            const instalossToMediumProb = patternMemory.instalossToMedium.count > 5 
-                ? (patternMemory.instalossToMedium.success / patternMemory.instalossToMedium.count) 
-                : 0.7;
-
-            const lowStreakToHighProb = patternMemory.lowStreakToHigh.count > 5
-                ? (patternMemory.lowStreakToHigh.success / patternMemory.lowStreakToHigh.count)
-                : 0.65;
 
             let signal = null;
 
             if (session.signals170 < CONFIG.MAX_SIGNALS_170) {
-                if (instaloss3 >= 1 && low5 >= 3 && instalossToMediumProb > 0.65) {
+                if (lowStreak >= 3 && avg5 < 2.2) {
                     signal = {
                         id: `signal_${Date.now()}`,
                         timestamp: Date.now(),
                         target: 1.75,
-                        confidence: Math.round(instalossToMediumProb * 100),
+                        confidence: 85,
                         type: '🎯 1.70x+',
                         color: 'green',
                         soundType: '170',
                         category: '170',
-                        reason: `Instaloss + Patrón`,
+                        reason: `Racha ${lowStreak} bajos`,
                         checked: false
                     };
                     session.signals170++;
                 }
-                else if (lowStreak >= 4 && avg5 < 1.9) {
+                else if (instaloss3 >= 1 && low5 >= 2 && avg5 < 2.5) {
                     signal = {
                         id: `signal_${Date.now()}`,
                         timestamp: Date.now(),
                         target: 1.80,
-                        confidence: 86,
+                        confidence: 87,
                         type: '🎯 1.70x+',
                         color: 'green',
                         soundType: '170',
                         category: '170',
-                        reason: `Racha ${lowStreak}`,
+                        reason: `Instaloss + ${low5} bajos`,
                         checked: false
                     };
                     session.signals170++;
                 }
-                else if (avg10 < 2.1 && high10 === 0 && low10 >= 6) {
+                else if (avg10 < 2.3 && low10 >= 5 && avg3 < 1.8) {
                     signal = {
                         id: `signal_${Date.now()}`,
                         timestamp: Date.now(),
                         target: 1.85,
-                        confidence: 84,
+                        confidence: 83,
                         type: '🎯 1.70x+',
                         color: 'green',
                         soundType: '170',
@@ -1538,15 +1395,30 @@
                     };
                     session.signals170++;
                 }
-            }
-
-            if (!signal && session.signals3x < CONFIG.MAX_SIGNALS_3X) {
-                if (instaloss10 >= 2 && high10 === 0 && avg10 < 2.4 && lowStreakToHighProb > 0.6) {
+                else if (low5 >= 4 && avg5 < 2.0) {
                     signal = {
                         id: `signal_${Date.now()}`,
                         timestamp: Date.now(),
-                        target: 3.20,
-                        confidence: Math.round(lowStreakToHighProb * 100),
+                        target: 1.78,
+                        confidence: 84,
+                        type: '🎯 1.70x+',
+                        color: 'green',
+                        soundType: '170',
+                        category: '170',
+                        reason: `${low5}/5 bajos`,
+                        checked: false
+                    };
+                    session.signals170++;
+                }
+            }
+
+            if (!signal && session.signals3x < CONFIG.MAX_SIGNALS_3X) {
+                if (instaloss10 >= 2 && high5 === 0 && avg10 < 2.5 && lowStreak >= 2) {
+                    signal = {
+                        id: `signal_${Date.now()}`,
+                        timestamp: Date.now(),
+                        target: 3.00,
+                        confidence: 82,
                         type: '🌟 3x+',
                         color: 'gold',
                         soundType: '3x',
@@ -1556,15 +1428,30 @@
                     };
                     session.signals3x++;
                 }
-            }
-
-            if (!signal && session.signals10x < CONFIG.MAX_SIGNALS_10X) {
-                if (instaloss10 >= 3 && high10 === 0 && avg10 < 1.95 && lowStreak >= 5) {
+                else if (lowStreak >= 5 && avg10 < 2.2 && high5 === 0) {
                     signal = {
                         id: `signal_${Date.now()}`,
                         timestamp: Date.now(),
-                        target: 11.0,
-                        confidence: 87,
+                        target: 3.20,
+                        confidence: 80,
+                        type: '🌟 3x+',
+                        color: 'gold',
+                        soundType: '3x',
+                        category: '3x',
+                        reason: `Racha ${lowStreak}`,
+                        checked: false
+                    };
+                    session.signals3x++;
+                }
+            }
+
+            if (!signal && session.signals10x < CONFIG.MAX_SIGNALS_10X) {
+                if (instaloss10 >= 3 && high5 === 0 && avg10 < 2.0 && lowStreak >= 6) {
+                    signal = {
+                        id: `signal_${Date.now()}`,
+                        timestamp: Date.now(),
+                        target: 10.0,
+                        confidence: 78,
                         type: '💎 10x+',
                         color: 'purple',
                         soundType: '10x',
@@ -1577,7 +1464,7 @@
             }
 
             if (signal) {
-                console.log(`🎯 ${signal.target.toFixed(2)}x`);
+                console.log(`🎯 SEÑAL: ${signal.target.toFixed(2)}x [${signal.confidence}%] - ${signal.reason}`);
                 
                 await update(ref(db, 'shared_session'), {
                     totalSignals: (session.totalSignals || 0) + 1,
@@ -1590,6 +1477,8 @@
                 await set(ref(db, 'current_signal'), signal);
                 await set(ref(db, `shared_signals/${signal.id}`), signal);
                 playSignalSound(signal.soundType);
+            } else {
+                console.log(`⏸️ Sin oportunidad | Racha:${lowStreak} | Avg5:${avg5.toFixed(2)} | Low5:${low5} | High3:${high3}`);
             }
         }
 
