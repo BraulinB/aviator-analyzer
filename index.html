@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Sistema Aviator 1Win • Multi-Dispositivo</title>
+    <title>Sistema Aviator 1Win</title>
     <style>
         * {
             margin: 0;
@@ -16,12 +16,11 @@
             background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
             color: #fff;
             min-height: 100vh;
-            padding: 10px;
-            overflow-x: hidden;
+            padding: 15px;
         }
 
         .container {
-            max-width: 1600px;
+            max-width: 1400px;
             margin: 0 auto;
         }
 
@@ -29,38 +28,35 @@
             text-align: center;
             padding: 20px;
             background: rgba(255, 255, 255, 0.08);
-            border-radius: 20px;
+            border-radius: 15px;
             margin-bottom: 20px;
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
         }
 
         .header h1 {
-            font-size: clamp(1.5em, 5vw, 2.8em);
-            margin-bottom: 10px;
+            font-size: 2em;
+            margin-bottom: 8px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            background-clip: text;
         }
 
         .sync-badge {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             background: rgba(0, 255, 136, 0.2);
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 0.75em;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.7em;
             font-weight: 700;
-            text-transform: uppercase;
-            margin-left: 10px;
+            margin-left: 8px;
         }
 
         .sync-badge::before {
             content: '';
-            width: 10px;
-            height: 10px;
+            width: 8px;
+            height: 8px;
             background: #00ff88;
             border-radius: 50%;
             animation: blink 1.5s infinite;
@@ -78,9 +74,9 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: #fff;
             border: none;
-            padding: 12px 30px;
-            border-radius: 12px;
-            font-size: clamp(0.9em, 2vw, 1.1em);
+            padding: 10px 25px;
+            border-radius: 10px;
+            font-size: 0.95em;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -88,7 +84,7 @@
 
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
         }
 
         .btn.stop {
@@ -103,27 +99,26 @@
         .session-bar {
             background: rgba(255, 255, 255, 0.05);
             padding: 15px;
-            border-radius: 15px;
+            border-radius: 12px;
             margin-bottom: 20px;
             border: 2px solid rgba(102, 126, 234, 0.3);
         }
 
         .session-title {
-            font-size: clamp(1em, 3vw, 1.3em);
+            font-size: 1.1em;
             font-weight: bold;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             color: #667eea;
         }
 
         .device-info {
             background: rgba(0, 0, 0, 0.3);
-            padding: 10px 15px;
+            padding: 8px 12px;
             border-radius: 8px;
-            margin-bottom: 15px;
-            font-size: clamp(0.8em, 2vw, 0.9em);
+            margin-bottom: 12px;
+            font-size: 0.85em;
             display: flex;
             justify-content: space-between;
-            align-items: center;
             flex-wrap: wrap;
             gap: 10px;
         }
@@ -131,90 +126,88 @@
         .session-progress {
             display: flex;
             align-items: center;
-            gap: 15px;
-            margin-bottom: 15px;
+            gap: 12px;
+            margin-bottom: 12px;
         }
 
         .progress-bar {
             flex: 1;
-            height: 20px;
+            height: 18px;
             background: rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
+            border-radius: 10px;
             overflow: hidden;
         }
 
         .progress-fill {
             height: 100%;
             background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-            border-radius: 15px;
             transition: width 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 0.8em;
+            font-size: 0.75em;
         }
 
         .session-stats {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
             gap: 10px;
         }
 
         .session-stat {
             background: rgba(255, 255, 255, 0.05);
-            padding: 10px;
-            border-radius: 10px;
+            padding: 8px;
+            border-radius: 8px;
             text-align: center;
         }
 
         .session-stat-label {
-            font-size: clamp(0.7em, 2vw, 0.8em);
+            font-size: 0.75em;
             opacity: 0.7;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
         }
 
         .session-stat-value {
-            font-size: clamp(1.2em, 3vw, 1.5em);
+            font-size: 1.3em;
             font-weight: bold;
             color: #667eea;
         }
 
         .status-bar {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
             gap: 10px;
             margin-bottom: 20px;
         }
 
         .status-item {
             background: rgba(255, 255, 255, 0.1);
-            padding: 15px;
-            border-radius: 12px;
+            padding: 12px;
+            border-radius: 10px;
             text-align: center;
             border: 2px solid rgba(255, 255, 255, 0.1);
         }
 
         .status-item.active {
             border-color: #667eea;
-            box-shadow: 0 0 25px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.4);
             background: rgba(102, 126, 234, 0.15);
         }
 
         .status-label {
-            font-size: clamp(0.7em, 2vw, 0.85em);
+            font-size: 0.75em;
             opacity: 0.7;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             text-transform: uppercase;
         }
 
         .status-value {
-            font-size: clamp(1.3em, 4vw, 2em);
+            font-size: 1.6em;
             font-weight: bold;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            background-clip: text;
         }
 
         .main-grid {
@@ -226,37 +219,35 @@
 
         @media (min-width: 1024px) {
             .main-grid {
-                grid-template-columns: 1.3fr 1fr;
+                grid-template-columns: 1.4fr 1fr;
             }
         }
 
         .panel {
             background: rgba(255, 255, 255, 0.08);
-            border-radius: 20px;
-            padding: 20px;
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 18px;
+            backdrop-filter: blur(10px);
         }
 
         .panel-title {
-            font-size: clamp(1.2em, 3vw, 1.6em);
-            margin-bottom: 20px;
+            font-size: 1.3em;
+            margin-bottom: 15px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            background-clip: text;
             border-bottom: 2px solid rgba(102, 126, 234, 0.3);
-            padding-bottom: 10px;
+            padding-bottom: 8px;
         }
 
         .chart-container {
             position: relative;
             width: 100%;
-            height: 200px;
+            height: 250px;
             background: rgba(0, 0, 0, 0.3);
-            border-radius: 15px;
+            border-radius: 12px;
             overflow: hidden;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         #trendChart {
@@ -264,24 +255,75 @@
             height: 100%;
         }
 
-        .rounds-display {
+        .chart-controls {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .chart-toggle {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.8em;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
             display: flex;
-            gap: 5px;
-            overflow-x: auto;
-            padding: 10px 0;
-            margin-bottom: 20px;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .chart-toggle:hover {
+            background: rgba(102, 126, 234, 0.3);
+        }
+
+        .chart-toggle.active {
+            background: rgba(102, 126, 234, 0.5);
+            border-color: #667eea;
+        }
+
+        .chart-toggle .indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff6b6b;
+        }
+
+        .chart-toggle.active .indicator {
+            background: #00ff88;
+        }
+
+        .rounds-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 6px;
+            margin-bottom: 15px;
+            max-height: 220px;
+            overflow-y: auto;
+            padding: 5px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
         }
 
         .round-item {
-            min-width: 50px;
             height: 50px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            border-radius: 10px;
+            border-radius: 8px;
             font-weight: bold;
             font-size: 0.85em;
-            flex-shrink: 0;
+            position: relative;
+        }
+
+        .round-item .round-num {
+            font-size: 0.65em;
+            opacity: 0.7;
+            margin-bottom: 2px;
         }
 
         .round-item.instaloss {
@@ -302,36 +344,31 @@
         }
 
         .signal-box {
-            padding: 30px 20px;
-            border-radius: 20px;
+            padding: 25px 18px;
+            border-radius: 15px;
             text-align: center;
-            margin-bottom: 20px;
-            box-shadow: 0 15px 40px rgba(245, 87, 108, 0.4);
-            position: relative;
+            margin-bottom: 15px;
+            box-shadow: 0 12px 30px rgba(245, 87, 108, 0.4);
             border: 3px solid transparent;
         }
 
         .signal-box.waiting {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
         }
 
         .signal-box.green {
             background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            box-shadow: 0 15px 40px rgba(79, 172, 254, 0.4);
             animation: pulse-signal 2s infinite;
         }
 
         .signal-box.gold {
             background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
-            box-shadow: 0 15px 40px rgba(255, 210, 0, 0.6);
             border-color: #ffd700;
             animation: pulse-signal 2s infinite;
         }
 
         .signal-box.purple {
             background: linear-gradient(135deg, #b06ab3 0%, #4568dc 100%);
-            box-shadow: 0 15px 40px rgba(176, 106, 179, 0.6);
             border-color: #b06ab3;
             animation: pulse-signal 2s infinite;
         }
@@ -342,46 +379,46 @@
         }
 
         .signal-title {
-            font-size: clamp(0.8em, 2vw, 1em);
-            margin-bottom: 15px;
+            font-size: 0.85em;
+            margin-bottom: 10px;
             opacity: 0.95;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
 
         .signal-value {
-            font-size: clamp(3em, 10vw, 4.5em);
+            font-size: 3.5em;
             font-weight: 900;
-            margin: 15px 0;
-            text-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            margin: 12px 0;
+            text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
         .signal-confidence {
-            font-size: clamp(1em, 3vw, 1.3em);
+            font-size: 1.1em;
             opacity: 0.95;
             font-weight: 600;
         }
 
         .signal-type {
-            font-size: clamp(0.8em, 2vw, 0.9em);
+            font-size: 0.8em;
             opacity: 0.85;
-            margin-top: 10px;
-            padding: 8px 15px;
+            margin-top: 8px;
+            padding: 6px 12px;
             background: rgba(0, 0, 0, 0.2);
-            border-radius: 20px;
+            border-radius: 15px;
             display: inline-block;
         }
 
         .history-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 15px;
-            font-size: clamp(0.75em, 2vw, 0.9em);
+            margin-top: 12px;
+            font-size: 0.85em;
         }
 
         .history-table th,
         .history-table td {
-            padding: 10px 5px;
+            padding: 8px 4px;
             text-align: center;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
@@ -390,7 +427,7 @@
             background: rgba(102, 126, 234, 0.2);
             font-weight: 700;
             text-transform: uppercase;
-            font-size: 0.9em;
+            font-size: 0.85em;
         }
 
         .history-table tr:hover {
@@ -405,36 +442,11 @@
             background: rgba(255, 107, 107, 0.1);
         }
 
-        .multiplier {
-            padding: 5px 10px;
-            border-radius: 8px;
-            font-weight: 700;
-            display: inline-block;
-            font-size: 0.85em;
-        }
-
-        .multiplier.low {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
-
-        .multiplier.medium {
-            background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
-            color: #2d3436;
-        }
-
-        .multiplier.high {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        }
-
-        .multiplier.ultra {
-            background: linear-gradient(135deg, #b06ab3 0%, #4568dc 100%);
-        }
-
         .result-badge {
-            padding: 4px 8px;
-            border-radius: 5px;
+            padding: 3px 6px;
+            border-radius: 4px;
             font-weight: bold;
-            font-size: 0.8em;
+            font-size: 0.75em;
         }
 
         .result-badge.hit {
@@ -454,43 +466,41 @@
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-            gap: 10px;
-            margin-top: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+            gap: 8px;
+            margin-top: 12px;
         }
 
         .stat-card {
             background: rgba(255, 255, 255, 0.05);
-            padding: 12px;
-            border-radius: 12px;
+            padding: 10px;
+            border-radius: 10px;
             text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .stat-card-value {
-            font-size: clamp(1.5em, 4vw, 2em);
+            font-size: 1.6em;
             font-weight: 900;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            background-clip: text;
         }
 
         .stat-card-label {
-            font-size: clamp(0.7em, 2vw, 0.8em);
+            font-size: 0.7em;
             opacity: 0.7;
-            margin-top: 5px;
+            margin-top: 4px;
             text-transform: uppercase;
         }
 
         .alert {
             background: rgba(245, 87, 108, 0.2);
-            border-left: 5px solid #f5576c;
-            padding: 15px;
-            border-radius: 10px;
-            margin: 15px 0;
+            border-left: 4px solid #f5576c;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 12px 0;
             font-weight: 500;
-            font-size: clamp(0.85em, 2vw, 1em);
+            font-size: 0.9em;
         }
 
         .alert.warning {
@@ -514,32 +524,31 @@
         }
 
         .countdown {
-            font-size: clamp(1.2em, 4vw, 1.5em);
+            font-size: 1.2em;
             font-weight: 900;
             text-align: center;
-            margin: 15px 0;
+            margin: 12px 0;
             background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            background-clip: text;
         }
 
         .live-badge {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             background: rgba(245, 87, 108, 0.2);
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: clamp(0.7em, 2vw, 0.85em);
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.75em;
             font-weight: 700;
             text-transform: uppercase;
         }
 
         .live-badge::before {
             content: '';
-            width: 10px;
-            height: 10px;
+            width: 8px;
+            height: 8px;
             background: #f5576c;
             border-radius: 50%;
             animation: blink 1.5s infinite;
@@ -552,17 +561,17 @@
 
         .patterns-box {
             background: rgba(0, 0, 0, 0.3);
-            padding: 15px;
+            padding: 12px;
             border-radius: 10px;
-            margin: 15px 0;
+            margin: 12px 0;
         }
 
         .pattern-item {
             display: flex;
             justify-content: space-between;
-            padding: 8px 0;
+            padding: 6px 0;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            font-size: clamp(0.8em, 2vw, 0.9em);
+            font-size: 0.85em;
         }
 
         .pattern-item:last-child {
@@ -570,9 +579,9 @@
         }
 
         .pattern-badge {
-            padding: 3px 10px;
-            border-radius: 15px;
-            font-size: 0.85em;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
             font-weight: bold;
         }
 
@@ -593,30 +602,40 @@
 
         @media (max-width: 768px) {
             body {
-                padding: 5px;
+                padding: 8px;
+            }
+
+            .header h1 {
+                font-size: 1.5em;
             }
 
             .panel {
-                padding: 15px;
+                padding: 12px;
             }
 
-            .history-table {
-                font-size: 0.7em;
-            }
-
-            .history-table th,
-            .history-table td {
-                padding: 8px 3px;
-            }
-
-            .rounds-display {
-                gap: 3px;
+            .rounds-grid {
+                grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+                gap: 4px;
+                max-height: 180px;
             }
 
             .round-item {
-                min-width: 40px;
-                height: 40px;
+                height: 42px;
                 font-size: 0.75em;
+            }
+
+            .signal-value {
+                font-size: 2.5em;
+            }
+
+            .chart-controls {
+                grid-template-columns: 1fr 1fr;
+                gap: 6px;
+            }
+
+            .chart-toggle {
+                font-size: 0.7em;
+                padding: 6px 8px;
             }
         }
     </style>
@@ -625,8 +644,8 @@
     <div class="container">
         <div class="header">
             <h1>🎯 Sistema Aviator 1Win <span class="sync-badge">SYNC</span></h1>
-            <p style="opacity: 0.85; font-size: clamp(0.9em, 2vw, 1.1em);">Aprendizaje de Patrones • Sincronización Multi-Dispositivo</p>
-            <div style="margin-top: 10px;">
+            <p style="opacity: 0.85; font-size: 0.95em;">Aprendizaje de Patrones • Multi-Dispositivo</p>
+            <div style="margin-top: 8px;">
                 <span class="live-badge">EN VIVO</span>
             </div>
         </div>
@@ -697,16 +716,36 @@
         <div class="main-grid">
             <div class="panel">
                 <h2 class="panel-title">📈 Gráfica de Tendencia</h2>
+                
+                <div class="chart-controls">
+                    <button class="chart-toggle" id="toggleEMA">
+                        <span class="indicator"></span>
+                        Línea EMA
+                    </button>
+                    <button class="chart-toggle" id="toggleBollinger">
+                        <span class="indicator"></span>
+                        Bandas Bollinger
+                    </button>
+                    <button class="chart-toggle active" id="toggleGrid">
+                        <span class="indicator"></span>
+                        Cuadrícula
+                    </button>
+                    <button class="chart-toggle" id="toggleSR">
+                        <span class="indicator"></span>
+                        Soporte/Resistencia
+                    </button>
+                </div>
+
                 <div class="chart-container">
                     <canvas id="trendChart"></canvas>
                 </div>
 
-                <h3 style="font-size: clamp(1em, 3vw, 1.2em); margin-bottom: 10px;">Últimas 60 Rondas</h3>
-                <div class="rounds-display" id="roundsDisplay">
-                    <div style="opacity: 0.5; padding: 20px; text-align: center; width: 100%;">Sin datos</div>
+                <h3 style="font-size: 1.1em; margin-bottom: 10px;">Últimas 60 Rondas</h3>
+                <div class="rounds-grid" id="roundsDisplay">
+                    <div style="opacity: 0.5; padding: 20px; text-align: center; grid-column: 1/-1;">Sin datos</div>
                 </div>
 
-                <h3 style="font-size: clamp(1em, 3vw, 1.2em); margin: 20px 0 10px 0;">🎯 Señal Actual</h3>
+                <h3 style="font-size: 1.1em; margin: 15px 0 10px 0;">🎯 Señal Actual</h3>
                 
                 <div class="signal-box waiting" id="signalBox">
                     <div class="signal-title">ESPERANDO</div>
@@ -718,15 +757,15 @@
                 <div class="countdown" id="countdown">Sistema detenido</div>
 
                 <div class="alert success" id="alertBox">
-                    <strong>⏸️ Sistema detenido:</strong> Haz clic en "INICIAR" para comenzar.
+                    <strong>⏸️ Sistema detenido:</strong> Haz clic en "INICIAR".
                 </div>
             </div>
 
             <div class="panel">
-                <h2 class="panel-title">🧠 Aprendizaje de Patrones</h2>
+                <h2 class="panel-title">🧠 Análisis IA</h2>
                 
                 <div class="patterns-box">
-                    <h3 style="font-size: clamp(0.9em, 2vw, 1em); margin-bottom: 10px;">Patrones Detectados</h3>
+                    <h3 style="font-size: 0.95em; margin-bottom: 8px;">Patrones Detectados</h3>
                     <div class="pattern-item">
                         <span>Instaloss → Medio</span>
                         <span class="pattern-badge high" id="patternInstalossToMedium">0%</span>
@@ -745,7 +784,7 @@
                     </div>
                 </div>
 
-                <h3 style="font-size: clamp(0.9em, 2vw, 1em); margin: 20px 0 10px 0;">📊 Análisis en Tiempo Real</h3>
+                <h3 style="font-size: 0.95em; margin: 15px 0 10px 0;">📊 Estadísticas</h3>
                 
                 <div class="stats-grid">
                     <div class="stat-card">
@@ -766,7 +805,7 @@
                     </div>
                 </div>
 
-                <h3 style="font-size: clamp(0.9em, 2vw, 1em); margin: 20px 0 10px 0;">Indicadores Clave</h3>
+                <h3 style="font-size: 0.95em; margin: 15px 0 10px 0;">Indicadores</h3>
                 <table class="history-table">
                     <tbody>
                         <tr>
@@ -778,7 +817,7 @@
                             <td id="lowStreak">0</td>
                         </tr>
                         <tr>
-                            <td style="text-align: left;">Patrón Actual</td>
+                            <td style="text-align: left;">Patrón</td>
                             <td id="currentPattern">--</td>
                         </tr>
                     </tbody>
@@ -803,7 +842,7 @@
                     </thead>
                     <tbody id="signalsTableBody">
                         <tr>
-                            <td colspan="7" style="opacity: 0.6; padding: 20px;">No hay señales</td>
+                            <td colspan="7" style="opacity: 0.6; padding: 15px;">No hay señales</td>
                         </tr>
                     </tbody>
                 </table>
@@ -844,6 +883,12 @@
         let isMaster = false;
         let lastProcessedTimestamp = 0;
         let chart = null;
+        let chartOptions = {
+            showEMA: false,
+            showBollinger: false,
+            showGrid: true,
+            showSR: false
+        };
 
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         const audioCtx = new AudioContext();
@@ -906,12 +951,67 @@
 
         const possiblePaths = ['feeds/gocho/crashes', 'crashes', 'historial', 'last_final'];
 
+        // Controles de gráfica
+        document.getElementById('toggleEMA').addEventListener('click', function() {
+            chartOptions.showEMA = !chartOptions.showEMA;
+            this.classList.toggle('active');
+            drawChart();
+        });
+
+        document.getElementById('toggleBollinger').addEventListener('click', function() {
+            chartOptions.showBollinger = !chartOptions.showBollinger;
+            this.classList.toggle('active');
+            drawChart();
+        });
+
+        document.getElementById('toggleGrid').addEventListener('click', function() {
+            chartOptions.showGrid = !chartOptions.showGrid;
+            this.classList.toggle('active');
+            drawChart();
+        });
+
+        document.getElementById('toggleSR').addEventListener('click', function() {
+            chartOptions.showSR = !chartOptions.showSR;
+            this.classList.toggle('active');
+            drawChart();
+        });
+
         function initChart() {
             const canvas = document.getElementById('trendChart');
             const ctx = canvas.getContext('2d');
             canvas.width = canvas.offsetWidth;
-            canvas.height = 200;
+            canvas.height = 250;
             chart = { canvas, ctx };
+        }
+
+        function calculateEMA(data, period) {
+            const k = 2 / (period + 1);
+            let ema = data[0];
+            const result = [ema];
+            
+            for (let i = 1; i < data.length; i++) {
+                ema = data[i] * k + ema * (1 - k);
+                result.push(ema);
+            }
+            
+            return result;
+        }
+
+        function calculateBollingerBands(data, period = 20, stdDev = 2) {
+            const bands = { upper: [], middle: [], lower: [] };
+            
+            for (let i = period - 1; i < data.length; i++) {
+                const slice = data.slice(i - period + 1, i + 1);
+                const avg = slice.reduce((a, b) => a + b, 0) / period;
+                const variance = slice.reduce((sum, val) => sum + Math.pow(val - avg, 2), 0) / period;
+                const std = Math.sqrt(variance);
+                
+                bands.middle.push(avg);
+                bands.upper.push(avg + std * stdDev);
+                bands.lower.push(avg - std * stdDev);
+            }
+            
+            return bands;
         }
 
         function drawChart() {
@@ -924,25 +1024,117 @@
             ctx.clearRect(0, 0, width, height);
 
             const data = gameHistory.slice(0, 60).reverse();
-            const maxVal = Math.max(...data.map(r => r.multiplier), 10);
+            const values = data.map(r => r.multiplier);
+            const maxVal = Math.max(...values, 10);
+            const minVal = Math.min(...values, 0);
+            const range = maxVal - minVal;
             const stepX = width / (data.length - 1 || 1);
 
+            // Cuadrícula
+            if (chartOptions.showGrid) {
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.lineWidth = 1;
+                
+                for (let i = 0; i <= 5; i++) {
+                    const y = (height / 5) * i;
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(width, y);
+                    ctx.stroke();
+                }
+                
+                for (let i = 0; i <= 10; i++) {
+                    const x = (width / 10) * i;
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, height);
+                    ctx.stroke();
+                }
+            }
+
+            // Bandas de Bollinger
+            if (chartOptions.showBollinger && data.length >= 20) {
+                const bands = calculateBollingerBands(values);
+                
+                ctx.strokeStyle = 'rgba(255, 100, 100, 0.4)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                bands.upper.forEach((val, i) => {
+                    const x = (i + 19) * stepX;
+                    const y = height - ((val - minVal) / range) * height;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+
+                ctx.strokeStyle = 'rgba(100, 100, 255, 0.4)';
+                ctx.beginPath();
+                bands.lower.forEach((val, i) => {
+                    const x = (i + 19) * stepX;
+                    const y = height - ((val - minVal) / range) * height;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+            }
+
+            // EMA
+            if (chartOptions.showEMA && data.length >= 9) {
+                const ema = calculateEMA(values, 9);
+                ctx.strokeStyle = '#ffd700';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ema.forEach((val, i) => {
+                    const x = i * stepX;
+                    const y = height - ((val - minVal) / range) * height;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+            }
+
+            // Soporte y Resistencia
+            if (chartOptions.showSR) {
+                const resistance = Math.max(...values);
+                const support = Math.min(...values);
+                
+                const resistanceY = height - ((resistance - minVal) / range) * height;
+                const supportY = height - ((support - minVal) / range) * height;
+                
+                ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(0, resistanceY);
+                ctx.lineTo(width, resistanceY);
+                ctx.stroke();
+                
+                ctx.strokeStyle = 'rgba(0, 255, 0, 0.5)';
+                ctx.beginPath();
+                ctx.moveTo(0, supportY);
+                ctx.lineTo(width, supportY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // Línea principal
             ctx.strokeStyle = '#667eea';
             ctx.lineWidth = 2;
             ctx.beginPath();
 
             data.forEach((round, i) => {
                 const x = i * stepX;
-                const y = height - (round.multiplier / maxVal) * height;
+                const y = height - ((round.multiplier - minVal) / range) * height;
                 if (i === 0) ctx.moveTo(x, y);
                 else ctx.lineTo(x, y);
             });
 
             ctx.stroke();
 
+            // Puntos
             data.forEach((round, i) => {
                 const x = i * stepX;
-                const y = height - (round.multiplier / maxVal) * height;
+                const y = height - ((round.multiplier - minVal) / range) * height;
                 
                 let color = '#4facfe';
                 if (round.type === 'INSTALOSS') color = '#f5576c';
@@ -1042,7 +1234,7 @@
             document.getElementById('btnStart').disabled = true;
             document.getElementById('btnStop').disabled = false;
             updateConnectionStatus('🟢 ON');
-            showAlert(isMaster ? '👑 <strong>MAESTRO</strong> - Sesión iniciada' : '📱 <strong>ESCLAVO</strong> - Conectado', 'success');
+            showAlert(isMaster ? '👑 <strong>MAESTRO</strong>' : '📱 <strong>ESCLAVO</strong>', 'success');
         }
 
         async function stopSession() {
@@ -1058,12 +1250,12 @@
         }
 
         async function resetSession() {
-            if (!confirm('¿Resetear sesión?')) return;
+            if (!confirm('¿Resetear?')) return;
             await stopSession();
             await set(ref(db, 'shared_session'), {});
             await set(ref(db, 'shared_signals'), {});
             await remove(ref(db, 'current_signal'));
-            showAlert('🔄 Reseteado', 'success');
+            showAlert('🔄 Reset', 'success');
         }
 
         document.getElementById('btnStart').addEventListener('click', startSession);
@@ -1076,12 +1268,12 @@
                     const testRef = ref(db, path);
                     const snapshot = await get(testRef);
                     if (snapshot.exists()) {
-                        console.log(`✅ Datos en /${path}`);
+                        console.log(`✅ /${path}`);
                         listenToPath(path);
                         return;
                     }
                 } catch (error) {
-                    console.error(`❌ ${path}:`, error.message);
+                    console.error(`❌ ${path}`);
                 }
             }
         }
@@ -1109,7 +1301,6 @@
                                     });
                                 }
 
-                                console.log(`🆕 ${latest.multiplier}x`);
                                 await checkPendingSignal(latest.multiplier);
                                 await learnPattern(latest);
                                 setTimeout(() => analyzeAndEmit(), 1000);
@@ -1162,15 +1353,19 @@
             const container = document.getElementById('roundsDisplay');
             container.innerHTML = '';
             
-            gameHistory.slice(0, 60).reverse().forEach(round => {
+            // Invertir para que la última esté a la izquierda
+            const reversedHistory = [...gameHistory].slice(0, 60);
+            
+            reversedHistory.forEach((round, index) => {
                 const div = document.createElement('div');
                 div.className = `round-item ${round.type.toLowerCase()}`;
-                div.textContent = round.multiplier.toFixed(2) + 'x';
+                div.innerHTML = `
+                    <div class="round-num">#${60 - index}</div>
+                    <div>${round.multiplier.toFixed(2)}x</div>
+                `;
                 div.title = new Date(round.ts).toLocaleTimeString();
                 container.appendChild(div);
             });
-
-            container.scrollLeft = container.scrollWidth;
         }
 
         async function learnPattern(newRound) {
@@ -1248,7 +1443,7 @@
 
             await remove(ref(db, 'current_signal'));
 
-            showAlert(hit ? `✅ ACIERTO! ${pendingSignal.target.toFixed(2)}x → ${actualCrash.toFixed(2)}x` : `❌ Fallo ${pendingSignal.target.toFixed(2)}x → ${actualCrash.toFixed(2)}x`, hit ? 'success' : 'warning');
+            showAlert(hit ? `✅ ${pendingSignal.target.toFixed(2)}x → ${actualCrash.toFixed(2)}x` : `❌ ${pendingSignal.target.toFixed(2)}x → ${actualCrash.toFixed(2)}x`, hit ? 'success' : 'warning');
         }
 
         async function analyzeAndEmit() {
@@ -1285,7 +1480,7 @@
             }
 
             const prevType = gameHistory[1]?.type || '';
-            document.getElementById('currentPattern').textContent = prevType ? `${prevType}` : '--';
+            document.getElementById('currentPattern').textContent = prevType || '--';
 
             const instalossToMediumProb = patternMemory.instalossToMedium.count > 5 
                 ? (patternMemory.instalossToMedium.success / patternMemory.instalossToMedium.count) 
@@ -1304,11 +1499,11 @@
                         timestamp: Date.now(),
                         target: 1.75,
                         confidence: Math.round(instalossToMediumProb * 100),
-                        type: '🎯 SEÑAL 1.70x+',
+                        type: '🎯 1.70x+',
                         color: 'green',
                         soundType: '170',
                         category: '170',
-                        reason: `Instaloss + Patrón ${Math.round(instalossToMediumProb * 100)}%`,
+                        reason: `Instaloss + Patrón`,
                         checked: false
                     };
                     session.signals170++;
@@ -1319,11 +1514,11 @@
                         timestamp: Date.now(),
                         target: 1.80,
                         confidence: 86,
-                        type: '🎯 SEÑAL 1.70x+',
+                        type: '🎯 1.70x+',
                         color: 'green',
                         soundType: '170',
                         category: '170',
-                        reason: `Racha baja ${lowStreak}`,
+                        reason: `Racha ${lowStreak}`,
                         checked: false
                     };
                     session.signals170++;
@@ -1334,11 +1529,11 @@
                         timestamp: Date.now(),
                         target: 1.85,
                         confidence: 84,
-                        type: '🎯 SEÑAL 1.70x+',
+                        type: '🎯 1.70x+',
                         color: 'green',
                         soundType: '170',
                         category: '170',
-                        reason: `Prom ${avg10.toFixed(2)}x sin altos`,
+                        reason: `Prom ${avg10.toFixed(2)}x`,
                         checked: false
                     };
                     session.signals170++;
@@ -1352,11 +1547,11 @@
                         timestamp: Date.now(),
                         target: 3.20,
                         confidence: Math.round(lowStreakToHighProb * 100),
-                        type: '🌟 SEÑAL 3x+',
+                        type: '🌟 3x+',
                         color: 'gold',
                         soundType: '3x',
                         category: '3x',
-                        reason: `${instaloss10} instalosses + Patrón`,
+                        reason: `${instaloss10} instalosses`,
                         checked: false
                     };
                     session.signals3x++;
@@ -1370,7 +1565,7 @@
                         timestamp: Date.now(),
                         target: 11.0,
                         confidence: 87,
-                        type: '💎 SEÑAL 10x+',
+                        type: '💎 10x+',
                         color: 'purple',
                         soundType: '10x',
                         category: '10x',
@@ -1382,7 +1577,7 @@
             }
 
             if (signal) {
-                console.log(`🎯 ${signal.target.toFixed(2)}x [${signal.confidence}%]`);
+                console.log(`🎯 ${signal.target.toFixed(2)}x`);
                 
                 await update(ref(db, 'shared_session'), {
                     totalSignals: (session.totalSignals || 0) + 1,
@@ -1425,7 +1620,7 @@
             const signalsArray = Object.values(signalsData).sort((a, b) => b.timestamp - a.timestamp);
 
             if (signalsArray.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="opacity: 0.6; padding: 20px;">No hay señales</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="opacity: 0.6; padding: 15px;">No hay señales</td></tr>';
                 return;
             }
 
@@ -1457,7 +1652,7 @@
             signalType.textContent = signalData.type;
 
             alertBox.className = `alert ${signalData.color === 'green' ? 'success' : signalData.color === 'gold' ? 'gold' : 'purple'}`;
-            alertBox.innerHTML = `<strong>🎯 SEÑAL:</strong> ${signalData.type} | ${signalData.reason}`;
+            alertBox.innerHTML = `<strong>🎯</strong> ${signalData.type} | ${signalData.reason}`;
 
             playSignalSound(signalData.soundType);
         }
@@ -1505,12 +1700,12 @@
                     document.getElementById('lowStreak').textContent = lowStreak;
 
                     const avg5 = gameHistory.slice(0, 5).reduce((sum, r) => sum + r.multiplier, 0) / 5;
-                    document.getElementById('trendIndicator').textContent = avg5 < avg10 ? '⬇️ BAJISTA' : '⬆️ ALCISTA';
+                    document.getElementById('trendIndicator').textContent = avg5 < avg10 ? '⬇️' : '⬆️';
 
                     const timeSince = Date.now() - (session.lastSignalTime || 0);
                     if (timeSince < CONFIG.SIGNAL_COOLDOWN) {
                         const remaining = Math.ceil((CONFIG.SIGNAL_COOLDOWN - timeSince) / 1000);
-                        document.getElementById('countdown').textContent = `Próximo análisis: ${remaining}s`;
+                        document.getElementById('countdown').textContent = `Próximo: ${remaining}s`;
                     } else {
                         document.getElementById('countdown').textContent = 'Analizando...';
                     }
@@ -1519,7 +1714,7 @@
         }, 1000);
 
         initChart();
-        console.log('✅ Sistema completo listo');
+        console.log('✅ Listo');
     </script>
 </body>
 </html>
