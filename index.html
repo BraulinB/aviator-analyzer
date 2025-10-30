@@ -5,608 +5,91 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Sistema Aviator 1Win</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
-            color: #fff;
-            min-height: 100vh;
-            padding: 15px;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .header {
-            text-align: center;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 15px;
-            margin-bottom: 20px;
-            backdrop-filter: blur(10px);
-        }
-
-        .header h1 {
-            font-size: 2em;
-            margin-bottom: 8px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .sync-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: rgba(0, 255, 136, 0.2);
-            padding: 4px 10px;
-            border-radius: 15px;
-            font-size: 0.7em;
-            font-weight: 700;
-            margin-left: 8px;
-        }
-
-        .sync-badge::before {
-            content: '';
-            width: 8px;
-            height: 8px;
-            background: #00ff88;
-            border-radius: 50%;
-            animation: blink 1.5s infinite;
-        }
-
-        .control-bar {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #fff;
-            border: none;
-            padding: 10px 25px;
-            border-radius: 10px;
-            font-size: 0.95em;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn.stop {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .session-bar {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 15px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            border: 2px solid rgba(102, 126, 234, 0.3);
-        }
-
-        .session-title {
-            font-size: 1.1em;
-            font-weight: bold;
-            margin-bottom: 12px;
-            color: #667eea;
-        }
-
-        .device-info {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 8px 12px;
-            border-radius: 8px;
-            margin-bottom: 12px;
-            font-size: 0.85em;
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .session-progress {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-
-        .progress-bar {
-            flex: 1;
-            height: 18px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-            transition: width 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 0.75em;
-        }
-
-        .session-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-            gap: 10px;
-        }
-
-        .session-stat {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 8px;
-            border-radius: 8px;
-            text-align: center;
-        }
-
-        .session-stat-label {
-            font-size: 0.75em;
-            opacity: 0.7;
-            margin-bottom: 4px;
-        }
-
-        .session-stat-value {
-            font-size: 1.3em;
-            font-weight: bold;
-            color: #667eea;
-        }
-
-        .status-bar {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .status-item {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 12px;
-            border-radius: 10px;
-            text-align: center;
-            border: 2px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .status-item.active {
-            border-color: #667eea;
-            box-shadow: 0 0 20px rgba(102, 126, 234, 0.4);
-            background: rgba(102, 126, 234, 0.15);
-        }
-
-        .status-label {
-            font-size: 0.75em;
-            opacity: 0.7;
-            margin-bottom: 6px;
-            text-transform: uppercase;
-        }
-
-        .status-value {
-            font-size: 1.6em;
-            font-weight: bold;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .main-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        @media (min-width: 1024px) {
-            .main-grid {
-                grid-template-columns: 1.4fr 1fr;
-            }
-        }
-
-        .panel {
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 15px;
-            padding: 18px;
-            backdrop-filter: blur(10px);
-        }
-
-        .panel-title {
-            font-size: 1.3em;
-            margin-bottom: 15px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            border-bottom: 2px solid rgba(102, 126, 234, 0.3);
-            padding-bottom: 8px;
-        }
-
-        .chart-container {
-            position: relative;
-            width: 100%;
-            height: 250px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 12px;
-            overflow: hidden;
-            margin-bottom: 15px;
-        }
-
-        #trendChart {
-            width: 100%;
-            height: 100%;
-        }
-
-        .chart-controls {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-            margin-bottom: 15px;
-        }
-
-        .chart-toggle {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 0.8em;
-            color: #fff;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .chart-toggle:hover {
-            background: rgba(102, 126, 234, 0.3);
-        }
-
-        .chart-toggle.active {
-            background: rgba(102, 126, 234, 0.5);
-            border-color: #667eea;
-        }
-
-        .chart-toggle .indicator {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #ff6b6b;
-        }
-
-        .chart-toggle.active .indicator {
-            background: #00ff88;
-        }
-
-        .rounds-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-            gap: 6px;
-            margin-bottom: 15px;
-            max-height: 220px;
-            overflow-y: auto;
-            padding: 5px;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 10px;
-        }
-
-        .round-item {
-            height: 50px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 0.85em;
-        }
-
-        .round-item .round-num {
-            font-size: 0.65em;
-            opacity: 0.7;
-            margin-bottom: 2px;
-        }
-
-        .round-item.instaloss {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
-
-        .round-item.bajo {
-            background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
-            color: #2d3436;
-        }
-
-        .round-item.medio {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        }
-
-        .round-item.alto, .round-item.ultra {
-            background: linear-gradient(135deg, #b06ab3 0%, #4568dc 100%);
-        }
-
-        .signal-box {
-            padding: 25px 18px;
-            border-radius: 15px;
-            text-align: center;
-            margin-bottom: 15px;
-            box-shadow: 0 12px 30px rgba(245, 87, 108, 0.4);
-            border: 3px solid transparent;
-        }
-
-        .signal-box.waiting {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .signal-box.green {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            animation: pulse-signal 2s infinite;
-        }
-
-        .signal-box.gold {
-            background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
-            border-color: #ffd700;
-            animation: pulse-signal 2s infinite;
-        }
-
-        .signal-box.purple {
-            background: linear-gradient(135deg, #b06ab3 0%, #4568dc 100%);
-            border-color: #b06ab3;
-            animation: pulse-signal 2s infinite;
-        }
-
-        @keyframes pulse-signal {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-
-        .signal-title {
-            font-size: 0.85em;
-            margin-bottom: 10px;
-            opacity: 0.95;
-            text-transform: uppercase;
-        }
-
-        .signal-value {
-            font-size: 3.5em;
-            font-weight: 900;
-            margin: 12px 0;
-            text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-
-        .signal-confidence {
-            font-size: 1.1em;
-            opacity: 0.95;
-            font-weight: 600;
-        }
-
-        .signal-type {
-            font-size: 0.8em;
-            opacity: 0.85;
-            margin-top: 8px;
-            padding: 6px 12px;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 15px;
-            display: inline-block;
-        }
-
-        .history-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 12px;
-            font-size: 0.85em;
-        }
-
-        .history-table th, .history-table td {
-            padding: 8px 4px;
-            text-align: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .history-table th {
-            background: rgba(102, 126, 234, 0.2);
-            font-weight: 700;
-            text-transform: uppercase;
-            font-size: 0.85em;
-        }
-
-        .history-table tr:hover {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .history-table tr.hit {
-            background: rgba(0, 255, 136, 0.1);
-        }
-
-        .history-table tr.miss {
-            background: rgba(255, 107, 107, 0.1);
-        }
-
-        .result-badge {
-            padding: 3px 6px;
-            border-radius: 4px;
-            font-weight: bold;
-            font-size: 0.75em;
-        }
-
-        .result-badge.hit {
-            background: #00ff88;
-            color: #000;
-        }
-
-        .result-badge.miss {
-            background: #ff6b6b;
-            color: #fff;
-        }
-
-        .result-badge.pending {
-            background: #ffd93d;
-            color: #000;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
-            gap: 8px;
-            margin-top: 12px;
-        }
-
-        .stat-card {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 10px;
-            border-radius: 10px;
-            text-align: center;
-        }
-
-        .stat-card-value {
-            font-size: 1.6em;
-            font-weight: 900;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .stat-card-label {
-            font-size: 0.7em;
-            opacity: 0.7;
-            margin-top: 4px;
-            text-transform: uppercase;
-        }
-
-        .alert {
-            background: rgba(245, 87, 108, 0.2);
-            border-left: 4px solid #f5576c;
-            padding: 12px;
-            border-radius: 8px;
-            margin: 12px 0;
-            font-weight: 500;
-            font-size: 0.9em;
-        }
-
-        .alert.warning {
-            background: rgba(253, 203, 110, 0.2);
-            border-left-color: #fdcb6e;
-        }
-
-        .alert.success {
-            background: rgba(79, 172, 254, 0.2);
-            border-left-color: #4facfe;
-        }
-
-        .alert.gold {
-            background: rgba(255, 210, 0, 0.2);
-            border-left-color: #ffd700;
-        }
-
-        .alert.purple {
-            background: rgba(176, 106, 179, 0.2);
-            border-left-color: #b06ab3;
-        }
-
-        .countdown {
-            font-size: 1.2em;
-            font-weight: 900;
-            text-align: center;
-            margin: 12px 0;
-            background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .live-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: rgba(245, 87, 108, 0.2);
-            padding: 4px 10px;
-            border-radius: 15px;
-            font-size: 0.75em;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-
-        .live-badge::before {
-            content: '';
-            width: 8px;
-            height: 8px;
-            background: #f5576c;
-            border-radius: 50%;
-            animation: blink 1.5s infinite;
-        }
-
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-
-        .patterns-box {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 12px;
-            border-radius: 10px;
-            margin: 12px 0;
-        }
-
-        .pattern-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 6px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            font-size: 0.85em;
-        }
-
-        .pattern-item:last-child {
-            border-bottom: none;
-        }
-
-        .pattern-badge {
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 0.8em;
-            font-weight: bold;
-        }
-
-        .pattern-badge.high {
-            background: #00ff88;
-            color: #000;
-        }
-
-        .pattern-badge.medium {
-            background: #ffd93d;
-            color: #000;
-        }
-
-        .pattern-badge.low {
-            background: #ff6b6b;
-            color: #fff;
-        }
-
-        @media (max-width: 768px) {
-            body { padding: 8px; }
-            .header h1 { font-size: 1.5em; }
-            .panel { padding: 12px; }
-            .rounds-grid { grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 4px; max-height: 180px; }
-            .round-item { height: 42px; font-size: 0.75em; }
-            .signal-value { font-size: 2.5em; }
-            .chart-controls { grid-template-columns: 1fr 1fr; gap: 6px; }
-            .chart-toggle { font-size: 0.7em; padding: 6px 8px; }
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%); color: #fff; min-height: 100vh; padding: 15px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header { text-align: center; padding: 20px; background: rgba(255, 255, 255, 0.08); border-radius: 15px; margin-bottom: 20px; backdrop-filter: blur(10px); }
+        .header h1 { font-size: 2em; margin-bottom: 8px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .sync-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(0, 255, 136, 0.2); padding: 4px 10px; border-radius: 15px; font-size: 0.7em; font-weight: 700; margin-left: 8px; }
+        .sync-badge::before { content: ''; width: 8px; height: 8px; background: #00ff88; border-radius: 50%; animation: blink 1.5s infinite; }
+        .control-bar { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
+        .btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none; padding: 10px 25px; border-radius: 10px; font-size: 0.95em; font-weight: bold; cursor: pointer; transition: all 0.3s ease; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4); }
+        .btn.stop { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .session-bar { background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 2px solid rgba(102, 126, 234, 0.3); }
+        .session-title { font-size: 1.1em; font-weight: bold; margin-bottom: 12px; color: #667eea; }
+        .device-info { background: rgba(0, 0, 0, 0.3); padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; font-size: 0.85em; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+        .session-progress { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+        .progress-bar { flex: 1; height: 18px; background: rgba(255, 255, 255, 0.1); border-radius: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); transition: width 0.3s ease; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.75em; }
+        .session-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+        .session-stat { background: rgba(255, 255, 255, 0.05); padding: 8px; border-radius: 8px; text-align: center; }
+        .session-stat-label { font-size: 0.75em; opacity: 0.7; margin-bottom: 4px; }
+        .session-stat-value { font-size: 1.3em; font-weight: bold; color: #667eea; }
+        .status-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 20px; }
+        .status-item { background: rgba(255, 255, 255, 0.1); padding: 12px; border-radius: 10px; text-align: center; border: 2px solid rgba(255, 255, 255, 0.1); }
+        .status-item.active { border-color: #667eea; box-shadow: 0 0 20px rgba(102, 126, 234, 0.4); background: rgba(102, 126, 234, 0.15); }
+        .status-label { font-size: 0.75em; opacity: 0.7; margin-bottom: 6px; text-transform: uppercase; }
+        .status-value { font-size: 1.6em; font-weight: bold; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .main-grid { display: grid; grid-template-columns: 1fr; gap: 20px; margin-bottom: 20px; }
+        @media (min-width: 1024px) { .main-grid { grid-template-columns: 1.4fr 1fr; } }
+        .panel { background: rgba(255, 255, 255, 0.08); border-radius: 15px; padding: 18px; backdrop-filter: blur(10px); }
+        .panel-title { font-size: 1.3em; margin-bottom: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; border-bottom: 2px solid rgba(102, 126, 234, 0.3); padding-bottom: 8px; }
+        .chart-container { position: relative; width: 100%; height: 250px; background: rgba(0, 0, 0, 0.3); border-radius: 12px; overflow: hidden; margin-bottom: 15px; }
+        #trendChart { width: 100%; height: 100%; }
+        .chart-controls { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 15px; }
+        .chart-toggle { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); padding: 8px 12px; border-radius: 8px; font-size: 0.8em; color: #fff; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; gap: 6px; }
+        .chart-toggle:hover { background: rgba(102, 126, 234, 0.3); }
+        .chart-toggle.active { background: rgba(102, 126, 234, 0.5); border-color: #667eea; }
+        .chart-toggle .indicator { width: 10px; height: 10px; border-radius: 50%; background: #ff6b6b; }
+        .chart-toggle.active .indicator { background: #00ff88; }
+        .rounds-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 6px; margin-bottom: 15px; max-height: 220px; overflow-y: auto; padding: 5px; background: rgba(0, 0, 0, 0.2); border-radius: 10px; }
+        .round-item { height: 50px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; font-weight: bold; font-size: 0.85em; }
+        .round-item .round-num { font-size: 0.65em; opacity: 0.7; margin-bottom: 2px; }
+        .round-item.instaloss { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .round-item.bajo { background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%); color: #2d3436; }
+        .round-item.medio { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .round-item.alto, .round-item.ultra { background: linear-gradient(135deg, #b06ab3 0%, #4568dc 100%); }
+        .signal-box { padding: 25px 18px; border-radius: 15px; text-align: center; margin-bottom: 15px; box-shadow: 0 12px 30px rgba(245, 87, 108, 0.4); border: 3px solid transparent; }
+        .signal-box.waiting { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .signal-box.green { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); animation: pulse-signal 2s infinite; }
+        .signal-box.gold { background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%); border-color: #ffd700; animation: pulse-signal 2s infinite; }
+        @keyframes pulse-signal { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        .signal-title { font-size: 0.85em; margin-bottom: 10px; opacity: 0.95; text-transform: uppercase; }
+        .signal-value { font-size: 3.5em; font-weight: 900; margin: 12px 0; text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); }
+        .signal-confidence { font-size: 1.1em; opacity: 0.95; font-weight: 600; }
+        .signal-type { font-size: 0.8em; opacity: 0.85; margin-top: 8px; padding: 6px 12px; background: rgba(0, 0, 0, 0.2); border-radius: 15px; display: inline-block; }
+        .history-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.85em; }
+        .history-table th, .history-table td { padding: 8px 4px; text-align: center; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+        .history-table th { background: rgba(102, 126, 234, 0.2); font-weight: 700; text-transform: uppercase; font-size: 0.85em; }
+        .history-table tr:hover { background: rgba(255, 255, 255, 0.05); }
+        .history-table tr.hit { background: rgba(0, 255, 136, 0.1); }
+        .history-table tr.miss { background: rgba(255, 107, 107, 0.1); }
+        .result-badge { padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75em; }
+        .result-badge.hit { background: #00ff88; color: #000; }
+        .result-badge.miss { background: #ff6b6b; color: #fff; }
+        .result-badge.pending { background: #ffd93d; color: #000; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; margin-top: 12px; }
+        .stat-card { background: rgba(255, 255, 255, 0.05); padding: 10px; border-radius: 10px; text-align: center; }
+        .stat-card-value { font-size: 1.6em; font-weight: 900; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .stat-card-label { font-size: 0.7em; opacity: 0.7; margin-top: 4px; text-transform: uppercase; }
+        .alert { background: rgba(245, 87, 108, 0.2); border-left: 4px solid #f5576c; padding: 12px; border-radius: 8px; margin: 12px 0; font-weight: 500; font-size: 0.9em; }
+        .alert.warning { background: rgba(253, 203, 110, 0.2); border-left-color: #fdcb6e; }
+        .alert.success { background: rgba(79, 172, 254, 0.2); border-left-color: #4facfe; }
+        .alert.gold { background: rgba(255, 210, 0, 0.2); border-left-color: #ffd700; }
+        .countdown { font-size: 1.2em; font-weight: 900; text-align: center; margin: 12px 0; background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .live-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(245, 87, 108, 0.2); padding: 4px 10px; border-radius: 15px; font-size: 0.75em; font-weight: 700; text-transform: uppercase; }
+        .live-badge::before { content: ''; width: 8px; height: 8px; background: #f5576c; border-radius: 50%; animation: blink 1.5s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        .patterns-box { background: rgba(0, 0, 0, 0.3); padding: 12px; border-radius: 10px; margin: 12px 0; }
+        .pattern-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); font-size: 0.85em; }
+        .pattern-item:last-child { border-bottom: none; }
+        .pattern-badge { padding: 2px 8px; border-radius: 12px; font-size: 0.8em; font-weight: bold; }
+        .pattern-badge.high { background: #00ff88; color: #000; }
+        .pattern-badge.medium { background: #ffd93d; color: #000; }
+        .pattern-badge.low { background: #ff6b6b; color: #fff; }
+        @media (max-width: 768px) { body { padding: 8px; } .header h1 { font-size: 1.5em; } .panel { padding: 12px; } .rounds-grid { grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 4px; max-height: 180px; } .round-item { height: 42px; font-size: 0.75em; } .signal-value { font-size: 2.5em; } .chart-controls { grid-template-columns: 1fr 1fr; gap: 6px; } .chart-toggle { font-size: 0.7em; padding: 6px 8px; } }
     </style>
 </head>
 <body>
@@ -616,13 +99,11 @@
             <p style="opacity: 0.85; font-size: 0.95em;">Aprendizaje de Patrones • Multi-Dispositivo</p>
             <div style="margin-top: 8px;"><span class="live-badge">EN VIVO</span></div>
         </div>
-
         <div class="control-bar">
             <button class="btn" id="btnStart">🚀 INICIAR</button>
             <button class="btn stop" id="btnStop" disabled>⏹️ DETENER</button>
             <button class="btn" id="btnReset">🔄 RESET</button>
         </div>
-
         <div class="session-bar">
             <div class="session-title">📊 SESIÓN SINCRONIZADA</div>
             <div class="device-info">
@@ -630,26 +111,21 @@
                 <span>🔗 Conectados: <strong id="devicesConnected">0</strong></span>
             </div>
             <div class="session-progress">
-                <div class="progress-bar">
-                    <div class="progress-fill" id="sessionProgress" style="width: 0%">0/60</div>
-                </div>
+                <div class="progress-bar"><div class="progress-fill" id="sessionProgress" style="width: 0%">0/60</div></div>
             </div>
             <div class="session-stats">
                 <div class="session-stat"><div class="session-stat-label">Rondas</div><div class="session-stat-value" id="totalRoundsSession">0</div></div>
-                <div class="session-stat"><div class="session-stat-label">1.70x+</div><div class="session-stat-value" id="signals170">0/4</div></div>
-                <div class="session-stat"><div class="session-stat-label">3x+</div><div class="session-stat-value" id="signals3x">0/3</div></div>
-                <div class="session-stat"><div class="session-stat-label">10x+</div><div class="session-stat-value" id="signals10x">0/2</div></div>
+                <div class="session-stat"><div class="session-stat-label">1.70x+</div><div class="session-stat-value" id="signals170">0/5</div></div>
+                <div class="session-stat"><div class="session-stat-label">3x+</div><div class="session-stat-value" id="signals3x">0/5</div></div>
                 <div class="session-stat"><div class="session-stat-label">Efectividad</div><div class="session-stat-value" id="sessionEffectiveness">0%</div></div>
             </div>
         </div>
-
         <div class="status-bar">
             <div class="status-item active"><div class="status-label">Estado</div><div class="status-value" id="connectionStatus">⚪ OFF</div></div>
             <div class="status-item"><div class="status-label">Señales</div><div class="status-value" id="totalSignals">0</div></div>
             <div class="status-item"><div class="status-label">Aciertos</div><div class="status-value" id="totalHits">0</div></div>
             <div class="status-item"><div class="status-label">Fallos</div><div class="status-value" id="totalMisses">0</div></div>
         </div>
-
         <div class="main-grid">
             <div class="panel">
                 <h2 class="panel-title">📈 Gráfica de Tendencia</h2>
@@ -661,9 +137,7 @@
                 </div>
                 <div class="chart-container"><canvas id="trendChart"></canvas></div>
                 <h3 style="font-size: 1.1em; margin-bottom: 10px;">Últimas 60 Rondas</h3>
-                <div class="rounds-grid" id="roundsDisplay">
-                    <div style="opacity: 0.5; padding: 20px; text-align: center; grid-column: 1/-1;">Sin datos</div>
-                </div>
+                <div class="rounds-grid" id="roundsDisplay"><div style="opacity: 0.5; padding: 20px; text-align: center; grid-column: 1/-1;">Sin datos</div></div>
                 <h3 style="font-size: 1.1em; margin: 15px 0 10px 0;">🎯 Señal Actual</h3>
                 <div class="signal-box waiting" id="signalBox">
                     <div class="signal-title">ESPERANDO</div>
@@ -674,7 +148,6 @@
                 <div class="countdown" id="countdown">Sistema detenido</div>
                 <div class="alert success" id="alertBox"><strong>⏸️ Sistema detenido:</strong> Haz clic en "INICIAR".</div>
             </div>
-
             <div class="panel">
                 <h2 class="panel-title">🧠 Análisis IA</h2>
                 <div class="patterns-box">
@@ -701,22 +174,16 @@
                 </table>
             </div>
         </div>
-
         <div class="panel">
             <h2 class="panel-title">🎯 Historial de Señales</h2>
             <div style="overflow-x: auto;">
                 <table class="history-table">
-                    <thead>
-                        <tr><th>#</th><th>Hora</th><th>Target</th><th>Tipo</th><th>Conf.</th><th>Real</th><th>Estado</th></tr>
-                    </thead>
-                    <tbody id="signalsTableBody">
-                        <tr><td colspan="7" style="opacity: 0.6; padding: 15px;">No hay señales</td></tr>
-                    </tbody>
+                    <thead><tr><th>#</th><th>Hora</th><th>Target</th><th>Tipo</th><th>Conf.</th><th>Real</th><th>Estado</th></tr></thead>
+                    <tbody id="signalsTableBody"><tr><td colspan="7" style="opacity: 0.6; padding: 15px;">No hay señales</td></tr></tbody>
                 </table>
             </div>
         </div>
     </div>
-
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getDatabase, ref, onValue, get, set, update, remove, onDisconnect } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
@@ -729,9 +196,8 @@
 
         const CONFIG = {
             SESSION_SIZE: 60,
-            MAX_SIGNALS_170: 4,
-            MAX_SIGNALS_3X: 3,
-            MAX_SIGNALS_10X: 2,
+            MAX_SIGNALS_170: 5,
+            MAX_SIGNALS_3X: 5,
             MIN_CONFIDENCE: 80,
             SIGNAL_COOLDOWN: 25000,
             MIN_DATA_POINTS: 12
@@ -741,21 +207,11 @@
         const DEVICE_NAME = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? '📱 Móvil' : '💻 PC';
 
         let gameHistory = [];
-        let patternMemory = {
-            instalossToMedium: { count: 0, success: 0 },
-            lowStreakToHigh: { count: 0, success: 0 },
-            highToInstaloss: { count: 0, success: 0 },
-            mediumToMedium: { count: 0, success: 0 }
-        };
+        let patternMemory = { instalossToMedium: { count: 0, success: 0 }, lowStreakToHigh: { count: 0, success: 0 }, highToInstaloss: { count: 0, success: 0 }, mediumToMedium: { count: 0, success: 0 } };
         let isMaster = false;
         let lastProcessedTimestamp = 0;
         let chart = null;
-        let chartOptions = {
-            showEMA: false,
-            showBollinger: false,
-            showGrid: true,
-            showSR: false
-        };
+        let chartOptions = { showEMA: false, showBollinger: false, showGrid: true, showSR: false };
 
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         const audioCtx = new AudioContext();
@@ -766,7 +222,6 @@
                 const gainNode = audioCtx.createGain();
                 oscillator.connect(gainNode);
                 gainNode.connect(audioCtx.destination);
-                
                 if (type === '170') {
                     oscillator.frequency.value = 523.25;
                     oscillator.type = 'sine';
@@ -789,21 +244,6 @@
                             osc.stop(audioCtx.currentTime + 0.8);
                         }, i * 300);
                     }
-                } else if (type === '10x') {
-                    for (let i = 0; i < 4; i++) {
-                        setTimeout(() => {
-                            const osc = audioCtx.createOscillator();
-                            const gain = audioCtx.createGain();
-                            osc.connect(gain);
-                            gain.connect(audioCtx.destination);
-                            osc.frequency.value = 1046.50;
-                            osc.type = 'sawtooth';
-                            gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
-                            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-                            osc.start(audioCtx.currentTime);
-                            osc.stop(audioCtx.currentTime + 0.4);
-                        }, i * 200);
-                    }
                 }
             } catch (error) {
                 console.log('Audio no disponible');
@@ -813,156 +253,60 @@
         console.log('🔥 Inicializando...');
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
-
         document.getElementById('deviceName').textContent = DEVICE_NAME;
-
         const possiblePaths = ['feeds/gocho/crashes', 'crashes', 'historial', 'last_final'];
 
-        document.getElementById('toggleEMA').addEventListener('click', function() {
-            chartOptions.showEMA = !chartOptions.showEMA;
-            this.classList.toggle('active');
-            drawChart();
-        });
+        document.getElementById('toggleEMA').addEventListener('click', function() { chartOptions.showEMA = !chartOptions.showEMA; this.classList.toggle('active'); drawChart(); });
+        document.getElementById('toggleBollinger').addEventListener('click', function() { chartOptions.showBollinger = !chartOptions.showBollinger; this.classList.toggle('active'); drawChart(); });
+        document.getElementById('toggleGrid').addEventListener('click', function() { chartOptions.showGrid = !chartOptions.showGrid; this.classList.toggle('active'); drawChart(); });
+        document.getElementById('toggleSR').addEventListener('click', function() { chartOptions.showSR = !chartOptions.showSR; this.classList.toggle('active'); drawChart(); });
 
-        document.getElementById('toggleBollinger').addEventListener('click', function() {
-            chartOptions.showBollinger = !chartOptions.showBollinger;
-            this.classList.toggle('active');
-            drawChart();
-        });
-
-        document.getElementById('toggleGrid').addEventListener('click', function() {
-            chartOptions.showGrid = !chartOptions.showGrid;
-            this.classList.toggle('active');
-            drawChart();
-        });
-
-        document.getElementById('toggleSR').addEventListener('click', function() {
-            chartOptions.showSR = !chartOptions.showSR;
-            this.classList.toggle('active');
-            drawChart();
-        });
-
-        function initChart() {
-            const canvas = document.getElementById('trendChart');
-            const ctx = canvas.getContext('2d');
-            canvas.width = canvas.offsetWidth;
-            canvas.height = 250;
-            chart = { canvas, ctx };
-        }
-
-        function calculateEMA(data, period) {
-            const k = 2 / (period + 1);
-            let ema = data[0];
-            const result = [ema];
-            
-            for (let i = 1; i < data.length; i++) {
-                ema = data[i] * k + ema * (1 - k);
-                result.push(ema);
-            }
-            
-            return result;
-        }
-
-        function calculateBollingerBands(data, period = 20, stdDev = 2) {
-            const bands = { upper: [], middle: [], lower: [] };
-            
-            for (let i = period - 1; i < data.length; i++) {
-                const slice = data.slice(i - period + 1, i + 1);
-                const avg = slice.reduce((a, b) => a + b, 0) / period;
-                const variance = slice.reduce((sum, val) => sum + Math.pow(val - avg, 2), 0) / period;
-                const std = Math.sqrt(variance);
-                
-                bands.middle.push(avg);
-                bands.upper.push(avg + std * stdDev);
-                bands.lower.push(avg - std * stdDev);
-            }
-            
-            return bands;
-        }
-
+        function initChart() { const canvas = document.getElementById('trendChart'); const ctx = canvas.getContext('2d'); canvas.width = canvas.offsetWidth; canvas.height = 250; chart = { canvas, ctx }; }
+        function calculateEMA(data, period) { const k = 2 / (period + 1); let ema = data[0]; const result = [ema]; for (let i = 1; i < data.length; i++) { ema = data[i] * k + ema * (1 - k); result.push(ema); } return result; }
+        function calculateBollingerBands(data, period = 20, stdDev = 2) { const bands = { upper: [], middle: [], lower: [] }; for (let i = period - 1; i < data.length; i++) { const slice = data.slice(i - period + 1, i + 1); const avg = slice.reduce((a, b) => a + b, 0) / period; const variance = slice.reduce((sum, val) => sum + Math.pow(val - avg, 2), 0) / period; const std = Math.sqrt(variance); bands.middle.push(avg); bands.upper.push(avg + std * stdDev); bands.lower.push(avg - std * stdDev); } return bands; }
         function drawChart() {
             if (!chart || gameHistory.length < 2) return;
-
             const { ctx, canvas } = chart;
             const width = canvas.width;
             const height = canvas.height;
-
             ctx.clearRect(0, 0, width, height);
-
             const data = gameHistory.slice(0, 60).reverse();
             const values = data.map(r => r.multiplier);
             const maxVal = Math.max(...values, 10);
             const minVal = Math.min(...values, 0);
             const range = maxVal - minVal;
             const stepX = width / (data.length - 1 || 1);
-
             if (chartOptions.showGrid) {
                 ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
                 ctx.lineWidth = 1;
-                
-                for (let i = 0; i <= 5; i++) {
-                    const y = (height / 5) * i;
-                    ctx.beginPath();
-                    ctx.moveTo(0, y);
-                    ctx.lineTo(width, y);
-                    ctx.stroke();
-                }
-                
-                for (let i = 0; i <= 10; i++) {
-                    const x = (width / 10) * i;
-                    ctx.beginPath();
-                    ctx.moveTo(x, 0);
-                    ctx.lineTo(x, height);
-                    ctx.stroke();
-                }
+                for (let i = 0; i <= 5; i++) { const y = (height / 5) * i; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke(); }
+                for (let i = 0; i <= 10; i++) { const x = (width / 10) * i; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke(); }
             }
-
             if (chartOptions.showBollinger && data.length >= 20) {
                 const bands = calculateBollingerBands(values);
-                
                 ctx.strokeStyle = 'rgba(255, 100, 100, 0.4)';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
-                bands.upper.forEach((val, i) => {
-                    const x = (i + 19) * stepX;
-                    const y = height - ((val - minVal) / range) * height;
-                    if (i === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                });
+                bands.upper.forEach((val, i) => { const x = (i + 19) * stepX; const y = height - ((val - minVal) / range) * height; if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
                 ctx.stroke();
-
                 ctx.strokeStyle = 'rgba(100, 100, 255, 0.4)';
                 ctx.beginPath();
-                bands.lower.forEach((val, i) => {
-                    const x = (i + 19) * stepX;
-                    const y = height - ((val - minVal) / range) * height;
-                    if (i === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                });
+                bands.lower.forEach((val, i) => { const x = (i + 19) * stepX; const y = height - ((val - minVal) / range) * height; if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
                 ctx.stroke();
             }
-
             if (chartOptions.showEMA && data.length >= 9) {
                 const ema = calculateEMA(values, 9);
                 ctx.strokeStyle = '#ffd700';
                 ctx.lineWidth = 2;
                 ctx.beginPath();
-                ema.forEach((val, i) => {
-                    const x = i * stepX;
-                    const y = height - ((val - minVal) / range) * height;
-                    if (i === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                });
+                ema.forEach((val, i) => { const x = i * stepX; const y = height - ((val - minVal) / range) * height; if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
                 ctx.stroke();
             }
-
             if (chartOptions.showSR) {
                 const resistance = Math.max(...values);
                 const support = Math.min(...values);
-                
                 const resistanceY = height - ((resistance - minVal) / range) * height;
                 const supportY = height - ((support - minVal) / range) * height;
-                
                 ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
                 ctx.lineWidth = 2;
                 ctx.setLineDash([5, 5]);
@@ -970,7 +314,6 @@
                 ctx.moveTo(0, resistanceY);
                 ctx.lineTo(width, resistanceY);
                 ctx.stroke();
-                
                 ctx.strokeStyle = 'rgba(0, 255, 0, 0.5)';
                 ctx.beginPath();
                 ctx.moveTo(0, supportY);
@@ -978,29 +321,18 @@
                 ctx.stroke();
                 ctx.setLineDash([]);
             }
-
             ctx.strokeStyle = '#667eea';
             ctx.lineWidth = 2;
             ctx.beginPath();
-
-            data.forEach((round, i) => {
-                const x = i * stepX;
-                const y = height - ((round.multiplier - minVal) / range) * height;
-                if (i === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-            });
-
+            data.forEach((round, i) => { const x = i * stepX; const y = height - ((round.multiplier - minVal) / range) * height; if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
             ctx.stroke();
-
             data.forEach((round, i) => {
                 const x = i * stepX;
                 const y = height - ((round.multiplier - minVal) / range) * height;
-                
                 let color = '#4facfe';
                 if (round.type === 'INSTALOSS') color = '#f5576c';
                 else if (round.type === 'ULTRA') color = '#b06ab3';
                 else if (round.type === 'ALTO') color = '#00ff88';
-
                 ctx.fillStyle = color;
                 ctx.beginPath();
                 ctx.arc(x, y, 4, 0, Math.PI * 2);
@@ -1009,68 +341,22 @@
         }
 
         const sessionRef = ref(db, 'shared_session');
-        onValue(sessionRef, (snapshot) => {
-            if (snapshot.exists()) {
-                updateUIFromShared(snapshot.val());
-            }
-        });
-
+        onValue(sessionRef, (snapshot) => { if (snapshot.exists()) { updateUIFromShared(snapshot.val()); } });
         const signalsRef = ref(db, 'shared_signals');
-        onValue(signalsRef, (snapshot) => {
-            if (snapshot.exists()) {
-                updateSignalsFromShared(snapshot.val());
-            }
-        });
-
+        onValue(signalsRef, (snapshot) => { if (snapshot.exists()) { updateSignalsFromShared(snapshot.val()); } });
         const currentSignalRef = ref(db, 'current_signal');
-        onValue(currentSignalRef, (snapshot) => {
-            if (snapshot.exists()) {
-                displaySharedSignal(snapshot.val());
-            } else {
-                clearSignalDisplay();
-            }
-        });
-
+        onValue(currentSignalRef, (snapshot) => { if (snapshot.exists()) { displaySharedSignal(snapshot.val()); } else { clearSignalDisplay(); } });
         const devicesRef = ref(db, 'connected_devices');
-        onValue(devicesRef, (snapshot) => {
-            if (snapshot.exists()) {
-                const count = Object.keys(snapshot.val()).length;
-                document.getElementById('devicesConnected').textContent = count;
-            }
-        });
-
+        onValue(devicesRef, (snapshot) => { if (snapshot.exists()) { const count = Object.keys(snapshot.val()).length; document.getElementById('devicesConnected').textContent = count; } });
         const patternsRef = ref(db, 'pattern_memory');
-        onValue(patternsRef, (snapshot) => {
-            if (snapshot.exists()) {
-                patternMemory = snapshot.val();
-                updatePatternsDisplay();
-            }
-        });
+        onValue(patternsRef, (snapshot) => { if (snapshot.exists()) { patternMemory = snapshot.val(); updatePatternsDisplay(); } });
 
-        async function registerDevice() {
-            const deviceRef = ref(db, `connected_devices/${DEVICE_ID}`);
-            await set(deviceRef, {
-                name: DEVICE_NAME,
-                connectedAt: Date.now()
-            });
-            onDisconnect(deviceRef).remove();
-        }
-
-        async function checkIfMaster() {
-            const sessionSnapshot = await get(ref(db, 'shared_session'));
-            if (!sessionSnapshot.exists() || !sessionSnapshot.val().active) {
-                isMaster = true;
-                console.log('👑 MAESTRO');
-            } else {
-                isMaster = false;
-                console.log('📱 ESCLAVO');
-            }
-        }
+        async function registerDevice() { const deviceRef = ref(db, `connected_devices/${DEVICE_ID}`); await set(deviceRef, { name: DEVICE_NAME, connectedAt: Date.now() }); onDisconnect(deviceRef).remove(); }
+        async function checkIfMaster() { const sessionSnapshot = await get(ref(db, 'shared_session')); if (!sessionSnapshot.exists() || !sessionSnapshot.val().active) { isMaster = true; console.log('👑 MAESTRO'); } else { isMaster = false; console.log('📱 ESCLAVO'); } }
 
         async function startSession() {
             await registerDevice();
             await checkIfMaster();
-            
             if (isMaster) {
                 await set(ref(db, 'shared_session'), {
                     active: true,
@@ -1079,64 +365,29 @@
                     sessionRounds: 0,
                     signals170: 0,
                     signals3x: 0,
-                    signals10x: 0,
                     totalSignals: 0,
                     hits: 0,
                     misses: 0,
                     lastSignalTime: 0
                 });
-
                 await set(ref(db, 'shared_signals'), {});
                 await remove(ref(db, 'current_signal'));
                 await findAndConnect();
             }
-
             document.getElementById('btnStart').disabled = true;
             document.getElementById('btnStop').disabled = false;
             updateConnectionStatus('🟢 ON');
             showAlert(isMaster ? '👑 <strong>MAESTRO</strong>' : '📱 <strong>ESCLAVO</strong>', 'success');
         }
 
-        async function stopSession() {
-            if (isMaster) {
-                await update(ref(db, 'shared_session'), { active: false });
-            }
-            await remove(ref(db, `connected_devices/${DEVICE_ID}`));
-            
-            document.getElementById('btnStart').disabled = false;
-            document.getElementById('btnStop').disabled = true;
-            updateConnectionStatus('⚪ OFF');
-            showAlert('⏹️ Detenido', 'warning');
-        }
-
-        async function resetSession() {
-            if (!confirm('¿Resetear?')) return;
-            await stopSession();
-            await set(ref(db, 'shared_session'), {});
-            await set(ref(db, 'shared_signals'), {});
-            await remove(ref(db, 'current_signal'));
-            showAlert('🔄 Reset', 'success');
-        }
+        async function stopSession() { if (isMaster) { await update(ref(db, 'shared_session'), { active: false }); } await remove(ref(db, `connected_devices/${DEVICE_ID}`)); document.getElementById('btnStart').disabled = false; document.getElementById('btnStop').disabled = true; updateConnectionStatus('⚪ OFF'); showAlert('⏹️ Detenido', 'warning'); }
+        async function resetSession() { if (!confirm('¿Resetear?')) return; await stopSession(); await set(ref(db, 'shared_session'), {}); await set(ref(db, 'shared_signals'), {}); await remove(ref(db, 'current_signal')); showAlert('🔄 Reset', 'success'); }
 
         document.getElementById('btnStart').addEventListener('click', startSession);
         document.getElementById('btnStop').addEventListener('click', stopSession);
         document.getElementById('btnReset').addEventListener('click', resetSession);
 
-        async function findAndConnect() {
-            for (const path of possiblePaths) {
-                try {
-                    const testRef = ref(db, path);
-                    const snapshot = await get(testRef);
-                    if (snapshot.exists()) {
-                        console.log(`✅ /${path}`);
-                        listenToPath(path);
-                        return;
-                    }
-                } catch (error) {
-                    console.error(`❌ ${path}`);
-                }
-            }
-        }
+        async function findAndConnect() { for (const path of possiblePaths) { try { const testRef = ref(db, path); const snapshot = await get(testRef); if (snapshot.exists()) { console.log(`✅ /${path}`); listenToPath(path); return; } } catch (error) { console.error(`❌ ${path}`); } } }
 
         function listenToPath(path) {
             const dataRef = ref(db, path);
@@ -1146,21 +397,30 @@
                     if (snapshot.exists()) {
                         const data = snapshot.val();
                         processData(data);
-                        
                         if (gameHistory.length > 0) {
                             const latest = gameHistory[0];
                             if (latest.ts !== lastProcessedTimestamp) {
                                 lastProcessedTimestamp = latest.ts;
-                                
                                 const sessionSnapshot = await get(ref(db, 'shared_session'));
                                 if (sessionSnapshot.exists()) {
                                     const session = sessionSnapshot.val();
-                                    await update(ref(db, 'shared_session'), {
-                                        totalRounds: (session.totalRounds || 0) + 1,
-                                        sessionRounds: (session.sessionRounds || 0) + 1
-                                    });
+                                    const newSessionRounds = (session.sessionRounds || 0) + 1;
+                                    if (newSessionRounds >= CONFIG.SESSION_SIZE) {
+                                        console.log('✅ 60 rondas completadas - REINICIANDO sesión...');
+                                        await update(ref(db, 'shared_session'), {
+                                            totalRounds: (session.totalRounds || 0) + 1,
+                                            sessionRounds: 0,
+                                            signals170: 0,
+                                            signals3x: 0,
+                                            lastSignalTime: 0
+                                        });
+                                    } else {
+                                        await update(ref(db, 'shared_session'), {
+                                            totalRounds: (session.totalRounds || 0) + 1,
+                                            sessionRounds: newSessionRounds
+                                        });
+                                    }
                                 }
-
                                 await checkPendingSignal(latest.multiplier);
                                 await learnPattern(latest);
                                 setTimeout(() => analyzeAndEmit(), 1000);
@@ -1200,70 +460,30 @@
             drawChart();
         }
 
-        function classifyMultiplier(mult) {
-            mult = parseFloat(mult);
-            if (mult >= 1.00 && mult <= 1.04) return 'INSTALOSS';
-            else if (mult >= 10.00) return 'ULTRA';
-            else if (mult >= 5.00) return 'ALTO';
-            else if (mult >= 1.70) return 'MEDIO';
-            else return 'BAJO';
-        }
+        function classifyMultiplier(mult) { mult = parseFloat(mult); if (mult >= 1.00 && mult <= 1.04) return 'INSTALOSS'; else if (mult >= 10.00) return 'ULTRA'; else if (mult >= 5.00) return 'ALTO'; else if (mult >= 1.70) return 'MEDIO'; else return 'BAJO'; }
 
         function updateRoundsDisplay() {
             const container = document.getElementById('roundsDisplay');
             container.innerHTML = '';
-            
             const reversedHistory = [...gameHistory].slice(0, 60);
-            
             reversedHistory.forEach((round, index) => {
                 const div = document.createElement('div');
                 div.className = `round-item ${round.type.toLowerCase()}`;
-                div.innerHTML = `
-                    <div class="round-num">#${60 - index}</div>
-                    <div>${round.multiplier.toFixed(2)}x</div>
-                `;
+                div.innerHTML = `<div class="round-num">#${60 - index}</div><div>${round.multiplier.toFixed(2)}x</div>`;
                 div.title = new Date(round.ts).toLocaleTimeString();
                 container.appendChild(div);
             });
         }
+
         async function learnPattern(newRound) {
             if (gameHistory.length < 2) return;
-
             const prevRound = gameHistory[1];
-            
-            if (prevRound.type === 'INSTALOSS' && newRound.type === 'MEDIO') {
-                patternMemory.instalossToMedium.count++;
-                patternMemory.instalossToMedium.success++;
-            } else if (prevRound.type === 'INSTALOSS' && newRound.type !== 'MEDIO') {
-                patternMemory.instalossToMedium.count++;
-            }
-
+            if (prevRound.type === 'INSTALOSS' && newRound.type === 'MEDIO') { patternMemory.instalossToMedium.count++; patternMemory.instalossToMedium.success++; } else if (prevRound.type === 'INSTALOSS' && newRound.type !== 'MEDIO') { patternMemory.instalossToMedium.count++; }
             let lowStreak = 0;
-            for (const r of gameHistory.slice(1, 6)) {
-                if (r.type === 'BAJO' || r.type === 'INSTALOSS') lowStreak++;
-                else break;
-            }
-            if (lowStreak >= 3 && (newRound.type === 'ALTO' || newRound.type === 'ULTRA')) {
-                patternMemory.lowStreakToHigh.count++;
-                patternMemory.lowStreakToHigh.success++;
-            } else if (lowStreak >= 3) {
-                patternMemory.lowStreakToHigh.count++;
-            }
-
-            if ((prevRound.type === 'ALTO' || prevRound.type === 'ULTRA') && newRound.type === 'INSTALOSS') {
-                patternMemory.highToInstaloss.count++;
-                patternMemory.highToInstaloss.success++;
-            } else if (prevRound.type === 'ALTO' || prevRound.type === 'ULTRA') {
-                patternMemory.highToInstaloss.count++;
-            }
-
-            if (prevRound.type === 'MEDIO' && newRound.type === 'MEDIO') {
-                patternMemory.mediumToMedium.count++;
-                patternMemory.mediumToMedium.success++;
-            } else if (prevRound.type === 'MEDIO') {
-                patternMemory.mediumToMedium.count++;
-            }
-
+            for (const r of gameHistory.slice(1, 6)) { if (r.type === 'BAJO' || r.type === 'INSTALOSS') lowStreak++; else break; }
+            if (lowStreak >= 3 && (newRound.type === 'ALTO' || newRound.type === 'ULTRA')) { patternMemory.lowStreakToHigh.count++; patternMemory.lowStreakToHigh.success++; } else if (lowStreak >= 3) { patternMemory.lowStreakToHigh.count++; }
+            if ((prevRound.type === 'ALTO' || prevRound.type === 'ULTRA') && newRound.type === 'INSTALOSS') { patternMemory.highToInstaloss.count++; patternMemory.highToInstaloss.success++; } else if (prevRound.type === 'ALTO' || prevRound.type === 'ULTRA') { patternMemory.highToInstaloss.count++; }
+            if (prevRound.type === 'MEDIO' && newRound.type === 'MEDIO') { patternMemory.mediumToMedium.count++; patternMemory.mediumToMedium.success++; } else if (prevRound.type === 'MEDIO') { patternMemory.mediumToMedium.count++; }
             await set(ref(db, 'pattern_memory'), patternMemory);
         }
 
@@ -1278,50 +498,31 @@
         async function checkPendingSignal(actualCrash) {
             const currentSignalSnapshot = await get(ref(db, 'current_signal'));
             if (!currentSignalSnapshot.exists()) return;
-
             const pendingSignal = currentSignalSnapshot.val();
             if (pendingSignal.checked) return;
-
             const targetMin = pendingSignal.target * 0.92;
             const hit = actualCrash >= targetMin;
-
             const sessionSnapshot = await get(ref(db, 'shared_session'));
             const session = sessionSnapshot.val();
-
-            await update(ref(db, 'shared_session'), {
-                hits: (session.hits || 0) + (hit ? 1 : 0),
-                misses: (session.misses || 0) + (hit ? 0 : 1)
-            });
-
-            await update(ref(db, `shared_signals/${pendingSignal.id}`), {
-                actualCrash: actualCrash,
-                hit: hit,
-                checked: true
-            });
-
+            await update(ref(db, 'shared_session'), { hits: (session.hits || 0) + (hit ? 1 : 0), misses: (session.misses || 0) + (hit ? 0 : 1) });
+            await update(ref(db, `shared_signals/${pendingSignal.id}`), { actualCrash: actualCrash, hit: hit, checked: true });
             await remove(ref(db, 'current_signal'));
-
             showAlert(hit ? `✅ ${pendingSignal.target.toFixed(2)}x → ${actualCrash.toFixed(2)}x` : `❌ ${pendingSignal.target.toFixed(2)}x → ${actualCrash.toFixed(2)}x`, hit ? 'success' : 'warning');
         }
-
         async function analyzeAndEmit() {
             if (!isMaster) return;
             if (gameHistory.length < CONFIG.MIN_DATA_POINTS) return;
-
             const sessionSnapshot = await get(ref(db, 'shared_session'));
             const session = sessionSnapshot.val();
-
             const now = Date.now();
             const timeSinceLastSignal = now - (session.lastSignalTime || 0);
             if (timeSinceLastSignal < CONFIG.SIGNAL_COOLDOWN) return;
-
             const currentSignalSnapshot = await get(ref(db, 'current_signal'));
             if (currentSignalSnapshot.exists()) return;
 
             const last10 = gameHistory.slice(0, 10);
             const last5 = gameHistory.slice(0, 5);
             const last3 = gameHistory.slice(0, 3);
-
             const instaloss10 = last10.filter(r => r.type === 'INSTALOSS').length;
             const instaloss5 = last5.filter(r => r.type === 'INSTALOSS').length;
             const instaloss3 = last3.filter(r => r.type === 'INSTALOSS').length;
@@ -1329,178 +530,54 @@
             const low5 = last5.filter(r => r.type === 'BAJO').length;
             const high5 = last5.filter(r => r.type === 'ALTO' || r.type === 'ULTRA').length;
             const high3 = last3.filter(r => r.type === 'ALTO' || r.type === 'ULTRA').length;
-
             const avg10 = last10.reduce((sum, r) => sum + r.multiplier, 0) / 10;
             const avg5 = last5.reduce((sum, r) => sum + r.multiplier, 0) / 5;
             const avg3 = last3.reduce((sum, r) => sum + r.multiplier, 0) / 3;
 
             let lowStreak = 0;
-            for (const r of gameHistory) {
-                if (r.type === 'BAJO' || r.type === 'INSTALOSS') lowStreak++;
-                else break;
-            }
+            for (const r of gameHistory) { if (r.type === 'BAJO' || r.type === 'INSTALOSS') lowStreak++; else break; }
 
-            // ✅ PROTECCIÓN 1: NO señales después de altos recientes
-            if (high3 >= 1) {
-                console.log('⚠️ Alto reciente detectado, esperando condiciones más seguras...');
-                return;
-            }
-
-            // ✅ PROTECCIÓN 2: NO señales después de 2+ instalosses consecutivos (NUEVO)
-            if (instaloss3 >= 2) {
-                console.log('⚠️ Múltiples instalosses detectados - TRAMPA POSIBLE - esperando...');
-                return;
-            }
-
-            // ✅ PROTECCIÓN 3: NO señales si el promedio es DEMASIADO bajo (sospechoso)
-            if (avg5 < 1.30 && instaloss5 >= 2) {
-                console.log('⚠️ Promedio sospechosamente bajo - posible trampa - esperando...');
-                return;
-            }
+            if (high3 >= 1) { console.log('⚠️ Alto reciente detectado, esperando condiciones más seguras...'); return; }
+            if (instaloss3 >= 2) { console.log('⚠️ Múltiples instalosses detectados - TRAMPA POSIBLE - esperando...'); return; }
+            if (avg5 < 1.30 && instaloss5 >= 2) { console.log('⚠️ Promedio sospechosamente bajo - posible trampa - esperando...'); return; }
 
             const prevType = gameHistory[1]?.type || '';
             document.getElementById('currentPattern').textContent = prevType || '--';
-
             let signal = null;
 
-            // ========== SEÑALES 1.70x+ (MÁS SELECTIVAS) ==========
             if (session.signals170 < CONFIG.MAX_SIGNALS_170) {
-                
-                // OPCIÓN 1: Racha limpia de bajos (SIN instalosses recientes)
                 if (lowStreak >= 4 && avg5 < 2.2 && instaloss3 === 0) {
-                    signal = {
-                        id: `signal_${Date.now()}`,
-                        timestamp: Date.now(),
-                        target: 1.75,
-                        confidence: 87,
-                        type: '🎯 1.70x+',
-                        color: 'green',
-                        soundType: '170',
-                        category: '170',
-                        reason: `Racha ${lowStreak} bajos limpios`,
-                        checked: false
-                    };
+                    signal = { id: `signal_${Date.now()}`, timestamp: Date.now(), target: 1.75, confidence: 87, type: '🎯 1.70x+', color: 'green', soundType: '170', category: '170', reason: `Racha ${lowStreak} bajos limpios`, checked: false };
                     session.signals170++;
                 }
-                // OPCIÓN 2: UN instaloss + varios bajos (pero con espacio)
                 else if (instaloss5 === 1 && low5 >= 3 && avg5 < 2.3 && instaloss3 === 0) {
-                    signal = {
-                        id: `signal_${Date.now()}`,
-                        timestamp: Date.now(),
-                        target: 1.78,
-                        confidence: 85,
-                        type: '🎯 1.70x+',
-                        color: 'green',
-                        soundType: '170',
-                        category: '170',
-                        reason: `1 instaloss + ${low5} bajos (seguro)`,
-                        checked: false
-                    };
+                    signal = { id: `signal_${Date.now()}`, timestamp: Date.now(), target: 1.78, confidence: 85, type: '🎯 1.70x+', color: 'green', soundType: '170', category: '170', reason: `1 instaloss + ${low5} bajos (seguro)`, checked: false };
                     session.signals170++;
                 }
-                // OPCIÓN 3: Promedio bajo + sin altos + sin instalosses recientes
                 else if (avg10 < 2.1 && low10 >= 6 && avg3 < 1.70 && instaloss3 === 0) {
-                    signal = {
-                        id: `signal_${Date.now()}`,
-                        timestamp: Date.now(),
-                        target: 1.80,
-                        confidence: 84,
-                        type: '🎯 1.70x+',
-                        color: 'green',
-                        soundType: '170',
-                        category: '170',
-                        reason: `Prom ${avg10.toFixed(2)}x - patrón limpio`,
-                        checked: false
-                    };
+                    signal = { id: `signal_${Date.now()}`, timestamp: Date.now(), target: 1.80, confidence: 84, type: '🎯 1.70x+', color: 'green', soundType: '170', category: '170', reason: `Prom ${avg10.toFixed(2)}x - patrón limpio`, checked: false };
                     session.signals170++;
                 }
-                // OPCIÓN 4: Muchos bajos sin trampas
                 else if (low5 >= 4 && avg5 < 1.90 && instaloss3 === 0 && avg3 > 1.20) {
-                    signal = {
-                        id: `signal_${Date.now()}`,
-                        timestamp: Date.now(),
-                        target: 1.77,
-                        confidence: 83,
-                        type: '🎯 1.70x+',
-                        color: 'green',
-                        soundType: '170',
-                        category: '170',
-                        reason: `${low5}/5 bajos (condición segura)`,
-                        checked: false
-                    };
+                    signal = { id: `signal_${Date.now()}`, timestamp: Date.now(), target: 1.77, confidence: 83, type: '🎯 1.70x+', color: 'green', soundType: '170', category: '170', reason: `${low5}/5 bajos (condición segura)`, checked: false };
                     session.signals170++;
                 }
             }
 
-            // ========== SEÑALES 3x+ (MUY SELECTIVAS) ==========
             if (!signal && session.signals3x < CONFIG.MAX_SIGNALS_3X) {
-                
-                // OPCIÓN 1: Patrón fuerte - 2 instaloss ESPACIADOS + sin altos
                 if (instaloss10 >= 2 && instaloss5 <= 1 && high5 === 0 && avg10 < 2.3 && lowStreak >= 3) {
-                    signal = {
-                        id: `signal_${Date.now()}`,
-                        timestamp: Date.now(),
-                        target: 2.80,
-                        confidence: 80,
-                        type: '🌟 3x+',
-                        color: 'gold',
-                        soundType: '3x',
-                        category: '3x',
-                        reason: `${instaloss10} instalosses espaciados`,
-                        checked: false
-                    };
+                    signal = { id: `signal_${Date.now()}`, timestamp: Date.now(), target: 2.80, confidence: 80, type: '🌟 3x+', color: 'gold', soundType: '3x', category: '3x', reason: `${instaloss10} instalosses espaciados`, checked: false };
                     session.signals3x++;
                 }
-                // OPCIÓN 2: Racha muy larga sin altos
                 else if (lowStreak >= 6 && avg10 < 2.0 && high5 === 0 && instaloss3 === 0) {
-                    signal = {
-                        id: `signal_${Date.now()}`,
-                        timestamp: Date.now(),
-                        target: 3.00,
-                        confidence: 78,
-                        type: '🌟 3x+',
-                        color: 'gold',
-                        soundType: '3x',
-                        category: '3x',
-                        reason: `Racha ${lowStreak} (patrón excepcional)`,
-                        checked: false
-                    };
+                    signal = { id: `signal_${Date.now()}`, timestamp: Date.now(), target: 3.00, confidence: 78, type: '🌟 3x+', color: 'gold', soundType: '3x', category: '3x', reason: `Racha ${lowStreak} (patrón excepcional)`, checked: false };
                     session.signals3x++;
-                }
-            }
-
-            // ========== SEÑALES 10x+ (EXTREMADAMENTE SELECTIVAS) ==========
-            if (!signal && session.signals10x < CONFIG.MAX_SIGNALS_10X) {
-                
-                // Solo en condiciones PERFECTAS
-                if (instaloss10 >= 3 && instaloss5 <= 1 && high5 === 0 && avg10 < 1.85 && lowStreak >= 7) {
-                    signal = {
-                        id: `signal_${Date.now()}`,
-                        timestamp: Date.now(),
-                        target: 9.00,
-                        confidence: 75,
-                        type: '💎 10x+',
-                        color: 'purple',
-                        soundType: '10x',
-                        category: '10x',
-                        reason: 'Patrón extremadamente raro',
-                        checked: false
-                    };
-                    session.signals10x++;
                 }
             }
 
             if (signal) {
                 console.log(`🎯 SEÑAL EMITIDA: ${signal.target.toFixed(2)}x [${signal.confidence}%] - ${signal.reason}`);
-                
-                await update(ref(db, 'shared_session'), {
-                    totalSignals: (session.totalSignals || 0) + 1,
-                    lastSignalTime: now,
-                    signals170: session.signals170,
-                    signals3x: session.signals3x,
-                    signals10x: session.signals10x
-                });
-
+                await update(ref(db, 'shared_session'), { totalSignals: (session.totalSignals || 0) + 1, lastSignalTime: now, signals170: session.signals170, signals3x: session.signals3x });
                 await set(ref(db, 'current_signal'), signal);
                 await set(ref(db, `shared_signals/${signal.id}`), signal);
                 playSignalSound(signal.soundType);
@@ -1513,17 +590,11 @@
             const sessionProgress = Math.min((sessionData.sessionRounds / CONFIG.SESSION_SIZE) * 100, 100);
             document.getElementById('sessionProgress').style.width = sessionProgress + '%';
             document.getElementById('sessionProgress').textContent = `${sessionData.sessionRounds}/${CONFIG.SESSION_SIZE}`;
-
             document.getElementById('totalRoundsSession').textContent = sessionData.totalRounds || 0;
             document.getElementById('signals170').textContent = `${sessionData.signals170 || 0}/${CONFIG.MAX_SIGNALS_170}`;
             document.getElementById('signals3x').textContent = `${sessionData.signals3x || 0}/${CONFIG.MAX_SIGNALS_3X}`;
-            document.getElementById('signals10x').textContent = `${sessionData.signals10x || 0}/${CONFIG.MAX_SIGNALS_10X}`;
-
-            const effectiveness = sessionData.totalSignals > 0 
-                ? ((sessionData.hits / sessionData.totalSignals) * 100).toFixed(0)
-                : 0;
+            const effectiveness = sessionData.totalSignals > 0 ? ((sessionData.hits / sessionData.totalSignals) * 100).toFixed(0) : 0;
             document.getElementById('sessionEffectiveness').textContent = effectiveness + '%';
-
             document.getElementById('totalSignals').textContent = sessionData.totalSignals || 0;
             document.getElementById('totalHits').textContent = sessionData.hits || 0;
             document.getElementById('totalMisses').textContent = sessionData.misses || 0;
@@ -1532,26 +603,12 @@
         function updateSignalsFromShared(signalsData) {
             const tbody = document.getElementById('signalsTableBody');
             tbody.innerHTML = '';
-
             const signalsArray = Object.values(signalsData).sort((a, b) => b.timestamp - a.timestamp);
-
-            if (signalsArray.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="opacity: 0.6; padding: 15px;">No hay señales</td></tr>';
-                return;
-            }
-
+            if (signalsArray.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="opacity: 0.6; padding: 15px;">No hay señales</td></tr>'; return; }
             signalsArray.forEach((sig, index) => {
                 const row = tbody.insertRow();
                 row.className = sig.checked ? (sig.hit ? 'hit' : 'miss') : 'pending';
-                row.innerHTML = `
-                    <td>${index + 1}</td>
-                    <td>${new Date(sig.timestamp).toLocaleTimeString('es-VE')}</td>
-                    <td><strong>${sig.target.toFixed(2)}x</strong></td>
-                    <td>${sig.type}</td>
-                    <td>${sig.confidence}%</td>
-                    <td>${sig.actualCrash ? sig.actualCrash.toFixed(2) + 'x' : '--'}</td>
-                    <td><span class="result-badge ${sig.checked ? (sig.hit ? 'hit' : 'miss') : 'pending'}">${sig.checked ? (sig.hit ? '✅' : '❌') : '⏳'}</span></td>
-                `;
+                row.innerHTML = `<td>${index + 1}</td><td>${new Date(sig.timestamp).toLocaleTimeString('es-VE')}</td><td><strong>${sig.target.toFixed(2)}x</strong></td><td>${sig.type}</td><td>${sig.confidence}%</td><td>${sig.actualCrash ? sig.actualCrash.toFixed(2) + 'x' : '--'}</td><td><span class="result-badge ${sig.checked ? (sig.hit ? 'hit' : 'miss') : 'pending'}">${sig.checked ? (sig.hit ? '✅' : '❌') : '⏳'}</span></td>`;
             });
         }
 
@@ -1561,15 +618,12 @@
             const confidence = document.getElementById('confidence');
             const signalType = document.getElementById('signalType');
             const alertBox = document.getElementById('alertBox');
-
             signalBox.className = `signal-box ${signalData.color}`;
             signalMultiplier.textContent = signalData.target.toFixed(2) + 'x';
             confidence.textContent = signalData.confidence + '%';
             signalType.textContent = signalData.type;
-
             alertBox.className = `alert ${signalData.color === 'green' ? 'success' : signalData.color === 'gold' ? 'gold' : 'purple'}`;
             alertBox.innerHTML = `<strong>🎯</strong> ${signalData.type} | ${signalData.reason}`;
-
             playSignalSound(signalData.soundType);
         }
 
@@ -1578,22 +632,14 @@
             const signalMultiplier = document.getElementById('signalMultiplier');
             const confidence = document.getElementById('confidence');
             const signalType = document.getElementById('signalType');
-
             signalBox.className = 'signal-box waiting';
             signalMultiplier.textContent = '--';
             confidence.textContent = '--';
             signalType.textContent = 'Esperando...';
         }
 
-        function updateConnectionStatus(text) {
-            document.getElementById('connectionStatus').textContent = text;
-        }
-
-        function showAlert(message, type) {
-            const alertBox = document.getElementById('alertBox');
-            alertBox.className = 'alert ' + type;
-            alertBox.innerHTML = message;
-        }
+        function updateConnectionStatus(text) { document.getElementById('connectionStatus').textContent = text; }
+        function showAlert(message, type) { const alertBox = document.getElementById('alertBox'); alertBox.className = 'alert ' + type; alertBox.innerHTML = message; }
 
         setInterval(async () => {
             const sessionSnapshot = await get(ref(db, 'shared_session'));
@@ -1602,22 +648,15 @@
                 if (session.active && gameHistory.length > 0) {
                     const last10 = gameHistory.slice(0, Math.min(10, gameHistory.length));
                     const avg10 = last10.reduce((sum, r) => sum + r.multiplier, 0) / last10.length;
-                    
                     document.getElementById('avgLast10').textContent = avg10.toFixed(2) + 'x';
                     document.getElementById('instalossCount').textContent = last10.filter(r => r.type === 'INSTALOSS').length;
                     document.getElementById('lowCount').textContent = last10.filter(r => r.type === 'BAJO').length;
                     document.getElementById('highCount').textContent = last10.filter(r => r.type === 'ALTO' || r.type === 'ULTRA').length;
-
                     let lowStreak = 0;
-                    for (const r of gameHistory) {
-                        if (r.type === 'BAJO' || r.type === 'INSTALOSS') lowStreak++;
-                        else break;
-                    }
+                    for (const r of gameHistory) { if (r.type === 'BAJO' || r.type === 'INSTALOSS') lowStreak++; else break; }
                     document.getElementById('lowStreak').textContent = lowStreak;
-
                     const avg5 = gameHistory.slice(0, 5).reduce((sum, r) => sum + r.multiplier, 0) / 5;
                     document.getElementById('trendIndicator').textContent = avg5 < avg10 ? '⬇️' : '⬆️';
-
                     const timeSince = Date.now() - (session.lastSignalTime || 0);
                     if (timeSince < CONFIG.SIGNAL_COOLDOWN) {
                         const remaining = Math.ceil((CONFIG.SIGNAL_COOLDOWN - timeSince) / 1000);
@@ -1630,7 +669,7 @@
         }, 1000);
 
         initChart();
-        console.log('✅ Listo');
+        console.log('✅ Sistema listo - Versión mejorada');
     </script>
 </body>
 </html>
