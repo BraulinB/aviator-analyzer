@@ -21,7 +21,6 @@
         }
         .container { max-width: 1400px; margin: 0 auto; }
         
-        /* Header */
         .header { 
             text-align: center; 
             padding: 15px; 
@@ -49,7 +48,6 @@
             margin-top: 8px;
         }
         
-        /* Panel de Señal */
         .signal-panel {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border-radius: 15px;
@@ -97,10 +95,8 @@
             border-radius: 20px; 
             margin-top: 12px; 
             font-weight: bold;
-            font-size: 0.95em;
         }
         
-        /* Grid */
         .main-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -130,7 +126,6 @@
             gap: 8px;
         }
         
-        /* Gráfico */
         .trend-container {
             background: #0f0f1e;
             border-radius: 12px;
@@ -169,7 +164,6 @@
             font-size: 0.85em;
         }
         
-        /* Crashes */
         .recent-crashes {
             display: flex;
             gap: 10px;
@@ -200,7 +194,6 @@
         
         .crash-time { font-size: 0.75em; opacity: 0.6; }
         
-        /* Historial */
         .history-list {
             max-height: 300px;
             overflow-y: auto;
@@ -231,7 +224,6 @@
         .history-item.morado { border-color: #bb86fc; }
         .history-item.dorado { border-color: #ffd700; }
         
-        /* Estadísticas */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -261,7 +253,6 @@
             opacity: 0.7;
         }
         
-        /* Botones */
         .controls {
             display: flex;
             gap: 10px;
@@ -293,7 +284,6 @@
         button:hover { transform: translateY(-2px); }
         button:active { transform: translateY(0); }
         
-        /* Footer */
         footer {
             text-align: center;
             padding: 15px;
@@ -302,7 +292,6 @@
             font-size: 0.85em;
         }
 
-        /* Audio Control */
         .audio-control {
             position: fixed;
             bottom: 20px;
@@ -331,15 +320,12 @@
             </div>
         </div>
 
-        <!-- Panel de Señal -->
         <div id="signalPanel" class="signal-panel waiting">
             <div style="font-size: 2em;">⏳</div>
             <p>Cargando datos del sistema...</p>
         </div>
 
-        <!-- Grid Principal -->
         <div class="main-grid">
-            <!-- Gráfico -->
             <div class="card">
                 <h2>📈 Análisis</h2>
                 <div id="trendContainer" class="trend-container">
@@ -356,7 +342,6 @@
                 </div>
             </div>
 
-            <!-- Historial -->
             <div class="card">
                 <h2>📊 Historial</h2>
                 <div id="historyList" class="history-list">
@@ -365,7 +350,6 @@
             </div>
         </div>
 
-        <!-- Estadísticas -->
         <div class="card">
             <h2>📈 Estadísticas</h2>
             <div class="stats-grid">
@@ -398,7 +382,6 @@
         </footer>
     </div>
 
-    <!-- Audio de Alertas -->
     <audio id="alertSound" preload="auto">
         <source src="data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAAB9AAACABAAZGF0YQIAAAAAAA==" type="audio/wav">
     </audio>
@@ -406,25 +389,20 @@
     <div class="audio-control" id="audioControl" onclick="toggleAudio()">🔊 Sonido ON</div>
 
     <script>
-        // ==========================================
-        // FIREBASE CONFIG
-        // ==========================================
+        // FIREBASE CONFIG - CORREGIDO
         const firebaseConfig = {
-            apiKey: "AIzaSyCNqZGFnDwK52o0jJOwrfNwSDZk-7hfVZc",
-            authDomain: "aviator-3e1f2.firebaseapp.com",
-            databaseURL: "https://aviator-3e1f2-default-rtdb.firebaseio.com",
-            projectId: "aviator-3e1f2",
-            storageBucket: "aviator-3e1f2.appspot.com",
-            messagingSenderId: "1034027538906",
-            appId: "1:1034027538906:web:bc2b1d8c0fe94d57ab9d8a"
+            apiKey: "AlzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
+            authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
+            projectId: "aviator-analyzer-b29a7",
+            storageBucket: "aviator-analyzer-b29a7.appspot.com",
+            messagingSenderId: "575063626276",
+            appId: "1:575063626276:web:dc0f8c2b1cf8e2f9bb4f91",
+            databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com"
         };
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // ==========================================
-        // CONFIGURACIÓN DE AUDIO
-        // ==========================================
         let audioEnabled = localStorage.getItem('audioEnabled') !== 'false';
         
         function toggleAudio() {
@@ -436,28 +414,20 @@
 
         function playAlert() {
             if (!audioEnabled) return;
-            
-            // Crear sonido de alerta
             const audioContext = new (window.AudioContext || window.webkitAudioContext)();
             const oscillator = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
-            
             oscillator.connect(gainNode);
             gainNode.connect(audioContext.destination);
-            
             oscillator.frequency.value = 800;
             oscillator.type = 'sine';
-            
             gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-            
             oscillator.start(audioContext.currentTime);
             oscillator.stop(audioContext.currentTime + 0.5);
         }
 
-        // ==========================================
-        // SISTEMA INTELIGENTE
-        // ==========================================
+        // SISTEMA
         class AviatorIntelligentSystem {
             constructor() {
                 this.historico = [];
@@ -482,7 +452,7 @@
             }
 
             escucharFirebase() {
-                // 1. CARGAR HISTÓRICO (últimos 60)
+                // Cargar histórico
                 db.ref('feeds/gocho/crashes')
                     .orderByKey()
                     .limitToLast(60)
@@ -500,24 +470,18 @@
                             this.agregarCrash(crash.valor, crash.tiempo, crash.key);
                         });
                         
-                        console.log(`✅ ${crashes.length} crashes históricos cargados`);
+                        console.log(`✅ ${crashes.length} crashes cargados`);
                         this.cargandoDatos = false;
                         this.actualizarInterfaz(this.generarSenal());
                     });
 
-                // 2. ESCUCHAR NUEVOS CRASHES
+                // Escuchar nuevos
                 db.ref('feeds/gocho/crashes')
                     .on('child_added', (snapshot) => {
                         const data = snapshot.val();
                         if (data && data.v && data.ts && !this.cargandoDatos) {
-                            // Evitar duplicados
-                            if (!this.historico.find(c => 
-                                c.valor === data.v && 
-                                Math.abs(c.tiempo - data.ts) < 1000 &&
-                                c.tiempo === data.ts
-                            )) {
+                            if (!this.historico.find(c => c.key === snapshot.key)) {
                                 this.agregarCrash(data.v, data.ts, snapshot.key);
-                                console.log(`📡 Nuevo crash: ${data.v}x`);
                             }
                         }
                     });
@@ -526,18 +490,16 @@
             }
 
             agregarCrash(multiplicador, timestamp, key) {
-                if (!this.historico.find(c => c.key === key)) {
-                    this.historico.push({
-                        valor: multiplicador,
-                        tiempo: timestamp,
-                        categoria: this.categorizar(multiplicador),
-                        key: key
-                    });
+                this.historico.push({
+                    valor: multiplicador,
+                    tiempo: timestamp,
+                    categoria: this.categorizar(multiplicador),
+                    key: key
+                });
 
-                    if (this.historico.length > 60) this.historico.shift();
-                    this.rondasDesdeSenal++;
-                    this.analizarYActualizar();
-                }
+                if (this.historico.length > 60) this.historico.shift();
+                this.rondasDesdeSenal++;
+                this.analizarYActualizar();
             }
 
             categorizar(mult) {
@@ -574,20 +536,20 @@
 
             analizarTendencia() {
                 if (this.historico.length < 15) {
-                    return { estado: 'ESPERANDO', color: 'gris', mensaje: 'Recopilando datos...', emoji: '⏳' };
+                    return { estado: 'ESPERANDO', color: 'gris', mensaje: 'Recopilando...', emoji: '⏳' };
                 }
 
                 if (this.detectarZonaPeligrosa()) {
                     return {
-                        estado: 'PELIGROSA', color: 'rojo', mensaje: 'Tendencia inestable',
-                        emoji: '⚠️', bloquear: true, detalle: 'Racha de crashes bajos'
+                        estado: 'PELIGROSA', color: 'rojo', mensaje: 'Inestable',
+                        emoji: '⚠️', bloquear: true, detalle: 'Crashes bajos'
                     };
                 }
 
                 if (this.detectarRachaCaliente()) {
                     return {
                         estado: 'CALIENTE', color: 'verde', mensaje: 'RACHA CALIENTE 🔥',
-                        emoji: '🔥', bloquear: false, favorabilidad: 'MUY_ALTA', detalle: 'Momento óptimo'
+                        emoji: '🔥', bloquear: false, favorabilidad: 'MUY_ALTA', detalle: 'Óptimo'
                     };
                 }
 
@@ -597,13 +559,13 @@
 
                 if (morados >= 8 && azules <= 2) {
                     return {
-                        estado: 'ESTABLE', color: 'verde', mensaje: 'Tendencia estable',
-                        emoji: '🟡', bloquear: false, favorabilidad: 'ALTA', detalle: 'Zona favorable'
+                        estado: 'ESTABLE', color: 'verde', mensaje: 'Estable',
+                        emoji: '🟡', bloquear: false, favorabilidad: 'ALTA', detalle: 'Favorable'
                     };
                 }
 
                 return {
-                    estado: 'NEUTRAL', color: 'amarillo', mensaje: 'Tendencia neutral',
+                    estado: 'NEUTRAL', color: 'amarillo', mensaje: 'Neutral',
                     emoji: '⚪', bloquear: false, favorabilidad: 'MEDIA', detalle: 'Observando'
                 };
             }
@@ -671,7 +633,6 @@
                 if (this.modoActual === 'RACHA_CALIENTE') this.senalesEnRacha++;
                 this.senales.push(senal);
 
-                // REPRODUCIR ALERTA
                 playAlert();
 
                 return senal;
@@ -777,7 +738,7 @@
                 }
 
                 container.innerHTML = ultimos3.map(crash => {
-                    const hora = new Date(crash.tiempo).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' });
+                    const hora = new Date(crash.tiempo).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
                     return `
                         <div class="crash-box">
                             <div class="crash-value ${crash.categoria}">${crash.valor.toFixed(2)}x</div>
@@ -798,7 +759,7 @@
 
                 lista.innerHTML = ultimos15.map((crash, index) => {
                     const numero = this.historico.length - index;
-                    const hora = new Date(crash.tiempo).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' });
+                    const hora = new Date(crash.tiempo).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
                     
                     return `
                         <div class="history-item ${crash.categoria}">
@@ -822,12 +783,11 @@
             }
         }
 
-        // INICIAR
         const sistema = new AviatorIntelligentSystem();
         if (audioEnabled) document.getElementById('audioControl').classList.remove('disabled');
         else document.getElementById('audioControl').classList.add('disabled');
 
-        console.log('🚀 Sistema Aviator Inteligente iniciado');
+        console.log('🚀 Sistema iniciado correctamente');
     </script>
 </body>
 </html>
