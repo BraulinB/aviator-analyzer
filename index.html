@@ -18,17 +18,17 @@
             padding: 10px; 
             overflow-x: hidden;
         }
-        .container { max-width: 1400px; margin: 0 auto; }
+        .container { max-width: 100%; margin: 0 auto; }
         
         .header { 
             text-align: center; 
-            padding: 12px; 
+            padding: 10px; 
             background: rgba(255, 255, 255, 0.08); 
-            border-radius: 12px; 
-            margin-bottom: 12px; 
+            border-radius: 10px; 
+            margin-bottom: 10px; 
         }
         .header h1 { 
-            font-size: 1.6em; 
+            font-size: 1.5em; 
             margin-bottom: 3px; 
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
             -webkit-background-clip: text; 
@@ -37,48 +37,50 @@
         .sync-badge { 
             display: inline-flex; 
             align-items: center; 
-            gap: 6px; 
+            gap: 5px; 
             background: rgba(0, 255, 0, 0.2); 
-            padding: 4px 12px; 
-            border-radius: 20px; 
-            font-size: 0.8em; 
+            padding: 3px 10px; 
+            border-radius: 15px; 
+            font-size: 0.75em; 
         }
 
-        /* SECTION 1: CRASHES HISTORIAL (ARRIBA) */
+        /* HISTORIAL DE RONDAS - ANCHO COMPLETO */
         .crashes-section {
             background: rgba(255, 255, 255, 0.06);
-            border-radius: 12px;
+            border-radius: 10px;
             padding: 10px;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
 
         .crashes-section h3 {
-            font-size: 0.85em;
-            margin-bottom: 8px;
+            font-size: 0.8em;
+            margin-bottom: 6px;
             opacity: 0.8;
         }
 
         .crashes-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
+            display: grid;
+            grid-template-rows: repeat(4, auto);
+            gap: 3px;
         }
 
         .crashes-row {
             display: flex;
-            gap: 4px;
-            flex-wrap: wrap;
+            gap: 3px;
+            flex-wrap: nowrap;
+            justify-content: flex-start;
         }
 
         .crash-item {
-            padding: 4px 8px;
+            padding: 3px 6px;
             border-radius: 4px;
-            font-size: 0.7em;
+            font-size: 0.65em;
             font-weight: bold;
             border: 1px solid rgba(255, 255, 255, 0.2);
-            min-width: 45px;
+            min-width: 42px;
             text-align: center;
+            flex-shrink: 0;
         }
 
         .crash-item.azul { 
@@ -102,31 +104,31 @@
             color: #ff1493;
         }
 
-        /* SECTION 2: SIGNAL + STATS + TREND */
-        .main-section {
+        /* MAIN GRID */
+        .main-grid {
             display: grid;
             grid-template-columns: 2fr 1fr;
-            gap: 12px;
-            margin-bottom: 12px;
+            gap: 10px;
+            margin-bottom: 10px;
         }
 
         /* SIGNAL PANEL */
         .signal-container {
             background: rgba(255, 255, 255, 0.06);
-            border-radius: 12px;
-            padding: 12px;
+            border-radius: 10px;
+            padding: 10px;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .signal-panel {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border-radius: 10px;
-            padding: 16px;
+            padding: 15px;
             text-align: center;
-            margin-bottom: 10px;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+            margin-bottom: 8px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
             border: 2px solid rgba(255, 255, 255, 0.2);
-            min-height: 100px;
+            min-height: 90px;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -138,8 +140,8 @@
         }
         
         @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 25px rgba(255, 0, 0, 0.6); }
-            50% { box-shadow: 0 0 50px rgba(255, 0, 0, 0.9); }
+            0%, 100% { box-shadow: 0 0 20px rgba(255, 0, 0, 0.6); }
+            50% { box-shadow: 0 0 40px rgba(255, 0, 0, 0.9); }
         }
         
         .signal-panel.hot {
@@ -148,81 +150,76 @@
         }
         
         @keyframes glow {
-            0%, 100% { box-shadow: 0 0 25px rgba(0, 255, 136, 0.6); }
-            50% { box-shadow: 0 0 50px rgba(0, 255, 136, 0.9); }
+            0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 136, 0.6); }
+            50% { box-shadow: 0 0 40px rgba(0, 255, 136, 0.9); }
         }
         
-        .signal-status { font-size: 0.95em; opacity: 0.95; margin-bottom: 4px; }
-        .signal-value { font-size: 2em; font-weight: bold; margin: 8px 0; }
+        .signal-status { font-size: 0.85em; opacity: 0.95; margin-bottom: 3px; }
+        .signal-value { font-size: 1.8em; font-weight: bold; margin: 6px 0; }
         .signal-enter { 
-            font-size: 0.85em; 
+            font-size: 0.75em; 
             background: rgba(0, 0, 0, 0.3); 
-            padding: 6px 10px; 
-            border-radius: 8px;
-            margin: 8px 0;
+            padding: 4px 8px; 
+            border-radius: 6px;
+            margin: 5px 0;
         }
-        .signal-confidence { font-size: 0.85em; opacity: 0.85; margin-bottom: 6px; }
+        .signal-confidence { font-size: 0.75em; opacity: 0.85; margin-bottom: 4px; }
         .signal-mode { 
             display: inline-block; 
-            padding: 5px 14px; 
+            padding: 4px 12px; 
             background: rgba(0, 0, 0, 0.3); 
-            border-radius: 15px; 
+            border-radius: 12px; 
             font-weight: bold;
-            font-size: 0.8em;
+            font-size: 0.7em;
         }
 
         /* EXPLICACIÓN */
         .signal-explanation {
             background: rgba(0, 0, 0, 0.3);
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 0.8em;
-            line-height: 1.4;
-            margin-top: 10px;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 0.7em;
+            line-height: 1.3;
+            margin-top: 8px;
         }
 
-        .signal-explanation strong {
-            color: #667eea;
-        }
-
-        /* TRENDING GRAPH */
+        /* TREND + STATS */
         .trend-section {
             background: rgba(255, 255, 255, 0.06);
-            border-radius: 12px;
-            padding: 10px;
+            border-radius: 10px;
+            padding: 8px;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .trend-section h3 {
-            font-size: 0.85em;
-            margin-bottom: 8px;
+            font-size: 0.75em;
+            margin-bottom: 6px;
             opacity: 0.8;
         }
 
         #trendChart {
             width: 100%;
-            height: 150px;
+            height: 120px;
             display: block;
         }
 
-        /* MINI STATS */
         .mini-stats {
             display: grid;
             grid-template-columns: 1fr;
-            gap: 8px;
-            margin-top: 10px;
+            gap: 6px;
+            margin-top: 8px;
         }
 
         .mini-stat {
             background: rgba(255, 255, 255, 0.05);
-            padding: 8px;
-            border-radius: 6px;
+            padding: 6px;
+            border-radius: 5px;
             text-align: center;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .mini-stat .value {
-            font-size: 1.3em;
+            font-size: 1.2em;
             font-weight: bold;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             -webkit-background-clip: text;
@@ -230,31 +227,31 @@
         }
 
         .mini-stat .label {
-            font-size: 0.7em;
+            font-size: 0.65em;
             opacity: 0.6;
-            margin-top: 2px;
+            margin-top: 1px;
         }
 
-        /* SECTION 3: HISTORIAL DE SEÑALES */
+        /* HISTORIAL DE SEÑALES */
         .signals-section {
             background: rgba(255, 255, 255, 0.06);
-            border-radius: 12px;
-            padding: 12px;
+            border-radius: 10px;
+            padding: 10px;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .signals-section h2 {
-            font-size: 1.1em;
-            margin-bottom: 10px;
+            font-size: 1em;
+            margin-bottom: 8px;
         }
 
         .signals-history {
-            max-height: 350px;
+            max-height: 300px;
             overflow-y: auto;
-            padding-right: 6px;
+            padding-right: 5px;
         }
         
-        .signals-history::-webkit-scrollbar { width: 6px; }
+        .signals-history::-webkit-scrollbar { width: 5px; }
         .signals-history::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); }
         .signals-history::-webkit-scrollbar-thumb { 
             background: rgba(255, 255, 255, 0.2); 
@@ -262,12 +259,12 @@
         }
         
         .signal-record {
-            padding: 10px;
-            margin: 6px 0;
+            padding: 8px;
+            margin: 5px 0;
             background: #1a1a2e;
-            border-radius: 8px;
+            border-radius: 6px;
             border-left: 3px solid #667eea;
-            font-size: 0.8em;
+            font-size: 0.75em;
         }
         
         .signal-record.ganada {
@@ -284,16 +281,16 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 4px;
+            margin-bottom: 3px;
         }
 
         .signal-record-result {
-            padding: 3px 8px;
-            border-radius: 4px;
+            padding: 2px 6px;
+            border-radius: 3px;
             font-weight: bold;
-            min-width: 55px;
+            min-width: 50px;
             text-align: center;
-            font-size: 0.75em;
+            font-size: 0.7em;
         }
         
         .signal-record-result.ganada {
@@ -312,27 +309,27 @@
         }
 
         .signal-details {
-            font-size: 0.75em;
+            font-size: 0.7em;
             opacity: 0.7;
-            margin-top: 4px;
+            margin-top: 3px;
         }
 
         @media (max-width: 1024px) {
-            .main-section { grid-template-columns: 1fr; }
+            .main-grid { grid-template-columns: 1fr; }
         }
 
         .controls {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             flex-wrap: wrap;
-            margin-top: 10px;
+            margin-top: 8px;
         }
         
         button {
-            padding: 8px 16px;
+            padding: 6px 12px;
             border: none;
-            border-radius: 6px;
-            font-size: 0.85em;
+            border-radius: 5px;
+            font-size: 0.75em;
             cursor: pointer;
             transition: all 0.3s;
             font-weight: bold;
@@ -353,22 +350,22 @@
         
         footer {
             text-align: center;
-            padding: 12px;
-            margin-top: 15px;
+            padding: 10px;
+            margin-top: 10px;
             opacity: 0.5;
-            font-size: 0.8em;
+            font-size: 0.7em;
         }
 
         .audio-control {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
+            bottom: 15px;
+            right: 15px;
             background: rgba(102, 126, 234, 0.9);
-            padding: 8px 12px;
-            border-radius: 50px;
+            padding: 6px 10px;
+            border-radius: 40px;
             cursor: pointer;
             z-index: 999;
-            font-size: 0.85em;
+            font-size: 0.75em;
             border: 2px solid rgba(255, 255, 255, 0.3);
         }
     </style>
@@ -382,24 +379,21 @@
             </div>
         </div>
 
-        <!-- SECCIÓN 1: HISTORIAL DE RONDAS ARRIBA -->
+        <!-- HISTORIAL DE RONDAS -->
         <div class="crashes-section">
-            <h3>📊 Últimas 60 Rondas</h3>
+            <h3>📊 Últimas 60 Rondas (más reciente arriba-izquierda)</h3>
             <div id="crashesDisplay" class="crashes-grid"></div>
         </div>
 
-        <!-- SECCIÓN 2: SIGNAL + TREND CHART -->
-        <div class="main-section">
-            <!-- SIGNAL PANEL -->
+        <!-- SIGNAL + TREND -->
+        <div class="main-grid">
             <div class="signal-container">
                 <div id="signalPanel" class="signal-panel waiting">
-                    <div style="font-size: 1.3em;">⏳</div>
+                    <div style="font-size: 1.2em;">⏳</div>
                     <p>Cargando...</p>
                 </div>
 
-                <div class="signal-explanation" id="signalExplanation" style="display: none;">
-                    <!-- Se llena dinámicamente -->
-                </div>
+                <div class="signal-explanation" id="signalExplanation" style="display: none;"></div>
 
                 <div class="controls">
                     <button class="primary" onclick="location.reload()">🔄 Reiniciar</button>
@@ -407,7 +401,6 @@
                 </div>
             </div>
 
-            <!-- TREND CHART -->
             <div class="trend-section">
                 <h3>📈 Tendencia</h3>
                 <canvas id="trendChart"></canvas>
@@ -433,16 +426,16 @@
             </div>
         </div>
 
-        <!-- SECCIÓN 3: HISTORIAL DE SEÑALES -->
+        <!-- HISTORIAL DE SEÑALES -->
         <div class="signals-section">
             <h2>🎯 Historial de Señales</h2>
             <div id="signalsHistory" class="signals-history">
-                <p style="opacity: 0.5; text-align: center; padding: 20px;">Sin señales aún...</p>
+                <p style="opacity: 0.5; text-align: center; padding: 15px;">Sin señales aún...</p>
             </div>
         </div>
 
         <footer>
-            <p>Aviator Analyzer Pro v5.0</p>
+            <p>Aviator Analyzer Pro v6.0 FINAL</p>
         </footer>
     </div>
 
@@ -492,7 +485,7 @@
                 this.modoActual = 'NORMAL';
                 this.senalesEnRacha = 0;
                 this.cargandoDatos = true;
-                this.ultimaSenal = null;
+                this.contadorRondas = 0; // CONTADOR REAL
                 
                 this.config = {
                     rachaCaliente: { minimoMorados: 6, ventana: 8, intervalMin: 2, maxSenales: 5, confianzaMin: 75 },
@@ -521,8 +514,12 @@
                         });
                         
                         crashes.sort((a, b) => a.tiempo - b.tiempo);
-                        crashes.forEach(crash => {
-                            this.agregarCrash(crash.valor, crash.tiempo, crash.key);
+                        
+                        // Inicializar contador
+                        this.contadorRondas = crashes.length;
+                        
+                        crashes.forEach((crash, idx) => {
+                            this.agregarCrash(crash.valor, crash.tiempo, crash.key, idx + 1);
                         });
                         
                         this.cargandoDatos = false;
@@ -534,7 +531,8 @@
                         const data = snapshot.val();
                         if (data && data.v && data.ts && !this.cargandoDatos) {
                             if (!this.historico.find(c => c.key === snapshot.key)) {
-                                this.agregarCrash(data.v, data.ts, snapshot.key);
+                                this.contadorRondas++;
+                                this.agregarCrash(data.v, data.ts, snapshot.key, this.contadorRondas);
                             }
                         }
                     });
@@ -542,19 +540,20 @@
                 document.getElementById('syncStatus').innerHTML = '✅ Conectado';
             }
 
-            agregarCrash(multiplicador, timestamp, key) {
+            agregarCrash(multiplicador, timestamp, key, numeroRonda) {
                 this.historico.push({
                     valor: multiplicador,
                     tiempo: timestamp,
                     categoria: this.categorizar(multiplicador),
                     key: key,
-                    numero: this.historico.length + 1
+                    numero: numeroRonda
                 });
 
                 if (this.historico.length > 60) this.historico.shift();
                 this.rondasDesdeSenal++;
                 
-                this.verificarYMarcarSenales(multiplicador);
+                // VERIFICAR SEÑALES PENDIENTES INMEDIATAMENTE
+                this.verificarSenalesPendientes(multiplicador, numeroRonda);
                 this.actualizarInterfaz();
             }
 
@@ -565,21 +564,27 @@
                 return 'fucsia';
             }
 
-            verificarYMarcarSenales(multiplicador) {
-                for (let i = this.senales.length - 1; i >= 0; i--) {
-                    const senal = this.senales[i];
-                    
-                    if (senal.resultado && senal.resultado !== 'PENDIENTE') continue;
-                    
-                    const rangoMin = parseFloat(senal.rango.min);
-                    const rangoMax = parseFloat(senal.rango.max);
-                    
-                    if (multiplicador >= rangoMin && multiplicador <= rangoMax) {
-                        senal.resultado = 'GANADA';
-                        senal.resultadoReal = multiplicador.toFixed(2);
-                        break;
+            verificarSenalesPendientes(multiplicador, numeroRonda) {
+                // MARCAR TODAS LAS SEÑALES PENDIENTES
+                this.senales.forEach(senal => {
+                    if (senal.resultado === 'PENDIENTE') {
+                        const rangoMin = parseFloat(senal.rango.min);
+                        const rangoMax = parseFloat(senal.rango.max);
+                        
+                        // Solo verificar la PRIMERA ronda después de la señal
+                        if (numeroRonda === senal.proximaRonda) {
+                            if (multiplicador >= rangoMin && multiplicador <= rangoMax) {
+                                senal.resultado = 'GANADA';
+                                senal.resultadoReal = multiplicador.toFixed(2);
+                                console.log(`✅ Señal ${senal.numero} GANADA: ${multiplicador}x en ronda ${numeroRonda}`);
+                            } else {
+                                senal.resultado = 'PERDIDA';
+                                senal.resultadoReal = multiplicador.toFixed(2);
+                                console.log(`❌ Señal ${senal.numero} PERDIDA: ${multiplicador}x en ronda ${numeroRonda}`);
+                            }
+                        }
                     }
-                }
+                });
             }
 
             detectarRachaCaliente() {
@@ -605,11 +610,11 @@
                 }
 
                 if (this.detectarZonaPeligrosa()) {
-                    return { estado: 'PELIGROSA', emoji: '⚠️', bloquear: true, razon: 'Racha de crashes bajos detectada' };
+                    return { estado: 'PELIGROSA', emoji: '⚠️', bloquear: true, razon: 'Racha de crashes bajos detectada (4+ azules)' };
                 }
 
                 if (this.detectarRachaCaliente()) {
-                    return { estado: 'CALIENTE', emoji: '🔥', favorabilidad: 'MUY_ALTA', razon: 'Tendencia de multiplicadores altos confirmada' };
+                    return { estado: 'CALIENTE', emoji: '🔥', favorabilidad: 'MUY_ALTA', razon: '6+ multiplicadores altos en últimas 8 rondas' };
                 }
 
                 const ultimos15 = this.historico.slice(-15);
@@ -617,7 +622,7 @@
                 const azules = ultimos15.filter(c => c.categoria === 'azul').length;
 
                 if (altos >= 8 && azules <= 2) {
-                    return { estado: 'ESTABLE', emoji: '🟡', favorabilidad: 'ALTA', razon: 'Zona favorable detectada' };
+                    return { estado: 'ESTABLE', emoji: '🟡', favorabilidad: 'ALTA', razon: 'Zona favorable: 8+ altos, pocos bajos' };
                 }
 
                 return { estado: 'NEUTRAL', emoji: '⚪', favorabilidad: 'MEDIA', razon: 'Mercado en equilibrio' };
@@ -637,7 +642,7 @@
                 if (tendencia.estado === 'CALIENTE') {
                     this.modoActual = 'RACHA_CALIENTE';
                     if (this.senalesEnRacha >= 5) {
-                        return { tipo: 'ESPERANDO', tendencia, msg: '⏸️ Límite' };
+                        return { tipo: 'ESPERANDO', tendencia, msg: `⏸️ Límite (${this.rondasDesdeSenal}/${intervalRequerido})` };
                     }
                 } else {
                     this.modoActual = 'NORMAL';
@@ -668,20 +673,23 @@
                 }
 
                 if (confianza < confianzaMin) {
-                    return { tipo: 'ESPERANDO', tendencia, msg: '⏳ Confianza baja' };
+                    return { tipo: 'ESPERANDO', tendencia, msg: `⏳ Baja confianza (${this.rondasDesdeSenal}/${intervalRequerido})` };
                 }
 
                 const ultimoMultiplicador = this.historico[this.historico.length - 1].valor.toFixed(2);
-                const proximaRonda = this.historico.length + 1;
+                const numeroRondaActual = this.historico[this.historico.length - 1].numero;
+                const proximaRonda = numeroRondaActual + 1;
 
                 const senal = {
+                    numero: this.senales.length + 1,
                     tipo: 'ACTIVA', 
                     tendencia,
                     rango: { min: rangoMin.toFixed(2), max: rangoMax.toFixed(2) },
                     confianza, 
                     modo: this.modoActual,
                     ultimoMultiplicador,
-                    proximaRonda,
+                    rondaActual: numeroRondaActual,
+                    proximaRonda: proximaRonda,
                     resultado: 'PENDIENTE',
                     resultadoReal: null
                 };
@@ -689,8 +697,9 @@
                 this.rondasDesdeSenal = 0;
                 if (this.modoActual === 'RACHA_CALIENTE') this.senalesEnRacha++;
                 this.senales.push(senal);
-                this.ultimaSenal = senal;
                 playAlert();
+
+                console.log(`📣 Nueva señal #${senal.numero}: Entrar en ronda ${proximaRonda} (después de ${ultimoMultiplicador}x)`);
 
                 return senal;
             }
@@ -713,21 +722,21 @@
                     panel.innerHTML = `
                         <div class="signal-status">${senal.tendencia.emoji} ✅ SEÑAL ACTIVA</div>
                         <div class="signal-value">${senal.rango.min}x - ${senal.rango.max}x</div>
-                        <div class="signal-enter">🎬 Entrar luego de <strong>${senal.ultimoMultiplicador}x</strong></div>
+                        <div class="signal-enter">🎬 Entrar en RONDA #${senal.proximaRonda} (después de <strong>${senal.ultimoMultiplicador}x</strong>)</div>
                         <div class="signal-confidence">Confianza: ${senal.confianza}%</div>
                         <div class="signal-mode">🎯 ${senal.modo}</div>
                     `;
                     explanation.innerHTML = `
                         <strong>💡 Por qué:</strong> ${senal.tendencia.razon}<br>
-                        <strong>📍 Entrada:</strong> Ronda #${senal.proximaRonda}<br>
-                        <strong>📊 Análisis:</strong> Media de últimas 20 rondas usado para calcular rango
+                        <strong>📍 Entrada:</strong> Próxima ronda después de ${senal.ultimoMultiplicador}x<br>
+                        <strong>📊 Análisis:</strong> Media últimas 20 rondas usado para calcular rango
                     `;
                     explanation.style.display = 'block';
                 } else if (senal.tipo === 'BLOQUEADO') {
                     panel.className = 'signal-panel blocked';
                     panel.innerHTML = `
-                        <div class="signal-status">${senal.tendencia.emoji} PELIGROSA</div>
-                        <div class="signal-value" style="font-size: 1.5em;">🚫 BLOQUEADO</div>
+                        <div class="signal-status">${senal.tendencia.emoji} ZONA PELIGROSA</div>
+                        <div class="signal-value" style="font-size: 1.3em;">🚫 BLOQUEADO</div>
                     `;
                     explanation.innerHTML = `<strong>⚠️ Razón:</strong> ${senal.tendencia.razon}`;
                     explanation.style.display = 'block';
@@ -735,7 +744,7 @@
                     panel.className = 'signal-panel waiting';
                     panel.innerHTML = `
                         <div class="signal-status">${senal.tendencia.emoji} ESPERANDO</div>
-                        <div class="signal-value" style="font-size: 1.8em;">${senal.msg}</div>
+                        <div class="signal-value" style="font-size: 1.5em;">${senal.msg}</div>
                     `;
                     explanation.innerHTML = `<strong>⏳ Razón:</strong> ${senal.tendencia.razon}`;
                     explanation.style.display = 'block';
@@ -751,21 +760,24 @@
                     return;
                 }
 
-                let html = '';
-                let fila = [];
+                // INVERTIR PARA QUE EL ÚLTIMO ESTÉ ARRIBA-IZQUIERDA
+                const crashesReversed = [...ultimos60].reverse();
                 
-                ultimos60.forEach(crash => {
-                    fila.push(`<div class="crash-item ${crash.categoria}">${crash.valor.toFixed(2)}</div>`);
-                    
-                    if (fila.length === 15) {
-                        html += `<div class="crashes-row">${fila.join('')}</div>`;
-                        fila = [];
+                let html = '';
+                let filas = [[], [], [], []]; // 4 filas
+                
+                crashesReversed.forEach((crash, idx) => {
+                    const filaIdx = Math.floor(idx / 15);
+                    if (filaIdx < 4) {
+                        filas[filaIdx].push(`<div class="crash-item ${crash.categoria}">${crash.valor.toFixed(2)}</div>`);
                     }
                 });
                 
-                if (fila.length > 0) {
-                    html += `<div class="crashes-row">${fila.join('')}</div>`;
-                }
+                filas.forEach(fila => {
+                    if (fila.length > 0) {
+                        html += `<div class="crashes-row">${fila.join('')}</div>`;
+                    }
+                });
                 
                 container.innerHTML = html;
             }
@@ -774,7 +786,7 @@
                 const canvas = document.getElementById('trendChart');
                 const ctx = canvas.getContext('2d');
                 canvas.width = canvas.offsetWidth;
-                canvas.height = 150;
+                canvas.height = 120;
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
                 if (this.historico.length < 2) return;
@@ -817,7 +829,7 @@
                     return;
                 }
 
-                container.innerHTML = senalesOrdenadas.map((senal, idx) => {
+                container.innerHTML = senalesOrdenadas.map(senal => {
                     const resultado = senal.resultado;
                     const clase = resultado === 'GANADA' ? 'ganada' : resultado === 'PENDIENTE' ? 'pendiente' : 'perdida';
                     const text = resultado === 'GANADA' ? '✅ GANADA' : resultado === 'PENDIENTE' ? '⏳ PENDIENTE' : '❌ PERDIDA';
@@ -825,13 +837,13 @@
                     return `
                         <div class="signal-record ${clase}">
                             <div class="signal-record-line">
-                                <strong>Señal #${this.senales.length - idx}</strong>
+                                <strong>Señal #${senal.numero}</strong>
                                 <div class="signal-record-result ${clase}">${text}</div>
                             </div>
                             <div class="signal-details">
                                 🎬 Entrada: Ronda #${senal.proximaRonda} (después de ${senal.ultimoMultiplicador}x)<br>
                                 🎯 Rango: ${senal.rango.min}x - ${senal.rango.max}x (${senal.confianza}%)
-                                ${senal.resultadoReal ? `<br>📊 Real: ${senal.resultadoReal}x` : ''}
+                                ${senal.resultadoReal ? `<br>📊 Resultado: ${senal.resultadoReal}x` : ''}
                             </div>
                         </div>
                     `;
@@ -843,7 +855,7 @@
                 const ganadas = this.senales.filter(s => s.resultado === 'GANADA').length;
                 const winRate = total > 0 ? Math.round((ganadas / total) * 100) : 0;
 
-                document.getElementById('statRounds').textContent = this.historico.length;
+                document.getElementById('statRounds').textContent = this.contadorRondas;
                 document.getElementById('statSignals').textContent = total;
                 document.getElementById('statWon').textContent = ganadas;
                 document.getElementById('statWinRate').textContent = `${winRate}%`;
