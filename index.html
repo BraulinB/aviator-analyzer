@@ -44,13 +44,14 @@
             font-size: 0.75em; 
         }
 
-        /* HISTORIAL DE RONDAS - ANCHO COMPLETO */
+        /* HISTORIAL DE RONDAS */
         .crashes-section {
             background: rgba(255, 255, 255, 0.06);
             border-radius: 10px;
             padding: 10px;
             border: 1px solid rgba(255, 255, 255, 0.1);
             margin-bottom: 10px;
+            min-height: 100px;
         }
 
         .crashes-section h3 {
@@ -112,7 +113,6 @@
             margin-bottom: 10px;
         }
 
-        /* SIGNAL PANEL */
         .signal-container {
             background: rgba(255, 255, 255, 0.06);
             border-radius: 10px;
@@ -173,7 +173,6 @@
             font-size: 0.7em;
         }
 
-        /* EXPLICACIÓN */
         .signal-explanation {
             background: rgba(0, 0, 0, 0.3);
             padding: 8px;
@@ -183,7 +182,6 @@
             margin-top: 8px;
         }
 
-        /* TREND + STATS */
         .trend-section {
             background: rgba(255, 255, 255, 0.06);
             border-radius: 10px;
@@ -232,7 +230,6 @@
             margin-top: 1px;
         }
 
-        /* HISTORIAL DE SEÑALES */
         .signals-section {
             background: rgba(255, 255, 255, 0.06);
             border-radius: 10px;
@@ -379,18 +376,16 @@
             </div>
         </div>
 
-        <!-- HISTORIAL DE RONDAS -->
         <div class="crashes-section">
             <h3>📊 Últimas 60 Rondas (más reciente arriba-izquierda)</h3>
             <div id="crashesDisplay" class="crashes-grid"></div>
         </div>
 
-        <!-- SIGNAL + TREND -->
         <div class="main-grid">
             <div class="signal-container">
                 <div id="signalPanel" class="signal-panel waiting">
                     <div style="font-size: 1.2em;">⏳</div>
-                    <p>Cargando...</p>
+                    <p>Esperando datos...</p>
                 </div>
 
                 <div class="signal-explanation" id="signalExplanation" style="display: none;"></div>
@@ -426,7 +421,6 @@
             </div>
         </div>
 
-        <!-- HISTORIAL DE SEÑALES -->
         <div class="signals-section">
             <h2>🎯 Historial de Señales</h2>
             <div id="signalsHistory" class="signals-history">
@@ -435,7 +429,7 @@
         </div>
 
         <footer>
-            <p>Aviator Analyzer Pro v6.0 FINAL</p>
+            <p>Aviator Analyzer Pro v7.0 FINAL</p>
         </footer>
     </div>
 
@@ -484,8 +478,9 @@
                 this.rondasDesdeSenal = 0;
                 this.modoActual = 'NORMAL';
                 this.senalesEnRacha = 0;
-                this.cargandoDatos = true;
-                this.contadorRondas = 0; // CONTADOR REAL
+                this.contadorRondas = 0;
+                this.sistemaIniciado = false;
+                this.senalesParaVerificar = [];
                 
                 this.config = {
                     rachaCaliente: { minimoMorados: 6, ventana: 8, intervalMin: 2, maxSenales: 5, confianzaMin: 75 },
@@ -501,43 +496,39 @@
             }
 
             escucharFirebase() {
+                // Solo escuchar NUEVOS datos desde ahora
                 db.ref('feeds/gocho/crashes')
                     .orderByKey()
-                    .limitToLast(60)
+                    .limitToLast(1)
                     .once('value', (snapshot) => {
-                        const crashes = [];
-                        snapshot.forEach((child) => {
-                            const data = child.val();
-                            if (data && data.v && data.ts) {
-                                crashes.push({ valor: data.v, tiempo: data.ts, key: child.key });
-                            }
-                        });
-                        
-                        crashes.sort((a, b) => a.tiempo - b.tiempo);
-                        
-                        // Inicializar contador
-                        this.contadorRondas = crashes.length;
-                        
-                        crashes.forEach((crash, idx) => {
-                            this.agregarCrash(crash.valor, crash.tiempo, crash.key, idx + 1);
-                        });
-                        
-                        this.cargandoDatos = false;
-                        this.actualizarInterfaz();
-                    });
-
-                db.ref('feeds/gocho/crashes')
-                    .on('child_added', (snapshot) => {
-                        const data = snapshot.val();
-                        if (data && data.v && data.ts && !this.cargandoDatos) {
-                            if (!this.historico.find(c => c.key === snapshot.key)) {
-                                this.contadorRondas++;
-                                this.agregarCrash(data.v, data.ts, snapshot.key, this.contadorRondas);
-                            }
+                        // Obtener el último número para inicializar contador
+                        if (snapshot.exists()) {
+                            const entries = [];
+                            snapshot.forEach(child => {
+                                entries.push(child);
+                            });
+                            this.contadorRondas = entries.length;
                         }
+                        this.sistemaIniciado = true;
+                        document.getElementById('syncStatus').innerHTML = '✅ Conectado (Sin datos previos)';
                     });
 
-                document.getElementById('syncStatus').innerHTML = '✅ Conectado';
+                // Escuchar SOLO nuevos crashes
+                let primeraVez = true;
+                db.ref('feeds/gocho/crashes').on('child_added', (snapshot) => {
+                    const data = snapshot.val();
+                    if (data && data.v && data.ts) {
+                        if (primeraVez) {
+                            primeraVez = false;
+                            return; // Ignorar el primero que ya contamos
+                        }
+
+                        if (this.sistemaIniciado) {
+                            this.contadorRondas++;
+                            this.agregarCrash(data.v, data.ts, snapshot.key, this.contadorRondas);
+                        }
+                    }
+                });
             }
 
             agregarCrash(multiplicador, timestamp, key, numeroRonda) {
@@ -552,8 +543,8 @@
                 if (this.historico.length > 60) this.historico.shift();
                 this.rondasDesdeSenal++;
                 
-                // VERIFICAR SEÑALES PENDIENTES INMEDIATAMENTE
-                this.verificarSenalesPendientes(multiplicador, numeroRonda);
+                // VERIFICAR SEÑAL PENDIENTE - SOLO LA PRIMERA RONDA
+                this.verificarSenalPendiente(multiplicador, numeroRonda);
                 this.actualizarInterfaz();
             }
 
@@ -564,27 +555,27 @@
                 return 'fucsia';
             }
 
-            verificarSenalesPendientes(multiplicador, numeroRonda) {
-                // MARCAR TODAS LAS SEÑALES PENDIENTES
-                this.senales.forEach(senal => {
-                    if (senal.resultado === 'PENDIENTE') {
-                        const rangoMin = parseFloat(senal.rango.min);
-                        const rangoMax = parseFloat(senal.rango.max);
-                        
-                        // Solo verificar la PRIMERA ronda después de la señal
-                        if (numeroRonda === senal.proximaRonda) {
-                            if (multiplicador >= rangoMin && multiplicador <= rangoMax) {
-                                senal.resultado = 'GANADA';
-                                senal.resultadoReal = multiplicador.toFixed(2);
-                                console.log(`✅ Señal ${senal.numero} GANADA: ${multiplicador}x en ronda ${numeroRonda}`);
-                            } else {
-                                senal.resultado = 'PERDIDA';
-                                senal.resultadoReal = multiplicador.toFixed(2);
-                                console.log(`❌ Señal ${senal.numero} PERDIDA: ${multiplicador}x en ronda ${numeroRonda}`);
-                            }
-                        }
+            verificarSenalPendiente(multiplicador, numeroRonda) {
+                // Buscar si hay una señal esperando resultado en ESTA ronda
+                const senalPendiente = this.senalesParaVerificar.find(s => s.proximaRonda === numeroRonda);
+                
+                if (senalPendiente) {
+                    const rangoMin = parseFloat(senalPendiente.rango.min);
+                    const rangoMax = parseFloat(senalPendiente.rango.max);
+                    
+                    if (multiplicador >= rangoMin && multiplicador <= rangoMax) {
+                        senalPendiente.resultado = 'GANADA';
+                        senalPendiente.resultadoReal = multiplicador.toFixed(2);
+                        console.log(`✅ Señal ${senalPendiente.numero} GANADA: ${multiplicador}x está en rango ${rangoMin}-${rangoMax}`);
+                    } else {
+                        senalPendiente.resultado = 'PERDIDA';
+                        senalPendiente.resultadoReal = multiplicador.toFixed(2);
+                        console.log(`❌ Señal ${senalPendiente.numero} PERDIDA: ${multiplicador}x NO está en rango ${rangoMin}-${rangoMax}`);
                     }
-                });
+                    
+                    // Remover de pendientes
+                    this.senalesParaVerificar = this.senalesParaVerificar.filter(s => s.proximaRonda !== numeroRonda);
+                }
             }
 
             detectarRachaCaliente() {
@@ -606,11 +597,11 @@
 
             analizarTendencia() {
                 if (this.historico.length < 15) {
-                    return { estado: 'ESPERANDO', emoji: '⏳', razon: 'Recopilando datos históricos' };
+                    return { estado: 'ESPERANDO', emoji: '⏳', razon: 'Recopilando datos históricos (15+ rondas)' };
                 }
 
                 if (this.detectarZonaPeligrosa()) {
-                    return { estado: 'PELIGROSA', emoji: '⚠️', bloquear: true, razon: 'Racha de crashes bajos detectada (4+ azules)' };
+                    return { estado: 'PELIGROSA', emoji: '⚠️', bloquear: true, razon: 'Racha de crashes bajos detectada (4+ azules en 8 rondas)' };
                 }
 
                 if (this.detectarRachaCaliente()) {
@@ -622,7 +613,7 @@
                 const azules = ultimos15.filter(c => c.categoria === 'azul').length;
 
                 if (altos >= 8 && azules <= 2) {
-                    return { estado: 'ESTABLE', emoji: '🟡', favorabilidad: 'ALTA', razon: 'Zona favorable: 8+ altos, pocos bajos' };
+                    return { estado: 'ESTABLE', emoji: '🟡', favorabilidad: 'ALTA', razon: 'Zona favorable: 8+ altos, 2 o menos bajos' };
                 }
 
                 return { estado: 'NEUTRAL', emoji: '⚪', favorabilidad: 'MEDIA', razon: 'Mercado en equilibrio' };
@@ -642,7 +633,7 @@
                 if (tendencia.estado === 'CALIENTE') {
                     this.modoActual = 'RACHA_CALIENTE';
                     if (this.senalesEnRacha >= 5) {
-                        return { tipo: 'ESPERANDO', tendencia, msg: `⏸️ Límite (${this.rondasDesdeSenal}/${intervalRequerido})` };
+                        return { tipo: 'ESPERANDO', tendencia, msg: `⏸️ Límite de racha (${this.rondasDesdeSenal}/${intervalRequerido})` };
                     }
                 } else {
                     this.modoActual = 'NORMAL';
@@ -697,9 +688,10 @@
                 this.rondasDesdeSenal = 0;
                 if (this.modoActual === 'RACHA_CALIENTE') this.senalesEnRacha++;
                 this.senales.push(senal);
+                this.senalesParaVerificar.push(senal); // Agregar a lista de verificación
                 playAlert();
 
-                console.log(`📣 Nueva señal #${senal.numero}: Entrar en ronda ${proximaRonda} (después de ${ultimoMultiplicador}x)`);
+                console.log(`📣 Nueva señal #${senal.numero}: Entrar en ronda ${proximaRonda} (después de ${ultimoMultiplicador}x), rango ${senal.rango.min}-${senal.rango.max}`);
 
                 return senal;
             }
@@ -729,7 +721,7 @@
                     explanation.innerHTML = `
                         <strong>💡 Por qué:</strong> ${senal.tendencia.razon}<br>
                         <strong>📍 Entrada:</strong> Próxima ronda después de ${senal.ultimoMultiplicador}x<br>
-                        <strong>📊 Análisis:</strong> Media últimas 20 rondas usado para calcular rango
+                        <strong>📊 Análisis:</strong> Media últimas 20 rondas: ${(this.historico.slice(-20).reduce((a,c) => a+c.valor, 0)/20).toFixed(2)}x
                     `;
                     explanation.style.display = 'block';
                 } else if (senal.tipo === 'BLOQUEADO') {
@@ -756,15 +748,13 @@
                 const ultimos60 = this.historico.slice(-60);
                 
                 if (ultimos60.length === 0) {
-                    container.innerHTML = '<p style="opacity: 0.5;">Sin datos</p>';
+                    container.innerHTML = '<p style="opacity: 0.5;">Esperando rondas...</p>';
                     return;
                 }
 
-                // INVERTIR PARA QUE EL ÚLTIMO ESTÉ ARRIBA-IZQUIERDA
                 const crashesReversed = [...ultimos60].reverse();
-                
                 let html = '';
-                let filas = [[], [], [], []]; // 4 filas
+                let filas = [[], [], [], []];
                 
                 crashesReversed.forEach((crash, idx) => {
                     const filaIdx = Math.floor(idx / 15);
@@ -779,7 +769,7 @@
                     }
                 });
                 
-                container.innerHTML = html;
+                container.innerHTML = html || '<p style="opacity: 0.5;">Esperando rondas...</p>';
             }
 
             actualizarGrafico() {
@@ -789,7 +779,12 @@
                 canvas.height = 120;
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                if (this.historico.length < 2) return;
+                if (this.historico.length < 2) {
+                    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                    ctx.font = '12px Arial';
+                    ctx.fillText('Esperando datos...', 20, 60);
+                    return;
+                }
 
                 const ultimos30 = this.historico.slice(-30);
                 const maxValor = Math.max(...ultimos30.map(c => c.valor), 10);
@@ -825,7 +820,7 @@
                 const senalesOrdenadas = [...this.senales].reverse();
                 
                 if (senalesOrdenadas.length === 0) {
-                    container.innerHTML = '<p style="opacity: 0.5; text-align: center;">Sin señales</p>';
+                    container.innerHTML = '<p style="opacity: 0.5; text-align: center;">Sin señales aún...</p>';
                     return;
                 }
 
