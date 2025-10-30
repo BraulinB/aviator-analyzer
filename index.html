@@ -43,85 +43,90 @@
             border-radius: 20px; 
             font-size: 0.8em; 
         }
-        
-        /* TOP SECTION CON CRASHHISTORIA Y SEÑAL */
-        .top-section {
-            display: grid;
-            grid-template-columns: 150px 1fr;
-            gap: 12px;
-            margin-bottom: 12px;
-            align-items: start;
-        }
 
-        /* HISTORIAL DE RONDAS COMPACTO - ARRIBA IZQUIERDA */
-        .crashes-compact {
+        /* SECTION 1: CRASHES HISTORIAL (ARRIBA) */
+        .crashes-section {
             background: rgba(255, 255, 255, 0.06);
-            border-radius: 10px;
-            padding: 8px;
+            border-radius: 12px;
+            padding: 10px;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            max-height: 150px;
-            overflow-y: auto;
+            margin-bottom: 12px;
         }
 
-        .crashes-compact h3 {
-            font-size: 0.75em;
-            margin-bottom: 6px;
-            opacity: 0.7;
+        .crashes-section h3 {
+            font-size: 0.85em;
+            margin-bottom: 8px;
+            opacity: 0.8;
         }
 
-        .crashes-compact-row {
+        .crashes-grid {
             display: flex;
-            gap: 3px;
-            margin: 3px 0;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .crashes-row {
+            display: flex;
+            gap: 4px;
             flex-wrap: wrap;
         }
 
-        .crash-mini {
-            padding: 2px 6px;
+        .crash-item {
+            padding: 4px 8px;
             border-radius: 4px;
-            font-size: 0.65em;
+            font-size: 0.7em;
             font-weight: bold;
             border: 1px solid rgba(255, 255, 255, 0.2);
+            min-width: 45px;
+            text-align: center;
         }
 
-        .crash-mini.azul { 
+        .crash-item.azul { 
             background: rgba(0, 212, 255, 0.2);
             border-color: #00d4ff;
             color: #00d4ff;
         }
-        .crash-mini.verde { 
+        .crash-item.verde { 
             background: rgba(3, 218, 198, 0.2);
             border-color: #03dac6;
             color: #03dac6;
         }
-        .crash-mini.morado { 
+        .crash-item.morado { 
             background: rgba(187, 134, 252, 0.2);
             border-color: #bb86fc;
             color: #bb86fc;
         }
-        .crash-mini.fucsia { 
+        .crash-item.fucsia { 
             background: rgba(255, 20, 147, 0.3);
             border-color: #ff1493;
             color: #ff1493;
         }
 
-        /* PANEL DE SEÑAL Y ESTADÍSTICAS */
-        .signal-and-stats {
+        /* SECTION 2: SIGNAL + STATS + TREND */
+        .main-section {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        /* SIGNAL PANEL */
+        .signal-container {
             background: rgba(255, 255, 255, 0.06);
             border-radius: 12px;
-            padding: 15px;
+            padding: 12px;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .signal-panel {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 12px;
-            padding: 20px;
+            border-radius: 10px;
+            padding: 16px;
             text-align: center;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
             border: 2px solid rgba(255, 255, 255, 0.2);
-            min-height: 120px;
+            min-height: 100px;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -147,36 +152,77 @@
             50% { box-shadow: 0 0 50px rgba(0, 255, 136, 0.9); }
         }
         
-        .signal-status { font-size: 1em; opacity: 0.95; margin-bottom: 6px; }
-        .signal-value { font-size: 2.2em; font-weight: bold; margin: 10px 0; }
-        .signal-confidence { font-size: 0.9em; opacity: 0.85; margin-bottom: 8px; }
+        .signal-status { font-size: 0.95em; opacity: 0.95; margin-bottom: 4px; }
+        .signal-value { font-size: 2em; font-weight: bold; margin: 8px 0; }
+        .signal-enter { 
+            font-size: 0.85em; 
+            background: rgba(0, 0, 0, 0.3); 
+            padding: 6px 10px; 
+            border-radius: 8px;
+            margin: 8px 0;
+        }
+        .signal-confidence { font-size: 0.85em; opacity: 0.85; margin-bottom: 6px; }
         .signal-mode { 
             display: inline-block; 
-            padding: 6px 16px; 
+            padding: 5px 14px; 
             background: rgba(0, 0, 0, 0.3); 
             border-radius: 15px; 
             font-weight: bold;
-            font-size: 0.9em;
+            font-size: 0.8em;
+        }
+
+        /* EXPLICACIÓN */
+        .signal-explanation {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.8em;
+            line-height: 1.4;
+            margin-top: 10px;
+        }
+
+        .signal-explanation strong {
+            color: #667eea;
+        }
+
+        /* TRENDING GRAPH */
+        .trend-section {
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .trend-section h3 {
+            font-size: 0.85em;
+            margin-bottom: 8px;
+            opacity: 0.8;
+        }
+
+        #trendChart {
+            width: 100%;
+            height: 150px;
+            display: block;
         }
 
         /* MINI STATS */
         .mini-stats {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: 1fr;
             gap: 8px;
-            margin-top: 12px;
+            margin-top: 10px;
         }
 
         .mini-stat {
             background: rgba(255, 255, 255, 0.05);
             padding: 8px;
-            border-radius: 8px;
+            border-radius: 6px;
             text-align: center;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .mini-stat .value {
-            font-size: 1.4em;
+            font-size: 1.3em;
             font-weight: bold;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             -webkit-background-clip: text;
@@ -188,37 +234,20 @@
             opacity: 0.6;
             margin-top: 2px;
         }
-        
-        /* MAIN GRID */
-        .main-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-        
-        @media (max-width: 1024px) {
-            .main-grid { grid-template-columns: 1fr; }
-            .top-section { grid-template-columns: 1fr; }
-        }
-        
-        .card {
+
+        /* SECTION 3: HISTORIAL DE SEÑALES */
+        .signals-section {
             background: rgba(255, 255, 255, 0.06);
             border-radius: 12px;
             padding: 12px;
-            backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        
-        .card h2 {
-            margin-bottom: 10px;
+
+        .signals-section h2 {
             font-size: 1.1em;
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            margin-bottom: 10px;
         }
 
-        /* HISTORIAL DE SEÑALES */
         .signals-history {
             max-height: 350px;
             overflow-y: auto;
@@ -237,8 +266,8 @@
             margin: 6px 0;
             background: #1a1a2e;
             border-radius: 8px;
-            border-left: 4px solid #667eea;
-            font-size: 0.85em;
+            border-left: 3px solid #667eea;
+            font-size: 0.8em;
         }
         
         .signal-record.ganada {
@@ -251,7 +280,7 @@
             background: rgba(255, 0, 0, 0.08);
         }
 
-        .signal-record-row {
+        .signal-record-line {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -259,12 +288,12 @@
         }
 
         .signal-record-result {
-            padding: 4px 10px;
+            padding: 3px 8px;
             border-radius: 4px;
             font-weight: bold;
-            min-width: 60px;
+            min-width: 55px;
             text-align: center;
-            font-size: 0.8em;
+            font-size: 0.75em;
         }
         
         .signal-record-result.ganada {
@@ -280,6 +309,16 @@
         .signal-record-result.pendiente {
             background: rgba(255, 165, 0, 0.3);
             color: #ffa500;
+        }
+
+        .signal-details {
+            font-size: 0.75em;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-section { grid-template-columns: 1fr; }
         }
 
         .controls {
@@ -343,21 +382,36 @@
             </div>
         </div>
 
-        <!-- TOP SECTION: CRASHES COMPACT + SIGNAL PANEL -->
-        <div class="top-section">
-            <!-- Historial compacto izquierda -->
-            <div class="crashes-compact">
-                <h3>📊 RONDAS</h3>
-                <div id="crashesCompact"></div>
-            </div>
+        <!-- SECCIÓN 1: HISTORIAL DE RONDAS ARRIBA -->
+        <div class="crashes-section">
+            <h3>📊 Últimas 60 Rondas</h3>
+            <div id="crashesDisplay" class="crashes-grid"></div>
+        </div>
 
-            <!-- Signal panel + stats derecha -->
-            <div class="signal-and-stats">
+        <!-- SECCIÓN 2: SIGNAL + TREND CHART -->
+        <div class="main-section">
+            <!-- SIGNAL PANEL -->
+            <div class="signal-container">
                 <div id="signalPanel" class="signal-panel waiting">
-                    <div style="font-size: 1.5em;">⏳</div>
+                    <div style="font-size: 1.3em;">⏳</div>
                     <p>Cargando...</p>
                 </div>
 
+                <div class="signal-explanation" id="signalExplanation" style="display: none;">
+                    <!-- Se llena dinámicamente -->
+                </div>
+
+                <div class="controls">
+                    <button class="primary" onclick="location.reload()">🔄 Reiniciar</button>
+                    <button class="secondary" onclick="toggleAudio()">🔊 Audio</button>
+                </div>
+            </div>
+
+            <!-- TREND CHART -->
+            <div class="trend-section">
+                <h3>📈 Tendencia</h3>
+                <canvas id="trendChart"></canvas>
+                
                 <div class="mini-stats">
                     <div class="mini-stat">
                         <div class="label">Rondas</div>
@@ -379,29 +433,16 @@
             </div>
         </div>
 
-        <!-- MAIN GRID: HISTORIAL Y CONTROLES -->
-        <div class="main-grid">
-            <div class="card">
-                <h2>🎯 Historial de Señales</h2>
-                <div id="signalsHistory" class="signals-history">
-                    <p style="opacity: 0.5; text-align: center; padding: 20px;">Sin señales aún...</p>
-                </div>
-            </div>
-
-            <div class="card">
-                <h2>📋 Controles</h2>
-                <div class="controls">
-                    <button class="primary" onclick="location.reload()">🔄 Reiniciar</button>
-                    <button class="secondary" onclick="toggleAudio()">🔊 Audio</button>
-                </div>
-                <p style="opacity: 0.6; font-size: 0.8em; margin-top: 10px; text-align: center;">
-                    Esperando nuevos datos...
-                </p>
+        <!-- SECCIÓN 3: HISTORIAL DE SEÑALES -->
+        <div class="signals-section">
+            <h2>🎯 Historial de Señales</h2>
+            <div id="signalsHistory" class="signals-history">
+                <p style="opacity: 0.5; text-align: center; padding: 20px;">Sin señales aún...</p>
             </div>
         </div>
 
         <footer>
-            <p>Aviator Analyzer Pro v4.0</p>
+            <p>Aviator Analyzer Pro v5.0</p>
         </footer>
     </div>
 
@@ -451,7 +492,7 @@
                 this.modoActual = 'NORMAL';
                 this.senalesEnRacha = 0;
                 this.cargandoDatos = true;
-                this.ultimaRondaVerificada = -1;
+                this.ultimaSenal = null;
                 
                 this.config = {
                     rachaCaliente: { minimoMorados: 6, ventana: 8, intervalMin: 2, maxSenales: 5, confianzaMin: 75 },
@@ -506,13 +547,13 @@
                     valor: multiplicador,
                     tiempo: timestamp,
                     categoria: this.categorizar(multiplicador),
-                    key: key
+                    key: key,
+                    numero: this.historico.length + 1
                 });
 
                 if (this.historico.length > 60) this.historico.shift();
                 this.rondasDesdeSenal++;
                 
-                // VERIFICAR SEÑALES PENDIENTES INMEDIATAMENTE
                 this.verificarYMarcarSenales(multiplicador);
                 this.actualizarInterfaz();
             }
@@ -521,25 +562,22 @@
                 if (mult < 1.5) return 'azul';
                 if (mult >= 1.5 && mult < 2.0) return 'verde';
                 if (mult >= 2.0 && mult < 10.0) return 'morado';
-                return 'fucsia'; // 10+
+                return 'fucsia';
             }
 
-            // VERIFICAR Y MARCAR SEÑALES PENDIENTES INMEDIATAMENTE
             verificarYMarcarSenales(multiplicador) {
                 for (let i = this.senales.length - 1; i >= 0; i--) {
                     const senal = this.senales[i];
                     
-                    // Si ya tiene resultado, skip
                     if (senal.resultado && senal.resultado !== 'PENDIENTE') continue;
                     
                     const rangoMin = parseFloat(senal.rango.min);
                     const rangoMax = parseFloat(senal.rango.max);
                     
-                    // Verificar si este crash está dentro del rango
                     if (multiplicador >= rangoMin && multiplicador <= rangoMax) {
                         senal.resultado = 'GANADA';
                         senal.resultadoReal = multiplicador.toFixed(2);
-                        break; // Solo marcar 1 señal como ganada
+                        break;
                     }
                 }
             }
@@ -547,10 +585,9 @@
             detectarRachaCaliente() {
                 if (this.historico.length < 8) return false;
                 const ultimos8 = this.historico.slice(-8);
-                const morados = ultimos8.filter(c => c.categoria === 'morado').length;
-                const fucsia = ultimos8.filter(c => c.categoria === 'fucsia').length;
+                const altos = ultimos8.filter(c => c.categoria === 'morado' || c.categoria === 'fucsia').length;
                 const azules = ultimos8.filter(c => c.categoria === 'azul').length;
-                return (morados + fucsia) >= 6 && azules === 0;
+                return altos >= 6 && azules === 0;
             }
 
             detectarZonaPeligrosa() {
@@ -564,15 +601,15 @@
 
             analizarTendencia() {
                 if (this.historico.length < 15) {
-                    return { estado: 'ESPERANDO', emoji: '⏳' };
+                    return { estado: 'ESPERANDO', emoji: '⏳', razon: 'Recopilando datos históricos' };
                 }
 
                 if (this.detectarZonaPeligrosa()) {
-                    return { estado: 'PELIGROSA', emoji: '⚠️', bloquear: true };
+                    return { estado: 'PELIGROSA', emoji: '⚠️', bloquear: true, razon: 'Racha de crashes bajos detectada' };
                 }
 
                 if (this.detectarRachaCaliente()) {
-                    return { estado: 'CALIENTE', emoji: '🔥', favorabilidad: 'MUY_ALTA' };
+                    return { estado: 'CALIENTE', emoji: '🔥', favorabilidad: 'MUY_ALTA', razon: 'Tendencia de multiplicadores altos confirmada' };
                 }
 
                 const ultimos15 = this.historico.slice(-15);
@@ -580,10 +617,10 @@
                 const azules = ultimos15.filter(c => c.categoria === 'azul').length;
 
                 if (altos >= 8 && azules <= 2) {
-                    return { estado: 'ESTABLE', emoji: '🟡', favorabilidad: 'ALTA' };
+                    return { estado: 'ESTABLE', emoji: '🟡', favorabilidad: 'ALTA', razon: 'Zona favorable detectada' };
                 }
 
-                return { estado: 'NEUTRAL', emoji: '⚪', favorabilidad: 'MEDIA' };
+                return { estado: 'NEUTRAL', emoji: '⚪', favorabilidad: 'MEDIA', razon: 'Mercado en equilibrio' };
             }
 
             generarSenal() {
@@ -634,12 +671,17 @@
                     return { tipo: 'ESPERANDO', tendencia, msg: '⏳ Confianza baja' };
                 }
 
+                const ultimoMultiplicador = this.historico[this.historico.length - 1].valor.toFixed(2);
+                const proximaRonda = this.historico.length + 1;
+
                 const senal = {
                     tipo: 'ACTIVA', 
                     tendencia,
                     rango: { min: rangoMin.toFixed(2), max: rangoMax.toFixed(2) },
                     confianza, 
-                    modo: this.modoActual, 
+                    modo: this.modoActual,
+                    ultimoMultiplicador,
+                    proximaRonda,
                     resultado: 'PENDIENTE',
                     resultadoReal: null
                 };
@@ -647,6 +689,7 @@
                 this.rondasDesdeSenal = 0;
                 if (this.modoActual === 'RACHA_CALIENTE') this.senalesEnRacha++;
                 this.senales.push(senal);
+                this.ultimaSenal = senal;
                 playAlert();
 
                 return senal;
@@ -654,7 +697,8 @@
 
             actualizarInterfaz() {
                 this.actualizarPanel();
-                this.actualizarCrashesCompact();
+                this.actualizarCrashes();
+                this.actualizarGrafico();
                 this.actualizarHistorial();
                 this.actualizarEstadisticas();
             }
@@ -662,35 +706,47 @@
             actualizarPanel() {
                 const senal = this.generarSenal();
                 const panel = document.getElementById('signalPanel');
+                const explanation = document.getElementById('signalExplanation');
                 
                 if (senal.tipo === 'ACTIVA') {
                     panel.className = 'signal-panel hot';
                     panel.innerHTML = `
-                        <div class="signal-status">${senal.tendencia.emoji} ✅ SEÑAL</div>
+                        <div class="signal-status">${senal.tendencia.emoji} ✅ SEÑAL ACTIVA</div>
                         <div class="signal-value">${senal.rango.min}x - ${senal.rango.max}x</div>
+                        <div class="signal-enter">🎬 Entrar luego de <strong>${senal.ultimoMultiplicador}x</strong></div>
                         <div class="signal-confidence">Confianza: ${senal.confianza}%</div>
                         <div class="signal-mode">🎯 ${senal.modo}</div>
                     `;
+                    explanation.innerHTML = `
+                        <strong>💡 Por qué:</strong> ${senal.tendencia.razon}<br>
+                        <strong>📍 Entrada:</strong> Ronda #${senal.proximaRonda}<br>
+                        <strong>📊 Análisis:</strong> Media de últimas 20 rondas usado para calcular rango
+                    `;
+                    explanation.style.display = 'block';
                 } else if (senal.tipo === 'BLOQUEADO') {
                     panel.className = 'signal-panel blocked';
                     panel.innerHTML = `
                         <div class="signal-status">${senal.tendencia.emoji} PELIGROSA</div>
                         <div class="signal-value" style="font-size: 1.5em;">🚫 BLOQUEADO</div>
                     `;
+                    explanation.innerHTML = `<strong>⚠️ Razón:</strong> ${senal.tendencia.razon}`;
+                    explanation.style.display = 'block';
                 } else {
                     panel.className = 'signal-panel waiting';
                     panel.innerHTML = `
                         <div class="signal-status">${senal.tendencia.emoji} ESPERANDO</div>
                         <div class="signal-value" style="font-size: 1.8em;">${senal.msg}</div>
                     `;
+                    explanation.innerHTML = `<strong>⏳ Razón:</strong> ${senal.tendencia.razon}`;
+                    explanation.style.display = 'block';
                 }
             }
 
-            actualizarCrashesCompact() {
-                const container = document.getElementById('crashesCompact');
-                const ultimos40 = this.historico.slice(-40);
+            actualizarCrashes() {
+                const container = document.getElementById('crashesDisplay');
+                const ultimos60 = this.historico.slice(-60);
                 
-                if (ultimos40.length === 0) {
+                if (ultimos60.length === 0) {
                     container.innerHTML = '<p style="opacity: 0.5;">Sin datos</p>';
                     return;
                 }
@@ -698,20 +754,58 @@
                 let html = '';
                 let fila = [];
                 
-                ultimos40.forEach(crash => {
-                    fila.push(`<div class="crash-mini ${crash.categoria}">${crash.valor.toFixed(2)}</div>`);
+                ultimos60.forEach(crash => {
+                    fila.push(`<div class="crash-item ${crash.categoria}">${crash.valor.toFixed(2)}</div>`);
                     
-                    if (fila.length === 8) {
-                        html += `<div class="crashes-compact-row">${fila.join('')}</div>`;
+                    if (fila.length === 15) {
+                        html += `<div class="crashes-row">${fila.join('')}</div>`;
                         fila = [];
                     }
                 });
                 
                 if (fila.length > 0) {
-                    html += `<div class="crashes-compact-row">${fila.join('')}</div>`;
+                    html += `<div class="crashes-row">${fila.join('')}</div>`;
                 }
                 
                 container.innerHTML = html;
+            }
+
+            actualizarGrafico() {
+                const canvas = document.getElementById('trendChart');
+                const ctx = canvas.getContext('2d');
+                canvas.width = canvas.offsetWidth;
+                canvas.height = 150;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                if (this.historico.length < 2) return;
+
+                const ultimos30 = this.historico.slice(-30);
+                const maxValor = Math.max(...ultimos30.map(c => c.valor), 10);
+
+                ctx.beginPath();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+
+                ultimos30.forEach((crash, i) => {
+                    const x = (i / (ultimos30.length - 1)) * canvas.width;
+                    const y = canvas.height - (crash.valor / maxValor * (canvas.height - 10));
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+
+                ctx.stroke();
+
+                ultimos30.forEach((crash, i) => {
+                    const x = (i / (ultimos30.length - 1)) * canvas.width;
+                    const y = canvas.height - (crash.valor / maxValor * (canvas.height - 10));
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, 3, 0, Math.PI * 2);
+                    
+                    const colores = { azul: '#00d4ff', verde: '#03dac6', morado: '#bb86fc', fucsia: '#ff1493' };
+                    ctx.fillStyle = colores[crash.categoria] || '#ffffff';
+                    ctx.fill();
+                });
             }
 
             actualizarHistorial() {
@@ -730,11 +824,15 @@
                     
                     return `
                         <div class="signal-record ${clase}">
-                            <div class="signal-record-row">
-                                <span><strong>Señal #${this.senales.length - idx}</strong> ${senal.rango.min}x-${senal.rango.max}x (${senal.confianza}%)</span>
+                            <div class="signal-record-line">
+                                <strong>Señal #${this.senales.length - idx}</strong>
                                 <div class="signal-record-result ${clase}">${text}</div>
                             </div>
-                            ${senal.resultadoReal ? `<div style="font-size: 0.8em; opacity: 0.7;">Real: ${senal.resultadoReal}x</div>` : ''}
+                            <div class="signal-details">
+                                🎬 Entrada: Ronda #${senal.proximaRonda} (después de ${senal.ultimoMultiplicador}x)<br>
+                                🎯 Rango: ${senal.rango.min}x - ${senal.rango.max}x (${senal.confianza}%)
+                                ${senal.resultadoReal ? `<br>📊 Real: ${senal.resultadoReal}x` : ''}
+                            </div>
                         </div>
                     `;
                 }).join('');
