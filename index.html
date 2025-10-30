@@ -7,11 +7,10 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <style>
-    html,body{margin:0;padding:0;box-sizing:border-box}
     body{
         font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
         background:linear-gradient(135deg,#0f0c29 0%,#302b63 50%,#24243e 100%);
-        color:#fff;min-height:100vh;padding:14px;
+        color:#fff;min-height:100vh;padding:14px; margin:0;
     }
     .container{width:100%;max-width:1200px;margin:0 auto;}
     .header{text-align:center;padding:15px 7px 11px 7px;background:rgba(255,255,255,0.07);border-radius:9px 9px 16px 16px;margin-bottom:11px;}
@@ -92,7 +91,7 @@
         <h3>🎯 Historial de Señales</h3>
         <div id="signalList" class="history-list"><p style="opacity:.5;text-align:center;">Sin señales aún...</p></div>
     </div>
-    <footer>Aviator Analyzer Pro v8.0 - CORREGIDO, RESPONSIVE Y ESTABLE</footer>
+    <footer>Aviator Analyzer Pro v8.0 - LIMITADO Y ESTABLE</footer>
 </div>
 <script>
 const firebaseConfig = {
@@ -149,18 +148,15 @@ class AviatorSystem {
                 this.actualizarInterfaz();
                 document.getElementById('syncStatus').innerHTML = '✅ Sistema listo - Analizando';
 
-                // Cleanup previous listener if exists
                 if (this.childAddedListener) {
                     db.ref('feeds/gocho/crashes').off('child_added', this.childAddedListener);
                 }
-
                 this.childAddedListener = (snapshot) => {
                     const data = snapshot.val();
                     if (data && data.v && data.ts && !this.historico.find(c => c.key === snapshot.key)) {
                         this.agregarCrash(data.v, data.ts, snapshot.key);
                     }
                 };
-
                 db.ref('feeds/gocho/crashes').on('child_added', this.childAddedListener);
             });
     }
@@ -321,17 +317,17 @@ class AviatorSystem {
 
     actualizarCrashes() {
         const container = document.getElementById('crashesDisplay');
-        const ultimos60 = this.historico.slice(-60);
-        if (ultimos60.length === 0) {
+        const ultimos = this.historico.slice(-15); // LIMITADO A 15
+        if (ultimos.length === 0) {
             container.innerHTML = '<div class="crashes-row"><p style="opacity:0.47;">Cargando...</p></div>';
             return;
         }
-        const reversed = [...ultimos60].reverse();
+        const reversed = [...ultimos].reverse();
         let html = '';
         let fila = [];
         reversed.forEach((crash, idx) => {
             fila.push(`<div class="crash-item ${crash.categoria}">${crash.valor.toFixed(2)}</div>`);
-            if (fila.length === 12 || idx === reversed.length - 1) {
+            if (fila.length === 5 || idx === reversed.length - 1) {
                 html += `<div class="crashes-row">${fila.join('')}</div>`;
                 fila = [];
             }
@@ -354,7 +350,7 @@ class AviatorSystem {
             container.innerHTML = '<p style="opacity:0.5;text-align:center;">Sin señales aún...</p>';
             return;
         }
-        const html = [...this.senales].reverse().map((senal, idx) => {
+        const html = [...this.senales].slice(-15).reverse().map((senal, idx) => { // LIMITADO A 15
             const resultado = senal.resultado || 'PENDIENTE';
             const clase = resultado === 'GANADA' ? 'ganada' : resultado === 'PERDIDA' ? 'perdida' : 'pendiente';
             const text = resultado === 'GANADA' ? '✅ GANADA' : resultado === 'PERDIDA' ? '❌ PERDIDA' : '⏳ PENDIENTE';
@@ -371,7 +367,6 @@ class AviatorSystem {
         container.innerHTML = html;
     }
 }
-
 const sistema = new AviatorSystem();
 </script>
 </body>
