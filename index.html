@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Aviator Analyzer Pro - Sistema Inteligente</title>
+    <title>Aviator Analyzer Pro</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -22,40 +22,106 @@
         
         .header { 
             text-align: center; 
-            padding: 15px; 
+            padding: 12px; 
             background: rgba(255, 255, 255, 0.08); 
-            border-radius: 15px; 
-            margin-bottom: 15px; 
-            backdrop-filter: blur(10px); 
+            border-radius: 12px; 
+            margin-bottom: 12px; 
         }
         .header h1 { 
-            font-size: 1.8em; 
-            margin-bottom: 5px; 
+            font-size: 1.6em; 
+            margin-bottom: 3px; 
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
             -webkit-background-clip: text; 
             -webkit-text-fill-color: transparent; 
         }
-        .header p { font-size: 0.9em; opacity: 0.8; }
         .sync-badge { 
             display: inline-flex; 
             align-items: center; 
             gap: 6px; 
             background: rgba(0, 255, 0, 0.2); 
-            padding: 6px 15px; 
+            padding: 4px 12px; 
             border-radius: 20px; 
-            font-size: 0.85em; 
-            margin-top: 8px;
+            font-size: 0.8em; 
         }
         
+        /* TOP SECTION CON CRASHHISTORIA Y SEÑAL */
+        .top-section {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+            align-items: start;
+        }
+
+        /* HISTORIAL DE RONDAS COMPACTO - ARRIBA IZQUIERDA */
+        .crashes-compact {
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            padding: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .crashes-compact h3 {
+            font-size: 0.75em;
+            margin-bottom: 6px;
+            opacity: 0.7;
+        }
+
+        .crashes-compact-row {
+            display: flex;
+            gap: 3px;
+            margin: 3px 0;
+            flex-wrap: wrap;
+        }
+
+        .crash-mini {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.65em;
+            font-weight: bold;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .crash-mini.azul { 
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+            color: #00d4ff;
+        }
+        .crash-mini.verde { 
+            background: rgba(3, 218, 198, 0.2);
+            border-color: #03dac6;
+            color: #03dac6;
+        }
+        .crash-mini.morado { 
+            background: rgba(187, 134, 252, 0.2);
+            border-color: #bb86fc;
+            color: #bb86fc;
+        }
+        .crash-mini.fucsia { 
+            background: rgba(255, 20, 147, 0.3);
+            border-color: #ff1493;
+            color: #ff1493;
+        }
+
+        /* PANEL DE SEÑAL Y ESTADÍSTICAS */
+        .signal-and-stats {
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
         .signal-panel {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 15px;
-            padding: 25px;
+            border-radius: 12px;
+            padding: 20px;
             text-align: center;
-            margin-bottom: 15px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-            border: 3px solid rgba(255, 255, 255, 0.2);
-            min-height: 150px;
+            margin-bottom: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            min-height: 120px;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -67,8 +133,8 @@
         }
         
         @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 30px rgba(255, 0, 0, 0.6); }
-            50% { box-shadow: 0 0 60px rgba(255, 0, 0, 0.9); }
+            0%, 100% { box-shadow: 0 0 25px rgba(255, 0, 0, 0.6); }
+            50% { box-shadow: 0 0 50px rgba(255, 0, 0, 0.9); }
         }
         
         .signal-panel.hot {
@@ -77,100 +143,86 @@
         }
         
         @keyframes glow {
-            0%, 100% { box-shadow: 0 0 30px rgba(0, 255, 136, 0.6); }
-            50% { box-shadow: 0 0 60px rgba(0, 255, 136, 0.9); }
+            0%, 100% { box-shadow: 0 0 25px rgba(0, 255, 136, 0.6); }
+            50% { box-shadow: 0 0 50px rgba(0, 255, 136, 0.9); }
         }
         
-        .signal-status { font-size: 1.2em; opacity: 0.95; margin-bottom: 10px; }
-        .signal-value { font-size: 2.5em; font-weight: bold; margin: 15px 0; }
-        .signal-confidence { font-size: 1em; opacity: 0.85; }
+        .signal-status { font-size: 1em; opacity: 0.95; margin-bottom: 6px; }
+        .signal-value { font-size: 2.2em; font-weight: bold; margin: 10px 0; }
+        .signal-confidence { font-size: 0.9em; opacity: 0.85; margin-bottom: 8px; }
         .signal-mode { 
             display: inline-block; 
-            padding: 8px 20px; 
+            padding: 6px 16px; 
             background: rgba(0, 0, 0, 0.3); 
-            border-radius: 20px; 
-            margin-top: 12px; 
+            border-radius: 15px; 
             font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        /* MINI STATS */
+        .mini-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .mini-stat {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 8px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .mini-stat .value {
+            font-size: 1.4em;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .mini-stat .label {
+            font-size: 0.7em;
+            opacity: 0.6;
+            margin-top: 2px;
         }
         
+        /* MAIN GRID */
         .main-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 15px;
+            gap: 12px;
+            margin-bottom: 12px;
         }
         
         @media (max-width: 1024px) {
             .main-grid { grid-template-columns: 1fr; }
+            .top-section { grid-template-columns: 1fr; }
         }
         
         .card {
             background: rgba(255, 255, 255, 0.06);
-            border-radius: 15px;
-            padding: 15px;
+            border-radius: 12px;
+            padding: 12px;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
         
         .card h2 {
-            margin-bottom: 12px;
-            font-size: 1.2em;
+            margin-bottom: 10px;
+            font-size: 1.1em;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
-        
-        .card h3 {
-            font-size: 0.95em;
-            margin-top: 12px;
-            margin-bottom: 8px;
-            opacity: 0.8;
-        }
-        
-        /* HISTORIAL DE RONDAS - ESTILO JUEGO */
-        .crashes-row {
-            display: flex;
-            gap: 5px;
-            margin: 8px 0;
-            flex-wrap: wrap;
-        }
-        
-        .crash-display {
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 0.9em;
-            font-weight: bold;
-            text-align: center;
-            min-width: 70px;
-            border: 2px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .crash-display.azul { 
-            background: rgba(0, 212, 255, 0.2);
-            border-color: #00d4ff;
-            color: #00d4ff;
-        }
-        .crash-display.verde { 
-            background: rgba(3, 218, 198, 0.2);
-            border-color: #03dac6;
-            color: #03dac6;
-        }
-        .crash-display.morado { 
-            background: rgba(187, 134, 252, 0.2);
-            border-color: #bb86fc;
-            color: #bb86fc;
-        }
-        .crash-display.dorado { 
-            background: rgba(255, 215, 0, 0.2);
-            border-color: #ffd700;
-            color: #ffd700;
-        }
-        
+
         /* HISTORIAL DE SEÑALES */
         .signals-history {
-            max-height: 400px;
+            max-height: 350px;
             overflow-y: auto;
-            padding-right: 8px;
+            padding-right: 6px;
         }
         
         .signals-history::-webkit-scrollbar { width: 6px; }
@@ -181,50 +233,38 @@
         }
         
         .signal-record {
-            padding: 12px;
-            margin: 8px 0;
+            padding: 10px;
+            margin: 6px 0;
             background: #1a1a2e;
-            border-radius: 10px;
+            border-radius: 8px;
             border-left: 4px solid #667eea;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.9em;
+            font-size: 0.85em;
         }
         
         .signal-record.ganada {
             border-left-color: #00ff00;
-            background: rgba(0, 255, 0, 0.1);
+            background: rgba(0, 255, 0, 0.08);
         }
         
         .signal-record.perdida {
             border-left-color: #ff0000;
-            background: rgba(255, 0, 0, 0.1);
+            background: rgba(255, 0, 0, 0.08);
         }
-        
-        .signal-record-info {
-            flex: 1;
-        }
-        
-        .signal-record-label {
-            font-size: 0.8em;
-            opacity: 0.6;
-            margin-bottom: 3px;
-        }
-        
-        .signal-record-values {
+
+        .signal-record-row {
             display: flex;
-            gap: 15px;
-            font-weight: bold;
+            justify-content: space-between;
             align-items: center;
+            margin-bottom: 4px;
         }
-        
+
         .signal-record-result {
-            padding: 6px 12px;
-            border-radius: 6px;
+            padding: 4px 10px;
+            border-radius: 4px;
             font-weight: bold;
-            min-width: 70px;
+            min-width: 60px;
             text-align: center;
+            font-size: 0.8em;
         }
         
         .signal-record-result.ganada {
@@ -236,49 +276,24 @@
             background: rgba(255, 0, 0, 0.3);
             color: #ff0000;
         }
-        
-        /* ESTADÍSTICAS */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 12px;
-            margin-top: 12px;
+
+        .signal-record-result.pendiente {
+            background: rgba(255, 165, 0, 0.3);
+            color: #ffa500;
         }
-        
-        .stat-box {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 12px;
-            border-radius: 10px;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .stat-box .value {
-            font-size: 1.8em;
-            font-weight: bold;
-            margin: 6px 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        .stat-box .label {
-            font-size: 0.8em;
-            opacity: 0.7;
-        }
-        
+
         .controls {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: wrap;
-            margin-top: 12px;
+            margin-top: 10px;
         }
         
         button {
-            padding: 10px 20px;
+            padding: 8px 16px;
             border: none;
-            border-radius: 8px;
-            font-size: 0.9em;
+            border-radius: 6px;
+            font-size: 0.85em;
             cursor: pointer;
             transition: all 0.3s;
             font-weight: bold;
@@ -292,17 +307,17 @@
         button.secondary {
             background: rgba(255, 255, 255, 0.1);
             color: white;
-            border: 2px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
         
         button:hover { transform: translateY(-2px); }
         
         footer {
             text-align: center;
-            padding: 15px;
-            margin-top: 20px;
+            padding: 12px;
+            margin-top: 15px;
             opacity: 0.5;
-            font-size: 0.85em;
+            font-size: 0.8em;
         }
 
         .audio-control {
@@ -310,11 +325,11 @@
             bottom: 20px;
             right: 20px;
             background: rgba(102, 126, 234, 0.9);
-            padding: 10px 15px;
+            padding: 8px 12px;
             border-radius: 50px;
             cursor: pointer;
             z-index: 999;
-            font-size: 0.9em;
+            font-size: 0.85em;
             border: 2px solid rgba(255, 255, 255, 0.3);
         }
     </style>
@@ -323,71 +338,72 @@
     <div class="container">
         <div class="header">
             <h1>🎯 Aviator Analyzer Pro</h1>
-            <p>Sistema Inteligente • Detección de Rachas • Multi-dispositivo</p>
             <div class="sync-badge">
                 <span id="syncStatus">🔄 Conectando...</span>
             </div>
         </div>
 
-        <div id="signalPanel" class="signal-panel waiting">
-            <div style="font-size: 2em;">⏳</div>
-            <p>Cargando sistema...</p>
-        </div>
-
-        <div class="main-grid">
-            <!-- Historial de Rondas -->
-            <div class="card">
-                <h2>📊 Historial de Rondas (Últimas 60)</h2>
-                <div id="crashesDisplay">
-                    <p style="opacity: 0.5; text-align: center; padding: 20px;">Cargando...</p>
-                </div>
+        <!-- TOP SECTION: CRASHES COMPACT + SIGNAL PANEL -->
+        <div class="top-section">
+            <!-- Historial compacto izquierda -->
+            <div class="crashes-compact">
+                <h3>📊 RONDAS</h3>
+                <div id="crashesCompact"></div>
             </div>
 
-            <!-- Historial de Señales -->
+            <!-- Signal panel + stats derecha -->
+            <div class="signal-and-stats">
+                <div id="signalPanel" class="signal-panel waiting">
+                    <div style="font-size: 1.5em;">⏳</div>
+                    <p>Cargando...</p>
+                </div>
+
+                <div class="mini-stats">
+                    <div class="mini-stat">
+                        <div class="label">Rondas</div>
+                        <div class="value" id="statRounds">0</div>
+                    </div>
+                    <div class="mini-stat">
+                        <div class="label">Señales</div>
+                        <div class="value" id="statSignals">0</div>
+                    </div>
+                    <div class="mini-stat">
+                        <div class="label">Ganadas</div>
+                        <div class="value" id="statWon">0</div>
+                    </div>
+                    <div class="mini-stat">
+                        <div class="label">% Aciertos</div>
+                        <div class="value" id="statWinRate">--%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN GRID: HISTORIAL Y CONTROLES -->
+        <div class="main-grid">
             <div class="card">
                 <h2>🎯 Historial de Señales</h2>
                 <div id="signalsHistory" class="signals-history">
                     <p style="opacity: 0.5; text-align: center; padding: 20px;">Sin señales aún...</p>
                 </div>
             </div>
-        </div>
 
-        <!-- Estadísticas -->
-        <div class="card">
-            <h2>📈 Estadísticas del Sistema</h2>
-            <div class="stats-grid">
-                <div class="stat-box">
-                    <div class="label">Rondas Totales</div>
-                    <div class="value" id="statRounds">0</div>
+            <div class="card">
+                <h2>📋 Controles</h2>
+                <div class="controls">
+                    <button class="primary" onclick="location.reload()">🔄 Reiniciar</button>
+                    <button class="secondary" onclick="toggleAudio()">🔊 Audio</button>
                 </div>
-                <div class="stat-box">
-                    <div class="label">Señales Dadas</div>
-                    <div class="value" id="statSignals">0</div>
-                </div>
-                <div class="stat-box">
-                    <div class="label">Señales Ganadas</div>
-                    <div class="value" id="statWon">0</div>
-                </div>
-                <div class="stat-box">
-                    <div class="label">% de Aciertos</div>
-                    <div class="value" id="statWinRate">--%</div>
-                </div>
-            </div>
-
-            <div class="controls">
-                <button class="primary" onclick="location.reload()">🔄 Reiniciar</button>
-                <button class="secondary" onclick="toggleAudio()">🔊 Audio</button>
+                <p style="opacity: 0.6; font-size: 0.8em; margin-top: 10px; text-align: center;">
+                    Esperando nuevos datos...
+                </p>
             </div>
         </div>
 
         <footer>
-            <p>Aviator Analyzer Pro v3.0 • Sincronización en Tiempo Real</p>
+            <p>Aviator Analyzer Pro v4.0</p>
         </footer>
     </div>
-
-    <audio id="alertSound" preload="auto">
-        <source src="data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAAB9AAACABAAZGF0YQIAAAAAAA==" type="audio/wav">
-    </audio>
 
     <div class="audio-control" id="audioControl" onclick="toggleAudio()">🔊 ON</div>
 
@@ -416,15 +432,15 @@
         function playAlert() {
             if (!audioEnabled) return;
             const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            oscillator.frequency.value = 800;
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.5);
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            osc.frequency.value = 800;
+            gain.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+            osc.start(audioContext.currentTime);
+            osc.stop(audioContext.currentTime + 0.5);
         }
 
         class AviatorSystem {
@@ -435,6 +451,7 @@
                 this.modoActual = 'NORMAL';
                 this.senalesEnRacha = 0;
                 this.cargandoDatos = true;
+                this.ultimaRondaVerificada = -1;
                 
                 this.config = {
                     rachaCaliente: { minimoMorados: 6, ventana: 8, intervalMin: 2, maxSenales: 5, confianzaMin: 75 },
@@ -495,8 +512,8 @@
                 if (this.historico.length > 60) this.historico.shift();
                 this.rondasDesdeSenal++;
                 
-                // Verificar si alguna señal fue acertada
-                this.verificarSenalesAntecrash(multiplicador);
+                // VERIFICAR SEÑALES PENDIENTES INMEDIATAMENTE
+                this.verificarYMarcarSenales(multiplicador);
                 this.actualizarInterfaz();
             }
 
@@ -504,26 +521,25 @@
                 if (mult < 1.5) return 'azul';
                 if (mult >= 1.5 && mult < 2.0) return 'verde';
                 if (mult >= 2.0 && mult < 10.0) return 'morado';
-                return 'dorado';
+                return 'fucsia'; // 10+
             }
 
-            verificarSenalesAntecrash(multiplicador) {
-                // Verificar si la última señal fue ganada/perdida
-                if (this.senales.length > 0) {
-                    const ultimaSenal = this.senales[this.senales.length - 1];
-                    if (!ultimaSenal.resultado) {
-                        const rangoMin = parseFloat(ultimaSenal.rango.min);
-                        const rangoMax = parseFloat(ultimaSenal.rango.max);
-                        
-                        if (multiplicador >= rangoMin && multiplicador <= rangoMax) {
-                            ultimaSenal.resultado = 'GANADA';
-                            ultimaSenal.resultadoReal = multiplicador.toFixed(2);
-                        } else if (this.historico.length - ultimaSenal.indexRonda > 1) {
-                            // Solo marcar como perdida después de al menos 2 rondas
-                            if (!ultimaSenal.resultado) {
-                                ultimaSenal.resultado = 'PENDIENTE';
-                            }
-                        }
+            // VERIFICAR Y MARCAR SEÑALES PENDIENTES INMEDIATAMENTE
+            verificarYMarcarSenales(multiplicador) {
+                for (let i = this.senales.length - 1; i >= 0; i--) {
+                    const senal = this.senales[i];
+                    
+                    // Si ya tiene resultado, skip
+                    if (senal.resultado && senal.resultado !== 'PENDIENTE') continue;
+                    
+                    const rangoMin = parseFloat(senal.rango.min);
+                    const rangoMax = parseFloat(senal.rango.max);
+                    
+                    // Verificar si este crash está dentro del rango
+                    if (multiplicador >= rangoMin && multiplicador <= rangoMax) {
+                        senal.resultado = 'GANADA';
+                        senal.resultadoReal = multiplicador.toFixed(2);
+                        break; // Solo marcar 1 señal como ganada
                     }
                 }
             }
@@ -531,10 +547,10 @@
             detectarRachaCaliente() {
                 if (this.historico.length < 8) return false;
                 const ultimos8 = this.historico.slice(-8);
-                const morados = ultimos8.filter(c => c.categoria === 'morado' || c.categoria === 'dorado').length;
+                const morados = ultimos8.filter(c => c.categoria === 'morado').length;
+                const fucsia = ultimos8.filter(c => c.categoria === 'fucsia').length;
                 const azules = ultimos8.filter(c => c.categoria === 'azul').length;
-                const volatilidad = this.calcularVolatilidad(ultimos8);
-                return morados >= 6 && azules === 0 && volatilidad < 60;
+                return (morados + fucsia) >= 6 && azules === 0;
             }
 
             detectarZonaPeligrosa() {
@@ -546,47 +562,28 @@
                 return azules8 >= 4 || azules5 >= 3;
             }
 
-            calcularVolatilidad(crashes) {
-                const valores = crashes.map(c => c.valor);
-                const media = valores.reduce((a, b) => a + b, 0) / valores.length;
-                const varianza = valores.reduce((acc, val) => acc + Math.pow(val - media, 2), 0) / valores.length;
-                return (Math.sqrt(varianza) / media) * 100;
-            }
-
             analizarTendencia() {
                 if (this.historico.length < 15) {
-                    return { estado: 'ESPERANDO', color: 'gris', mensaje: 'Recopilando...', emoji: '⏳' };
+                    return { estado: 'ESPERANDO', emoji: '⏳' };
                 }
 
                 if (this.detectarZonaPeligrosa()) {
-                    return {
-                        estado: 'PELIGROSA', color: 'rojo', mensaje: 'Inestable',
-                        emoji: '⚠️', bloquear: true, detalle: 'Crashes bajos detectados'
-                    };
+                    return { estado: 'PELIGROSA', emoji: '⚠️', bloquear: true };
                 }
 
                 if (this.detectarRachaCaliente()) {
-                    return {
-                        estado: 'CALIENTE', color: 'verde', mensaje: 'RACHA CALIENTE 🔥',
-                        emoji: '🔥', bloquear: false, favorabilidad: 'MUY_ALTA', detalle: 'Momento óptimo'
-                    };
+                    return { estado: 'CALIENTE', emoji: '🔥', favorabilidad: 'MUY_ALTA' };
                 }
 
                 const ultimos15 = this.historico.slice(-15);
-                const morados = ultimos15.filter(c => c.categoria === 'morado' || c.categoria === 'dorado').length;
+                const altos = ultimos15.filter(c => c.categoria === 'morado' || c.categoria === 'fucsia').length;
                 const azules = ultimos15.filter(c => c.categoria === 'azul').length;
 
-                if (morados >= 8 && azules <= 2) {
-                    return {
-                        estado: 'ESTABLE', color: 'verde', mensaje: 'Estable',
-                        emoji: '🟡', bloquear: false, favorabilidad: 'ALTA', detalle: 'Zona favorable'
-                    };
+                if (altos >= 8 && azules <= 2) {
+                    return { estado: 'ESTABLE', emoji: '🟡', favorabilidad: 'ALTA' };
                 }
 
-                return {
-                    estado: 'NEUTRAL', color: 'amarillo', mensaje: 'Neutral',
-                    emoji: '⚪', bloquear: false, favorabilidad: 'MEDIA', detalle: 'Observando'
-                };
+                return { estado: 'NEUTRAL', emoji: '⚪', favorabilidad: 'MEDIA' };
             }
 
             generarSenal() {
@@ -594,28 +591,24 @@
 
                 if (tendencia.bloquear) {
                     this.modoActual = 'BLOQUEADO';
-                    return { tipo: 'BLOQUEADO', tendencia, mensaje: '🚫 Bloqueado' };
+                    return { tipo: 'BLOQUEADO', tendencia };
                 }
 
-                let intervalRequerido, confianzaMin;
+                let intervalRequerido = tendencia.estado === 'CALIENTE' ? 2 : 8;
+                let confianzaMin = tendencia.estado === 'CALIENTE' ? 75 : 70;
                 
                 if (tendencia.estado === 'CALIENTE') {
-                    intervalRequerido = this.config.rachaCaliente.intervalMin;
-                    confianzaMin = this.config.rachaCaliente.confianzaMin;
                     this.modoActual = 'RACHA_CALIENTE';
-                    
-                    if (this.senalesEnRacha >= this.config.rachaCaliente.maxSenales) {
-                        return { tipo: 'ESPERANDO', tendencia, mensaje: '⏸️ Límite' };
+                    if (this.senalesEnRacha >= 5) {
+                        return { tipo: 'ESPERANDO', tendencia, msg: '⏸️ Límite' };
                     }
                 } else {
-                    intervalRequerido = this.config.zonaNormal.intervalMin;
-                    confianzaMin = this.config.zonaNormal.confianzaMin;
                     this.modoActual = 'NORMAL';
                     this.senalesEnRacha = 0;
                 }
 
                 if (this.rondasDesdeSenal < intervalRequerido) {
-                    return { tipo: 'ESPERANDO', tendencia, mensaje: `⏳ ${this.rondasDesdeSenal}/${intervalRequerido}` };
+                    return { tipo: 'ESPERANDO', tendencia, msg: `⏳ ${this.rondasDesdeSenal}/${intervalRequerido}` };
                 }
 
                 const ultimos20 = this.historico.slice(-20);
@@ -637,9 +630,8 @@
                     confianza = 70;
                 }
 
-                // Solo dar señal si confianza es alta
                 if (confianza < confianzaMin) {
-                    return { tipo: 'ESPERANDO', tendencia, mensaje: '⏳ Confianza baja' };
+                    return { tipo: 'ESPERANDO', tendencia, msg: '⏳ Confianza baja' };
                 }
 
                 const senal = {
@@ -648,9 +640,7 @@
                     rango: { min: rangoMin.toFixed(2), max: rangoMax.toFixed(2) },
                     confianza, 
                     modo: this.modoActual, 
-                    timestamp: Date.now(),
-                    indexRonda: this.historico.length,
-                    resultado: null,
+                    resultado: 'PENDIENTE',
                     resultadoReal: null
                 };
 
@@ -663,11 +653,10 @@
             }
 
             actualizarInterfaz() {
-                this.generarSenal();
-                this.actualizarCrashes();
-                this.actualizarSignalsHistory();
-                this.actualizarEstadisticas();
                 this.actualizarPanel();
+                this.actualizarCrashesCompact();
+                this.actualizarHistorial();
+                this.actualizarEstadisticas();
             }
 
             actualizarPanel() {
@@ -677,7 +666,7 @@
                 if (senal.tipo === 'ACTIVA') {
                     panel.className = 'signal-panel hot';
                     panel.innerHTML = `
-                        <div class="signal-status">${senal.tendencia.emoji} ✅ SEÑAL ACTIVA</div>
+                        <div class="signal-status">${senal.tendencia.emoji} ✅ SEÑAL</div>
                         <div class="signal-value">${senal.rango.min}x - ${senal.rango.max}x</div>
                         <div class="signal-confidence">Confianza: ${senal.confianza}%</div>
                         <div class="signal-mode">🎯 ${senal.modo}</div>
@@ -685,88 +674,80 @@
                 } else if (senal.tipo === 'BLOQUEADO') {
                     panel.className = 'signal-panel blocked';
                     panel.innerHTML = `
-                        <div class="signal-status">${senal.tendencia.emoji} ZONA PELIGROSA</div>
+                        <div class="signal-status">${senal.tendencia.emoji} PELIGROSA</div>
                         <div class="signal-value" style="font-size: 1.5em;">🚫 BLOQUEADO</div>
-                        <div class="signal-mode">Esperar mejores condiciones</div>
                     `;
                 } else {
                     panel.className = 'signal-panel waiting';
                     panel.innerHTML = `
                         <div class="signal-status">${senal.tendencia.emoji} ESPERANDO</div>
-                        <div class="signal-value" style="font-size: 1.5em;">${senal.mensaje}</div>
-                        <div class="signal-mode">⏳ ${this.modoActual}</div>
+                        <div class="signal-value" style="font-size: 1.8em;">${senal.msg}</div>
                     `;
                 }
             }
 
-            actualizarCrashes() {
-                const container = document.getElementById('crashesDisplay');
-                const ultimos60 = this.historico.slice(-60);
+            actualizarCrashesCompact() {
+                const container = document.getElementById('crashesCompact');
+                const ultimos40 = this.historico.slice(-40);
                 
-                if (ultimos60.length === 0) {
-                    container.innerHTML = '<p style="opacity: 0.5;">Sin datos...</p>';
+                if (ultimos40.length === 0) {
+                    container.innerHTML = '<p style="opacity: 0.5;">Sin datos</p>';
                     return;
                 }
 
                 let html = '';
                 let fila = [];
                 
-                ultimos60.forEach(crash => {
-                    fila.push(`<div class="crash-display ${crash.categoria}">${crash.valor.toFixed(2)}x</div>`);
+                ultimos40.forEach(crash => {
+                    fila.push(`<div class="crash-mini ${crash.categoria}">${crash.valor.toFixed(2)}</div>`);
                     
-                    if (fila.length === 15) {
-                        html += `<div class="crashes-row">${fila.join('')}</div>`;
+                    if (fila.length === 8) {
+                        html += `<div class="crashes-compact-row">${fila.join('')}</div>`;
                         fila = [];
                     }
                 });
                 
                 if (fila.length > 0) {
-                    html += `<div class="crashes-row">${fila.join('')}</div>`;
+                    html += `<div class="crashes-compact-row">${fila.join('')}</div>`;
                 }
                 
                 container.innerHTML = html;
             }
 
-            actualizarSignalsHistory() {
+            actualizarHistorial() {
                 const container = document.getElementById('signalsHistory');
                 const senalesOrdenadas = [...this.senales].reverse();
                 
                 if (senalesOrdenadas.length === 0) {
-                    container.innerHTML = '<p style="opacity: 0.5; text-align: center; padding: 20px;">Sin señales aún...</p>';
+                    container.innerHTML = '<p style="opacity: 0.5; text-align: center;">Sin señales</p>';
                     return;
                 }
 
                 container.innerHTML = senalesOrdenadas.map((senal, idx) => {
-                    const resultado = senal.resultado || 'PENDIENTE';
-                    const claseResultado = resultado === 'GANADA' ? 'ganada' : resultado === 'PENDIENTE' ? '' : 'perdida';
-                    const textResultado = resultado === 'GANADA' ? '✅ GANADA' : resultado === 'PENDIENTE' ? '⏳ PENDIENTE' : '❌ PERDIDA';
+                    const resultado = senal.resultado;
+                    const clase = resultado === 'GANADA' ? 'ganada' : resultado === 'PENDIENTE' ? 'pendiente' : 'perdida';
+                    const text = resultado === 'GANADA' ? '✅ GANADA' : resultado === 'PENDIENTE' ? '⏳ PENDIENTE' : '❌ PERDIDA';
                     
                     return `
-                        <div class="signal-record ${claseResultado}">
-                            <div class="signal-record-info">
-                                <div class="signal-record-label">Señal #${this.senales.length - idx}</div>
-                                <div class="signal-record-values">
-                                    <span>Rango: ${senal.rango.min}x - ${senal.rango.max}x</span>
-                                    ${senal.resultadoReal ? `<span>Real: ${senal.resultadoReal}x</span>` : ''}
-                                    <span>Confianza: ${senal.confianza}%</span>
-                                </div>
+                        <div class="signal-record ${clase}">
+                            <div class="signal-record-row">
+                                <span><strong>Señal #${this.senales.length - idx}</strong> ${senal.rango.min}x-${senal.rango.max}x (${senal.confianza}%)</span>
+                                <div class="signal-record-result ${clase}">${text}</div>
                             </div>
-                            <div class="signal-record-result ${claseResultado}">
-                                ${textResultado}
-                            </div>
+                            ${senal.resultadoReal ? `<div style="font-size: 0.8em; opacity: 0.7;">Real: ${senal.resultadoReal}x</div>` : ''}
                         </div>
                     `;
                 }).join('');
             }
 
             actualizarEstadisticas() {
-                const totalSignals = this.senales.length;
-                const wonSignals = this.senales.filter(s => s.resultado === 'GANADA').length;
-                const winRate = totalSignals > 0 ? Math.round((wonSignals / totalSignals) * 100) : 0;
+                const total = this.senales.length;
+                const ganadas = this.senales.filter(s => s.resultado === 'GANADA').length;
+                const winRate = total > 0 ? Math.round((ganadas / total) * 100) : 0;
 
                 document.getElementById('statRounds').textContent = this.historico.length;
-                document.getElementById('statSignals').textContent = totalSignals;
-                document.getElementById('statWon').textContent = wonSignals;
+                document.getElementById('statSignals').textContent = total;
+                document.getElementById('statWon').textContent = ganadas;
                 document.getElementById('statWinRate').textContent = `${winRate}%`;
             }
         }
