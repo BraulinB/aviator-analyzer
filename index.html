@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Sistema Aviator Inteligente - 1Win</title>
+    <title>Aviator Analyzer Pro - Sistema Inteligente</title>
     
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -16,26 +16,28 @@
             background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%); 
             color: #fff; 
             min-height: 100vh; 
-            padding: 15px; 
+            padding: 10px; 
+            overflow-x: hidden;
         }
         .container { max-width: 1400px; margin: 0 auto; }
         
         /* Header */
         .header { 
             text-align: center; 
-            padding: 20px; 
+            padding: 15px; 
             background: rgba(255, 255, 255, 0.08); 
             border-radius: 15px; 
-            margin-bottom: 20px; 
+            margin-bottom: 15px; 
             backdrop-filter: blur(10px); 
         }
         .header h1 { 
-            font-size: 2em; 
-            margin-bottom: 8px; 
+            font-size: 1.8em; 
+            margin-bottom: 5px; 
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
             -webkit-background-clip: text; 
             -webkit-text-fill-color: transparent; 
         }
+        .header p { font-size: 0.9em; opacity: 0.8; }
         .sync-badge { 
             display: inline-flex; 
             align-items: center; 
@@ -44,28 +46,26 @@
             padding: 6px 15px; 
             border-radius: 20px; 
             font-size: 0.85em; 
+            margin-top: 8px;
         }
         
-        /* Panel de Señal Principal */
+        /* Panel de Señal */
         .signal-panel {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 20px;
-            padding: 35px;
+            border-radius: 15px;
+            padding: 25px;
             text-align: center;
-            margin-bottom: 25px;
+            margin-bottom: 15px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
             border: 3px solid rgba(255, 255, 255, 0.2);
-            min-height: 200px;
+            min-height: 150px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             animation: fadeIn 0.5s;
         }
         
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
         .signal-panel.blocked {
             background: linear-gradient(135deg, #ff0000, #8b0000);
@@ -75,10 +75,6 @@
         @keyframes pulse {
             0%, 100% { box-shadow: 0 0 30px rgba(255, 0, 0, 0.6); }
             50% { box-shadow: 0 0 60px rgba(255, 0, 0, 0.9); }
-        }
-        
-        .signal-panel.waiting {
-            background: linear-gradient(135deg, #ffa500, #ff6347);
         }
         
         .signal-panel.hot {
@@ -91,74 +87,56 @@
             50% { box-shadow: 0 0 60px rgba(0, 255, 136, 0.9); }
         }
         
-        .signal-status {
-            font-size: 1.3em;
-            opacity: 0.95;
-            margin-bottom: 12px;
-            font-weight: 500;
-        }
-        
-        .signal-value {
-            font-size: 3.5em;
+        .signal-status { font-size: 1.2em; opacity: 0.95; margin-bottom: 10px; }
+        .signal-value { font-size: 2.5em; font-weight: bold; margin: 15px 0; }
+        .signal-confidence { font-size: 1em; opacity: 0.85; }
+        .signal-mode { 
+            display: inline-block; 
+            padding: 8px 20px; 
+            background: rgba(0, 0, 0, 0.3); 
+            border-radius: 20px; 
+            margin-top: 12px; 
             font-weight: bold;
-            margin: 20px 0;
-            text-shadow: 0 0 25px rgba(255, 255, 255, 0.6);
-            letter-spacing: 2px;
-        }
-        
-        .signal-confidence {
-            font-size: 1.2em;
-            opacity: 0.85;
-            margin: 10px 0;
-        }
-        
-        .signal-mode {
-            display: inline-block;
-            padding: 10px 25px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 25px;
-            margin-top: 15px;
-            font-weight: bold;
-            font-size: 1.05em;
+            font-size: 0.95em;
         }
         
         /* Grid */
         .main-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
+            gap: 15px;
+            margin-bottom: 15px;
         }
         
-        @media (max-width: 968px) {
+        @media (max-width: 768px) {
             .main-grid { grid-template-columns: 1fr; }
+            .header h1 { font-size: 1.3em; }
+            .signal-value { font-size: 1.8em; }
         }
         
         .card {
             background: rgba(255, 255, 255, 0.06);
-            border-radius: 18px;
-            padding: 25px;
+            border-radius: 15px;
+            padding: 15px;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
         
         .card h2 {
-            margin-bottom: 20px;
-            font-size: 1.5em;
+            margin-bottom: 12px;
+            font-size: 1.2em;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
         
         /* Gráfico */
         .trend-container {
             background: #0f0f1e;
-            border-radius: 15px;
-            padding: 20px;
+            border-radius: 12px;
+            padding: 12px;
             position: relative;
-            margin-bottom: 20px;
-            transition: all 0.3s;
+            margin-bottom: 12px;
         }
         
         .trend-container.red-border { border: 3px solid #ff0000; }
@@ -167,61 +145,52 @@
         
         .trend-label {
             position: absolute;
-            top: 15px;
-            left: 20px;
+            top: 10px;
+            left: 15px;
             font-weight: bold;
-            font-size: 1.15em;
-            z-index: 10;
+            font-size: 0.95em;
             background: rgba(0, 0, 0, 0.5);
-            padding: 8px 15px;
-            border-radius: 8px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            z-index: 10;
         }
         
         #trendChart {
             width: 100%;
-            height: 280px;
+            height: 200px;
             display: block;
         }
         
         .trend-details {
-            margin-top: 15px;
-            padding: 15px;
+            margin-top: 10px;
+            padding: 10px;
             background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            font-size: 0.95em;
+            border-radius: 8px;
+            font-size: 0.85em;
         }
         
-        .trend-details p {
-            margin: 6px 0;
-        }
-        
-        /* Últimos Crashes */
+        /* Crashes */
         .recent-crashes {
             display: flex;
-            gap: 15px;
+            gap: 10px;
             justify-content: center;
-            margin: 20px 0;
+            margin: 12px 0;
             flex-wrap: wrap;
         }
         
         .crash-box {
             background: #2d2d44;
-            padding: 22px;
-            border-radius: 14px;
+            padding: 12px;
+            border-radius: 10px;
             text-align: center;
-            min-width: 130px;
+            min-width: 100px;
             border: 2px solid rgba(255, 255, 255, 0.1);
-            transition: transform 0.2s;
-        }
-        
-        .crash-box:hover {
-            transform: translateY(-5px);
         }
         
         .crash-value {
-            font-size: 2em;
+            font-size: 1.5em;
             font-weight: bold;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
         }
         
         .crash-value.azul { color: #00d4ff; }
@@ -229,43 +198,32 @@
         .crash-value.morado { color: #bb86fc; }
         .crash-value.dorado { color: #ffd700; }
         
-        .crash-time {
-            font-size: 0.85em;
-            opacity: 0.65;
-        }
+        .crash-time { font-size: 0.75em; opacity: 0.6; }
         
         /* Historial */
         .history-list {
-            max-height: 450px;
+            max-height: 300px;
             overflow-y: auto;
-            padding-right: 10px;
+            padding-right: 8px;
         }
         
-        .history-list::-webkit-scrollbar { width: 8px; }
-        .history-list::-webkit-scrollbar-track { 
-            background: rgba(255, 255, 255, 0.05); 
-            border-radius: 10px; 
-        }
+        .history-list::-webkit-scrollbar { width: 6px; }
+        .history-list::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); }
         .history-list::-webkit-scrollbar-thumb { 
             background: rgba(255, 255, 255, 0.2); 
-            border-radius: 10px; 
+            border-radius: 5px;
         }
         
         .history-item {
-            padding: 14px;
-            margin: 8px 0;
+            padding: 10px;
+            margin: 6px 0;
             background: #1a1a2e;
-            border-radius: 10px;
+            border-radius: 8px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-left: 5px solid;
-            transition: all 0.2s;
-        }
-        
-        .history-item:hover {
-            transform: translateX(8px);
-            background: #252540;
+            border-left: 4px solid;
+            font-size: 0.9em;
         }
         
         .history-item.azul { border-color: #00d4ff; }
@@ -276,51 +234,46 @@
         /* Estadísticas */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 18px;
-            margin-top: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
         }
         
         .stat-box {
             background: rgba(255, 255, 255, 0.05);
-            padding: 22px;
-            border-radius: 14px;
+            padding: 12px;
+            border-radius: 10px;
             text-align: center;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: transform 0.2s;
-        }
-        
-        .stat-box:hover {
-            transform: translateY(-5px);
         }
         
         .stat-box .value {
-            font-size: 2.2em;
+            font-size: 1.8em;
             font-weight: bold;
-            margin: 12px 0;
+            margin: 6px 0;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
         
         .stat-box .label {
-            font-size: 0.9em;
+            font-size: 0.8em;
             opacity: 0.7;
         }
         
         /* Botones */
         .controls {
             display: flex;
-            gap: 15px;
+            gap: 10px;
             flex-wrap: wrap;
-            margin-top: 25px;
+            margin-top: 12px;
         }
         
         button {
-            padding: 14px 32px;
+            padding: 10px 20px;
             border: none;
-            border-radius: 10px;
-            font-size: 1em;
+            border-radius: 8px;
+            font-size: 0.9em;
             cursor: pointer;
             transition: all 0.3s;
             font-weight: bold;
@@ -337,104 +290,91 @@
             border: 2px solid rgba(255, 255, 255, 0.2);
         }
         
-        button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
-        }
-        
-        button:active {
-            transform: translateY(-1px);
-        }
-        
-        /* Iframe (oculto) */
-        #gameFrame {
-            position: fixed;
-            width: 1px;
-            height: 1px;
-            opacity: 0;
-            pointer-events: none;
-        }
-        
-        /* Loading */
-        .spinner {
-            border: 4px solid rgba(255, 255, 255, 0.1);
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        button:hover { transform: translateY(-2px); }
+        button:active { transform: translateY(0); }
         
         /* Footer */
         footer {
             text-align: center;
-            padding: 30px;
-            margin-top: 40px;
+            padding: 15px;
+            margin-top: 20px;
             opacity: 0.5;
+            font-size: 0.85em;
+        }
+
+        /* Audio Control */
+        .audio-control {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(102, 126, 234, 0.9);
+            padding: 10px 15px;
+            border-radius: 50px;
+            cursor: pointer;
+            z-index: 999;
             font-size: 0.9em;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .audio-control.disabled {
+            background: rgba(255, 0, 0, 0.6);
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎯 Aviator Analyzer Pro - Sistema Inteligente</h1>
-            <p>Predicción con IA • Detección de Rachas • Análisis en Tiempo Real</p>
+            <h1>🎯 Aviator Analyzer Pro</h1>
+            <p>Sistema Inteligente • Detección de Rachas • Multi-dispositivo</p>
             <div class="sync-badge">
-                <span id="syncStatus">🔄 Sincronizando...</span>
+                <span id="syncStatus">🔄 Conectando...</span>
             </div>
         </div>
 
         <!-- Panel de Señal -->
         <div id="signalPanel" class="signal-panel waiting">
-            <div class="spinner"></div>
-            <p>Inicializando sistema inteligente...</p>
+            <div style="font-size: 2em;">⏳</div>
+            <p>Cargando datos del sistema...</p>
         </div>
 
         <!-- Grid Principal -->
         <div class="main-grid">
             <!-- Gráfico -->
             <div class="card">
-                <h2>📈 Análisis de Tendencia</h2>
+                <h2>📈 Análisis</h2>
                 <div id="trendContainer" class="trend-container">
-                    <div id="trendLabel" class="trend-label">⏳ Esperando datos...</div>
+                    <div id="trendLabel" class="trend-label">⏳ Esperando...</div>
                     <canvas id="trendChart"></canvas>
                     <div id="trendDetails" class="trend-details">
                         <p><strong>Estado:</strong> Inicializando...</p>
                     </div>
                 </div>
                 
-                <h3 style="margin-top: 20px; margin-bottom: 15px;">🎲 Últimos 3 Crashes</h3>
+                <h3 style="margin-top: 12px; margin-bottom: 10px; font-size: 1em;">🎲 Últimos Crashes</h3>
                 <div id="recentCrashes" class="recent-crashes">
-                    <p style="opacity: 0.5; width: 100%; text-align: center;">Sin datos...</p>
+                    <p style="opacity: 0.5;">Cargando...</p>
                 </div>
             </div>
 
             <!-- Historial -->
             <div class="card">
-                <h2>📊 Historial de Rondas</h2>
+                <h2>📊 Historial</h2>
                 <div id="historyList" class="history-list">
-                    <p style="opacity: 0.5; text-align: center; padding: 50px;">Esperando capturas...</p>
+                    <p style="opacity: 0.5; text-align: center; padding: 30px;">Cargando datos...</p>
                 </div>
             </div>
         </div>
 
         <!-- Estadísticas -->
         <div class="card">
-            <h2>📈 Estadísticas del Sistema</h2>
+            <h2>📈 Estadísticas</h2>
             <div class="stats-grid">
                 <div class="stat-box">
-                    <div class="label">Rondas Analizadas</div>
+                    <div class="label">Rondas</div>
                     <div class="value" id="statRounds">0</div>
                 </div>
                 <div class="stat-box">
-                    <div class="label">Señales Emitidas</div>
+                    <div class="label">Señales</div>
                     <div class="value" id="statSignals">0</div>
                 </div>
                 <div class="stat-box">
@@ -442,28 +382,33 @@
                     <div class="value" id="statWinRate">--%</div>
                 </div>
                 <div class="stat-box">
-                    <div class="label">Modo Actual</div>
-                    <div class="value" id="statMode" style="font-size: 1.3em;">INIT</div>
+                    <div class="label">Modo</div>
+                    <div class="value" id="statMode" style="font-size: 1.2em;">--</div>
                 </div>
             </div>
 
             <div class="controls">
                 <button class="primary" onclick="location.reload()">🔄 Reiniciar</button>
-                <button class="secondary" onclick="exportData()">📥 Exportar</button>
+                <button class="secondary" onclick="toggleAudio()">🔊 Audio</button>
             </div>
         </div>
 
         <footer>
-            <p>Aviator Analyzer Pro v3.0 • Sistema Inteligente con IA</p>
-            <p>© 2025 • Todos los derechos reservados</p>
+            <p>Aviator Analyzer Pro v3.0 • Sincronización en Tiempo Real</p>
         </footer>
     </div>
 
-    <!-- Iframe oculto para captura -->
-    <iframe id="gameFrame" src="https://1wxxhj.top/casino/game/spribe_aviator_1"></iframe>
+    <!-- Audio de Alertas -->
+    <audio id="alertSound" preload="auto">
+        <source src="data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAAB9AAACABAAZGF0YQIAAAAAAA==" type="audio/wav">
+    </audio>
+
+    <div class="audio-control" id="audioControl" onclick="toggleAudio()">🔊 Sonido ON</div>
 
     <script>
-        // Firebase Config
+        // ==========================================
+        // FIREBASE CONFIG
+        // ==========================================
         const firebaseConfig = {
             apiKey: "AIzaSyCNqZGFnDwK52o0jJOwrfNwSDZk-7hfVZc",
             authDomain: "aviator-3e1f2.firebaseapp.com",
@@ -477,7 +422,42 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        // ==========================================
+        // CONFIGURACIÓN DE AUDIO
+        // ==========================================
+        let audioEnabled = localStorage.getItem('audioEnabled') !== 'false';
+        
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            localStorage.setItem('audioEnabled', audioEnabled);
+            document.getElementById('audioControl').textContent = audioEnabled ? '🔊 Sonido ON' : '🔇 Sonido OFF';
+            document.getElementById('audioControl').classList.toggle('disabled', !audioEnabled);
+        }
+
+        function playAlert() {
+            if (!audioEnabled) return;
+            
+            // Crear sonido de alerta
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        }
+
+        // ==========================================
         // SISTEMA INTELIGENTE
+        // ==========================================
         class AviatorIntelligentSystem {
             constructor() {
                 this.historico = [];
@@ -486,82 +466,78 @@
                 this.rondasDesdeSenal = 0;
                 this.modoActual = 'NORMAL';
                 this.senalesEnRacha = 0;
-                this.dispositivo = this.generateDeviceId();
+                this.cargandoDatos = true;
                 
                 this.config = {
                     rachaCaliente: { minimoMorados: 6, ventana: 8, intervalMin: 2, maxSenales: 5, confianzaMin: 75 },
                     zonaNormal: { intervalMin: 8, confianzaMin: 70 },
-                    zonaPeligrosa: { maxAzules: 4, maxAzulesRecientes: 3, minimoRecuperacion: 5 }
+                    zonaPeligrosa: { maxAzules: 4, maxAzulesRecientes: 3 }
                 };
                 
                 this.iniciar();
             }
 
-            generateDeviceId() {
-                let id = localStorage.getItem('deviceId');
-                if (!id) {
-                    id = 'device_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
-                    localStorage.setItem('deviceId', id);
-                }
-                return id;
-            }
-
             iniciar() {
                 this.escucharFirebase();
-                this.iniciarCaptura();
-                document.getElementById('syncStatus').innerHTML = '✅ Conectado';
             }
 
             escucharFirebase() {
-                db.ref('feeds/gocho/crashes').on('child_added', (snapshot) => {
-                    const data = snapshot.val();
-                    if (data && data.v && data.ts) {
-                        this.agregarCrash(data.v, data.ts);
-                    }
-                });
-            }
-
-            iniciarCaptura() {
-                const iframe = document.getElementById('gameFrame');
-                setInterval(() => {
-                    try {
-                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                        const multipliers = iframeDoc.querySelectorAll('[class*="multiplier"], [class*="crash"]');
-                        
-                        multipliers.forEach(el => {
-                            const text = el.textContent.trim();
-                            const match = text.match(/(\d+\.?\d*)x?/);
-                            if (match) {
-                                const valor = parseFloat(match[1]);
-                                if (valor >= 1 && valor < 1000) {
-                                    this.procesarCrashCapturado(valor);
-                                }
+                // 1. CARGAR HISTÓRICO (últimos 60)
+                db.ref('feeds/gocho/crashes')
+                    .orderByKey()
+                    .limitToLast(60)
+                    .once('value', (snapshot) => {
+                        const crashes = [];
+                        snapshot.forEach((child) => {
+                            const data = child.val();
+                            if (data && data.v && data.ts) {
+                                crashes.push({ valor: data.v, tiempo: data.ts, key: child.key });
                             }
                         });
-                    } catch (e) {
-                        // CORS - esperando datos de Firebase
-                    }
-                }, 1000);
+                        
+                        crashes.sort((a, b) => a.tiempo - b.tiempo);
+                        crashes.forEach(crash => {
+                            this.agregarCrash(crash.valor, crash.tiempo, crash.key);
+                        });
+                        
+                        console.log(`✅ ${crashes.length} crashes históricos cargados`);
+                        this.cargandoDatos = false;
+                        this.actualizarInterfaz(this.generarSenal());
+                    });
+
+                // 2. ESCUCHAR NUEVOS CRASHES
+                db.ref('feeds/gocho/crashes')
+                    .on('child_added', (snapshot) => {
+                        const data = snapshot.val();
+                        if (data && data.v && data.ts && !this.cargandoDatos) {
+                            // Evitar duplicados
+                            if (!this.historico.find(c => 
+                                c.valor === data.v && 
+                                Math.abs(c.tiempo - data.ts) < 1000 &&
+                                c.tiempo === data.ts
+                            )) {
+                                this.agregarCrash(data.v, data.ts, snapshot.key);
+                                console.log(`📡 Nuevo crash: ${data.v}x`);
+                            }
+                        }
+                    });
+
+                document.getElementById('syncStatus').innerHTML = '✅ Conectado en tiempo real';
             }
 
-            procesarCrashCapturado(valor) {
-                const ultimo = this.historico[this.historico.length - 1];
-                if (!ultimo || ultimo.valor !== valor) {
-                    const timestamp = Date.now();
-                    db.ref('feeds/gocho/crashes').push({ v: valor, ts: timestamp, d: this.dispositivo });
+            agregarCrash(multiplicador, timestamp, key) {
+                if (!this.historico.find(c => c.key === key)) {
+                    this.historico.push({
+                        valor: multiplicador,
+                        tiempo: timestamp,
+                        categoria: this.categorizar(multiplicador),
+                        key: key
+                    });
+
+                    if (this.historico.length > 60) this.historico.shift();
+                    this.rondasDesdeSenal++;
+                    this.analizarYActualizar();
                 }
-            }
-
-            agregarCrash(multiplicador, timestamp) {
-                this.historico.push({
-                    valor: multiplicador,
-                    tiempo: timestamp,
-                    categoria: this.categorizar(multiplicador)
-                });
-
-                if (this.historico.length > 60) this.historico.shift();
-                this.rondasDesdeSenal++;
-                this.analizarYActualizar();
             }
 
             categorizar(mult) {
@@ -604,14 +580,14 @@
                 if (this.detectarZonaPeligrosa()) {
                     return {
                         estado: 'PELIGROSA', color: 'rojo', mensaje: 'Tendencia inestable',
-                        emoji: '⚠️', bloquear: true, detalle: 'Racha de crashes bajos detectada'
+                        emoji: '⚠️', bloquear: true, detalle: 'Racha de crashes bajos'
                     };
                 }
 
                 if (this.detectarRachaCaliente()) {
                     return {
-                        estado: 'CALIENTE', color: 'verde', mensaje: 'RACHA CALIENTE DETECTADA',
-                        emoji: '🔥', bloquear: false, favorabilidad: 'MUY_ALTA', detalle: 'Momento óptimo para señales'
+                        estado: 'CALIENTE', color: 'verde', mensaje: 'RACHA CALIENTE 🔥',
+                        emoji: '🔥', bloquear: false, favorabilidad: 'MUY_ALTA', detalle: 'Momento óptimo'
                     };
                 }
 
@@ -621,7 +597,7 @@
 
                 if (morados >= 8 && azules <= 2) {
                     return {
-                        estado: 'ESTABLE', color: 'verde', mensaje: 'Tendencia aparentemente estable',
+                        estado: 'ESTABLE', color: 'verde', mensaje: 'Tendencia estable',
                         emoji: '🟡', bloquear: false, favorabilidad: 'ALTA', detalle: 'Zona favorable'
                     };
                 }
@@ -637,7 +613,7 @@
 
                 if (tendencia.bloquear) {
                     this.modoActual = 'BLOQUEADO';
-                    return { tipo: 'BLOQUEADO', tendencia, mensaje: '🚫 Señales bloqueadas', recomendacion: 'Esperar' };
+                    return { tipo: 'BLOQUEADO', tendencia, mensaje: '🚫 Bloqueado' };
                 }
 
                 let intervalRequerido, confianzaMin;
@@ -648,7 +624,7 @@
                     this.modoActual = 'RACHA_CALIENTE';
                     
                     if (this.senalesEnRacha >= this.config.rachaCaliente.maxSenales) {
-                        return { tipo: 'ESPERANDO', tendencia, mensaje: '⏸️ Límite en racha', recomendacion: 'Esperar' };
+                        return { tipo: 'ESPERANDO', tendencia, mensaje: '⏸️ Límite' };
                     }
                 } else {
                     intervalRequerido = this.config.zonaNormal.intervalMin;
@@ -658,11 +634,7 @@
                 }
 
                 if (this.rondasDesdeSenal < intervalRequerido) {
-                    return {
-                        tipo: 'ESPERANDO', tendencia,
-                        mensaje: `⏳ Esperando (${this.rondasDesdeSenal}/${intervalRequerido})`,
-                        recomendacion: 'Observando'
-                    };
+                    return { tipo: 'ESPERANDO', tendencia, mensaje: `⏳ ${this.rondasDesdeSenal}/${intervalRequerido}` };
                 }
 
                 const ultimos20 = this.historico.slice(-20);
@@ -685,7 +657,7 @@
                 }
 
                 if (confianza < confianzaMin) {
-                    return { tipo: 'ESPERANDO', tendencia, mensaje: '⏳ Confianza baja', recomendacion: 'Esperar' };
+                    return { tipo: 'ESPERANDO', tendencia, mensaje: '⏳ Confianza baja' };
                 }
 
                 const senal = {
@@ -698,6 +670,9 @@
                 this.rondasDesdeSenal = 0;
                 if (this.modoActual === 'RACHA_CALIENTE') this.senalesEnRacha++;
                 this.senales.push(senal);
+
+                // REPRODUCIR ALERTA
+                playAlert();
 
                 return senal;
             }
@@ -714,7 +689,7 @@
                 if (senal.tipo === 'ACTIVA') {
                     panel.className = senal.modo === 'RACHA_CALIENTE' ? 'signal-panel hot' : 'signal-panel';
                     panel.innerHTML = `
-                        <div class="signal-status">${senal.tendencia.emoji} SEÑAL ACTIVA</div>
+                        <div class="signal-status">${senal.tendencia.emoji} SEÑAL</div>
                         <div class="signal-value">${senal.rango.min}x - ${senal.rango.max}x</div>
                         <div class="signal-confidence">Confianza: ${senal.confianza}%</div>
                         <div class="signal-mode">🎯 ${senal.modo}</div>
@@ -723,16 +698,14 @@
                     panel.className = 'signal-panel blocked';
                     panel.innerHTML = `
                         <div class="signal-status">${senal.tendencia.emoji} ZONA PELIGROSA</div>
-                        <div class="signal-value" style="font-size: 2em;">${senal.mensaje}</div>
-                        <div class="signal-confidence">${senal.recomendacion}</div>
+                        <div class="signal-value" style="font-size: 1.5em;">${senal.mensaje}</div>
                         <div class="signal-mode">🚫 BLOQUEADO</div>
                     `;
                 } else {
                     panel.className = 'signal-panel waiting';
                     panel.innerHTML = `
                         <div class="signal-status">${senal.tendencia.emoji} ESPERANDO</div>
-                        <div class="signal-value" style="font-size: 1.8em;">${senal.mensaje}</div>
-                        <div class="signal-confidence">${senal.recomendacion}</div>
+                        <div class="signal-value" style="font-size: 1.5em;">${senal.mensaje}</div>
                         <div class="signal-mode">⏳ ${this.modoActual}</div>
                     `;
                 }
@@ -750,9 +723,7 @@
                 container.className = `trend-container ${tendencia.color}-border`;
                 label.innerHTML = `${tendencia.emoji} ${tendencia.mensaje}`;
                 details.innerHTML = `
-                    <p><strong>Estado:</strong> ${tendencia.estado}</p>
-                    <p><strong>Detalle:</strong> ${tendencia.detalle}</p>
-                    <p><strong>Modo:</strong> ${this.modoActual}</p>
+                    <p><strong>Estado:</strong> ${tendencia.estado} | <strong>Modo:</strong> ${this.modoActual}</p>
                 `;
 
                 this.dibujarGrafico();
@@ -762,7 +733,7 @@
                 const canvas = document.getElementById('trendChart');
                 const ctx = canvas.getContext('2d');
                 canvas.width = canvas.offsetWidth;
-                canvas.height = 280;
+                canvas.height = 200;
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
                 if (this.historico.length < 2) return;
@@ -772,11 +743,11 @@
 
                 ctx.beginPath();
                 ctx.strokeStyle = '#ffffff';
-                ctx.lineWidth = 2.5;
+                ctx.lineWidth = 2;
 
                 ultimos30.forEach((crash, i) => {
                     const x = (i / (ultimos30.length - 1)) * canvas.width;
-                    const y = canvas.height - (crash.valor / maxValor * (canvas.height - 30));
+                    const y = canvas.height - (crash.valor / maxValor * (canvas.height - 20));
                     if (i === 0) ctx.moveTo(x, y);
                     else ctx.lineTo(x, y);
                 });
@@ -785,10 +756,10 @@
 
                 ultimos30.forEach((crash, i) => {
                     const x = (i / (ultimos30.length - 1)) * canvas.width;
-                    const y = canvas.height - (crash.valor / maxValor * (canvas.height - 30));
+                    const y = canvas.height - (crash.valor / maxValor * (canvas.height - 20));
                     
                     ctx.beginPath();
-                    ctx.arc(x, y, 5, 0, Math.PI * 2);
+                    ctx.arc(x, y, 4, 0, Math.PI * 2);
                     
                     const colores = { azul: '#00d4ff', verde: '#03dac6', morado: '#bb86fc', dorado: '#ffd700' };
                     ctx.fillStyle = colores[crash.categoria] || '#ffffff';
@@ -818,22 +789,22 @@
 
             actualizarHistorial() {
                 const lista = document.getElementById('historyList');
-                const ultimos20 = this.historico.slice(-20).reverse();
+                const ultimos15 = this.historico.slice(-15).reverse();
 
-                if (ultimos20.length === 0) {
-                    lista.innerHTML = '<p style="opacity: 0.5; text-align: center;">Sin datos...</p>';
+                if (ultimos15.length === 0) {
+                    lista.innerHTML = '<p style="opacity: 0.5;">Sin datos...</p>';
                     return;
                 }
 
-                lista.innerHTML = ultimos20.map((crash, index) => {
+                lista.innerHTML = ultimos15.map((crash, index) => {
                     const numero = this.historico.length - index;
-                    const hora = new Date(crash.tiempo).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    const hora = new Date(crash.tiempo).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' });
                     
                     return `
                         <div class="history-item ${crash.categoria}">
-                            <span style="opacity: 0.7;">#${numero}</span>
-                            <strong style="font-size: 1.2em;">${crash.valor.toFixed(2)}x</strong>
-                            <span style="opacity: 0.6; font-size: 0.9em;">${hora}</span>
+                            <span>#${numero}</span>
+                            <strong>${crash.valor.toFixed(2)}x</strong>
+                            <span>${hora}</span>
                         </div>
                     `;
                 }).join('');
@@ -851,19 +822,12 @@
             }
         }
 
-        function exportData() {
-            const data = JSON.stringify(sistema.historico, null, 2);
-            const blob = new Blob([data], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `aviator-${Date.now()}.json`;
-            a.click();
-        }
-
         // INICIAR
         const sistema = new AviatorIntelligentSystem();
-        console.log('🚀 Sistema Aviator Inteligente v3.0 iniciado');
+        if (audioEnabled) document.getElementById('audioControl').classList.remove('disabled');
+        else document.getElementById('audioControl').classList.add('disabled');
+
+        console.log('🚀 Sistema Aviator Inteligente iniciado');
     </script>
 </body>
 </html>
