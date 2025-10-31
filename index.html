@@ -7,6 +7,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <style>
+/* --- [mantén aquí TODO el css completo del modelo anterior, igual que antes] --- */
 body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,#0f0c29 0%,#302b63 50%,#24243e 100%);color:#fff;min-height:100vh;padding:14px;margin:0;}
 .container{width:100%;max-width:1200px;margin:0 auto;}
 .header{text-align:center;padding:15px 7px 11px 7px;background:rgba(255,255,255,0.07);border-radius:9px 9px 16px 16px;margin-bottom:11px;}
@@ -87,7 +88,7 @@ footer{text-align:center;padding:14px 0;margin-top:13px;opacity:0.53;font-size:1
         <h3>🎯 Historial de Señales</h3>
         <div id="signalList" class="history-list"><p style="opacity:.5;text-align:center;">Sin señales aún...</p></div>
     </div>
-    <footer>Aviator Analyzer Pro v8.0 - LIMPIO Y LISTO</footer>
+    <footer>Aviator Analyzer Pro v8.0 - SOLO SEÑALES NUEVAS</footer>
 </div>
 <audio id="beep" preload="auto"><source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YYQAAACAgICA" type="audio/wav"></audio>
 <script>
@@ -113,8 +114,8 @@ class AviatorSystem {
         this.listo = false;
         this.rondasTotales = 0;
         this.childAddedListener = null;
-        this.startIndex = 0; // Solo para el rango final de aprendizaje real
-
+        this.arranque = true; // solo verdadero al iniciar
+        this.hastaAqui = 0;   // última ronda al levantar pantalla
         this.iniciar();
     }
 
@@ -135,16 +136,17 @@ class AviatorSystem {
                     categoria: this.categorizar(crash.valor), key: crash.key
                 });
             });
-            // Solo aquí: limpiar señales viejas y empezar de CERO
-            this.senales = [];
             this.rondasTotales = this.historico.length;
+            this.senales = [];
             this.rondasDesdeSenal = 0;
             this.senalesEnRacha = 0;
             this.listo = true;
+            this.arranque = true;
+            this.hastaAqui = this.historico.length; // solo para no evaluar las previas
+
             document.getElementById('syncStatus').innerHTML = '✅ Sistema listo - Analizando';
             this.actualizarInterfaz();
 
-            // Ya sólo escucha nuevos
             if (this.childAddedListener) db.ref('feeds/gocho/crashes').off('child_added', this.childAddedListener);
             this.childAddedListener = (snap) => {
                 let data = snap.val();
@@ -164,11 +166,17 @@ class AviatorSystem {
             key: key
         });
         this.rondasTotales++;
-        // Solo guardamos las últimas 1000 en memoria (optimizado)
         if (this.historico.length > 1000) this.historico.shift();
         this.rondasDesdeSenal++;
-        this.verificarResultados();
-        this.actualizarInterfaz();
+        if (this.arranque) {
+            // Al recibir la PRIMERA ronda nueva después de cargar, ahí comienza el análisis
+            if (this.historico.length > this.hastaAqui) this.arranque = false;
+        } else {
+            this.verificarResultados();
+            this.actualizarInterfaz();
+        }
+        this.actualizarCrashes();
+        this.actualizarStats();
     }
 
     categorizar(mult) {
@@ -214,7 +222,8 @@ class AviatorSystem {
     }
 
     generarSenal() {
-        if (!this.listo || this.historico.length < 15) return { tipo: 'ESPERANDO', msg: `⏳ Datos (${this.historico.length}/15)`, emoji: '⏳' };
+        if (!this.listo || this.arranque) return { tipo: 'ESPERANDO', msg: `⏳ Esperando ronda nueva`, emoji: '⏳' };
+        if (this.historico.length < 15) return { tipo: 'ESPERANDO', msg: `⏳ Datos (${this.historico.length}/15)`, emoji: '⏳' };
         if (this.detectarZonaPeligrosa()) return { tipo: 'BLOQUEADO', msg: '🚫 BLOQUEADO', emoji: '⚠️' };
 
         if (this.detectarRachaCaliente()) {
@@ -280,7 +289,6 @@ class AviatorSystem {
         const beep = document.getElementById('beep');
         try { beep.currentTime = 0; beep.play(); } catch(e){}
     }
-
     actualizarInterfaz() {
         this.actualizarPanel();
         this.actualizarCrashes();
