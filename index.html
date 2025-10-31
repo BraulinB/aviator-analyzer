@@ -1,481 +1,60 @@
 <!doctype html>
 <html lang="es">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Aviator Analyzer · 888Star</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Smoke test RTDB</title>
+<style>
+  body{margin:0;font:16px/1.5 system-ui;background:#0f1225;color:#e8e9ff;display:grid;place-items:center;height:100dvh}
+  .card{background:#171a34;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:20px;max-width:520px}
+  .ok{color:#10b981} .bad{color:#ef4444} .muted{color:#99a1d8}
+  code{background:#0f132e;padding:2px 6px;border-radius:6px}
+</style>
 
-  <!-- Favicon (evita 404) -->
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='24' fill='%2323274a'/%3E%3Cpath d='M22 86c30-12 54-40 84-44-26 10-38 42-84 44Z' fill='%23a78bfa'/%3E%3Cpath d='M18 70c32-8 58-26 92-30-28 6-46 34-92 30Z' fill='%238b5cf6'/%3E%3Ccircle cx='96' cy='40' r='6' fill='%23f472b6'/%3E%3C/svg%3E">
-
-  <style>
-    :root{
-      --bg:#0f1225;
-      --panel:#171a34;
-      --muted:#7b82a8;
-      --ink:#e8e9ff;
-      --accent:#8b5cf6; /* morado */
-      --accent-2:#3b82f6; /* azul */
-      --accent-3:#f472b6; /* fucsia */
-      --ok:#10b981; --bad:#ef4444; --warn:#f59e0b;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;background:radial-gradient(1200px 700px at 20% -10%,#1a1f46 0,#0f1225 60%) no-repeat fixed;
-      color:var(--ink); font:500 16px/1.45 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial;
-    }
-    .wrap{max-width:1160px;margin-inline:auto;padding:16px}
-    .row{display:flex;gap:16px;flex-wrap:wrap}
-    .card{
-      background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.00) 40%) , var(--panel);
-      border:1px solid rgba(255,255,255,.06);
-      border-radius:16px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.25);
-    }
-    .badge{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:#121530;border:1px solid rgba(255,255,255,.06);color:#c7cbff;font-size:13px}
-    .dot{width:8px;height:8px;border-radius:50%}
-    h1{font-weight:800;letter-spacing:.2px;margin:0 0 8px;font-size:28px}
-    h2{font-size:18px;margin:0 0 12px;color:#cfd1ff}
-    .muted{color:var(--muted)}
-    button{
-      appearance:none;border:0; padding:10px 14px;border-radius:12px;
-      color:#fff; background:linear-gradient(180deg,var(--accent),#6d28d9); cursor:pointer; font-weight:700
-    }
-    button.secondary{background:#11162f;color:#d6d8ff;border:1px solid rgba(255,255,255,.08)}
-    button.ghost{background:transparent;border:1px dashed rgba(255,255,255,.18);color:#b9bdf7}
-    .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-    .kpi{background:#0f132e;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:12px;text-align:center}
-    .kpi .v{font-size:28px;font-weight:800}
-    canvas{width:100%;height:320px;display:block}
-    .grid60{display:grid;grid-template-columns:repeat(10,1fr);gap:8px}
-    .pill{
-      border-radius:12px;padding:10px 8px;text-align:center;font-weight:800;
-      background:#111630;border:1px solid rgba(255,255,255,.06)
-    }
-    .pill small{display:block;font-weight:700;color:#9aa3d6}
-    .c-1{background:rgba(139,92,246,.15);border-color:rgba(139,92,246,.35)}
-    .c-2{background:rgba(59,130,246,.15);border-color:rgba(59,130,246,.35)}
-    .c-3{background:rgba(244,114,182,.15);border-color:rgba(244,114,182,.35)}
-    table{width:100%;border-collapse:separate;border-spacing:0 8px}
-    th,td{padding:10px 12px;background:#0f132e;border:1px solid rgba(255,255,255,.06)}
-    th{color:#cfd1ff;text-align:left;font-size:13px}
-    td{font-size:14px}
-    tr td:first-child, tr th:first-child{border-top-left-radius:10px;border-bottom-left-radius:10px}
-    tr td:last-child, tr th:last-child{border-top-right-radius:10px;border-bottom-right-radius:10px}
-    .ok{color:var(--ok)} .bad{color:var(--bad)} .warn{color:var(--warn)}
-    @media (max-width: 900px){
-      .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
-      .grid60{grid-template-columns:repeat(6,1fr)}
-    }
-    @media (max-width: 560px){
-      .grid60{grid-template-columns:repeat(5,1fr)}
-      button{width:100%}
-    }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <div class="row" style="align-items:center;justify-content:space-between">
-      <div>
-        <h1>Aviator Analyzer · <span style="color:var(--accent-3)">888</span><span style="color:var(--accent-2)">Star</span></h1>
-        <div id="connBadge" class="badge"><span class="dot" style="background:#10b981"></span> Conectado automáticamente a <b>/crashes</b></div>
-      </div>
-      <div class="badge"><span class="dot" style="background:#10b981"></span> Rol: <b id="role">MAESTRO</b> · Dispositivo: <b>PC</b></div>
-    </div>
-
-    <!-- Tendencia -->
-    <div class="card" style="margin-top:16px">
-      <div class="row" style="align-items:center;justify-content:space-between">
-        <h2>Tendencia en tiempo real</h2>
-        <div class="badge">Tendencia: <b id="tendencia">–</b> · Últimas <b>60</b> rondas</div>
-      </div>
-      <div style="position:relative">
-        <canvas id="trend"></canvas>
-      </div>
-
-      <div class="row" style="margin-top:12px">
-        <div class="badge">EMA</div>
-        <div class="badge">Bollinger</div>
-        <div class="badge">Soporte/Resistencia</div>
-        <div class="badge">Grid</div>
-      </div>
-    </div>
-
-    <!-- Últimas 60 -->
-    <div class="card" style="margin-top:16px">
-      <h2>Últimas 60 rondas</h2>
-      <div id="grid60" class="grid60"></div>
-    </div>
-
-    <!-- Sesión -->
-    <div class="card" style="margin-top:16px">
-      <h2>Sesión</h2>
-      <div class="kpis">
-        <div class="kpi"><div class="v" id="kRondas">0</div><div class="muted">Rondas</div></div>
-        <div class="kpi"><div class="v" id="kSignals">0</div><div class="muted">Señales</div></div>
-        <div class="kpi"><div class="v" id="kWins">0</div><div class="muted">Aciertos</div></div>
-        <div class="kpi"><div class="v" id="kEff">0%</div><div class="muted">Efectividad</div></div>
-      </div>
-      <div class="row" style="margin-top:12px;gap:8px">
-        <button id="btnStart">Iniciar</button>
-        <button id="btnStop" class="secondary">Detener</button>
-        <button id="btnReset" class="ghost">Reset</button>
-      </div>
-      <div class="card" style="margin-top:12px">
-        <div class="muted">Señal actual:</div>
-        <div id="liveSignal" style="font-size:20px;font-weight:800;margin-top:4px">—</div>
-      </div>
-    </div>
-
-    <!-- Historial de señales -->
-    <div class="card" style="margin-top:16px">
-      <div class="row" style="align-items:center;justify-content:space-between">
-        <h2>Historial de Señales <span class="muted">· Tiempo real</span></h2>
-      </div>
-      <div style="overflow:auto">
-        <table>
-          <thead>
-            <tr>
-              <th>#</th><th>HORA</th><th>TARGET</th><th>TIPO</th><th>CONF.</th><th>REAL</th><th>ESTADO</th>
-            </tr>
-          </thead>
-          <tbody id="tbl"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="muted" style="text-align:center;margin:22px 0 8px">
-      Multi-dispositivo (maestro/esclavo) · Guarda sesión y señales en Firebase RTDB
-    </div>
+<div class="card">
+  <h2 style="margin:0 0 6px">Prueba Firebase RTDB</h2>
+  <div id="state" class="muted">Conectando…</div>
+  <div style="margin-top:12px">
+    <div class="muted">Último registro en <code>/crashes</code>:</div>
+    <pre id="last" style="background:#0f132e;border-radius:8px;padding:10px;white-space:pre-wrap"></pre>
   </div>
+</div>
 
-  <!-- Sonido simple para señal -->
-  <audio id="beep" preload="auto">
-    <source src="data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQAA" type="audio/mp3">
-  </audio>
+<!-- Firebase compat (no módulos; ideal para GitHub Pages) -->
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
+  authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
+  databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com",
+  projectId: "aviator-analyzer-b29a7",
+  storageBucket: "aviator-analyzer-b29a7.firebasestorage.app",
+  messagingSenderId: "575063626276",
+  appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
+  measurementId: "G-325QCBSQMH"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const $s = document.getElementById('state');
+const $last = document.getElementById('last');
 
-  <!-- Firebase compat (NO modular, así no falla en GitHub Pages) -->
-  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database-compat.js"></script>
+// 1) lee las últimas 60 para asegurar que hay datos
+firebase.database().ref('crashes').limitToLast(60).once('value').then(snap=>{
+  const v = snap.val();
+  if(!v){ $s.innerHTML = '<span class="bad">Sin datos en /crashes</span>'; return; }
 
-  <script>
-  /* =============================
-     CONFIGURACIÓN
-  ==============================*/
-  // Cambia los rangos si quieres otra lógica de señal
-  const RANGES = [
-    { name: "BAJO",     min: 1.01, max: 1.59, color: "c-2" },
-    { name: "MEDIO",    min: 1.60, max: 2.99, color: "c-1" },
-    { name: "ALTO",     min: 3.00, max: 9.99, color: "c-3" },
-    { name: "ÉPICO",    min: 10.0, max: 9999, color: "c-3" },
-  ];
-  const WINDOW_EMA = 12;           // para EMA
-  const BOLL_WINDOW = 20;          // para bandas
-  const BOLL_MULT = 2;
-
-  // Tu Firebase (dejé el que compartiste)
-  const firebaseConfig = {
-    apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
-    authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
-    databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com",
-    projectId: "aviator-analyzer-b29a7",
-    storageBucket: "aviator-analyzer-b29a7.firebasestorage.app",
-    messagingSenderId: "575063626276",
-    appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
-    measurementId: "G-325QCBSQMH"
-  };
-
-  /* =============================
-     ESTADO
-  ==============================*/
-  let app, db, refCrashes;
-  let rounds = [];          // buffer con la historia (crece)
-  let last60 = [];          // ventana deslizante 60
-  let started = false;
-  let kRondas=0, kSignals=0, kWins=0;
-
-  let rafQueued = false;    // para throttle de render
-  const tbl = document.getElementById('tbl');
-  const el60 = document.getElementById('grid60');
-  const liveSignal = document.getElementById('liveSignal');
-  const beep = document.getElementById('beep');
-
-  /* =============================
-     UTILS
-  ==============================*/
-  const fmt = v => Number(v).toFixed(2) + "x";
-  const tsToTime = ts => new Date(Number(ts)).toLocaleTimeString();
-
-  // Normaliza item desde RTDB
-  function normalizeItem(key, obj){
-    // Soporta {t, value} o {ts, v} o value string
-    let ts = obj.ts ?? obj.t ?? null;
-    let v  = obj.v  ?? obj.value ?? obj;
-    v = Number(v);
-    if(!ts){ ts = Date.now(); } // fallback
-    return { id: key, ts: Number(ts), v };
-  }
-
-  function ema(data, period){
-    if(data.length === 0) return [];
-    const k = 2/(period+1);
-    const out = [];
-    let prev = data[0];
-    for(let i=0;i<data.length;i++){
-      const v = data[i];
-      prev = i===0 ? v : v*k + prev*(1-k);
-      out.push(prev);
-    }
-    return out;
-  }
-
-  function mean(arr){ return arr.reduce((a,b)=>a+b,0)/arr.length }
-  function stdev(arr){
-    const m = mean(arr); const v = mean(arr.map(x => (x-m)**2)); return Math.sqrt(v);
-  }
-
-  function computeIndicators(arr){
-    const emaArr = ema(arr, WINDOW_EMA);
-    let boll = { mid:[], up:[], low:[] };
-    for(let i=0;i<arr.length;i++){
-      const win = arr.slice(Math.max(0,i-BOLL_WINDOW+1), i+1);
-      const mid = mean(win);
-      const sd = stdev(win);
-      boll.mid.push(mid);
-      boll.up.push(mid + BOLL_MULT*sd);
-      boll.low.push(mid - BOLL_MULT*sd);
-    }
-    return { emaArr, boll };
-  }
-
-  function classifyTrend(emaArr){
-    if(emaArr.length < 3) return "—";
-    const a = emaArr.at(-3), b = emaArr.at(-2), c = emaArr.at(-1);
-    const slope = (c-b) + (b-a);
-    if(slope > 0.02) return "ALCISTA";
-    if(slope < -0.02) return "BAJISTA";
-    return "LATERAL";
-  }
-
-  function detectRange(v){
-    for(const r of RANGES){
-      if(v >= r.min && v <= r.max) return r;
-    }
-    return null;
-  }
-
-  /* =============================
-     DIBUJO (canvas 2D)
-  ==============================*/
-  const canvas = document.getElementById('trend');
-  const ctx = canvas.getContext('2d');
-
-  function fitCanvas(){
-    const dpr = window.devicePixelRatio || 1;
-    const r = canvas.getBoundingClientRect();
-    canvas.width = Math.round(r.width * dpr);
-    canvas.height = Math.round(320 * dpr);
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-  }
-  fitCanvas();
-  window.addEventListener('resize',()=>{ fitCanvas(); queueRender(); });
-
-  function drawSeries(series, color, width=2){
-    if(series.length < 2) return;
-    const w = canvas.clientWidth, h = canvas.clientHeight;
-    const max = Math.max(...last60, 8);
-    const min = 0.9;
-    const xStep = w / Math.max(1, series.length-1);
-
-    ctx.lineWidth = width;
-    ctx.strokeStyle = color;
-    ctx.beginPath();
-    series.forEach((v,i)=>{
-      const x = i*xStep+8;
-      const y = h - ( (v-min)/(max-min) ) * (h-12) - 6;
-      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-    });
-    ctx.stroke();
-  }
-
-  function render(){
-    rafQueued = false;
-    ctx.clearRect(0,0,canvas.clientWidth,canvas.clientHeight);
-
-    if(last60.length === 0) return;
-    const {emaArr, boll} = computeIndicators(last60);
-
-    // Bollinger
-    ctx.globalAlpha = .12;
-    drawSeries(boll.up,  '#f472b6', 10);
-    drawSeries(boll.low, '#3b82f6', 10);
-    ctx.globalAlpha = 1;
-
-    // Serie cruda
-    drawSeries(last60, '#a78bfa', 2);
-
-    // EMA
-    drawSeries(emaArr, '#22d3ee', 2);
-
-    // Tendencia label:
-    document.getElementById('tendencia').textContent = classifyTrend(emaArr);
-  }
-  function queueRender(){
-    if(rafQueued) return;
-    rafQueued = true;
-    requestAnimationFrame(render);
-  }
-
-  /* =============================
-     UI helpers
-  ==============================*/
-  function refreshGrid(){
-    el60.innerHTML = "";
-    last60.slice().reverse().forEach((v,idx)=>{
-      const n = last60.length - idx;
-      const r = detectRange(v) ?? {color:""};
-      const div = document.createElement('div');
-      div.className = `pill ${r.color||""}`;
-      div.innerHTML = `<small>#${n}</small>${fmt(v)}`;
-      el60.appendChild(div);
-    });
-  }
-
-  function pushSignal(target, tipo, conf, real, estado){
-    const row = document.createElement('tr');
-    const idx = (++kSignals);
-    const time = new Date().toLocaleTimeString();
-    row.innerHTML = `
-      <td>${idx}</td>
-      <td>${time}</td>
-      <td>${fmt(target)}</td>
-      <td>${tipo}</td>
-      <td>${(conf*100|0)}%</td>
-      <td>${real ? fmt(real) : "—"}</td>
-      <td class="${estado==='WIN'?'ok':estado==='LOSE'?'bad':'warn'}">${estado||'PEND'}</td>
-    `;
-    tbl.prepend(row);
-    document.getElementById('kSignals').textContent = kSignals;
-    document.getElementById('kEff').textContent = (kSignals? Math.round((kWins/kSignals)*100):0) + "%";
-  }
-
-  function updateKPIs(){
-    document.getElementById('kRondas').textContent = kRondas;
-    document.getElementById('kWins').textContent = kWins;
-    document.getElementById('kSignals').textContent = kSignals;
-    document.getElementById('kEff').textContent = (kSignals? Math.round((kWins/kSignals)*100):0) + "%";
-  }
-
-  /* =============================
-     LÓGICA DE SEÑALES (simple y robusta)
-     - mira EMA y Bollinger
-     - decide un rango objetivo
-  ==============================*/
-  function maybeEmitSignal(){
-    if(!started) return;
-    if(last60.length < 25) return;
-
-    const {emaArr, boll} = computeIndicators(last60);
-    const trend = classifyTrend(emaArr);
-
-    // Heurística:
-    //  - si precio < banda baja y tendencia ALCISTA => buscar MEDIO/ALTO
-    //  - si precio > banda alta y tendencia BAJISTA => evitar (señal BAJO o nada)
-    //  - lateral => MEDIO
-    const v = last60.at(-1);
-    const up = boll.up.at(-1), low = boll.low.at(-1);
-
-    let objetivo = RANGES[1]; // MEDIO por defecto
-    let conf = 0.55;
-
-    if(v <= low && (trend === "ALCISTA" || trend==="LATERAL")){
-      objetivo = v < 1.6 ? RANGES[1] : RANGES[2]; // MEDIO→ALTO
-      conf = 0.65;
-    } else if(v >= up && trend === "BAJISTA"){
-      objetivo = RANGES[0]; // BAJO
-      conf = 0.60;
-    } else if(trend === "ALCISTA"){
-      objetivo = RANGES[2]; // ALTO
-      conf = 0.60;
-    }
-
-    liveSignal.textContent = `${objetivo.name} • target ${objetivo.min}–${objetivo.max}x • conf ${(conf*100|0)}%`;
-    try{ beep.currentTime = 0; beep.play().catch(()=>{});}catch(_){}
-
-    // Registramos “señal emitida”
-    pushSignal((objetivo.min+objetivo.max)/2, objetivo.name, conf, null, "PEND");
-  }
-
-  /* =============================
-     CONEXIÓN FIREBASE
-  ==============================*/
-  function connect(){
-    app = firebase.initializeApp(firebaseConfig);
-    db = firebase.database();
-    refCrashes = db.ref('crashes');
-
-    // 1) Cargar últimas 60 al inicio
-    refCrashes.limitToLast(60).once('value', snap=>{
-      const obj = snap.val() || {};
-      const tmp = Object.entries(obj).map(([k,v])=>normalizeItem(k,v));
-      tmp.sort((a,b)=>a.ts-b.ts);
-      rounds.push(...tmp);
-      last60 = rounds.slice(-60).map(x=>x.v);
-      kRondas = rounds.length;
-      refreshGrid();
-      updateKPIs();
-      queueRender();
-      maybeEmitSignal();
-    });
-
-    // 2) Escuchar nuevas rondas en vivo
-    refCrashes.limitToLast(1).on('child_added', snap=>{
-      const it = normalizeItem(snap.key, snap.val());
-      // Evitar duplicados por la carga inicial
-      if(rounds.length && it.ts <= rounds.at(-1).ts) return;
-
-      rounds.push(it);
-      kRondas++;
-      last60.push(it.v);
-      if(last60.length>60) last60.shift();
-
-      refreshGrid();
-      updateKPIs();
-      queueRender();
-      maybeEmitSignal();
-    });
-  }
-
-  /* =============================
-     SESIÓN / UI
-  ==============================*/
-  document.getElementById('btnStart').addEventListener('click', ()=>{
-    started = true;
-    liveSignal.textContent = 'Analizando...';
-    maybeEmitSignal();
-  });
-  document.getElementById('btnStop').addEventListener('click', ()=>{
-    started = false;
-    liveSignal.textContent = 'Pausado';
-  });
-  document.getElementById('btnReset').addEventListener('click', ()=>{
-    // Limpia solo la sesión (no el aprendizaje)
-    started = false;
-    kSignals=0; kWins=0;
-    liveSignal.textContent = '—';
-    tbl.innerHTML = "";
-    updateKPIs();
-  });
-
-  // AUTO: si la URL trae ?master=1 cambia el rol visual; la conexión es la misma
-  (function initRole(){
-    const u = new URL(location.href);
-    const isMaster = u.searchParams.get('master') === '1';
-    document.getElementById('role').textContent = isMaster ? 'MAESTRO' : 'ESCLAVO';
-  })();
-
-  // BOOT
-  window.addEventListener('load', connect);
-  </script>
-</body>
+  // 2) muestra el último item normalizado
+  const arr = Object.entries(v).map(([k,o])=>{
+    const ts = (o.ts ?? o.t ?? Date.now())*1;
+    const val = (o.v ?? o.value ?? o)*1;
+    return {k, ts, val};
+  }).sort((a,b)=>a.ts-b.ts);
+  const last = arr[arr.length-1];
+  $s.innerHTML = '<span class="ok">Conectado ✔</span>';
+  $last.textContent = JSON.stringify(last, null, 2);
+}).catch(err=>{
+  $s.innerHTML = '<span class="bad">Error: '+err.message+'</span>';
+  console.error(err);
+});
+</script>
 </html>
