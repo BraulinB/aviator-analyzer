@@ -1,55 +1,141 @@
 <!doctype html>
 <html lang="es">
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Auto RTDB (última arriba-izquierda)</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Aviator Analyzer • 888Star (completo)</title>
+
+<!-- ====== ESTILOS ====== -->
 <style>
-  :root{--bg:#0f1225;--panel:#171a34;--ink:#e8e9ff;--muted:#9aa1d8;--ok:#10b981;--chip:#243056}
-  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui}
-  .wrap{max-width:1024px;margin:auto;padding:18px}
-  .hdr{display:flex;gap:10px;align-items:center;justify-content:space-between;margin:4px 0 14px}
-  .card{background:var(--panel);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px}
-  .row{display:flex;gap:12px;flex-wrap:wrap}
-  .pill{padding:6px 10px;border-radius:999px;background:#111735;border:1px solid rgba(255,255,255,.06);color:var(--muted)}
-  .pill.ok{color:var(--ok);border-color:#1e624c;background:#0e1c1a}
-  .pill.bad{color:#ffb4b4;border-color:#5b2323;background:#1a0f10}
-  .grid{display:grid;grid-template-columns:repeat(10, minmax(78px,1fr));gap:8px}
-  .chip{background:var(--chip);border-radius:12px;padding:10px 8px;text-align:center}
-  .muted{color:var(--muted)}
-  h1{font:600 18px/1.2 system-ui;margin:0}
-  pre{background:#0b1030;padding:10px;border-radius:10px;overflow:auto;max-height:220px}
-  .small{font-size:12px}
+:root{
+  --bg:#0e1024; --panel:#151838; --ink:#e9eafd; --muted:#98a0d8; --ok:#10b981;
+  --chip:#20294d; --accent:#7c5cff; --accent2:#f25fc1; --accent3:#5fc9ff;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 ui-sans-serif,system-ui,Segoe UI,Roboto}
+.wrap{max-width:1100px;margin:auto;padding:18px}
+.hdr{display:flex;gap:12px;align-items:center;justify-content:space-between;margin:4px 0 14px}
+h1{margin:0;font:600 18px/1.2 ui-sans-serif}
+.card{background:var(--panel);border:1px solid #ffffff12;border-radius:14px;padding:16px}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.pill{padding:6px 10px;border-radius:999px;background:#111735;border:1px solid #ffffff12;color:var(--muted)}
+.pill.ok{color:var(--ok);border-color:#2a7c64;background:#11231f}
+.pill.bad{color:#ffb4b4;border-color:#6a2a2a;background:#1b1114}
+.small{font-size:12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(10,minmax(78px,1fr));gap:8px}
+.chip{background:var(--chip);border-radius:12px;padding:10px 8px;text-align:center}
+.chip .idx{font-size:12px;color:var(--muted)}
+.chip .val{font-weight:700}
+.cols{display:grid;grid-template-columns:1.2fr 1fr; gap:14px}
+@media (max-width:900px){.cols{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px 10px;border-bottom:1px solid #ffffff14;font-size:13px}
+th{color:var(--muted);text-align:left}
+.badge{padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid #ffffff22}
+.badge.low{background:#1e243d}
+.badge.mid{background:#2a2146}
+.badge.high{background:#1f2b4d}
+.badge.mega{background:#1b2c2e}
+.btn{padding:8px 12px;border-radius:10px;border:1px solid #ffffff1c;background:#121735;color:#e9eafd;cursor:pointer}
+.btn:active{transform:translateY(1px)}
+canvas{width:100%;height:320px;max-height:340px}
+pre{background:#0b1030;padding:10px;border-radius:10px;overflow:auto;max-height:220px}
+.note{font-size:12px;color:var(--muted)}
 </style>
 
 <div class="wrap">
   <div class="hdr">
-    <h1>Aviator Analyzer • 888Star (auto-RTDB)</h1>
+    <h1>Aviator Analyzer • <span style="color:var(--accent2)">888Star</span></h1>
     <span id="status" class="pill">Conectando…</span>
   </div>
 
+  <!-- Estado -->
   <div class="card" style="margin-bottom:12px">
     <div class="row small">
       <span class="pill">Ruta usada: <b id="path">—</b></span>
-      <span class="pill">Últimas 60 rondas · #60 = más reciente</span>
+      <span class="pill">Últimas 60 rondas (la <b>#60</b> es la más reciente)</span>
+      <span class="pill">Aprendizaje activo</span>
     </div>
-    <div id="chips" class="grid" style="margin-top:12px"></div>
   </div>
 
-  <div class="card">
-    <div class="row small" style="margin-bottom:8px">
-      <span class="pill">Debug (últimas 5 llegadas)</span>
+  <!-- Gráfica + 60 rondas -->
+  <div class="card" style="margin-bottom:12px">
+    <div class="row small" style="justify-content:space-between;margin-bottom:8px">
+      <div class="row small">
+        <span class="pill">Tendencia: <b id="trend">—</b></span>
+        <span class="pill">EMA / Bollinger</span>
+      </div>
+      <div class="row small">
+        <span class="pill">Rondas ventana: <b id="winCount">0</b></span>
+        <span class="pill">Aprendidas: <b id="learnCount">0</b></span>
+      </div>
     </div>
+    <canvas id="chart"></canvas>
+    <div id="chips" class="grid" style="margin-top:14px"></div>
+  </div>
+
+  <!-- Señal + Sesión -->
+  <div class="cols">
+    <div class="card">
+      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px">
+        <h2 style="margin:0;font-size:16px">Señal actual</h2>
+        <button id="btnReset" class="btn">Reset sesión</button>
+      </div>
+      <div class="row small" style="gap:14px">
+        <div class="pill">Target: <b id="sigTarget">—</b></div>
+        <div class="pill">Confianza: <b id="sigConf">—</b></div>
+        <div class="pill">Estado: <b id="sigState">Esperando…</b></div>
+      </div>
+      <div class="note" style="margin-top:10px">
+        La señal se emite para la <b>próxima ronda</b>. Al llegar esa ronda se marca ganada/perdida y pasa al historial.
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin:0 0 10px 0;font-size:16px">Sesión</h2>
+      <div class="row">
+        <span class="pill">Rondas: <b id="sessRounds">0</b></span>
+        <span class="pill">Señales: <b id="sessSignals">0</b></span>
+        <span class="pill">Aciertos: <b id="sessWins">0</b></span>
+        <span class="pill">Efectividad: <b id="sessEff">0%</b></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Historial -->
+  <div class="card" style="margin-top:12px">
+    <h2 style="margin:0 0 10px 0;font-size:16px">Historial de Señales</h2>
+    <div class="note" style="margin-bottom:10px">Tiempo real. “Real” muestra el valor de la ronda en la que se evaluó la señal.</div>
+    <div style="overflow:auto">
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th>#</th><th>Hora</th><th>Target</th><th>Tipo</th><th>Conf.</th><th>Real</th><th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <tr><td colspan="7" class="small">No hay señales</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Debug -->
+  <div class="card" style="margin-top:12px">
+    <div class="row small" style="margin-bottom:8px"><span class="pill">Debug (últimas 5 llegadas)</span></div>
     <pre id="log">Esperando…</pre>
   </div>
 </div>
 
-<!-- Firebase compat (CDN) -->
+<!-- ====== LIBRERÍAS ====== -->
 <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 
 <script>
-/* ====== CONFIG FIREBASE ====== */
-const cfg = {
+/* ===========================
+   CONFIGURACIÓN
+=========================== */
+const firebaseConfig = {
   apiKey:"AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
   authDomain:"aviator-analyzer-b29a7.firebaseapp.com",
   databaseURL:"https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com",
@@ -59,11 +145,10 @@ const cfg = {
   appId:"1:575063626276:web:5f640e41f0ad791d6a3eb1",
   measurementId:"G-325QCBSQMH"
 };
-firebase.initializeApp(cfg);
+firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-/* ====== RUTAS CANDIDATAS ======
-   El script probará en orden; deja primero la que más usas. */
+/* Rutas candidatas (en orden de preferencia) */
 const CANDIDATES = [
   "feeds/gocho/crashes",
   "feeds/crashes",
@@ -71,94 +156,344 @@ const CANDIDATES = [
   "aviator/crashes",
 ];
 
-/* ====== UI ====== */
-const $status = document.getElementById('status');
-const $path = document.getElementById('path');
-const $chips = document.getElementById('chips');
-const $log = document.getElementById('log');
+/* Rangos y colores para chips/gráfica */
+const RANGES = [
+  { id:"LOW",  label:"Bajos 1.00–1.69", min:1.00, max:1.69,  color:"#6fb6ff", badge:"low"  },
+  { id:"MID",  label:"1.70+",           min:1.70, max:2.99,  color:"#c98cff", badge:"mid"  },
+  { id:"HIGH", label:"3x+",             min:3.00, max:9.99,  color:"#8cd0ff", badge:"high" },
+  { id:"MEGA", label:"10x+",            min:10.0, max:Infinity, color:"#7af5cf", badge:"mega" },
+];
 
-/* ====== ESTADO ====== */
-let WINDOW = []; // ventana deslizante de 60
-let LIVE = [];   // debug: últimas 5 llegadas
+/* Parámetros de señales */
+const MIN_HISTORY_TO_SIGNAL = 30; // mínimo en ventana reciente para empezar
+const COOLDOWN_ROUNDS = 1;        // 1 señal por ronda (no más)
+const EMA_PERIOD = 12;            // EMA para tendencia
+const BB_PERIOD  = 20;            // Bollinger (20) con 2σ
+const LEARN_MAX  = 5000;          // buffer de aprendizaje largo
 
-function norm(k, v) {
-  // acepta {v, ts}, {value, t} o número suelto
-  const val = (v && (v.v ?? v.value)) ?? (+v);
-  const ts  = (v && (v.ts ?? v.t)) ?? Date.now();
-  return { k, v: +val, ts: +ts };
+/* ===========================
+   ESTADO
+=========================== */
+const $status = document.getElementById("status");
+const $path   = document.getElementById("path");
+const $chips  = document.getElementById("chips");
+const $log    = document.getElementById("log");
+const $trend  = document.getElementById("trend");
+const $winCount = document.getElementById("winCount");
+const $learnCount = document.getElementById("learnCount");
+
+const $sigTarget = document.getElementById("sigTarget");
+const $sigConf   = document.getElementById("sigConf");
+const $sigState  = document.getElementById("sigState");
+const $btnReset  = document.getElementById("btnReset");
+
+const $sessRounds = document.getElementById("sessRounds");
+const $sessSignals= document.getElementById("sessSignals");
+const $sessWins   = document.getElementById("sessWins");
+const $sessEff    = document.getElementById("sessEff");
+
+const $tbody = document.getElementById("tbody");
+
+let WINDOW=[];           // últimas 60 (orden: viejo->nuevo)
+let LIVE=[];             // últimas 5 llegadas para debug
+let LEARN=[];            // buffer largo para probabilidades
+let lastSignal=null;     // señal pendiente (se evalúa en la próxima ronda)
+let cooldown=0;
+let sess = { rounds:0, signals:0, wins:0 };
+
+function nowHHMM(){
+  const d=new Date();
+  return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+}
+function inRange(val, r){ return val>=r.min && val<=r.max }
+
+/* ===== Beep con WebAudio ===== */
+let audioCtx=null;
+function beep(freq=880, ms=120){
+  try{
+    if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.type='sine'; o.frequency.value=freq; o.connect(g); g.connect(audioCtx.destination);
+    o.start(); g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.2, audioCtx.currentTime+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+ms/1000);
+    o.stop(audioCtx.currentTime+ms/1000+0.01);
+  }catch(_){}
 }
 
-function paint() {
-  // Preparamos los 60 (o menos) más recientes
-  const arr = WINDOW.slice(-60);       // orden: más viejo -> más nuevo
-  const rev = arr.slice().reverse();   // ahora: más nuevo primero
+/* ===========================
+   CHART JS: serie + EMA + BB
+=========================== */
+const ctx = document.getElementById("chart").getContext("2d");
+const chart = new Chart(ctx,{
+  type:"line",
+  data:{labels:[], datasets:[
+    {label:"Valor", data:[], borderColor: "#5fc9ff", pointRadius:1, tension:.25},
+    {label:"EMA", data:[], borderColor: "#f25fc1", borderDash:[6,4], pointRadius:0, tension:.25},
+    {label:"BB↑", data:[], borderColor: "#7c5cff88", pointRadius:0, borderWidth:1, tension:.25},
+    {label:"BB↓", data:[], borderColor: "#7c5cff88", pointRadius:0, borderWidth:1, tension:.25},
+  ]},
+  options:{responsive:true, maintainAspectRatio:false, scales:{
+    x:{ticks:{color:"#a7add9"}}, y:{ticks:{color:"#a7add9"}, beginAtZero:true}
+  }, plugins:{legend:{labels:{color:"#cbd0ff"}}}}
+});
 
-  // Etiquetado: #60 = más reciente (arriba-izquierda)
+function calcEMA(arr, p=EMA_PERIOD){
+  if(arr.length===0) return [];
+  const k = 2/(p+1);
+  const out=[];
+  let ema = arr[0];
+  for(let i=0;i<arr.length;i++){
+    const v=arr[i];
+    ema = i===0 ? v : v*k + ema*(1-k);
+    out.push(ema);
+  }
+  return out;
+}
+function calcBB(arr, p=BB_PERIOD, mult=2){
+  if(arr.length===0) return {up:[],dn:[]};
+  const up=[], dn=[];
+  for(let i=0;i<arr.length;i++){
+    const slice = arr.slice(Math.max(0,i-p+1), i+1);
+    const m = slice.reduce((a,b)=>a+b,0)/slice.length;
+    const s = Math.sqrt(slice.reduce((a,b)=>a+(b-m)*(b-m),0)/slice.length);
+    up.push(m + mult*s);
+    dn.push(m - mult*s);
+  }
+  return {up,dn};
+}
+function updateChart(){
+  const values = WINDOW.map(x=>x.v);
+  const labels = WINDOW.map((_,i)=>"#"+(i+1));
+  const ema = calcEMA(values);
+  const bb  = calcBB(values);
+
+  chart.data.labels = labels;
+  chart.data.datasets[0].data = values;
+  chart.data.datasets[1].data = ema;
+  chart.data.datasets[2].data = bb.up;
+  chart.data.datasets[3].data = bb.dn;
+  chart.update('none');
+
+  // Tendencia simple: pendiente última EMA
+  let t="—";
+  if(ema.length>2){
+    const slope = ema[ema.length-1] - ema[ema.length-3];
+    t = slope>0.02 ? "ALCISTA" : slope<-0.02 ? "BAJISTA" : "LATERAL";
+  }
+  document.getElementById("trend").textContent=t;
+}
+
+/* ===========================
+   UI 60 CHIPS (última arriba-izq)
+=========================== */
+function paintChips(){
+  const arr = WINDOW.slice(-60);      // viejo->nuevo
+  const rev = arr.slice().reverse();  // más nuevo primero
   const n = rev.length;
-  const html = rev.map((it, i) => {
-    const idx = n - i; // i=0 (más reciente) -> #n (cuando hay 60, es #60)
-    const c = it.v >= 10 ? '#8ef' : it.v >= 3 ? '#aaf' : it.v >= 1.7 ? '#c9f' : '#bdf';
-    return `<div class="chip" style="background:linear-gradient(180deg, ${c}22, ${c}10);border:1px solid ${c}55">
-      <div class="muted" style="font-size:12px">#${idx}</div>
-      <div style="font-weight:700">${it.v.toFixed(2)}x</div>
-    </div>`;
-  }).join('');
 
-  $chips.innerHTML = html;
-  $log.textContent = JSON.stringify(LIVE.slice(-5), null, 2);
+  const html = rev.map((it,i)=>{
+    const idx = n - i; // #60 = más reciente (cuando hay 60)
+    let c = it.v>=10 ? "#7af5cf" : it.v>=3 ? "#8cd0ff" : it.v>=1.7 ? "#c98cff" : "#6fb6ff";
+    return `<div class="chip" style="background:linear-gradient(180deg, ${c}22, ${c}10);border:1px solid ${c}55">
+      <div class="idx">#${idx}</div>
+      <div class="val">${it.v.toFixed(2)}x</div>
+    </div>`;
+  }).join("");
+  $chips.innerHTML=html;
+
+  document.getElementById("winCount").textContent = WINDOW.length;
 }
 
-async function pickPath() {
-  for (const p of CANDIDATES) {
-    try {
-      const snap = await db.ref(p).limitToLast(1).once('value');
-      if (snap.exists()) return p;
-    } catch(e) { /* sigue */ }
+/* ===========================
+   HISTORIAL & SESIÓN
+=========================== */
+function pushHistory(row){
+  // row = {idx, time, targetLabel, type, conf, real, estado}
+  if($tbody.children.length===1 && $tbody.children[0].children.length===1) $tbody.innerHTML="";
+  const tr=document.createElement("tr");
+  tr.innerHTML = `
+    <td>${row.idx}</td>
+    <td>${row.time}</td>
+    <td><span class="badge ${row.badge}">${row.targetLabel}</span></td>
+    <td>${row.type}</td>
+    <td>${(row.conf*100).toFixed(0)}%</td>
+    <td>${row.real??"—"}</td>
+    <td>${row.estado}</td>`;
+  $tbody.prepend(tr);
+}
+
+function refreshSession(){
+  $sessRounds.textContent = sess.rounds;
+  $sessSignals.textContent= sess.signals;
+  $sessWins.textContent   = sess.wins;
+  $sessEff.textContent    = (sess.signals? (sess.wins/sess.signals*100).toFixed(0):0)+"%";
+}
+
+/* ===========================
+   SEÑALES
+=========================== */
+function pickRangeByHeuristic(){
+  // Probabilidad por rango en las últimas N (aprendizaje)
+  const N = Math.min(LEARN.length, 400); // ventana estadística
+  const slice = LEARN.slice(-N).map(x=>x.v);
+  const freq = RANGES.map(r=> slice.filter(v=>inRange(v,r)).length / (slice.length||1) );
+
+  // Tendencia por EMA de ventana actual
+  const ema = calcEMA(WINDOW.map(x=>x.v));
+  const slope = ema.length>2 ? (ema[ema.length-1]-ema[ema.length-3]) : 0;
+
+  // Score simple: prob + sesgo por tendencia
+  const scores = RANGES.map((r,ix)=>{
+    let s = freq[ix];
+    if(r.id==="HIGH"||r.id==="MEGA") s += Math.max(0,slope)*0.3; // si sube, favorece altas
+    if(r.id==="LOW") s += Math.max(0,-slope)*0.3;                // si baja, favorece bajas
+    return s;
+  });
+
+  let best = 0, bix = 0;
+  scores.forEach((s,i)=>{ if(s>best){best=s; bix=i;} });
+
+  return { range:RANGES[bix], conf: Math.min(1, best) };
+}
+
+function maybeEmitSignal(){
+  if(WINDOW.length<MIN_HISTORY_TO_SIGNAL) return;
+  if(cooldown>0) return;
+
+  const {range, conf} = pickRangeByHeuristic();
+
+  lastSignal = {
+    when: Date.now(),
+    idx: WINDOW.length, // señal emitida tras cerrar esta ronda -> evalúa en la próxima
+    target: range,
+    conf,
+    printed:false
+  };
+
+  // UI
+  $sigTarget.textContent = range.label;
+  $sigConf.textContent   = (conf*100|0)+"%";
+  $sigState.textContent  = "EMITIDA (evaluará la próxima ronda)";
+  // Sonido
+  beep( range.id==="LOW"? 520 : range.id==="MID"? 660 : range.id==="HIGH"? 820 : 980, 150 );
+
+  // Historial (estado "Pendiente")
+  pushHistory({
+    idx: sess.signals+1,
+    time: nowHHMM(),
+    targetLabel: range.label,
+    type: "Automática",
+    conf,
+    real: "—",
+    estado: "Pendiente",
+    badge: range.badge
+  });
+
+  sess.signals++; refreshSession();
+  cooldown = COOLDOWN_ROUNDS;
+}
+
+function evaluateIfReady(newVal){
+  // Si hay señal pendiente, se evalúa al llegar una nueva ronda
+  if(!lastSignal) return;
+  const ok = inRange(newVal, lastSignal.target);
+  if(ok) sess.wins++;
+  refreshSession();
+
+  $sigState.textContent = ok? "GANADA ✅" : "PERDIDA ❌";
+
+  // Actualiza la fila más reciente del historial (arriba)
+  const topRow = $tbody.firstElementChild;
+  if(topRow){
+    topRow.children[5].textContent = newVal.toFixed(2)+"x";
+    topRow.children[6].textContent = ok? "Ganada" : "Perdida";
+  }
+
+  lastSignal = null;
+}
+
+/* ===========================
+   CONEXIÓN RTDB
+=========================== */
+async function pickPath(){
+  for(const p of CANDIDATES){
+    try{
+      const snap = await db.ref(p).limitToLast(1).once("value");
+      if(snap.exists()) return p;
+    }catch(_){}
   }
   return null;
 }
 
-(async function main(){
-  try {
-    $status.textContent = 'Conectando…';
+(async function init(){
+  $status.textContent="Conectando…";
 
-    const p = await pickPath();
-    if (!p) {
-      $status.className='pill bad';
-      $status.textContent = 'Sin datos en rutas candidatas';
-      $path.textContent = '(ninguna)';
-      return;
-    }
-    $path.textContent = '/'+p;
-
-    // Precarga (hasta 80 por si hay claves fuera de orden; nos quedamos con 60)
-    const base = await db.ref(p).limitToLast(80).once('value');
-    const obj = base.val() || {};
-    WINDOW = Object.entries(obj).map(([k,v])=>norm(k,v))
-              .sort((a,b)=>a.ts-b.ts) // de viejo a nuevo
-              .slice(-60);
-
-    LIVE = WINDOW.slice(-5);
-    paint();
-
-    // Live: escuchamos el último añadido y actualizamos
-    db.ref(p).limitToLast(1).on('child_added', snap => {
-      const it = norm(snap.key, snap.val());
-      // Evita duplicar si llega un replay del último
-      if (WINDOW.length && it.ts <= WINDOW[WINDOW.length-1].ts) return;
-      WINDOW.push(it);
-      if (WINDOW.length > 60) WINDOW = WINDOW.slice(-60);
-      LIVE.push({ts: it.ts, v: it.v});
-      $status.className='pill ok';
-      $status.textContent='Conectado ✔';
-      paint();
-    });
-
-  } catch (err) {
-    console.error(err);
-    $status.className='pill bad';
-    $status.textContent='Error de conexión';
+  const path = await pickPath();
+  if(!path){
+    $status.className="pill bad"; $status.textContent="Sin datos en rutas candidatas"; $path.textContent="(ninguna)";
+    return;
   }
+  $path.textContent="/"+path;
+
+  // Precarga ~80 y toma 60 ordenado por ts
+  const base = await db.ref(path).limitToLast(80).once("value");
+  const obj = base.val()||{};
+  WINDOW = Object.entries(obj).map(([k,v])=>{
+              // v puede ser {v,ts} o {value,t} o un número
+              const val = (v && (v.v ?? v.value)) ?? (+v);
+              const ts  = (v && (v.ts ?? v.t)) ?? Date.now();
+              return {k, v:+val, ts:+ts};
+          }).sort((a,b)=>a.ts-b.ts).slice(-60);
+  LEARN = LEARN.concat(WINDOW).slice(-LEARN_MAX);
+
+  LIVE = WINDOW.slice(-5);
+  $status.className="pill ok"; $status.textContent="Conectado ✔";
+  sess.rounds = WINDOW.length; refreshSession();
+  paintChips(); updateChart();
+  $learnCount.textContent = LEARN.length;
+
+  // Live
+  db.ref(path).limitToLast(1).on("child_added", snap=>{
+    const raw = snap.val();
+    const v = (raw && (raw.v ?? raw.value)) ?? (+raw);
+    const ts= (raw && (raw.ts ?? raw.t)) ?? Date.now();
+    const it = {k:snap.key, v:+v, ts:+ts};
+
+    // Evitar duplicado retro
+    if(WINDOW.length && it.ts <= WINDOW[WINDOW.length-1].ts) return;
+
+    WINDOW.push(it);
+    if(WINDOW.length>60) WINDOW = WINDOW.slice(-60);
+    LEARN.push(it); if(LEARN.length>LEARN_MAX) LEARN.shift();
+
+    LIVE.push({ts:it.ts, v:it.v});
+    if(LIVE.length>5) LIVE.shift();
+    $log.textContent = JSON.stringify(LIVE, null, 2);
+
+    // sesión
+    sess.rounds++; refreshSession();
+    if(cooldown>0) cooldown--;
+
+    // Evaluar señal pendiente (la emitida en ronda anterior)
+    evaluateIfReady(it.v);
+
+    paintChips();
+    updateChart();
+    $learnCount.textContent = LEARN.length;
+
+    // Intentar emitir nueva señal para la próxima ronda
+    maybeEmitSignal();
+  });
+
 })();
+
+/* Reset de sesión (solo métricas/tabla; no borra datos del feed) */
+document.getElementById("btnReset").addEventListener("click", ()=>{
+  sess={rounds:WINDOW.length, signals:0, wins:0}; refreshSession();
+  lastSignal=null; cooldown=0;
+  $sigTarget.textContent="—"; $sigConf.textContent="—"; $sigState.textContent="Esperando…";
+  $tbody.innerHTML='<tr><td colspan="7" class="small">No hay señales</td></tr>';
+});
 </script>
 </html>
