@@ -2,59 +2,57 @@
 <html lang="es">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Smoke test RTDB</title>
+<title>RTDB Live</title>
 <style>
-  body{margin:0;font:16px/1.5 system-ui;background:#0f1225;color:#e8e9ff;display:grid;place-items:center;height:100dvh}
-  .card{background:#171a34;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:20px;max-width:520px}
-  .ok{color:#10b981} .bad{color:#ef4444} .muted{color:#99a1d8}
-  code{background:#0f132e;padding:2px 6px;border-radius:6px}
+  body{margin:0;background:#0f1225;color:#e8e9ff;font:16px/1.5 system-ui}
+  .wrap{max-width:680px;margin:auto;padding:18px}
+  .card{background:#171a34;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px}
+  .muted{color:#9aa1d8} .ok{color:#10b981} pre{background:#0f132e;border-radius:10px;padding:10px}
 </style>
-
-<div class="card">
-  <h2 style="margin:0 0 6px">Prueba Firebase RTDB</h2>
-  <div id="state" class="muted">Conectando…</div>
-  <div style="margin-top:12px">
-    <div class="muted">Último registro en <code>/crashes</code>:</div>
-    <pre id="last" style="background:#0f132e;border-radius:8px;padding:10px;white-space:pre-wrap"></pre>
+<div class="wrap">
+  <div class="card">
+    <h2 style="margin:0 0 6px">RTDB en vivo</h2>
+    <div class="muted">Estado: <span id="st">Conectando…</span></div>
+    <div class="muted" style="margin-top:10px">Últimos 5:</div>
+    <pre id="out"></pre>
   </div>
 </div>
 
-<!-- Firebase compat (no módulos; ideal para GitHub Pages) -->
 <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database-compat.js"></script>
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
-  authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
-  databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com",
-  projectId: "aviator-analyzer-b29a7",
-  storageBucket: "aviator-analyzer-b29a7.firebasestorage.app",
-  messagingSenderId: "575063626276",
-  appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
-  measurementId: "G-325QCBSQMH"
+const cfg = {
+  apiKey:"AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
+  authDomain:"aviator-analyzer-b29a7.firebaseapp.com",
+  databaseURL:"https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com",
+  projectId:"aviator-analyzer-b29a7",
+  storageBucket:"aviator-analyzer-b29a7.firebasestorage.app",
+  messagingSenderId:"575063626276",
+  appId:"1:575063626276:web:5f640e41f0ad791d6a3eb1",
+  measurementId:"G-325QCBSQMH"
 };
-firebase.initializeApp(firebaseConfig);
+firebase.initializeApp(cfg);
 const db = firebase.database();
-const $s = document.getElementById('state');
-const $last = document.getElementById('last');
+const ref = db.ref('crashes'); // cambia aquí si usas otro path
+const $st = document.getElementById('st');
+const $out = document.getElementById('out');
 
-// 1) lee las últimas 60 para asegurar que hay datos
-firebase.database().ref('crashes').limitToLast(60).once('value').then(snap=>{
-  const v = snap.val();
-  if(!v){ $s.innerHTML = '<span class="bad">Sin datos en /crashes</span>'; return; }
+let last = [];
+function norm(k,o){ return {k, ts:(o.ts??o.t??Date.now())*1, v:(o.v??o.value??o)*1}; }
+function render(){ $out.textContent = JSON.stringify(last.slice(-5), null, 2); }
 
-  // 2) muestra el último item normalizado
-  const arr = Object.entries(v).map(([k,o])=>{
-    const ts = (o.ts ?? o.t ?? Date.now())*1;
-    const val = (o.v ?? o.value ?? o)*1;
-    return {k, ts, val};
-  }).sort((a,b)=>a.ts-b.ts);
-  const last = arr[arr.length-1];
-  $s.innerHTML = '<span class="ok">Conectado ✔</span>';
-  $last.textContent = JSON.stringify(last, null, 2);
-}).catch(err=>{
-  $s.innerHTML = '<span class="bad">Error: '+err.message+'</span>';
-  console.error(err);
+ref.limitToLast(5).once('value', snap=>{
+  const v = snap.val(); if(!v){ $st.textContent = 'Sin datos'; return; }
+  last = Object.entries(v).map(([k,o])=>norm(k,o)).sort((a,b)=>a.ts-b.ts);
+  $st.innerHTML = '<span class="ok">Conectado ✔</span>';
+  render();
+  // stream en vivo
+  ref.limitToLast(1).on('child_added', s=>{
+    const it = norm(s.key, s.val());
+    if(last.length && it.ts <= last.at(-1).ts) return; // evita duplicados
+    last.push(it);
+    render();
+  });
 });
 </script>
 </html>
