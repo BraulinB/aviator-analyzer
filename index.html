@@ -7,7 +7,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <style>
-/* --- [mantén aquí TODO el css completo del modelo anterior, igual que antes] --- */
 body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,#0f0c29 0%,#302b63 50%,#24243e 100%);color:#fff;min-height:100vh;padding:14px;margin:0;}
 .container{width:100%;max-width:1200px;margin:0 auto;}
 .header{text-align:center;padding:15px 7px 11px 7px;background:rgba(255,255,255,0.07);border-radius:9px 9px 16px 16px;margin-bottom:11px;}
@@ -80,7 +79,7 @@ footer{text-align:center;padding:14px 0;margin-top:13px;opacity:0.53;font-size:1
                 <div class="stat-item"><div class="label">% de Aciertos</div><div class="value" id="statWinRate">--%</div></div>
             </div>
             <div class="controls">
-                <button class="primary" onclick="location.reload()">🔄 Reiniciar</button>
+                <button class="primary" onclick="window.location.reload()">🔄 Reiniciar</button>
             </div>
         </div>
     </div>
@@ -114,8 +113,8 @@ class AviatorSystem {
         this.listo = false;
         this.rondasTotales = 0;
         this.childAddedListener = null;
-        this.arranque = true; // solo verdadero al iniciar
-        this.hastaAqui = 0;   // última ronda al levantar pantalla
+        this.readyForRealtime = false;
+        this.crashesIniciales = 0;
         this.iniciar();
     }
 
@@ -141,9 +140,8 @@ class AviatorSystem {
             this.rondasDesdeSenal = 0;
             this.senalesEnRacha = 0;
             this.listo = true;
-            this.arranque = true;
-            this.hastaAqui = this.historico.length; // solo para no evaluar las previas
-
+            this.readyForRealtime = false;
+            this.crashesIniciales = this.historico.length;
             document.getElementById('syncStatus').innerHTML = '✅ Sistema listo - Analizando';
             this.actualizarInterfaz();
 
@@ -160,7 +158,7 @@ class AviatorSystem {
 
     agregarCrash(multiplicador, timestamp, key) {
         this.historico.push({
-            valor: multiplicador,
+            valor: multipicadorToNum(multiplicador),
             tiempo: timestamp,
             categoria: this.categorizar(multiplicador),
             key: key
@@ -168,15 +166,21 @@ class AviatorSystem {
         this.rondasTotales++;
         if (this.historico.length > 1000) this.historico.shift();
         this.rondasDesdeSenal++;
-        if (this.arranque) {
-            // Al recibir la PRIMERA ronda nueva después de cargar, ahí comienza el análisis
-            if (this.historico.length > this.hastaAqui) this.arranque = false;
-        } else {
+        if (!this.readyForRealtime && this.historico.length > this.crashesIniciales) {
+            this.readyForRealtime = true;
+        }
+        if (this.readyForRealtime) {
             this.verificarResultados();
             this.actualizarInterfaz();
         }
         this.actualizarCrashes();
         this.actualizarStats();
+        
+        function multipicadorToNum(val){
+          if(typeof val==="number") return val;
+          if(typeof val==="string") return parseFloat(val);
+          return 0;
+        }
     }
 
     categorizar(mult) {
@@ -222,7 +226,7 @@ class AviatorSystem {
     }
 
     generarSenal() {
-        if (!this.listo || this.arranque) return { tipo: 'ESPERANDO', msg: `⏳ Esperando ronda nueva`, emoji: '⏳' };
+        if (!this.listo || !this.readyForRealtime) return { tipo: 'ESPERANDO', msg: `⏳ Esperando ronda nueva`, emoji: '⏳' };
         if (this.historico.length < 15) return { tipo: 'ESPERANDO', msg: `⏳ Datos (${this.historico.length}/15)`, emoji: '⏳' };
         if (this.detectarZonaPeligrosa()) return { tipo: 'BLOQUEADO', msg: '🚫 BLOQUEADO', emoji: '⚠️' };
 
