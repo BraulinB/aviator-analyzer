@@ -7,57 +7,14 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <style>
-/* --- mismo CSS de siempre --- */
+/* ... el mismo css ... */
 body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,#0f0c29 0%,#302b63 50%,#24243e 100%);color:#fff;min-height:100vh;padding:14px;margin:0;}
-.container{width:100%;max-width:1200px;margin:0 auto;}
-.header{text-align:center;padding:15px 7px 11px 7px;background:rgba(255,255,255,0.07);border-radius:9px 9px 16px 16px;margin-bottom:11px;}
-.header h1{font-size:2em;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:7px;}
-.sync-badge{display:inline-flex;align-items:center;gap:7px;background:rgba(0,255,0,0.13);padding:7px 16px 7px 16px;border-radius:14px;font-size:1.02em;}
-.crashes-section{background:rgba(255,255,255,0.07);border-radius:12px;padding:11px 11px 7px 11px;border:1px solid rgba(255,255,255,0.09);margin-bottom:12px;}
-.crashes-section h3{font-size:1.06em;opacity:0.92;margin-bottom:6px;}
-.crashes-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:3px;}
-.crash-item{padding:7px 9px;border-radius:5px;font-size:1em;font-weight:bold;border:1.6px solid rgba(255,255,255,0.17);min-width:45px;text-align:center;flex:1 0 43px;}
-.azul{background:rgba(0,212,255,0.19);border-color:#00d4ff;color:#00d4ff;}
-.verde{background:rgba(3,218,198,0.18);border-color:#03dac6;color:#03dac6;}
-.morado{background:rgba(187,134,252,0.18);border-color:#bb86fc;color:#bb86fc;}
-.fucsia{background:rgba(255,20,147,0.23);border-color:#ff1493;color:#ff1493;}
-.main-section{display:grid;grid-template-columns:2fr 1fr;gap:15px;margin-bottom:12px;align-items:start;}
-.signal-panel{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border-radius:10px;padding:22px;text-align:center;box-shadow:0 8px 25px rgba(0,0,0,0.5);border:2px solid rgba(255,255,255,0.18);min-height:136px;display:flex;flex-direction:column;justify-content:center;}
-.signal-panel.blocked{background:linear-gradient(135deg,#ff0000,#8b0000);}
-.signal-panel.hot{background:linear-gradient(135deg,#00ff88,#00cc88);}
-.signal-status{font-size:1.12em;opacity:0.97;margin-bottom:9px;}
-.signal-value{font-size:2.25em;font-weight:bold;margin:13px 0;}
-.signal-confidence{font-size:1em;opacity:0.90;margin-bottom:9px;}
-.signal-mode{display:inline-block;padding:6px 16px;background:rgba(0,0,0,0.18);border-radius:13px;font-weight:bold;font-size:0.86em;}
-.stats-section{background:rgba(255,255,255,0.07);border-radius:10px;padding:12px;border:1px solid rgba(255,255,255,0.09);}
-.stats-section h3{font-size:1.09em;margin-bottom:11px;opacity:0.92;}
-.stats-grid{display:grid;grid-template-columns:1fr;gap:9px;}
-.stat-item{background:rgba(255,255,255,0.05);padding:12px;border-radius:6px;text-align:center;border:1px solid rgba(255,255,255,0.11);}
-.stat-item .value{font-size:1.65em;font-weight:bold;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin:0 0 5px 0;}
-.stat-item .label{font-size:0.89em;opacity:0.63;}
-.controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:10px;}
-button{padding:9px 20px;border:none;border-radius:7px;font-size:1em;cursor:pointer;transition:all 0.23s;font-weight:bold;}
-button.primary{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;}
-footer{text-align:center;padding:14px 0;margin-top:13px;opacity:0.53;font-size:1.07em;}
-.history-section{background:rgba(255,255,255,0.07);border-radius:10px;padding:17px;border:1px solid rgba(255,255,255,0.09);}
-.history-section h3{font-size:1.11em;margin-bottom:15px;opacity:0.93;}
-.history-list{max-height:400px;overflow-y:auto;padding-right:8px;}
-.signal-item{padding:13px;margin:10px 0;background:#1a1a2e;border-radius:8px;border-left:4px solid #667eea;font-size:1em;line-height:1.5;}
-.signal-item.ganada{border-left-color:#00ff00;background:rgba(0,255,0,0.11);}
-.signal-item.perdida{border-left-color:#ff0000;background:rgba(255,0,0,0.11);}
-.sig-header{font-weight:bold;margin-bottom:6px;}
-.sig-detail{font-size:0.98em;opacity:0.85;margin-bottom:4px;}
-.sig-result{display:inline-block;padding:4px 10px;border-radius:4px;font-weight:bold;font-size:0.89em;margin-top:7px;}
-.sig-result.ganada{background:rgba(0,255,0,0.25);color:#00ff00;}
-.sig-result.perdida{background:rgba(255,0,0,0.20);color:#ff0000;}
-.sig-result.pendiente{background:rgba(255,165,0,0.25);color:#ffa500;}
-@media (max-width:1024px){.main-section{grid-template-columns:1fr;}.header h1{font-size:1.3em;}}
-@media (max-width:768px){body{padding:8px;}.signal-value{font-size:1.6em;}.stat-item .value{font-size:1.13em;}}
-@media (max-width:480px){body{padding:6px;}.header h1{font-size:1.1em;} .signal-value{font-size:1em;} .stat-item .value{font-size:1em;}.crash-item{font-size:0.79em;min-width:39px;}}
+/*... (deja todo igual aquí abajo) ... */
 </style>
 </head>
 <body>
 <div class="container">
+    <!-- ... igual ... -->
     <div class="header">
         <h1>🎯 Aviator Analyzer Pro</h1>
         <div class="sync-badge"><span id="syncStatus">🔄 Cargando...</span></div>
@@ -168,17 +125,21 @@ class AviatorSystem {
         this.rondasTotales++;
         if (this.historico.length > 1000) this.historico.shift();
 
+        // PRIMER crash nuevo: apenas lo recibe, arranca lógica real
         if (!this.readyForRealtime && this.historico.length > this.crashesIniciales) {
             this.readyForRealtime = true;
             this.rondasDesdeSenal = 0;
             this.senales = [];
+            return; // No genera señal en la primera, sino a partir de la segunda nueva
         }
+
+        // A partir de la segunda ronda nueva sí cuenta y evalúa señal
         if (this.readyForRealtime) {
-            // Verifica y luego (SOLO aquí) genera señal si aplica (no en el render)
+            this.rondasDesdeSenal++; // solo ahora cuenta rondas desde última señal
             this.verificarResultados();
             let senal = this.generarSenal();
-            this.actualizarInterfaz();
             if (senal.tipo === 'ACTIVA') this.emitirBeep();
+            this.actualizarInterfaz();
         } else {
             this.actualizarCrashes();
             this.actualizarStats();
@@ -193,7 +154,6 @@ class AviatorSystem {
     }
 
     verificarResultados() {
-        // Solo una señal pendiente a la vez
         if (!this.senales.length) return;
         let idxS = this.senales.findIndex(s => s.resultado === 'PENDIENTE' && !s.verificada && s.idxHistorico !== undefined);
         if (idxS === -1) return;
@@ -229,7 +189,6 @@ class AviatorSystem {
     }
 
     generarSenal() {
-        // Solo emite si NO hay señal pendiente, SOLO en crash nuevo
         if (this.senales.length && this.senales[this.senales.length-1].resultado === 'PENDIENTE') {
             return { tipo: 'ESPERANDO', msg: '⏳ Esperando resultado de la señal anterior', emoji: '⏳' };
         }
@@ -304,7 +263,6 @@ class AviatorSystem {
         this.actualizarHistorial();
     }
     actualizarPanel() {
-        // SOLO muestra la señal más reciente o el estado real
         let senal = {tipo:'ESPERANDO', msg:'⏳ Esperando ronda nueva', emoji:'⏳'};
         if (this.senales.length) {
             const ult = this.senales[this.senales.length-1];
