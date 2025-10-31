@@ -1,183 +1,206 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • 888Star</title>
-<link rel="icon" href="data:,">
+<title>Aviator Analyzer · 888Star</title>
+<meta name="theme-color" content="#0f1222" />
 <style>
-:root{
-  --bg:#0c0b1a;
-  --panel:#15132b;
-  --muted:#8a86b3;
-  --brand1:#7c3aed; /* morado */
-  --brand2:#3b82f6; /* azul */
-  --brand3:#ec4899; /* fucsia */
-  --good:#22c55e;
-  --warn:#f59e0b;
-  --bad:#ef4444;
-}
-*{box-sizing:border-box}
-html,body{height:100%}
-body{
-  margin:0;
-  font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,'Helvetica Neue',Arial;
-  color:#e9e8ff;
-  background:
-    radial-gradient(1200px 600px at 100% 0%, rgba(124,58,237,.2), transparent 50%),
-    radial-gradient(900px 700px at 0% 100%, rgba(59,130,246,.16), transparent 55%),
-    var(--bg);
-}
-.container{max-width:1200px;margin:24px auto;padding:0 16px}
-.header{
-  display:flex;gap:12px;align-items:center;justify-content:space-between;
-  background:linear-gradient(180deg,rgba(124,58,237,.18),rgba(59,130,246,.12) 40%, rgba(236,72,153,.1));
-  border:1px solid rgba(124,58,237,.35);
-  padding:14px 16px;border-radius:14px;
-}
-.h-title{font-size:22px;font-weight:800;letter-spacing:.2px}
-.badge{
-  display:inline-flex;align-items:center;gap:8px;
-  background:rgba(124,58,237,.18);border:1px solid rgba(124,58,237,.45);
-  padding:6px 10px;border-radius:999px;font-size:12px;color:#d3ccff;
-}
-.dot{width:8px;height:8px;border-radius:999px;background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.18)}
-.role{display:flex;gap:8px;align-items:center}
-
-.panel{
-  background:var(--panel);border:1px solid rgba(124,58,237,.25);
-  border-radius:14px;padding:14px 14px;margin-top:16px;
-}
-.panel h3{margin:6px 4px 12px;font-size:16px;color:#d7d3ff}
-.row{display:flex;gap:12px;flex-wrap:wrap}
-.kpi{
-  flex:1 1 140px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);
-  padding:12px;border-radius:12px;text-align:center;
-}
-.kpi .v{font-size:28px;font-weight:800}
-.kpi .l{font-size:12px;color:var(--muted)}
-
-.controls{display:flex;gap:8px;flex-wrap:wrap}
-.toggle{cursor:pointer;border:1px solid rgba(255,255,255,.14);background:#1a1832;
-  padding:8px 10px;border-radius:10px;font-size:12px;color:#dcd8ff}
-.toggle.active{border-color:var(--brand2);box-shadow:0 0 0 3px rgba(59,130,246,.18)}
-
-.chart-wrap{position:relative;height:260px;background:#100f22;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
-canvas{width:100%;height:100%}
-
-.rounds{
-  display:grid;gap:8px;margin-top:12px;
-  grid-template-columns:repeat(auto-fill,minmax(88px,1fr));
-}
-.r{
-  background:linear-gradient(180deg,rgba(59,130,246,.18),rgba(124,58,237,.16));
-  border:1px solid rgba(124,58,237,.35);border-radius:12px;padding:8px 10px;text-align:center;
-  font-weight:700
-}
-.r.small{font-weight:600}
-.r .n{opacity:.7;font-size:11px}
-.r.low{background:linear-gradient(180deg,rgba(59,130,246,.22),rgba(59,130,246,.12))}
-.r.mid{background:linear-gradient(180deg,rgba(124,58,237,.22),rgba(124,58,237,.12))}
-.r.high{background:linear-gradient(180deg,rgba(236,72,153,.22),rgba(236,72,153,.12))}
-.r.instaloss{background:linear-gradient(180deg,rgba(239,68,68,.22),rgba(239,68,68,.12))}
-.r.ultra{background:linear-gradient(180deg,rgba(34,197,94,.22),rgba(34,197,94,.12))}
-
-.signal{
-  background:linear-gradient(180deg,rgba(124,58,237,.18),rgba(59,130,246,.12));
-  border:1px solid rgba(124,58,237,.35);
-  padding:14px;border-radius:12px;display:flex;justify-content:space-between;align-items:center;gap:12px
-}
-.sig-big{font-size:28px;font-weight:900}
-.sig-muted{font-size:12px;color:var(--muted)}
-
-.table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
-.table th,.table td{border-bottom:1px solid rgba(255,255,255,.08);padding:10px}
-.table th{color:#cfcaff;text-transform:uppercase;font-size:11px;letter-spacing:.6px;text-align:left}
-.badge-ok{background:rgba(34,197,94,.18);border:1px solid rgba(34,197,94,.5);color:#c6ffd9;padding:4px 8px;border-radius:8px;font-weight:700}
-.badge-ko{background:rgba(239,68,68,.18);border:1px solid rgba(239,68,68,.5);color:#ffd1d1;padding:4px 8px;border-radius:8px;font-weight:700}
-.badge-wait{background:rgba(245,158,11,.2);border:1px solid rgba(245,158,11,.5);color:#ffe8bd;padding:4px 8px;border-radius:8px;font-weight:700}
-
-.footer{opacity:.6;text-align:center;margin:18px 0 32px;font-size:12px}
-@media (max-width:840px){
-  .header{flex-direction:column;align-items:flex-start}
-  .chart-wrap{height:220px}
-}
+  :root{
+    --bg:#0f1222;
+    --panel:#141733;
+    --panel-2:#0f1530;
+    --text:#eef2ff;
+    --muted:#9aa3b2;
+    --ok:#4ade80;
+    --warn:#f59e0b;
+    --bad:#ef4444;
+    --primary:#7c3aed;  /* morado */
+    --accent:#22d3ee;   /* cian */
+    --pink:#fb37a3;     /* fucsia */
+    --blue:#3b82f6;     /* azul */
+    --tile1:#bbf7d0;    /* card pastel */
+    --tile2:#bae6fd;
+    --tile3:#e9d5ff;
+    --tile4:#fed7e2;
+    --ring:#2dd4bf;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,"Helvetica Neue",Arial,sans-serif}
+  a{color:var(--accent);text-decoration:none}
+  .wrap{max-width:1220px;margin:0 auto;padding:18px}
+  header{
+    background:linear-gradient(180deg,#171a3a 0%, #121633 100%);
+    border:1px solid rgba(255,255,255,.06);
+    border-radius:14px;
+    padding:14px 16px;
+    display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;
+  }
+  h1{font-weight:800;letter-spacing:.2px;font-size: clamp(20px, 2.3vw, 26px);}
+  h1 .brand{color:#a78bfa}
+  h1 .star{color:#60a5fa}
+  .badge{
+    display:flex;align-items:center;gap:8px;
+    background:var(--panel-2);
+    border:1px solid rgba(255,255,255,.08);
+    padding:8px 10px;border-radius:10px;
+    font-weight:600;color:#dbeafe;
+  }
+  .dot{width:10px;height:10px;border-radius:50%;display:inline-block;background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.12)}
+  .row{display:grid;grid-template-columns:1fr;gap:14px;margin-top:16px}
+  @media(min-width:980px){ .row{grid-template-columns:1fr} }
+  .card{
+    background:var(--panel);
+    border:1px solid rgba(255,255,255,.06);
+    border-radius:14px;padding:14px;
+  }
+  .card h2{margin:4px 0 12px 0;font-size:18px}
+  .chip{display:inline-flex;align-items:center;gap:8px;background:var(--panel-2);border:1px solid rgba(255,255,255,.08);padding:8px 10px;border-radius:10px;margin-right:8px;font-weight:600;color:#c7d2fe}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .filters{display:flex;flex-wrap:wrap;gap:8px}
+  .btn,.btn-ghost{
+    border-radius:10px; padding:10px 14px; font-weight:800; letter-spacing:.3px; cursor:pointer;
+    border:1px solid rgba(255,255,255,.12);
+  }
+  .btn{background:linear-gradient(180deg,#3343a7 0%, #2c1d6c 100%); color:#fff}
+  .btn-ghost{background:transparent; color:#c7d2fe}
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:8px}
+  .kpi{background:var(--panel-2);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px}
+  .kpi .n{font-size:22px;font-weight:900}
+  .kpi .l{font-size:12px;color:var(--muted)}
+  .signal-now{
+    background:linear-gradient(180deg,rgba(124,58,237,.3) 0%, rgba(34,211,238,.12) 100%);
+    border:1px dashed rgba(255,255,255,.18); padding:12px;border-radius:12px;min-height:68px;
+    display:flex;align-items:center;justify-content:space-between;gap:10px
+  }
+  canvas{max-width:100%;height:360px}
+  .grid60{display:grid;grid-template-columns:repeat(10,1fr);gap:8px;margin-top:12px}
+  .tile{
+    border-radius:12px;padding:10px 8px;text-align:center;font-weight:800;color:#111;
+    display:flex;flex-direction:column;gap:6px; box-shadow: inset 0 -2px 0 rgba(0,0,0,.08);
+    border:1px solid rgba(0,0,0,.06)
+  }
+  .t1{background:var(--tile1)} .t2{background:var(--tile2)} .t3{background:var(--tile3)} .t4{background:var(--tile4)}
+  .tile small{opacity:.7;font-weight:700}
+  .muted{color:var(--muted)}
+  .table-wrap{overflow:auto}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,.06);text-align:left;font-size:14px}
+  th{color:#c7d2fe}
+  .pill{padding:6px 10px;border-radius:999px;font-weight:800;display:inline-block}
+  .win{background:rgba(74,222,128,.15);color:#4ade80;border:1px solid rgba(74,222,128,.25)}
+  .lose{background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.25)}
+  .range-bajo{background:rgba(59,130,246,.15);color:#93c5fd;border:1px solid rgba(147,197,253,.25)}
+  .range-medio{background:rgba(124,58,237,.15);color:#c4b5fd;border:1px solid rgba(196,181,253,.25)}
+  .range-alto{background:rgba(236,72,153,.15);color:#f9a8d4;border:1px solid rgba(249,168,212,.25)}
+  .range-superior{background:rgba(34,211,238,.15);color:#99f6e4;border:1px solid rgba(153,246,228,.25)}
+  footer{opacity:.6;text-align:center;margin:16px 0}
 </style>
 </head>
 <body>
-<div class="container">
-  <div class="header">
-    <div class="h-title">Aviator Analyzer • <span style="color:var(--brand3);font-weight:900">888Star</span></div>
-    <div class="row" style="gap:10px">
-      <div class="badge"><span class="dot"></span> Conectado automáticamente a <b>/crashes</b> <span id="pathBadge"></span></div>
-      <div class="badge role"><span class="dot" id="roleDot"></span> Rol: <b id="role">—</b> · Dispositivo: 💻 PC</div>
-      <div class="badge">Conectados: <b id="connectedCount">0</b></div>
-    </div>
-  </div>
+<div class="wrap">
 
-  <div class="panel">
-    <div class="row" style="justify-content:space-between;align-items:center">
-      <h3>Tendencia en tiempo real</h3>
-      <div class="controls">
-        <button class="toggle" id="tg-ema">EMA</button>
-        <button class="toggle" id="tg-boll">Bollinger</button>
-        <button class="toggle" id="tg-sr">Soporte/Resistencia</button>
-        <button class="toggle" id="tg-grid">Grid</button>
-        <div class="toggle active" id="trendBadge">Tendencia: <b id="trendText">—</b></div>
-        <div class="toggle">Últimas <b>60</b> rondas</div>
+  <header>
+    <h1>Aviator Analyzer · <span class="brand">888</span><span class="star">Star</span></h1>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <div class="badge">
+        <span class="dot" id="connDot"></span>
+        <span>Conectado automáticamente a</span>
+        <strong id="feedPath">/crashes</strong>
+      </div>
+
+      <div class="badge role-badge">
+        <span class="dot" id="roleDot" style="background:#22c55e"></span>
+        <span>Rol:</span> <strong id="roleText">--</strong>
+        <span style="opacity:.6;margin:0 .5rem;">·</span>
+        <span>Dispositivo:</span> <strong id="deviceKind">--</strong>
+        <button id="btnTakeControl" class="btn-ghost" style="margin-left:.75rem;display:none;">Tomar control</button>
+      </div>
+
+      <div class="badge">
+        <span class="dot" id="peersDot" style="background:#60a5fa"></span>
+        <span>Conectados:</span> <strong id="peers">0</strong>
+      </div>
+    </div>
+  </header>
+
+  <section class="card">
+    <div class="toolbar">
+      <h2>Tendencia en tiempo real</h2>
+      <div class="filters">
+        <span class="chip" id="chipEma">EMA</span>
+        <span class="chip" id="chipBb">Bollinger</span>
+        <span class="chip" id="chipSR">Soporte/Resistencia</span>
+        <span class="chip" id="chipGrid">Grid</span>
+        <span class="chip">Tendencia: <strong id="trendLabel" style="margin-left:6px">—</strong></span>
+        <span class="chip">Últimas <strong>60</strong> rondas</span>
+      </div>
+    </div>
+    <canvas id="chart"></canvas>
+
+    <div id="last60" class="grid60"></div>
+  </section>
+
+  <section class="row">
+    <div class="card">
+      <h2>Sesión</h2>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="n" id="kRondas">0</div><div class="l">Rondas</div></div>
+        <div class="kpi"><div class="n" id="kSenales">0</div><div class="l">Señales</div></div>
+        <div class="kpi"><div class="n" id="kHits">0</div><div class="l">Aciertos</div></div>
+        <div class="kpi"><div class="n" id="kEff">0%</div><div class="l">Efectividad</div></div>
+      </div>
+
+      <div class="toolbar" style="margin-top:10px">
+        <div style="display:flex;gap:8px">
+          <button id="btnStart" class="btn">Iniciar</button>
+          <button id="btnStop" class="btn-ghost">Detener</button>
+          <button id="btnReset" class="btn-ghost">Reset</button>
+        </div>
+        <div class="muted" id="statusTxt">Esperando…</div>
+      </div>
+
+      <div class="signal-now">
+        <div><strong>Señal actual:</strong> <span id="sigNow" class="muted">—</span></div>
+        <div id="sigNowBadge"></div>
       </div>
     </div>
 
-    <div class="chart-wrap"><canvas id="chart"></canvas></div>
-
-    <div class="rounds" id="rounds"></div>
-  </div>
-
-  <div class="panel">
-    <h3>Sesión</h3>
-    <div class="row">
-      <div class="kpi"><div class="v" id="kRounds">0</div><div class="l">Rondas</div></div>
-      <div class="kpi"><div class="v" id="kSignals">0</div><div class="l">Señales</div></div>
-      <div class="kpi"><div class="v" id="kHits">0</div><div class="l">Aciertos</div></div>
-      <div class="kpi"><div class="v" id="kEff">0%</div><div class="l">Efectividad</div></div>
-    </div>
-
-    <div class="signal" style="margin-top:12px">
-      <div>
-        <div class="sig-muted">Señal actual</div>
-        <div class="sig-big" id="sigBig">—</div>
-        <div class="sig-muted" id="sigReason">Esperando…</div>
-      </div>
-      <div class="kpi" style="min-width:160px">
-        <div class="v" id="sigConf">—</div><div class="l">Confianza</div>
+    <div class="card">
+      <h2>Historial de Señales <small class="muted">Tiempo real</small></h2>
+      <div class="table-wrap">
+        <table id="tbl">
+          <thead>
+            <tr>
+              <th>#</th><th>HORA</th><th>TARGET</th><th>TIPO</th><th>CONF.</th><th>REAL</th><th>ESTADO</th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            <tr><td colspan="7" class="muted">No hay señales</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
-  </div>
+  </section>
 
-  <div class="panel">
-    <div class="row" style="align-items:center;justify-content:space-between">
-      <h3>Historial de Señales</h3>
-      <div class="toggle">Tiempo real</div>
-    </div>
-    <div style="overflow:auto">
-      <table class="table">
-        <thead>
-          <tr><th>#</th><th>Hora</th><th>Target</th><th>Tipo</th><th>Conf.</th><th>Real</th><th>Estado</th></tr>
-        </thead>
-        <tbody id="signalsBody"><tr><td colspan="7" style="opacity:.6;padding:12px">No hay señales</td></tr></tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="footer">Multi-dispositivo (maestro/esclavo) · Guarda sesión y señales en Firebase RTDB</div>
+  <footer>Multi-dispositivo (maestro/esclavo) · Guarda sesión y señales en Firebase RTDB</footer>
 </div>
 
-<!-- Firebase -->
+<!-- Firebase + Chart.js (CDN) -->
 <script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-import { getDatabase, ref, onValue, get, set, update, remove, onDisconnect, query, limitToLast, orderByKey } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+  import { getDatabase, ref, onValue, get, set, update } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
+  // Chart.js
+  // (No ES module needed, use global)
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
 
-/* ======= CONFIG FIREBASE (tuya) ======= */
+<script type="module">
+/* =========================
+   CONFIGURACIÓN
+   ========================= */
+
+// ——— FireBase ———
 const firebaseConfig = {
   apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
   authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
@@ -188,381 +211,423 @@ const firebaseConfig = {
   appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
   measurementId: "G-325QCBSQMH"
 };
-/* ====================================== */
 
-console.log('Inicializando…');
+// ——— Señales por RANGO (ajústalo si lo deseas) ———
+const RANGE_CFG = {
+  bajo:      { min: 1.00, max: 1.69, cls:'range-bajo',  label:'BAJO' },
+  medio:     { min: 1.70, max: 2.99, cls:'range-medio', label:'MEDIO' },
+  alto:      { min: 3.00, max: 9.99, cls:'range-alto',  label:'ALTO' },
+  superior:  { min: 10.0, max: 999, cls:'range-superior',label:'SUPERIOR' }
+};
+
+// ——— EMA / Bollinger ———
+const EMA_PERIOD = 12;          // período para EMA
+const BB_PERIOD  = 20;          // período BB
+const BB_K       = 2;           // K desviaciones
+
+// ——— Sesión/roles ———
+const DEVICE_ID  = localStorage.getItem('AA_DEVICE_ID') || (Date.now() + '_' + Math.random().toString(36).slice(2));
+localStorage.setItem('AA_DEVICE_ID', DEVICE_ID);
+const DEVICE_NAME = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? '📱 Móvil' : '💻 PC';
+
+// ——— Paths ———
+const DEFAULT_FEED_PATH = '/crashes';
+
+/* =========================
+   INICIALIZACIÓN
+   ========================= */
 const app = initializeApp(firebaseConfig);
 const db  = getDatabase(app);
 
-/* ======= UI refs ======= */
-const roundsEl   = document.getElementById('rounds');
-const kRoundsEl  = document.getElementById('kRounds');
-const kSignalsEl = document.getElementById('kSignals');
-const kHitsEl    = document.getElementById('kHits');
-const kEffEl     = document.getElementById('kEff');
-const trendText  = document.getElementById('trendText');
-const roleEl     = document.getElementById('role');
-const roleDot    = document.getElementById('roleDot');
-const connectedEl= document.getElementById('connectedCount');
-const sigBig     = document.getElementById('sigBig');
-const sigConf    = document.getElementById('sigConf');
-const sigReason  = document.getElementById('sigReason');
+// UI refs
+const feedPathEl = document.getElementById('feedPath');
+const connDot = document.getElementById('connDot');
+const roleDot = document.getElementById('roleDot');
+const roleEl  = document.getElementById('roleText');
+const deviceKindEl = document.getElementById('deviceKind');
+const peersEl = document.getElementById('peers');
+const btnTakeControl = document.getElementById('btnTakeControl');
 
-/* ======= Estado ======= */
-const CONFIG = {
-  MIN_DATA_POINTS: 12,
-  SIGNAL_COOLDOWN: 25000
-};
-const DEVICE_ID = 'dev_'+Math.random().toString(36).slice(2,9);
-const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-const DEVICE_NAME = isMobile ? '📱 Móvil' : '💻 PC';
+deviceKindEl.textContent = /Móvil/.test(DEVICE_NAME) ? 'Móvil' : 'PC';
 
-let pathUsed = null;
-let game = [];        // [{ts, v, type}]
-let isMaster = false;
-let lastProcessedTs = 0;
-
-/* ======= Audio simple para señal ======= */
-const AudioCtx = window.AudioContext || window.webkitAudioContext;
-const audio = new AudioCtx();
-function beep(){
-  try{
-    const osc = audio.createOscillator();
-    const g = audio.createGain();
-    osc.type='triangle';
-    osc.frequency.value = 880;
-    osc.connect(g); g.connect(audio.destination);
-    g.gain.setValueAtTime(0.001, audio.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.3, audio.currentTime+.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime+.35);
-    osc.start(); osc.stop(audio.currentTime+.36);
-  }catch(e){}
-}
-
-/* ======= Canvas chart ======= */
-const cvs = document.getElementById('chart');
-const ctx = cvs.getContext('2d');
-let show = {ema:false,boll:false,sr:false,grid:false};
-document.getElementById('tg-ema').onclick = e=>{show.ema=!show.ema;e.target.classList.toggle('active');draw()};
-document.getElementById('tg-boll').onclick= e=>{show.boll=!show.boll;e.target.classList.toggle('active');draw()};
-document.getElementById('tg-sr').onclick  = e=>{show.sr=!show.sr;e.target.classList.toggle('active');draw()};
-document.getElementById('tg-grid').onclick= e=>{show.grid=!show.grid;e.target.classList.toggle('active');draw()};
-function sizeCanvas(){cvs.width = cvs.clientWidth; cvs.height = cvs.clientHeight}
-addEventListener('resize',()=>{sizeCanvas(); draw()});
-sizeCanvas();
-
-function ema(arr, p){
-  const k = 2/(p+1);
-  let e = arr[0]; const out=[e];
-  for(let i=1;i<arr.length;i++){ e = arr[i]*k + e*(1-k); out.push(e) }
-  return out;
-}
-function boll(arr, p=20, sd=2){
-  const U=[], M=[], L=[];
-  for(let i=p-1;i<arr.length;i++){
-    const s = arr.slice(i-p+1,i+1);
-    const avg = s.reduce((a,b)=>a+b,0)/p;
-    const v = Math.sqrt(s.reduce((s,x)=>s+(x-avg)**2,0)/p);
-    M.push(avg); U.push(avg+sd*v); L.push(avg-sd*v);
-  }
-  return {U,M,L,start:p-1};
-}
-
-function draw(){
-  if(!game.length){ ctx.clearRect(0,0,cvs.width,cvs.height); return; }
-  const data = game.slice(0,60).reverse();
-  const w=cvs.width,h=cvs.height; ctx.clearRect(0,0,w,h);
-  const vals = data.map(d=>d.v);
-  const max = Math.max(10, ...vals), min = Math.min(0, ...vals);
-  const rng = max-min || 1;
-  const sx = w/Math.max(1,data.length-1);
-
-  // grid
-  if(show.grid){
-    ctx.strokeStyle='rgba(255,255,255,.07)';
-    for(let i=0;i<=10;i++){ const x=i*w/10; ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke()}
-    for(let i=0;i<=5;i++){ const y=i*h/5; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke()}
-  }
-
-  // main line
-  ctx.lineWidth=2; ctx.strokeStyle='#8ea2ff'; ctx.beginPath();
-  data.forEach((r,i)=>{ const x=i*sx, y=h-((r.v-min)/rng)*h; i?ctx.lineTo(x,y):ctx.moveTo(x,y) });
-  ctx.stroke();
-
-  // EMA
-  if(show.ema && data.length>=9){
-    const e = ema(vals,9);
-    ctx.strokeStyle='#ffd166'; ctx.beginPath();
-    e.forEach((v,i)=>{ const x=i*sx, y=h-((v-min)/rng)*h; i?ctx.lineTo(x,y):ctx.moveTo(x,y) });
-    ctx.stroke();
-  }
-
-  // Bollinger
-  if(show.boll && data.length>=20){
-    const b = boll(vals,20,2);
-    ctx.strokeStyle='rgba(255,100,100,.55)'; ctx.beginPath();
-    b.U.forEach((v,i)=>{ const x=(i+b.start)*sx, y=h-((v-min)/rng)*h; i?ctx.lineTo(x,y):ctx.moveTo(x,y) }); ctx.stroke();
-    ctx.strokeStyle='rgba(100,150,255,.55)'; ctx.beginPath();
-    b.L.forEach((v,i)=>{ const x=(i+b.start)*sx, y=h-((v-min)/rng)*h; i?ctx.lineTo(x,y):ctx.moveTo(x,y) }); ctx.stroke();
-  }
-
-  // SR
-  if(show.sr){
-    const resistance = Math.max(...vals), support = Math.min(...vals);
-    ctx.setLineDash([6,6]);
-    ctx.strokeStyle='rgba(239,68,68,.7)'; ctx.beginPath();
-    ctx.moveTo(0, h-((resistance-min)/rng)*h); ctx.lineTo(w, h-((resistance-min)/rng)*h); ctx.stroke();
-    ctx.strokeStyle='rgba(34,197,94,.7)'; ctx.beginPath();
-    ctx.moveTo(0, h-((support-min)/rng)*h); ctx.lineTo(w, h-((support-min)/rng)*h); ctx.stroke();
-    ctx.setLineDash([]);
-  }
-}
-
-/* ======= Render rounds grid ======= */
-function classify(v){
-  if(v>=1.00 && v<=1.04) return 'instaloss';
-  if(v>=10.0) return 'ultra';
-  if(v>=5.00) return 'high';
-  if(v>=1.70) return 'mid';
-  return 'low';
-}
-function paintRounds(){
-  roundsEl.innerHTML='';
-  const arr = game.slice(0,60);
-  if(!arr.length){ roundsEl.innerHTML = '<div class="r small" style="grid-column:1/-1;opacity:.6">Sin datos</div>'; return; }
-  arr.forEach((r,i)=>{
-    const card = document.createElement('div');
-    card.className = `r ${classify(r.v)}`;
-    card.innerHTML = `<div class="n">#${arr.length-i}</div><div>${r.v.toFixed(2)}x</div>`;
-    card.title = new Date(r.ts).toLocaleTimeString();
-    roundsEl.appendChild(card);
-  });
-}
-
-/* ======= Señales ======= */
-const sigBody = document.getElementById('signalsBody');
-let stats = {signals:0,hits:0,miss:0,lastSignalTime:0};
-function setSignalDisplay(sig){
-  sigBig.textContent = `${sig.target.toFixed(2)}x`;
-  sigConf.textContent = `${sig.confidence}%`;
-  sigReason.textContent = sig.reason;
-}
-function clearSignalDisplay(){
-  sigBig.textContent = '—'; sigConf.textContent='—'; sigReason.textContent='Esperando…';
-}
-
-/* Nueva lógica (tu versión normalizada) */
-async function analyzeAndEmit(){
-  if(!isMaster) return;
-  if(game.length < CONFIG.MIN_DATA_POINTS) return;
-
-  const now = Date.now();
-  if(now - (stats.lastSignalTime||0) < CONFIG.SIGNAL_COOLDOWN) return;
-
-  const last10 = game.slice(0,10);
-  const last5  = game.slice(0,5);
-  const last3  = game.slice(0,3);
-
-  const instaloss3 = last3.filter(r=>r.type==='INSTALOSS').length;
-  const high3      = last3.filter(r=>r.type==='ALTO'||r.type==='ULTRA').length;
-  const lowStreak = (()=>{let c=0; for(const r of game){ if(r.type==='BAJO'||r.type==='INSTALOSS') c++; else break;} return c;})();
-
-  const avg3  = last3.reduce((s,r)=>s+r.v,0)/(last3.length||1);
-  const avg5  = last5.reduce((s,r)=>s+r.v,0)/(last5.length||1);
-  const avg10 = last10.reduce((s,r)=>s+r.v,0)/(last10.length||1);
-
-  // Protecciones
-  if(high3>=1) return;
-  if(instaloss3>=2) return;
-  if(avg5 < 1.20 && last5.filter(r=>r.type==='INSTALOSS').length >=2) return;
-
-  let signal=null;
-
-  // 1) Señal “1.70x” (selectiva, sin etiqueta especial)
-  if(!signal){
-    if(lowStreak>=4 && avg5 > 2.2 && instaloss3===0){
-      signal = sigTpl(1.75,88,`Racha baja limpia (${lowStreak}) sin trampas`);
-    } else if (last5.filter(r=>r.type==='INSTALOSS').length===1 && last5.filter(r=>r.type==='BAJO').length>=3 && avg5>2.0 && instaloss3===0){
-      signal = sigTpl(1.78,85,`Bajos frecuentes, sin trampas`);
-    } else if (avg10>2.1 && last10.filter(r=>r.type==='BAJO').length>=6 && avg3>1.70 && instaloss3===0){
-      signal = sigTpl(1.80,84,`Promedio alto, tendencia limpia`);
-    }
-  }
-
-  // 2) Señal “3x” (más restrictiva)
-  if(!signal){
-    if (last10.filter(r=>r.type==='INSTALOSS').length===2 &&
-        last5.filter(r=>r.type==='INSTALOSS').length===1 &&
-        last5.filter(r=>r.type==='ALTO'||r.type==='ULTRA').length===0 &&
-        avg10>2.3 && lowStreak>=3){
-      signal = sigTpl(2.80,82,`Patrón espaciado, sin altos`);
-    } else if (lowStreak>=6 && avg10>2.0 && last5.filter(r=>r.type==='ALTO'||r.type==='ULTRA').length===0 && instaloss3===0){
-      signal = sigTpl(3.00,79,`Racha baja extensa, sin trampas`);
-    }
-  }
-
-  // 3) Señal “10x” (excepcional)
-  if(!signal){
-    if (last10.filter(r=>r.type==='INSTALOSS').length>=3 &&
-        last5.filter(r=>r.type==='INSTALOSS').length===1 &&
-        last5.filter(r=>r.type==='ALTO'||r.type==='ULTRA').length===0 &&
-        avg10<2 && lowStreak>=7){
-      signal = sigTpl(9.00,75,`Patrón ultra raro`);
-    }
-  }
-
-  if(signal){
-    stats.signals += 1;
-    stats.lastSignalTime = now;
-    set(ref(db, 'current_signal'), signal);
-    set(ref(db, 'shared_signals/'+signal.id), signal);
-    setSignalDisplay(signal);
-    beep();
-    renderStats();
-  }
-}
-function sigTpl(target,confidence,reason){
-  return { id:'sig_'+Date.now(), timestamp:Date.now(), target, confidence, type:'RANGO', reason, checked:false };
-}
-
-/* Confirmación (hit/miss) en la ronda siguiente */
-async function settlePending(actual){
-  const snap = await get(ref(db,'current_signal'));
-  if(!snap.exists()) return;
-  const sig = snap.val();
-  if(sig.checked) return;
-
-  const hit = actual >= sig.target*0.92; // ventana de validación
-  update(ref(db,'shared_signals/'+sig.id), {actualCrash:actual, hit, checked:true});
-  remove(ref(db,'current_signal'));
-
-  if(hit) stats.hits += 1;
-  renderStats();
-  renderSignalsTableOnce(); // actualiza tabla
-}
-
-/* ======= Render stats & table ======= */
-function renderStats(){
-  kRoundsEl.textContent = game.length;
-  kSignalsEl.textContent= stats.signals;
-  kHitsEl.textContent   = stats.hits;
-  kEffEl.textContent    = (stats.signals? Math.round((stats.hits/stats.signals)*100):0)+'%';
-}
-function renderSignalsTableOnce(){
-  onValue(ref(db,'shared_signals'),(s)=>{
-    if(!s.exists()){ sigBody.innerHTML = '<tr><td colspan="7" style="opacity:.6;padding:12px">No hay señales</td></tr>'; return; }
-    const arr = Object.values(s.val()).sort((a,b)=>b.timestamp-a.timestamp);
-    sigBody.innerHTML = '';
-    arr.forEach((x,i)=>{
-      const tr = document.createElement('tr');
-      const state = !x.checked ? `<span class="badge-wait">⏳</span>` :
-                     x.hit ? `<span class="badge-ok">✅</span>` : `<span class="badge-ko">❌</span>`;
-      tr.innerHTML = `
-        <td>${i+1}</td>
-        <td>${new Date(x.timestamp).toLocaleTimeString()}</td>
-        <td><b>${x.target.toFixed(2)}x</b></td>
-        <td>${x.type}</td>
-        <td>${x.confidence}%</td>
-        <td>${x.actualCrash? x.actualCrash.toFixed(2)+'x' : '—'}</td>
-        <td>${state}</td>`;
-      sigBody.appendChild(tr);
-    });
-  }, {onlyOnce:true});
-}
-
-/* ======= Conexión, autodetección & listeners ======= */
-const CANDIDATES = ['crashes','feeds/gocho/crashes','last_final','historial'];
-
-async function autoStart(){
-  // registrar dispositivo
-  await set(ref(db,'connected_devices/'+DEVICE_ID), {name:DEVICE_NAME, ts:Date.now()});
-  onDisconnect(ref(db,'connected_devices/'+DEVICE_ID)).remove();
-  onValue(ref(db,'connected_devices'), s => connectedEl.textContent = s.exists()? Object.keys(s.val()).length : 0);
-
-  // elegir rol (maestro si no hay sesión activa)
-  const ss = await get(ref(db,'shared_session'));
-  if(!ss.exists() || !ss.val().active){
-    isMaster = true; roleEl.textContent='MAESTRO'; roleDot.style.background='#22c55e';
-    await set(ref(db,'shared_session'), {active:true, startedAt:Date.now()});
-  }else{
-    isMaster = false; roleEl.textContent='ESCLAVO'; roleDot.style.background='#22c55e';
-  }
-
-  // encontrar feed
-  for(const p of CANDIDATES){
-    try{
-      const test = await get(ref(db,p));
-      if(test.exists()){
-        pathUsed = p;
-        document.getElementById('pathBadge').textContent = ' · '+p;
-        console.log('Conectado a /'+p,'· Base 60 & lógica nueva (normalización robusta)');
-        listenToPath(p);
-        return;
+// Chart
+const ctx = document.getElementById('chart').getContext('2d');
+let chart = new Chart(ctx, {
+  type:'line',
+  data:{
+    labels:[],
+    datasets:[
+      {label:'Crash', data:[], borderColor:'#22d3ee', backgroundColor:'rgba(34,211,238,.15)', tension:.25, pointRadius:2},
+      {label:'EMA', data:[], borderColor:'#a78bfa', backgroundColor:'rgba(167,139,250,.12)', borderDash:[5,4], tension:.25, pointRadius:0},
+      {label:'BB Alta', data:[], borderColor:'#fb37a3', backgroundColor:'rgba(251,55,163,.08)', borderDash:[3,3], tension:.25, pointRadius:0},
+      {label:'BB Baja', data:[], borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,.08)', borderDash:[3,3], tension:.25, pointRadius:0}
+    ]
+  },
+  options:{
+    responsive:true,
+    maintainAspectRatio:false,
+    scales:{
+      x:{ ticks:{color:'#93a0b5'} },
+      y:{ ticks:{color:'#93a0b5'}, suggestedMin:1, suggestedMax:10 }
+    },
+    plugins:{
+      legend:{labels:{color:'#c7d2fe'}},
+      tooltip:{
+        callbacks:{
+          afterBody(items){
+            const i = items[0].dataIndex;
+            const mark = signalMarkers[i];
+            if(mark){
+              return `Señal: ${mark.type} (${mark.rangeLabel}) · ${mark.hit?'✔️ GANADA':'✖️ PERDIDA'}`;
+            }
+          }
+        }
       }
-    }catch(e){}
-  }
-  console.warn('No se encontró ruta con datos. Asegúrate de que el feed esté escribiendo en /crashes.');
-}
-
-function normalizeSnapshot(obj){
-  // soporta dos formatos comunes: {key:{ts:..., value:...}} o {key:{t:..., v:...}}
-  const out=[];
-  Object.values(obj).forEach(row=>{
-    const ts = row.ts ?? row.t ?? row.time ?? 0;
-    const v  = parseFloat(row.value ?? row.v ?? row.multiplier ?? 0);
-    if(!ts || !v) return;
-    const type = classify(v).toUpperCase();
-    out.push({ts, v, type});
-  });
-  // orden por ts descendente
-  return out.sort((a,b)=>b.ts-a.ts);
-}
-
-function listenToPath(path){
-  const q = query(ref(db,path), orderByKey(), limitToLast(200)); // cargar bastante, luego recortar a 60 para UI
-  onValue(q, async (snap)=>{
-    if(!snap.exists()) return;
-    const arr = normalizeSnapshot(snap.val());
-    if(!arr.length) return;
-
-    // evitar reprocesar el mismo último
-    if(arr[0].ts === lastProcessedTs && game.length) return;
-    lastProcessedTs = arr[0].ts;
-
-    // actualizar memoria (todas para aprendizaje; UI usa 60)
-    // mantenemos hasta ~2000 para no crecer infinito
-    game = (arr.concat(game)).filter((_,i,all)=> i<2000 );
-    // eliminar duplicados por ts manteniendo el más reciente
-    const seen=new Set(), uniq=[];
-    for(const r of game){ if(!seen.has(r.ts)){seen.add(r.ts); uniq.push(r);} }
-    game = uniq.sort((a,b)=>b.ts-a.ts);
-
-    // UI
-    paintRounds(); draw(); renderStats();
-    // tendencia simple: avg5 vs avg10
-    if(game.length>=10){
-      const avg10 = game.slice(0,10).reduce((s,r)=>s+r.v,0)/10;
-      const avg5  = game.slice(0,5).reduce((s,r)=>s+r.v,0)/5;
-      trendText.textContent = avg5 < avg10 ? 'BAJISTA' : 'ALCISTA';
-      document.getElementById('trendBadge').classList.toggle('active', true);
     }
-
-    // validar señal pendiente con la última ronda y analizar para nueva
-    await settlePending(arr[0].v);
-    setTimeout(analyzeAndEmit, 400);
-  });
-}
-
-/* ======= Arranque ======= */
-autoStart();
-renderSignalsTableOnce();
-
-/* ======= Tip: error de extensiones ======= */
-window.addEventListener('error',(e)=>{
-  if(String(e.message||'').includes('content-all.js')){
-    console.log('Aviso: error de extensión del navegador (ignorable).');
   }
 });
+
+// Estado
+let isMaster = false;
+let allRounds = [];     // todas las rondas históricas (en esta sesión)
+let last60 = [];        // últimas 60 normalizadas
+let started = false;
+let peersCount = 1;
+let signalSeq = 0;
+let openSignal = null;  // señal pendiente de evaluar con la siguiente ronda
+const signalMarkers = []; // para tooltips en gráfica (por índice visible)
+const tbody = document.getElementById('tbody');
+
+// Audio (beep simple)
+let audioCtx;
+function beep(freq=880, ms=140){
+  try{
+    if(!audioCtx){ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.connect(g); g.connect(audioCtx.destination);
+    o.type='sine'; o.frequency.value=freq;
+    g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.3, audioCtx.currentTime+0.01);
+    o.start();
+    setTimeout(()=>{
+      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+0.01);
+      o.stop();
+    }, ms);
+  }catch{}
+}
+
+/* =========================
+   ROLES (MAESTRO / ESCLAVO)
+   ========================= */
+function qp(name){ const u = new URL(location.href); return u.searchParams.get(name); }
+
+const sessionRef = ref(db,'shared_session');
+
+async function ensureRole(){
+  if(qp('master')==='1'){
+    await set(sessionRef,{active:true,owner:DEVICE_ID,ownerName:DEVICE_NAME,startedAt:Date.now()});
+    setMasterUI(true);
+    return;
+  }
+  const snap = await get(sessionRef);
+  if(!snap.exists() || !snap.val().active){
+    await set(sessionRef,{active:true,owner:DEVICE_ID,ownerName:DEVICE_NAME,startedAt:Date.now()});
+    setMasterUI(true);
+  }else{
+    const sess = snap.val();
+    setMasterUI(sess.owner===DEVICE_ID);
+  }
+}
+function setMasterUI(master){
+  isMaster = master;
+  roleEl.textContent = master ? 'MAESTRO' : 'ESCLAVO';
+  roleDot.style.background = master ? '#22c55e' : '#0ea5e9';
+  btnTakeControl.style.display = master ? 'none':'inline-flex';
+}
+btnTakeControl.addEventListener('click', async ()=>{
+  await set(sessionRef,{active:true,owner:DEVICE_ID,ownerName:DEVICE_NAME,startedAt:Date.now()});
+  setMasterUI(true);
+});
+
+document.getElementById('btnStop').addEventListener('click', async ()=>{
+  const snap = await get(sessionRef);
+  if(snap.exists() && snap.val().owner===DEVICE_ID){
+    await set(sessionRef,{active:false,owner:null,startedAt:null});
+  }
+  setMasterUI(false);
+});
+
+// peers (mock simple por ahora: 1 local)
+peersEl.textContent = String(peersCount);
+
+/* =========================
+   FEED: /crashes
+   ========================= */
+const FEED_PATH = DEFAULT_FEED_PATH;
+feedPathEl.textContent = FEED_PATH;
+
+const feedRef = ref(db, FEED_PATH);
+onValue(feedRef, (snap)=>{
+  connDot.style.background = '#22c55e';
+  if(!snap.exists()) return;
+  const raw = snap.val();        // objeto {id: {t|ts|time, v|value|multiplier}}
+  const norm = Object.values(raw).map(n => normalize(n)).filter(Boolean);
+  if(!norm.length) return;
+
+  // Orden ascendente por timestamp
+  norm.sort((a,b)=>a.ts-b.ts);
+
+  // Agregar a "allRounds" sólo nuevos (por ts)
+  const knownLastTs = allRounds.length ? allRounds[allRounds.length-1].ts : 0;
+  const fresh = norm.filter(x => x.ts>knownLastTs);
+  if(fresh.length){
+    allRounds.push(...fresh);
+    if(started){
+      // cada nueva ronda que llega, se evalúa señal abierta y se re-analiza
+      fresh.forEach(r => {
+        if(openSignal){ settleSignal(openSignal, r); openSignal=null; }
+        // recalcular (MAESTRO)
+        if(isMaster){ analyzeAndMaybeSignal(); }
+      });
+    }else{
+      // sin iniciar: sólo actualizar visual + base 60
+      updateVisual();
+    }
+  }else{
+    // No nuevos, pero refresca visual por si inicio
+    updateVisual();
+  }
+}, { onlyOnce:false });
+
+function normalize(n){
+  const ts = Number(n.ts??n.t??n.time??0);
+  const v  = Number(n.v??n.value??n.multiplier??0);
+  if(!ts || !v) return null;
+  return {ts, v};
+}
+
+/* =========================
+   ANÁLISIS + SEÑALES
+   ========================= */
+const kRondas = document.getElementById('kRondas');
+const kSenales= document.getElementById('kSenales');
+const kHits   = document.getElementById('kHits');
+const kEff    = document.getElementById('kEff');
+const statusTxt = document.getElementById('statusTxt');
+const last60Grid = document.getElementById('last60');
+const sigNow = document.getElementById('sigNow');
+const sigNowBadge = document.getElementById('sigNowBadge');
+
+let stats = {rounds:0, signals:0, hits:0};
+
+function updateVisual(){
+  // últimas 60
+  last60 = allRounds.slice(-60);
+  stats.rounds = allRounds.length;
+  kRondas.textContent = stats.rounds;
+
+  // tiles
+  renderTiles(last60);
+
+  // Chart data
+  const labels = last60.map((r,i)=>'#'+(last60.length-i));
+  const data   = last60.map(r=>r.v);
+  const ema    = computeEMA(data, EMA_PERIOD);
+  const {upper, lower} = computeBollinger(data, BB_PERIOD, BB_K);
+
+  // guardamos markers por índice visible
+  signalMarkers.length = data.length;
+  for(let i=0;i<signalMarkers.length;i++) signalMarkers[i]=null;
+
+  chart.data.labels = labels;
+  chart.data.datasets[0].data = data;
+  chart.data.datasets[1].data = ema;
+  chart.data.datasets[2].data = upper;
+  chart.data.datasets[3].data = lower;
+  chart.update();
+
+  // tendencia básica
+  const trend = (ema.at(-1)??1) >= (ema.at(-2)??1) ? 'ALCISTA' : 'BAJISTA';
+  document.getElementById('trendLabel').textContent = trend;
+}
+
+function computeEMA(values, period){
+  if(values.length===0) return [];
+  const k = 2/(period+1);
+  const out = [];
+  let ema = values[0];
+  for(let i=0;i<values.length;i++){
+    ema = i===0 ? values[0] : (values[i]*k + ema*(1-k));
+    out.push(+ema.toFixed(2));
+  }
+  return out;
+}
+function computeBollinger(values, period, k){
+  const U=[], L=[];
+  for(let i=0;i<values.length;i++){
+    if(i<period-1){ U.push(null); L.push(null); continue; }
+    const slice = values.slice(i-period+1, i+1);
+    const m = slice.reduce((a,b)=>a+b,0)/slice.length;
+    const sd = Math.sqrt(slice.reduce((a,b)=>a+(b-m)**2,0)/slice.length);
+    U.push( +(m + k*sd).toFixed(2) );
+    L.push( +(m - k*sd).toFixed(2) );
+  }
+  return {upper:U, lower:L};
+}
+
+function renderTiles(arr){
+  last60Grid.innerHTML = '';
+  const len = arr.length;
+  for(let i=len-1;i>=0;i--){
+    const r = arr[i];
+    const idx = '#'+(len-i);
+    const v = r.v.toFixed(2)+'x';
+    // paleta por rango (azul/morado/rosa)
+    const tClass = r.v >= 3 ? 't3' : (r.v >=1.7 ? 't2' : 't1');
+    const special = r.v>=10 ? 't4' : tClass;
+    const div = document.createElement('div');
+    div.className = 'tile '+special;
+    div.innerHTML = `<small>${idx}</small><div style="font-size:18px;font-weight:900">${v}</div>`;
+    last60Grid.appendChild(div);
+  }
+}
+
+// Lógica de señal heurística (simple + robusta)
+// Usa EMA, posición contra BB y patrón reciente.
+function analyzeAndMaybeSignal(){
+  if(!started) return;
+  // base de decisión con últimas 60
+  const data = last60.map(r=>r.v);
+  if(data.length<20) return;
+
+  const ema = computeEMA(data, EMA_PERIOD);
+  const bb  = computeBollinger(data, BB_PERIOD, BB_K);
+
+  const cur = data[data.length-1];
+  const e   = ema[ema.length-1] ?? cur;
+  const u   = bb.upper[bb.upper.length-1] ?? (e+1.5);
+  const l   = bb.lower[bb.lower.length-1] ?? (e-0.8);
+
+  // tendencia y volatilidad
+  const slope = e - (ema[ema.length-2] ?? e);
+  const vol   = (u - l);
+
+  // Regla simple:
+  // - si curva cae (slope<0) y actual cerca de banda baja -> buscar rebote "MEDIO"
+  // - si curva sube (slope>0) y actual entre EMA y banda alta -> buscar "ALTO"
+  // - si hay cola muy baja (cur<1.2) varias veces, proteger con BAJO
+  // - eventos outlier positivos: posibilidad de SUPERIOR (muy baja frecuencia)
+  const last10 = data.slice(-10);
+  const lowHits = last10.filter(v=>v<1.2).length;
+
+  let pick = 'medio';
+  if(slope>0 && cur>e && cur<=(u*0.9)) pick='alto';
+  if(slope<0 && cur<=Math.max(l,1.1)) pick='medio';
+  if(lowHits>=3) pick='bajo';
+  if(cur>=5 && slope>0 && vol>3) pick='superior';
+
+  const conf = Math.max(30, Math.min(92, Math.round(
+    55 + (slope*12) + ((3-vol)*3) - (lowHits*4)
+  )));
+
+  // Emitir señal (se evalúa con la próxima ronda que llegue)
+  emitSignal(pick, conf);
+}
+
+function emitSignal(kind, conf=50){
+  if(!isMaster) return;
+  signalSeq++;
+  const cfg = RANGE_CFG[kind];
+  openSignal = {
+    id: signalSeq,
+    ts: Date.now(),
+    kind,
+    range: {min:cfg.min,max:cfg.max},
+    conf,
+    resolved:false,
+    result:null,
+    real:null
+  };
+  stats.signals++; kSenales.textContent = stats.signals;
+
+  // UI
+  sigNow.textContent = `#${openSignal.id} · Target ${cfg.min.toFixed(2)}–${cfg.max.toFixed(2)}x · Conf. ${conf}%`;
+  sigNowBadge.innerHTML = `<span class="pill ${cfg.cls}">${cfg.label}</span>`;
+  statusTxt.textContent = 'Señal emitida · esperando siguiente ronda…';
+
+  // beep
+  beep(920,180);
+}
+
+function settleSignal(sig, nextRound){
+  const v = nextRound.v;
+  const hit = (v>=sig.range.min && v<=sig.range.max);
+  sig.resolved=true; sig.result = hit?'WIN':'LOSE'; sig.real=v;
+
+  if(hit){ stats.hits++; kHits.textContent = stats.hits; beep(1040,220); }
+  else{ beep(420,220); }
+
+  const eff = stats.signals? Math.round((stats.hits*100)/stats.signals):0;
+  kEff.textContent = eff+'%';
+
+  // marcador en la gráfica (sobre el último punto visible)
+  const idxVis = chart.data.labels.length-1;
+  signalMarkers[idxVis] = {
+    type: sig.kind.toUpperCase(),
+    rangeLabel: `${sig.range.min.toFixed(2)}–${sig.range.max.toFixed(2)}x`,
+    hit
+  };
+
+  appendRow(sig);
+  sigNow.textContent='—';
+  sigNowBadge.innerHTML='';
+  statusTxt.textContent='Listo';
+}
+
+function appendRow(sig){
+  if(tbody.children.length===1 && tbody.children[0].tagName==='TR' && tbody.children[0].children.length===1){
+    tbody.innerHTML='';
+  }
+  const cfg = RANGE_CFG[sig.kind];
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>${sig.id}</td>
+    <td>${new Date(sig.ts).toLocaleTimeString()}</td>
+    <td>${sig.range.min.toFixed(2)}–${sig.range.max.toFixed(2)}x</td>
+    <td><span class="pill ${cfg.cls}">${cfg.label}</span></td>
+    <td>${sig.conf}%</td>
+    <td>${(sig.real??0).toFixed(2)}x</td>
+    <td><span class="pill ${sig.result==='WIN'?'win':'lose'}">${sig.result}</span></td>
+  `;
+  tbody.prepend(tr);
+}
+
+/* =========================
+   CONTROLES
+   ========================= */
+document.getElementById('btnStart').addEventListener('click', ()=>{
+  started = true;
+  statusTxt.textContent = 'Análisis en curso';
+  // al iniciar, toma base 60 y ya intenta señal (MAESTRO)
+  updateVisual();
+  if(isMaster){ analyzeAndMaybeSignal(); }
+});
+document.getElementById('btnReset').addEventListener('click', ()=>{
+  // reset sólo counters locales
+  stats = {rounds:allRounds.length, signals:0, hits:0};
+  kSenales.textContent='0'; kHits.textContent='0'; kEff.textContent='0%';
+  tbody.innerHTML = `<tr><td colspan="7" class="muted">No hay señales</td></tr>`;
+  sigNow.textContent='—'; sigNowBadge.innerHTML='';
+  openSignal=null;
+  statusTxt.textContent='Reiniciado';
+});
+
+/* =========================
+   ARRANQUE
+   ========================= */
+await ensureRole();
+statusTxt.textContent = 'Inicializando…';
 </script>
 </body>
 </html>
