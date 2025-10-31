@@ -2,18 +2,18 @@
 <html lang="es">
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer • Auto RTDB</title>
+<title>Aviator Analyzer • Auto RTDB (última arriba-izquierda)</title>
 <style>
-  :root{--bg:#0f1225;--panel:#171a34;--ink:#e8e9ff;--muted:#9aa1d8;--ok:#10b981;--bad:#ef4444;--chip:#243056}
+  :root{--bg:#0f1225;--panel:#171a34;--ink:#e8e9ff;--muted:#9aa1d8;--ok:#10b981;--chip:#243056}
   *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui}
-  .wrap{max-width:980px;margin:auto;padding:18px}
+  .wrap{max-width:1024px;margin:auto;padding:18px}
   .hdr{display:flex;gap:10px;align-items:center;justify-content:space-between;margin:4px 0 14px}
   .card{background:var(--panel);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px}
   .row{display:flex;gap:12px;flex-wrap:wrap}
   .pill{padding:6px 10px;border-radius:999px;background:#111735;border:1px solid rgba(255,255,255,.06);color:var(--muted)}
   .pill.ok{color:var(--ok);border-color:#1e624c;background:#0e1c1a}
   .pill.bad{color:#ffb4b4;border-color:#5b2323;background:#1a0f10}
-  .grid{display:grid;grid-template-columns:repeat(10, minmax(72px,1fr));gap:8px}
+  .grid{display:grid;grid-template-columns:repeat(10, minmax(78px,1fr));gap:8px}
   .chip{background:var(--chip);border-radius:12px;padding:10px 8px;text-align:center}
   .muted{color:var(--muted)}
   h1{font:600 18px/1.2 system-ui;margin:0}
@@ -29,26 +29,26 @@
 
   <div class="card" style="margin-bottom:12px">
     <div class="row small">
-      <span class="pill">Ruta candidata usada: <b id="path">—</b></span>
-      <span class="pill">Últimas 60 rondas (en vivo)</span>
+      <span class="pill">Ruta usada: <b id="path">—</b></span>
+      <span class="pill">Últimas 60 rondas · #60 = más reciente</span>
     </div>
     <div id="chips" class="grid" style="margin-top:12px"></div>
   </div>
 
   <div class="card">
     <div class="row small" style="margin-bottom:8px">
-      <span class="pill">Debug</span>
-      <span class="pill">Llegadas en vivo (últimos 5)</span>
+      <span class="pill">Debug (últimas 5 llegadas)</span>
     </div>
     <pre id="log">Esperando…</pre>
   </div>
 </div>
 
-<!-- Firebase compat (no modular) -->
+<!-- Firebase compat (CDN) -->
 <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database-compat.js"></script>
 
 <script>
+/* ====== CONFIG FIREBASE ====== */
 const cfg = {
   apiKey:"AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
   authDomain:"aviator-analyzer-b29a7.firebaseapp.com",
@@ -62,7 +62,8 @@ const cfg = {
 firebase.initializeApp(cfg);
 const db = firebase.database();
 
-/** 1) Rutas candidatas: añade/quita aquí si usas otra */
+/* ====== RUTAS CANDIDATAS ======
+   El script probará en orden; deja primero la que más usas. */
 const CANDIDATES = [
   "feeds/gocho/crashes",
   "feeds/crashes",
@@ -70,77 +71,94 @@ const CANDIDATES = [
   "aviator/crashes",
 ];
 
+/* ====== UI ====== */
 const $status = document.getElementById('status');
 const $path = document.getElementById('path');
 const $chips = document.getElementById('chips');
 const $log = document.getElementById('log');
 
+/* ====== ESTADO ====== */
 let WINDOW = []; // ventana deslizante de 60
-let LIVE = [];   // últimas 5 llegadas para debug
+let LIVE = [];   // debug: últimas 5 llegadas
 
 function norm(k, v) {
-  // normaliza diversas formas {v, ts} / {value, t} / número suelto
+  // acepta {v, ts}, {value, t} o número suelto
   const val = (v && (v.v ?? v.value)) ?? (+v);
   const ts  = (v && (v.ts ?? v.t)) ?? Date.now();
   return { k, v: +val, ts: +ts };
 }
+
 function paint() {
-  // pinta 60 chips más recientes
-  $chips.innerHTML = WINDOW.slice(-60).map((it, i) => {
+  // Preparamos los 60 (o menos) más recientes
+  const arr = WINDOW.slice(-60);       // orden: más viejo -> más nuevo
+  const rev = arr.slice().reverse();   // ahora: más nuevo primero
+
+  // Etiquetado: #60 = más reciente (arriba-izquierda)
+  const n = rev.length;
+  const html = rev.map((it, i) => {
+    const idx = n - i; // i=0 (más reciente) -> #n (cuando hay 60, es #60)
     const c = it.v >= 10 ? '#8ef' : it.v >= 3 ? '#aaf' : it.v >= 1.7 ? '#c9f' : '#bdf';
     return `<div class="chip" style="background:linear-gradient(180deg, ${c}22, ${c}10);border:1px solid ${c}55">
-      #${WINDOW.length-59+i<=0?'-':WINDOW.length-59+i}<br><b>${it.v.toFixed(2)}x</b></div>`;
+      <div class="muted" style="font-size:12px">#${idx}</div>
+      <div style="font-weight:700">${it.v.toFixed(2)}x</div>
+    </div>`;
   }).join('');
-  // debug
+
+  $chips.innerHTML = html;
   $log.textContent = JSON.stringify(LIVE.slice(-5), null, 2);
 }
 
 async function pickPath() {
-  // intenta cada ruta y se queda con la primera que tenga datos recientes
   for (const p of CANDIDATES) {
     try {
       const snap = await db.ref(p).limitToLast(1).once('value');
-      const val = snap.val();
-      if (!val) continue;
-      // si hay algo, úsala
-      return p;
-    } catch(e) { /* sigue intentando */ }
+      if (snap.exists()) return p;
+    } catch(e) { /* sigue */ }
   }
   return null;
 }
 
 (async function main(){
-  $status.textContent = 'Conectando…';
-  const p = await pickPath();
-  if (!p) {
-    $status.className='pill bad';
-    $status.textContent = 'Sin datos en rutas candidatas';
-    $path.textContent = '(ninguna)';
-    return;
-  }
-  $path.textContent = '/'+p;
+  try {
+    $status.textContent = 'Conectando…';
 
-  // precarga últimas ~60 ordenadas por ts/clave
-  const base = await db.ref(p).limitToLast(80).once('value');
-  const obj = base.val() || {};
-  WINDOW = Object.entries(obj).map(([k,v])=>norm(k,v))
-            .sort((a,b)=>a.ts-b.ts).slice(-60);
-  LIVE = WINDOW.slice(-5);
-  paint();
+    const p = await pickPath();
+    if (!p) {
+      $status.className='pill bad';
+      $status.textContent = 'Sin datos en rutas candidatas';
+      $path.textContent = '(ninguna)';
+      return;
+    }
+    $path.textContent = '/'+p;
 
-  // suscripción en vivo: solo la cola (último) para minimizar “replay”
-  db.ref(p).limitToLast(1).on('child_added', snap => {
-    const it = norm(snap.key, snap.val());
-    // evita duplicar si es un “replay” del último
-    if (WINDOW.length && it.ts <= WINDOW[WINDOW.length-1].ts) return;
-    WINDOW.push(it);
-    if (WINDOW.length > 60) WINDOW = WINDOW.slice(-60);
-    LIVE.push({ts: it.ts, v: it.v});
-    $status.className='pill ok';
-    $status.textContent='Conectado ✔';
+    // Precarga (hasta 80 por si hay claves fuera de orden; nos quedamos con 60)
+    const base = await db.ref(p).limitToLast(80).once('value');
+    const obj = base.val() || {};
+    WINDOW = Object.entries(obj).map(([k,v])=>norm(k,v))
+              .sort((a,b)=>a.ts-b.ts) // de viejo a nuevo
+              .slice(-60);
+
+    LIVE = WINDOW.slice(-5);
     paint();
-  });
 
+    // Live: escuchamos el último añadido y actualizamos
+    db.ref(p).limitToLast(1).on('child_added', snap => {
+      const it = norm(snap.key, snap.val());
+      // Evita duplicar si llega un replay del último
+      if (WINDOW.length && it.ts <= WINDOW[WINDOW.length-1].ts) return;
+      WINDOW.push(it);
+      if (WINDOW.length > 60) WINDOW = WINDOW.slice(-60);
+      LIVE.push({ts: it.ts, v: it.v});
+      $status.className='pill ok';
+      $status.textContent='Conectado ✔';
+      paint();
+    });
+
+  } catch (err) {
+    console.error(err);
+    $status.className='pill bad';
+    $status.textContent='Error de conexión';
+  }
 })();
 </script>
 </html>
