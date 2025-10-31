@@ -131,7 +131,8 @@ class AviatorSystem {
             this.historico = [];
             crashes.forEach(crash => {
                 this.historico.push({
-                    valor: crash.valor, tiempo: crash.tiempo,
+                    valor: typeof crash.valor === "string" ? parseFloat(crash.valor) : crash.valor,
+                    tiempo: crash.tiempo,
                     categoria: this.categorizar(crash.valor), key: crash.key
                 });
             });
@@ -142,8 +143,8 @@ class AviatorSystem {
             this.listo = true;
             this.readyForRealtime = false;
             this.crashesIniciales = this.historico.length;
-            document.getElementById('syncStatus').innerHTML = '✅ Sistema listo - Analizando';
             this.actualizarInterfaz();
+            document.getElementById('syncStatus').innerHTML = '✅ Sistema listo - Analizando';
 
             if (this.childAddedListener) db.ref('feeds/gocho/crashes').off('child_added', this.childAddedListener);
             this.childAddedListener = (snap) => {
@@ -158,7 +159,7 @@ class AviatorSystem {
 
     agregarCrash(multiplicador, timestamp, key) {
         this.historico.push({
-            valor: multipicadorToNum(multiplicador),
+            valor: typeof multiplicador === "string" ? parseFloat(multiplicador) : multiplicador,
             tiempo: timestamp,
             categoria: this.categorizar(multiplicador),
             key: key
@@ -166,6 +167,7 @@ class AviatorSystem {
         this.rondasTotales++;
         if (this.historico.length > 1000) this.historico.shift();
         this.rondasDesdeSenal++;
+        // Solo empieza a funcionar tiempo real al recibir la PRIMERA ronda nueva
         if (!this.readyForRealtime && this.historico.length > this.crashesIniciales) {
             this.readyForRealtime = true;
         }
@@ -175,12 +177,6 @@ class AviatorSystem {
         }
         this.actualizarCrashes();
         this.actualizarStats();
-        
-        function multipicadorToNum(val){
-          if(typeof val==="number") return val;
-          if(typeof val==="string") return parseFloat(val);
-          return 0;
-        }
     }
 
     categorizar(mult) {
@@ -229,7 +225,6 @@ class AviatorSystem {
         if (!this.listo || !this.readyForRealtime) return { tipo: 'ESPERANDO', msg: `⏳ Esperando ronda nueva`, emoji: '⏳' };
         if (this.historico.length < 15) return { tipo: 'ESPERANDO', msg: `⏳ Datos (${this.historico.length}/15)`, emoji: '⏳' };
         if (this.detectarZonaPeligrosa()) return { tipo: 'BLOQUEADO', msg: '🚫 BLOQUEADO', emoji: '⚠️' };
-
         if (this.detectarRachaCaliente()) {
             if (this.rondasDesdeSenal >= 2 && this.senalesEnRacha < 5) {
                 const ultimos20 = this.historico.slice(-20);
