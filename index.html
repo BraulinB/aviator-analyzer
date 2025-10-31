@@ -1,579 +1,639 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Aviator Analyzer · 888Star</title>
-<meta name="theme-color" content="#141226" />
+<link rel="icon" href="data:,"> <!-- evita 404 favicon -->
+
+<!-- Tipografía y reset muy livianos -->
 <style>
   :root{
-    --bg:#0e0b1d;
-    --panel:#141226;
-    --muted:#a7a4c2;
-    --ink:#e9e7ff;
-    --grid:rgba(255,255,255,.08);
-    --primary:#5e6bff;   /* azul */
-    --secondary:#7a3cff; /* morado */
-    --accent:#ff4fd8;    /* fucsia */
-    --ok:#00ff9a;
-    --warn:#ffd23f;
-    --bad:#ff5f5f;
-    --chip:#1b1830;
-    --chip2:#1f1a3a;
+    --bg:#0c0a1a;
+    --bg2:#141129;
+    --card:#191538;
+    --card2:#201a49;
+    --muted:#9aa0b4;
+    --text:#eef1ff;
+    --brand1:#6c7bff;    /* azul */
+    --brand2:#8c52ff;    /* morado */
+    --brand3:#ff4fd8;    /* fucsia */
+    --green:#00ff9c;
+    --red:#ff6b6b;
+    --gold:#ffd95e;
+    --purple:#b06ab3;
+    --shadow:0 10px 30px rgba(0,0,0,.35);
+    --radius:16px;
   }
-  *{box-sizing:border-box;margin:0;padding:0}
+  *{box-sizing:border-box}
   html,body{height:100%}
   body{
-    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-    color:var(--ink);
+    margin:0;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial;
+    color:var(--text);
     background:
-      radial-gradient(1200px 1200px at 10% -20%, rgba(122,60,255,.18), transparent 45%),
-      radial-gradient(1200px 1200px at 90% -30%, rgba(255,79,216,.18), transparent 40%),
-      linear-gradient(180deg, #0c0a19 0%, #0e0b1d 100%);
-    min-height:100%;
+      radial-gradient(1200px 800px at 80% -10%, #1b1440 0%, transparent 60%),
+      radial-gradient(900px 700px at 0% 0%, #151133 0%, transparent 60%),
+      linear-gradient(180deg, #0b0a18 0%, #0e0c1f 100%);
   }
-  .wrap{max-width:1200px;margin:0 auto;padding:18px}
-  header{
-    display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px
+  .wrap{max-width:1100px;margin:0 auto;padding:22px}
+  .header{
+    background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.06);
+    box-shadow:var(--shadow);
+    border-radius:var(--radius);
+    padding:18px 18px 12px;
+    display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
   }
-  .brand{display:flex;gap:10px;align-items:center}
-  .logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--secondary),var(--accent));box-shadow:0 8px 24px rgba(122,60,255,.35)}
-  h1{font-size:20px;line-height:1.1;font-weight:800;letter-spacing:.2px}
-  .pill{font-size:12px;padding:6px 10px;border-radius:999px;background:linear-gradient(135deg,rgba(94,107,255,.22),rgba(122,60,255,.22));border:1px solid rgba(255,255,255,.08)}
-  .grid{display:grid;gap:14px}
-  @media(min-width:980px){.grid{grid-template-columns:1.35fr .85fr}}
-  .panel{background:var(--panel);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:14px}
-  .title{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-  .title h2{font-size:14px;opacity:.95;letter-spacing:.3px}
-  .meta{display:flex;gap:8px;flex-wrap:wrap}
-  .chip{background:var(--chip);border:1px solid rgba(255,255,255,.06);padding:8px 10px;border-radius:12px;font-size:12px}
-  .controls{display:flex;gap:8px;flex-wrap:wrap}
-  button{border:1px solid rgba(255,255,255,.08);background:linear-gradient(135deg,rgba(94,107,255,.18),rgba(122,60,255,.18));color:var(--ink);padding:10px 14px;border-radius:12px;font-weight:700;cursor:pointer}
-  button.ghost{background:transparent}
-  button.danger{background:linear-gradient(135deg,rgba(255,95,95,.22),rgba(255,79,216,.16));border-color:rgba(255,95,95,.3)}
-  button:disabled{opacity:.6;cursor:not-allowed}
-  .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:8px}
-  .stat{background:var(--chip2);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:10px;text-align:center}
-  .stat .k{font-size:12px;color:var(--muted)}
-  .stat .v{font-size:22px;font-weight:900;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-  canvas{width:100%;height:260px;background:#0d0a1c;border-radius:12px;border:1px solid rgba(255,255,255,.06)}
-  .toggles{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-  .tgl{font-size:12px;padding:8px 10px;border-radius:10px;background:#121027;border:1px solid rgba(255,255,255,.08);cursor:pointer}
-  .tgl.active{outline:2px solid rgba(94,107,255,.45);background:linear-gradient(135deg,rgba(94,107,255,.14),rgba(122,60,255,.14))}
-  .grid60{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;max-height:210px;overflow:auto;margin-top:10px}
-  .cell{height:50px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;font-weight:800;border:1px solid rgba(255,255,255,.06)}
-  .cell.instaloss{background:linear-gradient(135deg,#ff7ab8,#ff5f5f)}
-  .cell.bajo{background:linear-gradient(135deg,#5e6bff,#7a3cff)}
-  .cell.medio{background:linear-gradient(135deg,#7a3cff,#ff4fd8)}
-  .cell.alto{background:linear-gradient(135deg,#45f1ff,#7a3cff)}
-  .cell.ultra{background:linear-gradient(135deg,#00ff9a,#5e6bff)}
-  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;border:1px solid rgba(255,255,255,.06);border-radius:12px;overflow:hidden}
-  th,td{padding:10px;text-align:center;border-bottom:1px solid rgba(255,255,255,.06)}
-  th{background:linear-gradient(135deg,rgba(94,107,255,.22),rgba(122,60,255,.22));text-transform:uppercase;font-size:12px}
-  tr.hit{background:rgba(0,255,154,.08)}
-  tr.miss{background:rgba(255,95,95,.08)}
-  .alert{margin-top:10px;padding:10px;border-radius:12px;background:linear-gradient(135deg,rgba(94,107,255,.16),rgba(122,60,255,.16));border:1px solid rgba(255,255,255,.08);font-size:13px}
-  .muted{color:var(--muted)}
-  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  .tag{font-size:11px;padding:4px 8px;border-radius:999px;background:#201b36;border:1px solid rgba(255,255,255,.06)}
-  footer{opacity:.6;font-size:12px;text-align:center;margin-top:14px}
+  .h-title{
+    font-size:22px;font-weight:800;letter-spacing:.2px;
+    background:linear-gradient(90deg,var(--brand1),var(--brand2),var(--brand3));
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  }
+  .chip{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:8px 12px;border-radius:999px;font-weight:700;font-size:12px;
+    background:rgba(108,123,255,.15);border:1px solid rgba(108,123,255,.35);
+  }
+  .chip .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(0,255,156,.15)}
+  .panel{background:linear-gradient(180deg,var(--card) 0%, var(--card2) 100%);border:1px solid rgba(255,255,255,.06);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-top:18px}
+  .sub{opacity:.75;font-size:12px;margin-left:6px}
+  .row{display:grid;gap:16px}
+  @media(min-width:960px){.row-2{grid-template-columns:2fr 1fr}}
+  .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:14px}
+  .stat{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:10px 12px;text-align:center}
+  .stat b{display:block;font-size:26px;margin-top:6px;background:linear-gradient(90deg,var(--brand1),var(--brand2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .grid-rounds{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px;max-height:300px;overflow:auto;margin-top:10px}
+  .pill{
+    border-radius:12px;padding:8px 0 9px;text-align:center;font-weight:800;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);
+    background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));
+  }
+  .pill .n{display:block;opacity:.6;font-size:10px}
+  .pill.i{background:linear-gradient(180deg,#ff7aa6,#ff3c6a);color:#000}
+  .pill.b{background:linear-gradient(180deg,#7cc3ff,#6aa6ff)}
+  .pill.m{background:linear-gradient(180deg,#79f2d4,#47e4a1);color:#09211b}
+  .pill.a{background:linear-gradient(180deg,#a08cff,#6f5cff)}
+  .pill.u{background:linear-gradient(180deg,#ffb6ff,#c474ff)}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0 12px}
+  .btn{
+    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+    padding:8px 12px;border-radius:10px;color:var(--text);cursor:pointer;font-weight:700;font-size:12px;
+  }
+  .btn.on{outline:2px solid var(--brand2);background:rgba(140,82,255,.15)}
+  canvas{width:100%;height:280px;border-radius:12px;background:rgba(0,0,0,.18)}
+  table{width:100%;border-collapse:collapse;border-radius:12px;overflow:hidden}
+  thead th{background:rgba(255,255,255,.06);font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+  th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,.06);text-align:center}
+  .badge{padding:3px 8px;border-radius:999px;font-size:11px;font-weight:800;display:inline-block}
+  .hit{background:rgba(0,255,156,.2);color:#0b2b22;border:1px solid rgba(0,255,156,.6)}
+  .miss{background:rgba(255,107,107,.18);color:#ffdede;border:1px solid rgba(255,107,107,.5)}
+  .pending{background:rgba(255,217,94,.18);color:#ffe9ae;border:1px solid rgba(255,217,94,.5)}
+  .role{font-weight:900;letter-spacing:.3px}
+  small.muted{color:var(--muted)}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div class="brand">
-      <div class="logo"></div>
+  <div class="wrap">
+    <div class="header">
       <div>
-        <h1>Aviator Analyzer · 888Star</h1>
-        <div class="muted" id="roleLine">Rol: — · Dispositivo: — · Conectados: 0</div>
+        <div class="h-title">Aviator Analyzer · 888Star</div>
+        <div style="margin-top:6px">
+          <span class="chip" id="autoPath"><span class="dot"></span><span id="pathLabel">Conectando…</span></span>
+        </div>
+      </div>
+      <div>
+        <span class="chip"><span id="roleDot" class="dot"></span> Rol: <span id="role" class="role">—</span> <span class="sub">· Dispositivo: <span id="deviceName">—</span></span></span>
       </div>
     </div>
-    <div class="pill">Conectado automáticamente a <b>/crashes</b></div>
-  </header>
 
-  <div class="grid">
-    <!-- Panel izquierdo -->
-    <section class="panel">
-      <div class="title">
-        <h2>Tendencia en tiempo real</h2>
-        <div class="row">
-          <div class="tag" id="trendBadge">Tendencia: —</div>
-          <div class="tag">Últimas <b>60</b> rondas</div>
-        </div>
-      </div>
-      <canvas id="chart"></canvas>
-      <div class="toggles">
-        <div class="tgl" id="tglEMA">EMA</div>
-        <div class="tgl" id="tglBB">Bollinger</div>
-        <div class="tgl" id="tglSR">Soporte/Resistencia</div>
-        <div class="tgl active" id="tglGrid">Grid</div>
-      </div>
-
-      <div class="grid60" id="roundsGrid"></div>
-    </section>
-
-    <!-- Panel derecho -->
-    <section class="panel">
-      <div class="title">
-        <h2>Sesión</h2>
-        <div class="controls">
-          <button id="btnStart">Iniciar</button>
-          <button id="btnStop" class="ghost" disabled>Detener</button>
-          <button id="btnReset" class="danger">Reset</button>
+    <div class="panel">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div style="font-weight:800">Tendencia en tiempo real</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="chip" id="trendLabel">Tendencia: <b id="trendText">—</b></span>
+          <span class="chip">Últimas <b id="baseCount">0</b> rondas</span>
         </div>
       </div>
 
-      <div class="stats">
-        <div class="stat"><div class="k">Rondas</div><div class="v" id="stRounds">0</div></div>
-        <div class="stat"><div class="k">Señales</div><div class="v" id="stSignals">0</div></div>
-        <div class="stat"><div class="k">Aciertos</div><div class="v" id="stHits">0</div></div>
-        <div class="stat"><div class="k">Efectividad</div><div class="v" id="stEff">0%</div></div>
+      <div class="toolbar">
+        <button class="btn" id="tgEMA">EMA</button>
+        <button class="btn" id="tgBoll">Bollinger</button>
+        <button class="btn" id="tgSR">Soporte/Resistencia</button>
+        <button class="btn on" id="tgGrid">Grid</button>
       </div>
 
-      <div class="alert" id="signalBox">
-        <div class="row" style="justify-content:space-between">
-          <div><b>Señal actual:</b> <span id="sigTitle">Esperando…</span></div>
-          <div class="muted" id="sigSub">—</div>
+      <canvas id="chart" height="280"></canvas>
+
+      <div class="grid-rounds" id="roundGrid"></div>
+    </div>
+
+    <div class="row row-2">
+      <div class="panel">
+        <div style="font-weight:800;margin-bottom:6px">Sesión</div>
+        <div class="stats">
+          <div class="stat"><small class="muted">Rondas</small><b id="stRounds">0</b></div>
+          <div class="stat"><small class="muted">Señales</small><b id="stSignals">0</b></div>
+          <div class="stat"><small class="muted">Aciertos</small><b id="stHits">0</b></div>
+          <div class="stat"><small class="muted">Efectividad</small><b id="stEff">0%</b></div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:14px">
+          <button class="btn" id="btnStart">Iniciar</button>
+          <button class="btn" id="btnStop">Detener</button>
+          <button class="btn" id="btnReset">Reset</button>
+        </div>
+
+        <div class="panel" style="margin-top:14px">
+          <div style="font-weight:800;margin-bottom:6px">Señal actual:</div>
+          <div id="sigBox" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+            <span class="badge pending">Esperando…</span>
+            <small class="muted" id="sigInfo">—</small>
+          </div>
         </div>
       </div>
 
-      <div class="title" style="margin-top:12px">
-        <h2>Historial de Señales</h2>
-        <div class="meta"><div class="chip">Tiempo real</div></div>
+      <div class="panel">
+        <div style="font-weight:800;margin-bottom:10px">Historial de Señales <span class="sub">Tiempo real</span></div>
+        <div style="overflow:auto;max-height:420px">
+          <table>
+            <thead><tr><th>#</th><th>Hora</th><th>Target</th><th>Tipo</th><th>Conf.</th><th>Real</th><th>Estado</th></tr></thead>
+            <tbody id="sigTable"><tr><td colspan="7" class="muted">No hay señales</td></tr></tbody>
+          </table>
+        </div>
       </div>
-      <div style="overflow:auto">
-        <table>
-          <thead><tr><th>#</th><th>Hora</th><th>Target</th><th>Tipo</th><th>Conf.</th><th>Real</th><th>Estado</th></tr></thead>
-          <tbody id="tblSignals"><tr><td colspan="7" style="opacity:.6;padding:12px">No hay señales</td></tr></tbody>
-        </table>
-      </div>
-    </section>
+    </div>
+
+    <div class="panel" style="text-align:center;margin-bottom:24px">
+      <small class="muted">Multi-dispositivo (maestro/esclavo) · Guarda sesión y señales en Firebase RTDB</small>
+    </div>
   </div>
 
-  <footer>Multi-dispositivo (maestro/esclavo) · Guarda sesión y señales en Firebase RTDB</footer>
-</div>
+  <!-- Firebase v10 (modular) -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { getDatabase, ref, get, onValue, set, update, remove, runTransaction, onDisconnect } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
-<!-- Firebase (modular) -->
-<script type="module">
-  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-  import { getDatabase, ref, onValue, get, set, update, remove, onDisconnect } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+    // ====== CONFIGURA TU PROYECTO (lo que nos diste) ======
+    const firebaseConfig = {
+      apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
+      authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
+      databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com",
+      projectId: "aviator-analyzer-b29a7",
+      storageBucket: "aviator-analyzer-b29a7.firebasestorage.app",
+      messagingSenderId: "575063626276",
+      appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
+      measurementId: "G-325QCBSQMH"
+    };
 
-  /* ================== CONFIG ================== */
-  const firebaseConfig = {
-    apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
-    authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
-    databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com",
-    projectId: "aviator-analyzer-b29a7",
-    storageBucket: "aviator-analyzer-b29a7.firebasestorage.app",
-    messagingSenderId: "575063626276",
-    appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
-    measurementId: "G-325QCBSQMH"
-  };
+    // ====== UI helpers ======
+    const $ = s => document.querySelector(s);
+    const $$ = s => document.querySelectorAll(s);
 
-  // Ruta por defecto (888Star escribiendo en /crashes)
-  const DEFAULT_FEED_PATH = 'crashes';
+    const ctx = $('#chart').getContext('2d');
 
-  const CONFIG = {
-    SESSION_SIZE: 60,          // análisis arranca con 60
-    MIN_DATA_POINTS: 60,
-    SIGNAL_COOLDOWN: 25000     // 25s entre señales
-  };
+    const DEVICE_NAME = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? '📱 Móvil' : '💻 PC';
+    $('#deviceName').textContent = DEVICE_NAME;
 
-  /* ================== ESTADO ================== */
-  const app = initializeApp(firebaseConfig);
-  const db  = getDatabase(app);
+    const tone = (freq=880, dur=300) => {
+      try{
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        const actx = new AudioCtx();
+        const osc = actx.createOscillator();
+        const gain = actx.createGain();
+        osc.connect(gain); gain.connect(actx.destination);
+        osc.frequency.value = freq; gain.gain.setValueAtTime(0.2, actx.currentTime);
+        osc.start(); osc.stop(actx.currentTime + dur/1000);
+      }catch(e){}
+    };
 
-  const DEVICE_ID   = Math.random().toString(36).slice(2);
-  const DEVICE_NAME = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? '📱 Móvil' : '💻 PC';
-  let isMaster=false, lastTs=0, feedRef=null;
+    // ====== Estado App ======
+    const CONFIG = {
+      BASE_SIZE: 60,            // usa 60 últimas para arrancar análisis
+      MIN_DATA_POINTS: 12,      // mínimo para empezar a dibujar
+      SIGNAL_COOLDOWN: 25000,   // ms
+    };
 
-  let gameHistory=[]; // más reciente primero
+    let app, db;
+    let dataPath = null;
+    let isMaster = false;
+    let gameHistory = [];   // [{ts, multiplier, type}]
+    let lastTs = 0;
 
-  // UI refs
-  const q = s=>document.querySelector(s);
-  const chartEl = q('#chart');
-  const roundsGrid = q('#roundsGrid');
-  const tb = q('#tblSignals');
-  const stRounds=q('#stRounds'), stSignals=q('#stSignals'), stHits=q('#stHits'), stEff=q('#stEff');
-  const sigTitle=q('#sigTitle'), sigSub=q('#sigSub');
-  const roleLine=q('#roleLine'), trendBadge=q('#trendBadge');
+    // shared session
+    const paths = {
+      lock: 'locks/analyzer',
+      session: 'shared_session',
+      signals: 'shared_signals',
+      current: 'current_signal',
+      devices: 'connected_devices'
+    };
 
-  const tglEMA=q('#tglEMA'), tglBB=q('#tglBB'), tglSR=q('#tglSR'), tglGrid=q('#tglGrid');
-  const btnStart=q('#btnStart'), btnStop=q('#btnStop'), btnReset=q('#btnReset');
+    // ====== Init ======
+    console.log('Inicializando…');
+    app = initializeApp(firebaseConfig);
+    db  = getDatabase(app);
 
-  // toggles state
-  const opts={ showEMA:false, showBB:false, showSR:false, showGrid:true };
+    // registra dispositivo
+    const devId = Math.random().toString(36).slice(2);
+    const devRef = ref(db, `${paths.devices}/${devId}`);
+    await set(devRef, { name: DEVICE_NAME, at: Date.now() });
+    onDisconnect(devRef).remove();
 
-  // Audio
-  const AudioCtx = window.AudioContext || window.webkitAudioContext;
-  const audio = new AudioCtx();
-  function beep(type='170'){
-    try{
-      if(type==='170'){
-        const o=audio.createOscillator(), g=audio.createGain();
-        o.connect(g); g.connect(audio.destination);
-        o.frequency.value=523; o.type='sine';
-        g.gain.setValueAtTime(.0001,audio.currentTime);
-        g.gain.exponentialRampToValueAtTime(.4,audio.currentTime+.01);
-        g.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+.35);
-        o.start(); o.stop(audio.currentTime+.35);
-      }else if(type==='3x'){
-        const o=audio.createOscillator(), g=audio.createGain();
-        o.connect(g); g.connect(audio.destination);
-        o.frequency.value=784; o.type='square';
-        g.gain.setValueAtTime(.0001,audio.currentTime);
-        g.gain.exponentialRampToValueAtTime(.5,audio.currentTime+.01);
-        g.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+.5);
-        o.start(); o.stop(audio.currentTime+.5);
-      }else{
-        for(let i=0;i<4;i++){
-          setTimeout(()=>{
-            const o=audio.createOscillator(), g=audio.createGain();
-            o.connect(g); g.connect(audio.destination);
-            o.frequency.value=1046; o.type='sawtooth';
-            g.gain.setValueAtTime(.4,audio.currentTime);
-            g.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+.25);
-            o.start(); o.stop(audio.currentTime+.25);
-          }, i*170);
-        }
+    // intenta lock maestro
+    const lockRef = ref(db, paths.lock);
+    const lockOk = await runTransaction(lockRef, (val) => {
+      if (val && val.owner && (Date.now() - (val.at||0)) < 60000) {
+        return; // ocupado
       }
-    }catch{}
-  }
+      return { owner: devId, at: Date.now() };
+    });
+    isMaster = !!(lockOk.committed && lockOk.snapshot.val() && lockOk.snapshot.val().owner === devId);
+    $('#role').textContent = isMaster ? 'MAESTRO' : 'ESCLAVO';
+    $('#roleDot').style.background = isMaster ? 'var(--green)' : '#8086ff';
 
-  /* ================== HELPERS ================== */
-  function num(x){
-    if(x==null) return NaN;
-    if(typeof x==='number') return x;
-    const n = Number(String(x).replace(/[xX]/g,'').replace(',','.').trim());
-    return isFinite(n)? n : NaN;
-  }
-  function classify(m){
-    if(m>=1.00 && m<=1.04) return 'INSTALOSS';
-    if(m>=10.00) return 'ULTRA';
-    if(m>=5.00)  return 'ALTO';
-    if(m>=1.70)  return 'MEDIO';
-    return 'BAJO';
-  }
-  function normalize(raw){
-    const out=[];
-    if(Array.isArray(raw)){
-      raw.forEach((v,i)=>{
-        const mult = num(v.multiplier ?? v.value ?? v.v ?? v.final ?? v.crash ?? v.x ?? v.m);
-        const ts   = Number(v.ts ?? v.t ?? Date.now()-i);
-        if(isFinite(mult)&&isFinite(ts)) out.push({id:String(i),multiplier:mult,ts,type:classify(mult)});
+    // renueva lock
+    setInterval(async () => {
+      if(!isMaster) return;
+      await update(lockRef, { at: Date.now(), owner: devId });
+    }, 8000);
+    onDisconnect(lockRef).remove();
+
+    // ====== Buscar feed automáticamente ======
+    const candidates = ['crashes','feeds/gocho/crashes','historial','last_final'];
+    for (const p of candidates) {
+      try {
+        const snap = await get(ref(db, p));
+        if (snap.exists()) { dataPath = p; break; }
+      } catch(e) {}
+    }
+    if (!dataPath) dataPath = 'crashes';
+    $('#pathLabel').innerHTML = `Conectado automáticamente a <b>/${dataPath}</b>`;
+    console.log('Listo · Conectado a /'+dataPath+' · Base 60 & lógica nueva (normalización robusta)');
+
+    // ====== UI Toggles ======
+    const opts = { showEMA:false, showBoll:false, showGrid:true, showSR:false };
+    const mapTg = [
+      ['#tgEMA','showEMA'],
+      ['#tgBoll','showBoll'],
+      ['#tgGrid','showGrid'],
+      ['#tgSR','showSR'],
+    ];
+    mapTg.forEach(([sel,key])=>{
+      $(sel).addEventListener('click', ()=>{ opts[key]=!opts[key]; $(sel).classList.toggle('on',opts[key]); draw();});
+    });
+
+    // ====== Controles sesión ======
+    $('#btnStart').addEventListener('click', startSession);
+    $('#btnStop').addEventListener('click', stopSession);
+    $('#btnReset').addEventListener('click', resetSession);
+
+    async function startSession(){
+      // marca sesión activa
+      await update(ref(db, paths.session), {
+        active:true, totalRounds:0, totalSignals:0, hits:0, misses:0, lastSignalTime:0
       });
-    }else if(raw && typeof raw==='object'){
-      for(const [k,v] of Object.entries(raw||{})){
-        if(!v||typeof v!=='object') continue;
-        const mult = num(v.multiplier ?? v.value ?? v.v ?? v.final ?? v.crash ?? v.x ?? v.m);
-        const ts   = Number(v.ts ?? v.t ?? k);
-        if(isFinite(mult)&&isFinite(ts)) out.push({id:k,multiplier:mult,ts,type:classify(mult)});
-      }
+      tone(900,120);
     }
-    out.sort((a,b)=>b.ts-a.ts);
-    return out;
-  }
-
-  /* ================== CHART ================== */
-  const ctx = chartEl.getContext('2d');
-  function drawChart(){
-    if(gameHistory.length<2) return;
-    const width = chartEl.width  = chartEl.offsetWidth;
-    const height= chartEl.height = 260;
-    ctx.clearRect(0,0,width,height);
-
-    const data = gameHistory.slice(0,60).reverse();
-    const values = data.map(r=>r.multiplier);
-    const maxVal = Math.max(10, ...values);
-    const minVal = Math.min(0,  ...values);
-    const range  = (maxVal-minVal)||1;
-    const stepX  = width/(data.length-1||1);
-
-    if(opts.showGrid){
-      ctx.strokeStyle='rgba(255,255,255,.09)'; ctx.lineWidth=1;
-      for(let i=0;i<=4;i++){ const y=(height/4)*i; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(width,y); ctx.stroke(); }
-      for(let i=0;i<=10;i++){ const x=(width/10)*i; ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,height); ctx.stroke(); }
+    async function stopSession(){
+      await update(ref(db, paths.session), { active:false });
+      tone(300,120);
+    }
+    async function resetSession(){
+      await set(ref(db, paths.session), { active:false, totalRounds:0, totalSignals:0, hits:0, misses:0, lastSignalTime:0 });
+      await set(ref(db, paths.signals), {});
+      await remove(ref(db, paths.current));
+      tone(600,150);
     }
 
-    // Bollinger
-    if(opts.showBB && data.length>=20){
-      const period=20, k=2;
-      const upper=[], lower=[];
-      for(let i=period-1;i<data.length;i++){
-        const slice = values.slice(i-period+1,i+1);
-        const avg = slice.reduce((a,b)=>a+b,0)/period;
-        const variance = slice.reduce((s,v)=>s+(v-avg)**2,0)/period;
-        const sd = Math.sqrt(variance);
-        upper.push(avg+k*sd); lower.push(avg-k*sd);
-      }
-      ctx.strokeStyle='rgba(255,99,132,.5)'; ctx.beginPath();
-      upper.forEach((v,i)=>{ const x=(i+period-1)*stepX, y=height-((v-minVal)/range)*height; i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
-      ctx.stroke();
-      ctx.strokeStyle='rgba(103, 178, 255,.5)'; ctx.beginPath();
-      lower.forEach((v,i)=>{ const x=(i+period-1)*stepX, y=height-((v-minVal)/range)*height; i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
-      ctx.stroke();
-    }
-
-    // EMA
-    if(opts.showEMA && data.length>=9){
-      const period=9, k=2/(period+1);
-      let ema=values[0];
-      ctx.strokeStyle='#ffd23f'; ctx.lineWidth=2; ctx.beginPath();
-      values.forEach((v,i)=>{
-        ema = v*k + ema*(1-k);
-        const x=i*stepX, y=height-((ema-minVal)/range)*height;
-        i?ctx.lineTo(x,y):ctx.moveTo(x,y);
-      });
-      ctx.stroke();
-    }
-
-    // SR
-    if(opts.showSR){
-      const sup = Math.min(...values), res=Math.max(...values);
-      const yS=height-((sup-minVal)/range)*height, yR=height-((res-minVal)/range)*height;
-      ctx.setLineDash([6,6]);
-      ctx.strokeStyle='rgba(0,255,154,.45)'; ctx.beginPath(); ctx.moveTo(0,yS); ctx.lineTo(width,yS); ctx.stroke();
-      ctx.strokeStyle='rgba(255,79,216,.45)'; ctx.beginPath(); ctx.moveTo(0,yR); ctx.lineTo(width,yR); ctx.stroke();
-      ctx.setLineDash([]);
-    }
-
-    // Línea de precio
-    ctx.strokeStyle='#5e6bff'; ctx.lineWidth=2; ctx.beginPath();
-    data.forEach((r,i)=>{ const x=i*stepX, y=height-((r.multiplier-minVal)/range)*height; i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
-    ctx.stroke();
-
-    // puntos coloreados
-    data.forEach((r,i)=>{
-      const x=i*stepX, y=height-((r.multiplier-minVal)/range)*height;
-      let color='#7a3cff';
-      if(r.type==='INSTALOSS') color='#ff5f5f';
-      else if(r.type==='BAJO') color='#5e6bff';
-      else if(r.type==='MEDIO') color='#ff4fd8';
-      else if(r.type==='ALTO') color='#45f1ff';
-      else if(r.type==='ULTRA') color='#00ff9a';
-      ctx.fillStyle=color; ctx.beginPath(); ctx.arc(x,y,3.6,0,Math.PI*2); ctx.fill();
-    });
-  }
-
-  function updateRounds(){
-    roundsGrid.innerHTML='';
-    const arr = gameHistory.slice(0,60);
-    if(arr.length===0){
-      roundsGrid.innerHTML='<div class="muted" style="grid-column:1/-1;text-align:center;padding:16px">Sin datos</div>';
-      return;
-    }
-    arr.forEach((r,i)=>{
-      const div=document.createElement('div');
-      div.className='cell '+r.type.toLowerCase();
-      div.innerHTML = `<div style="opacity:.8">#${60-i}</div><div>${r.multiplier.toFixed(2)}x</div>`;
-      div.title = new Date(r.ts).toLocaleTimeString();
-      roundsGrid.appendChild(div);
+    // ====== Listeners compartidos (UI en vivo) ======
+    onValue(ref(db, paths.session), snap=>{
+      const s = snap.val()||{};
+      $('#stRounds').textContent  = s.totalRounds||0;
+      $('#stSignals').textContent = s.totalSignals||0;
+      $('#stHits').textContent    = s.hits||0;
+      const eff = s.totalSignals ? Math.round((s.hits/(s.totalSignals))*100) : 0;
+      $('#stEff').textContent = eff+'%';
     });
 
-    // Tendencia simple: comparación EMA9 reciente vs 10-prom
-    const last10 = gameHistory.slice(0,10);
-    const avg10 = last10.reduce((s,r)=>s+r.multiplier,0) / Math.max(1,last10.length);
-    const last5  = gameHistory.slice(0,5);
-    const avg5  = last5.reduce((s,r)=>s+r.multiplier,0) / Math.max(1,last5.length);
-    trendBadge.textContent = 'Tendencia: '+(avg5>=avg10?'ALCISTA ⬆️':'BAJISTA ⬇️');
-
-    stRounds.textContent = gameHistory.length;
-  }
-
-  /* ================== MULTI-DISPOSITIVO ================== */
-  async function registerDevice(){
-    const r=ref(db,`connected_devices/${DEVICE_ID}`);
-    await set(r,{name:DEVICE_NAME,connectedAt:Date.now()});
-    onDisconnect(r).remove();
-  }
-  async function decideRole(){
-    const ss=await get(ref(db,'shared_session'));
-    isMaster = (!ss.exists() || !ss.val().active);
-    roleLine.textContent = `Rol: ${isMaster?'👑 MAESTRO':'📱 ESCLAVO'} · Dispositivo: ${DEVICE_NAME} · Conectados: —`;
-  }
-  function wireCounters(){
-    onValue(ref(db,'connected_devices'), s=>{
-      if(!s.exists()) return;
-      const n=Object.keys(s.val()).length;
-      roleLine.textContent = roleLine.textContent.replace(/Conectados: .+$/,'Conectados: '+n);
-    });
-    onValue(ref(db,'shared_session'), s=>{
-      if(!s.exists()) return;
-      const x=s.val();
-      stSignals.textContent = x.totalSignals||0;
-      stHits.textContent    = x.hits||0;
-      const eff = (x.totalSignals>0)? Math.round(100*(x.hits/(x.totalSignals))):0;
-      stEff.textContent = eff+'%';
-    });
-    onValue(ref(db,'shared_signals'), s=>{
-      tb.innerHTML='';
-      if(!s.exists()){ tb.innerHTML='<tr><td colspan="7" style="opacity:.6;padding:12px">No hay señales</td></tr>'; return; }
-      const arr=Object.values(s.val()).sort((a,b)=>b.timestamp-a.timestamp);
-      arr.forEach((sig,i)=>{
-        const tr=document.createElement('tr');
-        tr.className = sig.checked ? (sig.hit?'hit':'miss') : '';
-        tr.innerHTML = `<td>${i+1}</td>
-          <td>${new Date(sig.timestamp).toLocaleTimeString('es-VE')}</td>
+    onValue(ref(db, paths.signals), snap=>{
+      const tbody = $('#sigTable');
+      tbody.innerHTML = '';
+      if(!snap.exists()){ tbody.innerHTML = `<tr><td colspan="7" class="muted">No hay señales</td></tr>`; return; }
+      const arr = Object.values(snap.val()).sort((a,b)=>b.timestamp-a.timestamp);
+      arr.forEach((sig, i)=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${i+1}</td>
+          <td>${new Date(sig.timestamp).toLocaleTimeString()}</td>
           <td><b>${sig.target.toFixed(2)}x</b></td>
           <td>${sig.type}</td>
           <td>${sig.confidence}%</td>
-          <td>${sig.actualCrash?sig.actualCrash.toFixed(2)+'x':'--'}</td>
-          <td>${sig.checked?(sig.hit?'✅':'❌'):'⏳'}</td>`;
-        tb.appendChild(tr);
+          <td>${sig.actualCrash ? sig.actualCrash.toFixed(2)+'x' : '--'}</td>
+          <td>${sig.checked ? (sig.hit ? '<span class="badge hit">✅</span>' : '<span class="badge miss">❌</span>') : '<span class="badge pending">⏳</span>'}</td>
+        `;
+        tbody.appendChild(tr);
       });
     });
-    onValue(ref(db,'current_signal'), s=>{
-      if(!s.exists()){ sigTitle.textContent='Esperando…'; sigSub.textContent='—'; return; }
-      const o=s.val();
-      sigTitle.textContent = `${o.type} · ${o.target.toFixed(2)}x`;
-      sigSub.textContent   = `${o.confidence}% — ${o.reason}`;
+
+    onValue(ref(db, paths.current), snap=>{
+      const box = $('#sigBox'); const info = $('#sigInfo');
+      if(!snap.exists()){ box.innerHTML = `<span class="badge pending">Esperando…</span><small class="muted">—</small>`; return; }
+      const s = snap.val();
+      box.innerHTML = `<span class="badge" style="background:rgba(124,195,255,.25);border:1px solid rgba(124,195,255,.6)">🎯 ${s.type}</span>
+        <span class="badge" style="background:rgba(0,255,156,.18);border:1px solid rgba(0,255,156,.6)">Target ${s.target.toFixed(2)}x</span>
+        <span class="badge" style="background:rgba(255,217,94,.18);border:1px solid rgba(255,217,94,.6)">Conf. ${s.confidence}%</span>`;
+      info.textContent = s.reason || '';
     });
-  }
 
-  /* ================== LÓGICA DE SEÑALES (TU VERSIÓN) ================== */
-  async function checkPendingSignal(actualCrash){
-    const cs=await get(ref(db,'current_signal'));
-    if(!cs.exists()) return;
-    const sig=cs.val(); if(sig.checked) return;
-    const hit = actualCrash >= (sig.target*0.92);
-
-    const ss=await get(ref(db,'shared_session'));
-    const ses = ss.exists()? ss.val():{};
-    await update(ref(db,'shared_session'),{
-      hits:(ses.hits||0)+(hit?1:0),
-      misses:(ses.misses||0)+(hit?0:1)
-    });
-    await update(ref(db,`shared_signals/${sig.id}`),{actualCrash:actualCrash,hit,checked:true});
-    await remove(ref(db,'current_signal'));
-  }
-
-  async function analyzeAndEmit(){
-    if(!isMaster) return;
-    if(gameHistory.length<CONFIG.MIN_DATA_POINTS) return;
-
-    const ss=await get(ref(db,'shared_session'));
-    const ses = ss.exists()? ss.val():{};
-    const now=Date.now();
-    if(now - (ses.lastSignalTime||0) < CONFIG.SIGNAL_COOLDOWN) return;
-
-    const cur=await get(ref(db,'current_signal'));
-    if(cur.exists()) return;
-
-    const last10=gameHistory.slice(0,10);
-    const last5 =gameHistory.slice(0,5);
-    const last3 =gameHistory.slice(0,3);
-
-    const instaloss3 = last3.filter(r=>r.type=='INSTALOSS').length;
-    const high3 = last3.filter(r=>r.type=='ALTO'||r.type=='ULTRA').length;
-    const lowStreak = (()=>{ let c=0; for(const r of gameHistory){ if(r.type=='BAJO'||r.type=='INSTALOSS') c++; else break; } return c; })();
-
-    const avg = (arr)=> arr.reduce((s,r)=>s+r.multiplier,0)/Math.max(1,arr.length);
-    const avg3 = avg(last3), avg5=avg(last5), avg10=avg(last10);
-
-    // Protecciones
-    if(high3>=1) return;
-    if(instaloss3>=2) return;
-    if(avg5<1.20 && last5.filter(r=>r.type=='INSTALOSS').length>=2) return;
-
-    let signal=null;
-
-    // 1.70x ultra selectiva
-    if(!signal){
-      if(lowStreak>=4 && avg5>2.2 && instaloss3==0)
-        signal = {id:'signal'+now,timestamp:now,target:1.75,confidence:88,type:'1.70x',color:'green',soundType:'170',category:'170',reason:`Racha baja limpia (${lowStreak}) sin trampas`,checked:false};
-      else if(last5.filter(r=>r.type=='INSTALOSS').length===1 && last5.filter(r=>r.type=='BAJO').length>=3 && avg5>2.0 && instaloss3==0)
-        signal = {id:'signal'+now,timestamp:now,target:1.78,confidence:85,type:'1.70x',color:'green',soundType:'170',category:'170',reason:'Bajos frecuentes, sin trampas',checked:false};
-      else if(avg10>2.1 && last10.filter(r=>r.type=='BAJO').length>=6 && avg3>1.70 && instaloss3==0)
-        signal = {id:'signal'+now,timestamp:now,target:1.80,confidence:84,type:'1.70x',color:'green',soundType:'170',category:'170',reason:'Promedio alto, tendencia limpia',checked:false};
-    }
-
-    // 3x
-    if(!signal){
-      if(last10.filter(r=>r.type=='INSTALOSS').length==2 &&
-         last5.filter(r=>r.type=='INSTALOSS').length==1 &&
-         last5.filter(r=>r.type=='ALTO'||r.type=='ULTRA').length==0 &&
-         avg10>2.3 && lowStreak>=3)
-        signal = {id:'signal'+now,timestamp:now,target:2.80,confidence:82,type:'3x',color:'gold',soundType:'3x',category:'3x',reason:'Patrón espaciado, sin altos',checked:false};
-      else if(lowStreak>=6 && avg10>2.0 && last5.filter(r=>r.type=='ALTO'||r.type=='ULTRA').length==0 && instaloss3==0)
-        signal = {id:'signal'+now,timestamp:now,target:3.00,confidence:79,type:'3x',color:'gold',soundType:'3x',category:'3x',reason:'Racha baja extensa, sin trampas',checked:false};
-    }
-
-    // 10x (excepcional)
-    if(!signal){
-      if(last10.filter(r=>r.type=='INSTALOSS').length>=3 &&
-         last5.filter(r=>r.type=='INSTALOSS').length==1 &&
-         last5.filter(r=>r.type=='ALTO'||r.type=='ULTRA').length==0 &&
-         avg10<2 && lowStreak>=7)
-        signal = {id:'signal'+now,timestamp:now,target:9.00,confidence:75,type:'10x',color:'purple',soundType:'10x',category:'10x',reason:'Patrón ultra raro',checked:false};
-    }
-
-    if(signal){
-      await update(ref(db,'shared_session'),{
-        active:true,lastSignalTime:now,totalSignals:(ses.totalSignals||0)+1
-      });
-      await set(ref(db,'current_signal'),signal);
-      await set(ref(db,'shared_signals/'+signal.id),signal);
-      beep(signal.soundType);
-    }
-  }
-
-  /* ================== FEED ================== */
-  function listenTo(path){
-    if(feedRef) onValue(feedRef,()=>{});
-    feedRef = ref(db,path);
-    onValue(feedRef, async snap=>{
+    // ====== Escucha del feed principal ======
+    onValue(ref(db, dataPath), async snap=>{
       if(!snap.exists()) return;
-      const raw=snap.val();
-      const arr=normalize(raw);
-      if(arr.length===0) return;
-      gameHistory=arr.slice(0,300);
+      const raw = snap.val();
 
-      // nueva ronda
-      if(gameHistory[0].ts!==lastTs){
-        lastTs=gameHistory[0].ts;
-        const ss=await get(ref(db,'shared_session'));
-        const s=ss.exists()? ss.val():{};
-        await update(ref(db,'shared_session'),{active:true,totalRounds:(s.totalRounds||0)+1});
-        await checkPendingSignal(gameHistory[0].multiplier);
-        setTimeout(()=>analyzeAndEmit(), 600);
+      // Normalizar (acepta {t,value} o {ts,v})
+      const items = Object.values(raw).map(x=>{
+        const ts = x.ts ?? x.t ?? 0;
+        const v  = x.v  ?? x.value ?? 1;
+        return { ts:Number(ts), v:Number(v) };
+      }).filter(x=>x.ts && x.v);
+
+      // Orden descendente por tiempo
+      items.sort((a,b)=>b.ts-a.ts);
+
+      // Agregar nuevos a gameHistory (evita reprocesar)
+      let changed = false;
+      for (const it of items) {
+        if (it.ts <= lastTs) break; // ya procesado
+        gameHistory.unshift({
+          ts: it.ts,
+          multiplier: it.v,
+          type: classify(it.v)
+        });
+        changed = true;
+      }
+      if (items.length) lastTs = items[0].ts;
+
+      // Limitamos tamaño para eficiencia
+      if (gameHistory.length > 600) gameHistory = gameHistory.slice(-600);
+
+      if (changed){
+        updateSessionCounters();
+
+        // dibuja
+        draw();
+        renderRounds();
+
+        // si hay al menos BASE_SIZE, analiza
+        if (gameHistory.length >= CONFIG.BASE_SIZE){
+          await checkPendingSignal(gameHistory[gameHistory.length-1].multiplier);
+          if(isMaster) analyzeAndEmit(); // sólo maestro emite
+        }
+      }
+    });
+
+    function classify(m){
+      if (m>=1.00 && m<=1.04) return 'INSTALOSS';
+      if (m>=10) return 'ULTRA';
+      if (m>=5)  return 'ALTO';
+      if (m>=1.70) return 'MEDIO';
+      return 'BAJO';
+    }
+
+    function updateSessionCounters(){
+      update(ref(db, paths.session), { totalRounds: ( (awaitValue($('#stRounds')) ) + 1 ) });
+      $('#baseCount').textContent = Math.min(gameHistory.length, CONFIG.BASE_SIZE);
+      // tendencia simple: EMA9 vs EMA21
+      const values = gameHistory.slice(-CONFIG.BASE_SIZE).map(r=>r.multiplier);
+      const ema9  = EMA(values, 9).pop();
+      const ema21 = EMA(values,21).pop();
+      const trend = (ema9>ema21) ? 'ALCISTA' : 'BAJISTA';
+      $('#trendText').textContent = trend;
+    }
+
+    function awaitValue(el){ return Number(el.textContent)||0; }
+
+    // ====== Gráfica ======
+    function EMA(arr, p){
+      if(!arr.length) return [];
+      const k = 2/(p+1); let ema = arr[0]; const out=[ema];
+      for(let i=1;i<arr.length;i++){ ema = arr[i]*k + ema*(1-k); out.push(ema); }
+      return out;
+    }
+    function boll(arr, p=20, s=2){
+      const up=[], md=[], lo=[];
+      for(let i=p-1;i<arr.length;i++){
+        const sl = arr.slice(i-p+1, i+1);
+        const avg = sl.reduce((a,b)=>a+b,0)/p;
+        const v = sl.reduce((a,b)=>a+Math.pow(b-avg,2),0)/p;
+        const std = Math.sqrt(v);
+        md.push(avg); up.push(avg+std*s); lo.push(avg-std*s);
+      }
+      return {up,md,lo,offset:p-1};
+    }
+
+    function draw(){
+      const w = $('#chart').width, h = $('#chart').height;
+      ctx.clearRect(0,0,w,h);
+      const data = gameHistory.slice(-CONFIG.BASE_SIZE);
+      if(data.length < 2) return;
+
+      const vals = data.map(r=>r.multiplier);
+      const min = Math.min( ...vals, 1 );
+      const max = Math.max( ...vals, 10 );
+      const R   = max-min || 1;
+      const step = w/(data.length-1);
+
+      // fondo grid
+      if (opts.showGrid){
+        ctx.strokeStyle='rgba(255,255,255,.08)'; ctx.lineWidth=1;
+        for(let i=0;i<=5;i++){ const y=h*i/5; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
+        for(let i=0;i<=10;i++){ const x=w*i/10; ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); }
       }
 
-      updateRounds();
-      drawChart();
-    });
-  }
+      // línea principal
+      ctx.strokeStyle='#6c7bff'; ctx.lineWidth=2; ctx.beginPath();
+      data.forEach((r,i)=>{
+        const x=i*step, y=h - ((r.multiplier-min)/R)*h;
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      });
+      ctx.stroke();
 
-  /* ================== UI HANDLERS ================== */
-  tglEMA.onclick = ()=>{opts.showEMA=!opts.showEMA; tglEMA.classList.toggle('active'); drawChart();};
-  tglBB.onclick  = ()=>{opts.showBB =!opts.showBB;  tglBB.classList.toggle('active');  drawChart();};
-  tglSR.onclick  = ()=>{opts.showSR =!opts.showSR;  tglSR.classList.toggle('active');  drawChart();};
-  tglGrid.onclick= ()=>{opts.showGrid=!opts.showGrid;tglGrid.classList.toggle('active');drawChart();};
+      // puntos coloreados
+      data.forEach((r,i)=>{
+        const x=i*step, y=h - ((r.multiplier-min)/R)*h;
+        let c = '#7cc3ff';
+        if (r.type==='INSTALOSS') c='#ff3c6a';
+        else if (r.type==='ULTRA') c='#c474ff';
+        else if (r.type==='ALTO') c='#79f2d4';
+        ctx.fillStyle=c; ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fill();
+      });
 
-  btnStart.onclick = async ()=>{
-    btnStart.disabled=true; btnStop.disabled=false;
-    await registerDevice(); await decideRole(); wireCounters();
-    await update(ref(db,'shared_session'),{active:true});
-  };
-  btnStop.onclick = async ()=>{
-    await remove(ref(db,`connected_devices/${DEVICE_ID}`));
-    btnStart.disabled=false; btnStop.disabled=true;
-    isMaster=false; roleLine.textContent = `Rol: 📱 ESCLAVO · Dispositivo: ${DEVICE_NAME} · Conectados: —`;
-    await update(ref(db,'shared_session'),{active:false});
-  };
-  btnReset.onclick = async ()=>{
-    await remove(ref(db,'current_signal'));
-    await set(ref(db,'shared_signals'),{});
-    await set(ref(db,'shared_session'),{active:false,totalRounds:0,totalSignals:0,hits:0,misses:0});
-    lastTs=0; gameHistory=[]; updateRounds(); drawChart();
-    sigTitle.textContent='Esperando…'; sigSub.textContent='—';
-  };
+      // EMA
+      if (opts.showEMA && data.length>=9){
+        const e = EMA(vals,9);
+        ctx.strokeStyle='#ffd95e'; ctx.lineWidth=2; ctx.beginPath();
+        e.forEach((v,i)=>{
+          const x=i*step, y=h - ((v-min)/R)*h;
+          if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+        });
+        ctx.stroke();
+      }
 
-  /* ================== ARRANQUE ================== */
-  // Conexión automática al feed por defecto
-  listenTo(DEFAULT_FEED_PATH);
-  roleLine.textContent = `Rol: — · Dispositivo: ${DEVICE_NAME} · Conectados: —`;
-  console.log('✅ Listo · Conectado a /'+DEFAULT_FEED_PATH+' · Base 60 & lógica nueva');
-</script>
+      // Bollinger
+      if (opts.showBoll && data.length>=20){
+        const b = boll(vals,20,2);
+        ctx.strokeStyle='rgba(255,100,100,.45)'; ctx.lineWidth=1; ctx.beginPath();
+        b.up.forEach((v,i)=>{ const x=(i+b.offset)*step, y=h-((v-min)/R)*h; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);}); ctx.stroke();
+        ctx.strokeStyle='rgba(100,120,255,.45)'; ctx.beginPath();
+        b.lo.forEach((v,i)=>{ const x=(i+b.offset)*step, y=h-((v-min)/R)*h; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);}); ctx.stroke();
+      }
+
+      // S/R
+      if (opts.showSR){
+        const r = Math.max(...vals), s = Math.min(...vals);
+        ctx.setLineDash([6,6]); ctx.lineWidth=2;
+
+        ctx.strokeStyle='rgba(255,0,0,.5)';
+        ctx.beginPath(); ctx.moveTo(0, h-((r-min)/R)*h); ctx.lineTo(w, h-((r-min)/R)*h); ctx.stroke();
+
+        ctx.strokeStyle='rgba(0,255,0,.5)';
+        ctx.beginPath(); ctx.moveTo(0, h-((s-min)/R)*h); ctx.lineTo(w, h-((s-min)/R)*h); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+
+    function renderRounds(){
+      const box = $('#roundGrid'); box.innerHTML='';
+      const last60 = gameHistory.slice(-CONFIG.BASE_SIZE).map((r,i)=>({ ...r, idx: CONFIG.BASE_SIZE-i }));
+      last60.reverse().forEach((r, i)=>{
+        const el = document.createElement('div');
+        const cls = r.type==='INSTALOSS'?'i': r.type==='BAJO'?'b': r.type==='MEDIO'?'m': r.type==='ALTO'?'a':'u';
+        el.className = `pill ${cls}`;
+        el.innerHTML = `<span class="n">#${i+1}</span>${r.multiplier.toFixed(2)}x`;
+        el.title = new Date(r.ts).toLocaleString();
+        box.appendChild(el);
+      });
+    }
+
+    // ====== Lógica de señales (TU LÓGICA) ======
+    async function analyzeAndEmit(){
+      // usa base estricta de 60 y la lógica nueva
+      if (gameHistory.length < CONFIG.BASE_SIZE) return;
+
+      const sSnap = await get(ref(db, paths.session));
+      const session = sSnap.val()||{};
+      const now = Date.now();
+      const timeSince = now - (session.lastSignalTime || 0);
+      if (timeSince < CONFIG.SIGNAL_COOLDOWN) return;
+
+      const curSnap = await get(ref(db, paths.current));
+      if (curSnap.exists()) return;
+
+      const last10 = gameHistory.slice(-10);
+      const last5  = gameHistory.slice(-5);
+      const last3  = gameHistory.slice(-3);
+
+      const cnt = (arr,t) => arr.filter(r=> t(r)).length;
+
+      const instaloss3 = cnt(last3, r=>r.type==='INSTALOSS');
+      const high3      = cnt(last3, r=> r.type==='ALTO' || r.type==='ULTRA');
+
+      const lowStreak = (() => {
+        let c=0; for(let i=gameHistory.length-1;i>=0;i--){
+          const t = gameHistory[i].type;
+          if (t==='BAJO' || t==='INSTALOSS') c++; else break;
+        } return c;
+      })();
+
+      const avg = arr => (arr.reduce((s,r)=>s+r.multiplier,0)/(arr.length||1));
+      const avg3 = avg(last3), avg5=avg(last5), avg10=avg(last10);
+
+      // Protecciones
+      if (high3 >= 1) return;
+      if (instaloss3 >= 2) return;
+      if (avg5 < 1.20 && cnt(last5, r=>r.type==='INSTALOSS')>=2) return;
+
+      let signal = null;
+
+      // 1.70x selectiva
+      const MAX170 = true; // sin límite por sesión (requerimiento)
+      if (!signal && MAX170){
+        if (lowStreak >= 4 && avg5 > 2.2 && instaloss3 == 0){
+          signal = mkSignal(1.75, 88, '1.70x', 'Racha baja limpia ('+lowStreak+') sin trampas', '170');
+        } else if (cnt(last5,r=>r.type==='INSTALOSS')===1 && cnt(last5,r=>r.type==='BAJO')>=3 && avg5>2.0 && instaloss3==0){
+          signal = mkSignal(1.78, 85, '1.70x', 'Bajos frecuentes, sin trampas', '170');
+        } else if (avg10>2.1 && cnt(last10,r=>r.type==='BAJO')>=6 && avg3>1.70 && instaloss3==0){
+          signal = mkSignal(1.80, 84, '1.70x', 'Promedio alto, tendencia limpia', '170');
+        }
+      }
+
+      // 3x restrictiva
+      if (!signal){
+        if (cnt(last10,r=>r.type==='INSTALOSS')===2 &&
+            cnt(last5,r=>r.type==='INSTALOSS')===1 &&
+            cnt(last5,r=> r.type==='ALTO'||r.type==='ULTRA')===0 &&
+            avg10 > 2.3 && lowStreak>=3){
+          signal = mkSignal(2.80, 82, '3x', 'Patrón espaciado, sin altos', '3x');
+        } else if (lowStreak>=6 && avg10>2.0 && cnt(last5,r=> r.type==='ALTO'||r.type==='ULTRA')===0 && instaloss3==0){
+          signal = mkSignal(3.00, 79, '3x', 'Racha baja extensa, sin trampas', '3x');
+        }
+      }
+
+      // 10x excepcionales
+      if (!signal){
+        if (cnt(last10,r=>r.type==='INSTALOSS')>=3 &&
+            cnt(last5,r=>r.type==='INSTALOSS')===1 &&
+            cnt(last5,r=> r.type==='ALTO'||r.type==='ULTRA')===0 &&
+            avg10<2 && lowStreak>=7){
+          signal = mkSignal(9.00, 75, '10x', 'Patrón ultra raro', '10x');
+        }
+      }
+
+      if (signal){
+        // publica
+        await update(ref(db, paths.session), {
+          totalSignals: ( (awaitValue($('#stSignals')) ) + 1 ),
+          lastSignalTime: now
+        });
+        await set(ref(db, paths.current), signal);
+        await set(ref(db, `${paths.signals}/${signal.id}`), signal);
+        tone(980,180); // sonido ÚNICO por señal
+      }
+    }
+
+    function mkSignal(target, confidence, type, reason, category){
+      return {
+        id:'signal_'+Date.now(), timestamp:Date.now(),
+        target, confidence, type, color:'blue', soundType:'any',
+        category, reason, checked:false
+      };
+    }
+
+    // ====== Validación de señal vs ronda real ======
+    async function checkPendingSignal(actualCrash){
+      const cur = await get(ref(db, paths.current));
+      if (!cur.exists()) return;
+      const sig = cur.val();
+      if (sig.checked) return;
+
+      const hit = actualCrash >= sig.target*0.92;
+
+      // update hits/misses
+      const sSnap = await get(ref(db, paths.session));
+      const S = sSnap.val()||{};
+      await update(ref(db, paths.session), {
+        hits:(S.hits||0)+(hit?1:0),
+        misses:(S.misses||0)+(hit?0:1)
+      });
+
+      await update(ref(db, `${paths.signals}/${sig.id}`), {
+        actualCrash: actualCrash,
+        hit, checked:true
+      });
+      await remove(ref(db, paths.current));
+    }
+
+  </script>
 </body>
 </html>
