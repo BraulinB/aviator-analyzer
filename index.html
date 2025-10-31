@@ -220,7 +220,24 @@ const EMIT_THRESHOLD = 0.72;
 /*** ================== UTILIDADES ================== ***/
 const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
 function nowHHMMSS(){return new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'})}
-function beep(f=800,ms=120){try{if(!window.acx)window.acx=new (AudioContext||webkitAudioContext)();const o=acx.createOscillator(),g=acx.createGain();o.type='sine';o.frequency.value=f;o.connect(g);g.connect(acx.destination);o.start();g.gain.setValueAtTime(.0001,acx.currentTime);g.gain.exponentialRampToValueAtTime(.2,acx.currentTime+.02);g.gain.exponentialRampToValueAtTime(.0001,acx.currentTime+ms/1000);o.stop(acx.currentTime+ms/1000+.01);}catch{}}
+
+// Beep: NO opera hasta que haya gesto del usuario (evita warning)
+let canBeep=false, acx=null;
+document.addEventListener('pointerdown', ()=>{ canBeep=true; try{ if(!acx) acx=new (AudioContext||webkitAudioContext)(); acx.resume(); }catch{} }, {once:true});
+function beep(f=800,ms=120){
+  if(!canBeep) return;
+  try{
+    if(!acx) acx=new (AudioContext||webkitAudioContext)();
+    const o=acx.createOscillator(),g=acx.createGain();
+    o.type='sine'; o.frequency.value=f; o.connect(g); g.connect(acx.destination);
+    o.start();
+    g.gain.setValueAtTime(.0001,acx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.2,acx.currentTime+.02);
+    g.gain.exponentialRampToValueAtTime(.0001,acx.currentTime+ms/1000);
+    o.stop(acx.currentTime+ms/1000+.01);
+  }catch{}
+}
+
 function EMA(arr,p){if(!arr.length)return[];const k=2/(p+1);const out=[];let e=arr[0];for(let i=0;i<arr.length;i++){const v=arr[i];e=i? v*k+e*(1-k):v;out.push(e)}return out}
 function stdev(a){if(a.length<2)return 0;const m=a.reduce((x,y)=>x+y,0)/a.length;return Math.sqrt(a.reduce((s,v)=>s+(v-m)*(v-m),0)/a.length)}
 function Bollinger(arr,p=20,m=2){const up=[],dn=[];for(let i=0;i<arr.length;i++){const s=arr.slice(Math.max(0,i-p+1),i+1);const mean=s.reduce((a,b)=>a+b,0)/s.length;const sd=Math.sqrt(s.reduce((a,b)=>a+(b-mean)*(b-mean),0)/s.length)||0;up.push(mean+m*sd);dn.push(mean-m*sd)}return{up,dn}}
@@ -252,7 +269,7 @@ const chart = new Chart(ctx,{
   type:"line",
   data:{labels:[],datasets:[
     {label:"Valor", data:[], borderColor:"#5fc9ff", pointRadius:0, tension:.25, borderWidth:2,
-     segment:{ borderColor: ctx=> ctx.p0.parsed.y>=10 ? "#ff86d1" : (ctx.p0.parsed.y>=2 ? "#b18cff" : "#5fc9ff") }},
+     segment:{ borderColor: c=> (c.p1.parsed.y>=10 ? "#ff86d1" : (c.p1.parsed.y>=2 ? "#b18cff" : "#5fc9ff")) }},
     {label:"EMA(12)", data:[], borderColor:"#f25fc1", borderDash:[6,4], pointRadius:0, tension:.25, borderWidth:1.5},
     {label:"BB↑", data:[], borderColor:"#7c5cff66", pointRadius:0, borderWidth:1, tension:.25},
     {label:"BB↓", data:[], borderColor:"#7c5cff66", pointRadius:0, borderWidth:1, tension:.25},
@@ -267,7 +284,7 @@ const chart = new Chart(ctx,{
     interaction:{mode:'index',intersect:false},
     plugins:{legend:{display:false},
       tooltip:{backgroundColor:'#0b1330',borderColor:'#3b4766',borderWidth:1,displayColors:false,
-        callbacks:{ label:(ctx)=>` ${ctx.dataset.label}: ${(+ctx.parsed.y).toFixed(2)}x`}} },
+        callbacks:{ label:(c)=>` ${c.dataset.label}: ${(+c.parsed.y).toFixed(2)}x`}} },
     scales:{x:{ticks:{color:"#a7add9"},grid:{color:"#223"}}, y:{ticks:{color:"#a7add9"},grid:{color:"#1a2344"},beginAtZero:true}}
   },
   plugins:[hoverLine]
@@ -313,28 +330,47 @@ function setBanner(kind,title,sub,cta){
 }
 
 /*** ================== HISTORIAL (RTDB cross-device + fallback local) ================== ***/
-const STORAGE={HIST:'aa_hist_sync_v3', SESS:'aa_sess_v3'};
-let HIST_PATH = null;      // se define tras pickPath()
+const STORAGE={HIST:'aa_hist_sync_v4', SESS:'aa_sess_v3'};
+let HIST_PATH = null;      // set tras pickPath()
 let rtWritesOk = false;    // si no, fallback local
 let RT_LAST_KEY = null;    // clave del último push (para actualizar "Real")
 
+function badgeClassFrom(r){
+  // r.band puede ser 'A'/'B'/'C'/'P' o un objeto {id:'A',...}
+  const id = (r && r.band && typeof r.band==='object') ? r.band.id : r.band;
+  if(id==='P') return 'P';
+  if(id==='B') return 'B';
+  if(id==='C') return 'C';
+  return 'A';
+}
+function safe(val, def){ return (val===undefined||val===null)?def:val; }
+
 function toHistRow(r, idxOverride=null){
+  const badge = badgeClassFrom(r);
+  const tipo = safe(r.kind,"Automática");
+  const lbl  = safe(r.label,"—");
+  const conf = Math.max(0, Math.min(97, Math.round((r.conf||0)*100)));
+  const real = safe(r.real,"—");
+  const est  = safe(r.estado,"Pendiente");
+  const raz  = safe(r.reason,"—");
   const tr=document.createElement("tr");
-  tr.innerHTML=`<td>${idxOverride ?? r.idx}</td><td>${r.time}</td>
-    <td><span class="badge ${r.type.startsWith('P')?'P':r.band}">${r.label}</span></td>
-    <td>${r.kind||"Automática"}</td><td>${(r.conf*100|0)}%</td>
-    <td>${r.real??"—"}</td><td>${r.estado}</td><td class="small">${r.reason||"—"}</td>`;
+  tr.innerHTML=`<td>${idxOverride ?? safe(r.idx,'')}</td><td>${safe(r.time,'')}</td>
+    <td><span class="badge ${badge}">${lbl}</span></td>
+    <td>${tipo}</td><td>${conf}%</td>
+    <td>${real}</td><td>${est}</td><td class="small">${raz}</td>`;
   return tr;
 }
 
 function renderRemoteHistory(list){
   $tbody.innerHTML = "";
   if(!list.length){ $tbody.innerHTML = '<tr><td colspan="8" class="small">No hay señales</td></tr>'; return; }
-  // ordenar por ts asc, y mostrar descendente en tabla
   list.sort((a,b)=>a.ts-b.ts);
-  list.slice(-HIST_LIMIT).reverse().forEach((r,i)=>{
-    $tbody.appendChild(toHistRow(r, list.length - i));
-  });
+  const tail=list.slice(-HIST_LIMIT);
+  for(let i=tail.length-1;i>=0;i--){
+    const r=tail[i];
+    const idx = list.length - (tail.length-1-i);
+    $tbody.appendChild(toHistRow(r, idx));
+  }
 }
 
 /*** Local fallback ***/
@@ -356,8 +392,8 @@ function refreshSession(){
   try{localStorage.setItem(STORAGE.SESS,JSON.stringify(sess))}catch{}
 }
 
-/*** ================== LÓGICA AVANZADA ================== ***/
-const BANDS = { // etiquetas base
+/*** ================== LÓGICA AVANZADA (resumen) ================== ***/
+const BANDS = { // etiquetas base (informativas)
   A0:{id:"A", label:"1.45–1.65", min:1.45, max:1.65},
   A1:{id:"A", label:"1.50–1.70", min:1.50, max:1.70},
   A2:{id:"A", label:"1.60–1.80", min:1.60, max:1.80},
@@ -365,7 +401,6 @@ const BANDS = { // etiquetas base
   B1:{id:"B", label:"2.10–2.60", min:2.10, max:2.60},
   B2:{id:"B", label:"2.50–3.30", min:2.50, max:3.30},
   C :{id:"C", label:"3.00–5.00", min:3.00, max:5.00},
-  // Rosas (P-bandas)
   P10:{id:"P",label:"10–15", min:10, max:15},
   P20:{id:"P",label:"15–30", min:15, max:30},
   P30:{id:"P",label:"30–50", min:30, max:50},
@@ -375,7 +410,6 @@ const BANDS = { // etiquetas base
 function sigmoid(x){return 1/(1+Math.exp(-x));}
 
 function weightedTailProbs(vals, thresholds, lambda=0.99){
-  // pesos más altos a lo reciente
   let w=1, sumW=0; const counts={};
   thresholds.forEach(t=>counts[t]=0);
   for(let i=vals.length-1;i>=0;i--){
@@ -387,7 +421,7 @@ function weightedTailProbs(vals, thresholds, lambda=0.99){
 }
 function hillAlpha(vals, m=10){
   const tail = vals.filter(v=>v>=10).sort((a,b)=>b-a).slice(0,Math.min(m,vals.length));
-  if(tail.length<3) return 2.0; // cola no muy pesada
+  if(tail.length<3) return 2.0;
   const xm = tail[tail.length-1];
   const logs = tail.map(x=>Math.log(x/xm));
   const H = logs.reduce((a,b)=>a+b,0)/logs.length;
@@ -420,14 +454,12 @@ function features(vals){
 
   return {ema12, slope, bb, last, v8,v10,v20, countGE2,countLT2, runBlue,runDeep, pinkIn6,pinkIn20,purpleIn20, belowBB, mom, bbPos, P, alpha};
 }
-
 function isDrain(f){
   return ((f.pinkIn20>=2 || f.purpleIn20>=11) && (f.countLT2>=6 || f.runBlue>=4) && f.slope<-0.02);
 }
 function isBlueStreak(f){ return f.runBlue>=6 || f.countLT2>=7; }
 
 function dynamicLowRange(f){
-  // ancla y ancho dinámicos para conservadora
   const zSlope = f.slope/0.06, zMom=f.mom/1.2, zBb= (f.bbPos-0.5)/0.25;
   const penal=(f.runDeep?0.2:0)+ (f.countLT2>=6?0.1:0);
   let a = clamp(1.45 + 0.35*sigmoid(1.2*zSlope + 0.8*zMom + 0.6*zBb), 1.45, 1.90);
@@ -453,7 +485,6 @@ function pickPinkBands(f){
   if(alpha<=1.4 && (P[100]||0)>=0.005) cands.push({id:"P",min:50,max:100,label:"50–100"});
   return cands;
 }
-
 function regime(f){
   if(isDrain(f)) return {state:"DRAIN", reason:"Drenaje tras bonanza"};
   if(isBlueStreak(f)) return {state:"RISKY", reason:"Racha azul larga"};
@@ -466,40 +497,28 @@ function decide(vals){
   const reg = regime(f);
   if (reg.state!=="OK") return {state:reg.state, signal:null, reason:reg.reason};
 
-  // Momentum morado
   const momentumMorado = (f.countGE2>=5 && maxRun(f.v8,v=>v>=2)>=3 && f.slope>0.02);
   const ruptura = momentumMorado && f.last<2;
 
-  // Pullback
   const pullback = (maxRun(f.v10,v=>v<2)>=2 || f.runDeep>=1);
   const reboteConfirm = pullback && ((f.last>f.ema12.at(-1) && f.last > (f.bb.up.at(-1)+f.bb.dn.at(-1))/2 && f.slope>=-0.005) || f.last>=2);
 
-  // Post-Rosa eco
   const pinkNow = f.last>=10;
-  if(pinkNow){ postPinkCooldown = 2; } // se extenderá en flujo principal
+  if(pinkNow){ postPinkCooldown = Math.max(postPinkCooldown,2); }
 
-  // Candidatos de rango
   const candidates=[];
   if(ruptura){ return {state:"WAIT", signal:null, reason:"Ruptura de morado: observar pullback"}; }
 
-  if(reboteConfirm){
-    candidates.push(dynamicLowRange(f)); // conservador con decimales
-  }else if(momentumMorado){
-    candidates.push(dynamicMidRange(f)); // medio con decimales
-  }
+  if(reboteConfirm){ candidates.push(dynamicLowRange(f)); }
+  else if(momentumMorado){ candidates.push(dynamicMidRange(f)); }
 
-  // Eco de Rosa (si condiciones fuertes)
-  const pinkCands = pickPinkBands(f);
-  pinkCands.forEach(c=>candidates.push(c));
+  pickPinkBands(f).forEach(c=>candidates.push(c));
 
-  // Lateral con sesgo alcista
   if(!candidates.length && f.bbPos>0.45 && f.slope>-0.005){
     candidates.push(dynamicLowRange(f));
   }
-
   if(!candidates.length) return {state:"WAIT", signal:null, reason:"Sin oportunidad clara"};
 
-  // Scoring + EV
   const scored = candidates.map(c=>{
     const prior = c.id==="A"?0.55: c.id==="B"?0.56: c.id==="P"?0.45:0.53;
     const trendScore = clamp((f.slope+0.05)/0.1,0,1);
@@ -508,26 +527,21 @@ function decide(vals){
     const momentumScore = clamp(f.mom/1.2,-1,1);
     const volScore    = stdev(f.v8)>1.0 ? 0.08 : 0;
     const pinkPenalty = (postPinkCooldown>0)?0.20:0;
-    const breakPenalty= 0; // ya gestionado arriba
     const deepBluePen = f.runDeep?0.10:0;
 
-    let conf = prior + 0.35*trendScore + 0.25*streakScore + 0.15*bbScore + 0.15*momentumScore + 0.10*volScore - pinkPenalty - breakPenalty - deepBluePen;
+    let conf = prior + 0.35*trendScore + 0.25*streakScore + 0.15*bbScore + 0.15*momentumScore + 0.10*volScore - pinkPenalty - deepBluePen;
     conf = clamp(conf,0,0.97);
 
-    // Probabilidad de alcanzar el mínimo del rango (mezcla empírico/cola)
-    const pMin = (()=>{ const k=c.min; const emp=f.P[Math.min(100,Math.max(1.5,Math.round(k*10)/10))]||0; 
-      // power-law para k>=10
-      const pow = (k>=10)? Math.pow(k/10, -f.alpha) * (f.P[10]||0) : emp;
-      return Math.max(emp, pow);
+    const pMin = (()=>{ const k=c.min;
+      if(k>=10){ return Math.max(f.P[10]||0, Math.pow(k/10, -f.alpha) * (f.P[10]||0)); }
+      const key = Math.min(100,Math.max(1.5,Math.round(k*10)/10));
+      return f.P[key]||0;
     })();
-
     const utility = (c.id==="P")? 1.0 : (c.max<=2.0? 0.7 : c.max<=3.3? 0.85 : 0.9);
     const EV = pMin * utility * conf;
-
     return {cand:c, conf, EV};
   });
 
-  // Elige top-2 y aplica pequeña exploración (10%)
   scored.sort((a,b)=>b.EV-a.EV);
   const pick = (Math.random()<0.10 && scored[1]) ? scored[1] : scored[0];
 
@@ -538,20 +552,17 @@ function decide(vals){
                       (band.max<=3.3? {id:"B", label:band.label, min:band.min} : {id:"C", label:band.label, min:band.min}));
     return {state:"SIGNAL", signal:{band:bandMeta, conf:pick.conf, kind:(band.id==="P"?"Rosa Alta": (bandMeta.id==="A"?"Conservadora": bandMeta.id==="B"?"Moderada":"Alta"))}, reason: (band.id==="P"?"Eco de Rosa / cola pesada": momentumMorado? "Momentum morado":"Rebote tras pullback")};
   }
-
   return {state:"WAIT", signal:null, reason:`Candidatos sin umbral (${Math.round(pick.conf*100)}% < ${Math.round(EMIT_THRESHOLD*100)}%)`};
 }
 
 /*** ================== EMISIÓN / EVALUACIÓN ================== ***/
 function pushHistoryRow(r){
-  // UI inmediata
   if($tbody.children.length===1&&$tbody.children[0].children.length===1)$tbody.innerHTML="";
   $tbody.prepend(toHistRow(r));
 
-  // RTDB
-  if(!HIST_PATH){ // fallback
+  if(!HIST_PATH){
     $syncBadge.textContent="Historial: Local";
-    let arr=loadLocalHist(); arr.unshift(r); if(arr.length>HIST_LIMIT) arr=arr.slice(0,HIST_LIMIT); saveLocalHist(arr);
+    let arr=loadLocalHist(); arr.unshift({...r, ts:Date.now()}); if(arr.length>HIST_LIMIT) arr=arr.slice(0,HIST_LIMIT); saveLocalHist(arr);
     return;
   }
   try{
@@ -563,20 +574,16 @@ function pushHistoryRow(r){
       else { rtWritesOk=true; $syncBadge.textContent="Historial: Sync ✔"; }
     });
   }catch(e){
-    let arr=loadLocalHist(); arr.unshift(r); saveLocalHist(arr);
+    let arr=loadLocalHist(); arr.unshift({...r, ts:Date.now()}); saveLocalHist(arr);
     rtWritesOk=false; $syncBadge.textContent="Historial: Local";
   }
 }
-
 function updateTopHistoryReal(real, estado, reason){
-  // UI (fila superior)
   const top=$tbody.firstElementChild;
   if(top){ top.children[5].textContent=real; top.children[6].textContent=estado; if(reason) top.children[7].textContent=reason; }
-
-  // RTDB
   if(HIST_PATH && RT_LAST_KEY){
     try{ db.ref(HIST_PATH+'/'+RT_LAST_KEY).update({real,estado,reason}); }catch{}
-  }else{ // local fallback
+  }else{
     const arr=loadLocalHist(); if(arr.length){ arr[0].real=real; arr[0].estado=estado; arr[0].reason=reason; saveLocalHist(arr); }
   }
 }
@@ -675,7 +682,6 @@ function encodePath(p){ return (p||'').replace(/[^\w]/g,'_'); }
     // Post-Rosa cooldown adaptativo
     if(it.v>=10){ postPinkCooldown = Math.max(postPinkCooldown,2); }
     if(postPinkCooldown>0){
-      // si aparecen azules muy bajos, alargar
       const last2 = WINDOW.slice(-2).map(x=>x.v);
       if(last2.length===2 && Math.min(...last2)<=1.20) postPinkCooldown = Math.max(postPinkCooldown,3);
       const bothLow = last2.length===2 && last2[0]<=1.30 && last2[1]<=1.30;
