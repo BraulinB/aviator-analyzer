@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Sistema Aviator 1Win</title>
+  <link rel="icon" href="data:,">
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,#0f0c29 0%,#302b63 50%,#24243e 100%);color:#fff;min-height:100vh;padding:15px}
@@ -109,14 +110,8 @@
         </div>
       </div>
       <div class="session-stats">
-        <div class="session-stat">
-          <div class="session-stat-label">Rondas</div>
-          <div class="session-stat-value" id="totalRoundsSession">0</div>
-        </div>
-        <div class="session-stat">
-          <div class="session-stat-label">Efectividad</div>
-          <div class="session-stat-value" id="sessionEffectiveness">0%</div>
-        </div>
+        <div class="session-stat"><div class="session-stat-label">Rondas</div><div class="session-stat-value" id="totalRoundsSession">0</div></div>
+        <div class="session-stat"><div class="session-stat-label">Efectividad</div><div class="session-stat-value" id="sessionEffectiveness">0%</div></div>
       </div>
     </div>
 
@@ -176,14 +171,12 @@
 
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-    import {
-      getDatabase, ref, onValue, onChildAdded, get, set, update, remove, onDisconnect
-    } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+    import { getDatabase, ref, onValue, onChildAdded, get, set, update, remove, onDisconnect } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
-    // ==== CONFIG ====
-    const CONFIG = { SESSION_SIZE: 60, MIN_CONFIDENCE: 80, SIGNAL_COOLDOWN: 25000, MIN_DATA_POINTS: 60 };
+    // === Parámetros ===
+    const CONFIG = { SESSION_SIZE: 60, SIGNAL_COOLDOWN: 25000, MIN_DATA_POINTS: 60 };
 
-    // Tu Firebase
+    // Firebase tuya
     const firebaseConfig = {
       apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
       authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
@@ -197,340 +190,272 @@
 
     console.log('🔥 Inicializando...');
     const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+    const db  = getDatabase(app);
 
-    // ==== ESTADO ====
+    // Estado
     const DEVICE_NAME = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? '📱 Móvil' : '💻 PC';
-    const DEVICE_ID = 'dev_' + Math.random().toString(36).slice(2, 9);
+    const DEVICE_ID   = 'dev_' + Math.random().toString(36).slice(2,9);
     document.getElementById('deviceName').textContent = DEVICE_NAME;
 
     const possiblePaths = ['feeds/gocho/crashes','crashes','historial','last_final'];
-
     let gameHistory = [];
     let isMaster = false;
     let lastProcessedTimestamp = 0;
 
-    let chart=null, chartOptions={ showEMA:false, showBollinger:false, showGrid:true, showSR:false };
-    function initChart(){const canvas=document.getElementById('trendChart');const ctx=canvas.getContext('2d');canvas.width=canvas.offsetWidth;canvas.height=250;chart={canvas,ctx}}
-    function drawChart(){ if(!chart||gameHistory.length<2) return; const {ctx,canvas}=chart; const w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h); const data=gameHistory.slice(0,60).reverse(); const vals=data.map(r=>r.multiplier); const max=Math.max(...vals,10), min=Math.min(...vals,0), range=(max-min)||1, step=w/((data.length-1)||1); if(chartOptions.showGrid){ctx.strokeStyle='rgba(255,255,255,.1)';ctx.lineWidth=1; for(let i=0;i<=5;i++){const y=(h/5)*i;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()} for(let i=0;i<=10;i++){const x=(w/10)*i;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke()}} ctx.strokeStyle='#667eea';ctx.lineWidth=2;ctx.beginPath(); data.forEach((r,i)=>{const x=i*step,y=h-((r.multiplier-min)/range)*h; if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y)}); ctx.stroke(); data.forEach((r,i)=>{const x=i*step,y=h-((r.multiplier-min)/range)*h; let c='#4facfe'; if(r.type==='INSTALOSS')c='#f5576c'; else if(r.type==='ULTRA')c='#b06ab3'; else if(r.type==='ALTO')c='#00ff88'; ctx.fillStyle=c; ctx.beginPath(); ctx.arc(x,y,4,0,Math.PI*2); ctx.fill()}); }
+    // Chart
+    let chart=null;
+    function initChart(){const c=document.getElementById('trendChart'),ctx=c.getContext('2d');c.width=c.offsetWidth;c.height=250;chart={canvas:c,ctx}}
+    function drawChart(){
+      if(!chart||gameHistory.length<2) return;
+      const {ctx,canvas}=chart,w=canvas.width,h=canvas.height;
+      ctx.clearRect(0,0,w,h);
+      const data=gameHistory.slice(0,60).reverse();
+      const vals=data.map(r=>r.multiplier);
+      const max=Math.max(...vals,10),min=Math.min(...vals,0),range=(max-min)||1,step=w/((data.length-1)||1);
+      ctx.strokeStyle='rgba(255,255,255,.1)';ctx.lineWidth=1;
+      for(let i=0;i<=5;i++){const y=(h/5)*i;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
+      for(let i=0;i<=10;i++){const x=(w/10)*i;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke()}
+      ctx.strokeStyle='#667eea';ctx.lineWidth=2;ctx.beginPath();
+      data.forEach((r,i)=>{const x=i*step,y=h-((r.multiplier-min)/range)*h; if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y)});ctx.stroke();
+      data.forEach((r,i)=>{const x=i*step,y=h-((r.multiplier-min)/range)*h; let c='#4facfe'; if(r.type==='INSTALOSS')c='#f5576c'; else if(r.type==='ULTRA')c='#b06ab3'; else if(r.type==='ALTO')c='#00ff88'; ctx.fillStyle=c; ctx.beginPath(); ctx.arc(x,y,4,0,Math.PI*2); ctx.fill()});
+    }
 
-    // ==== AUDIO ====
+    // Audio simple
     function playSignalSound(type){
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return;
-      const ctx = new AudioContext();
-      const beep=(f,d,w='sine')=>{const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=f;o.type=w;g.gain.setValueAtTime(.5,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.01,ctx.currentTime+d);o.start();o.stop(ctx.currentTime+d)};
-      if(type==='170') beep(523.25,.8,'sine'); else if(type==='3x'){[0,1,2].forEach(i=>setTimeout(()=>beep(784,.4,'square'),i*200))} else if(type==='10x'){[0,1,2,3].forEach(i=>setTimeout(()=>beep(1046.5,.4,'sawtooth'),i*200))}
+      const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+      const ctx=new AC(); const beep=(f,d,w='sine')=>{const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=f;o.type=w;g.gain.setValueAtTime(.5,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.01,ctx.currentTime+d);o.start();o.stop(ctx.currentTime+d)};
+      if(type==='170')beep(523.25,.8,'sine'); else if(type==='3x'){[0,1,2].forEach(i=>setTimeout(()=>beep(784,.4,'square'),i*200))} else if(type==='10x'){[0,1,2,3].forEach(i=>setTimeout(()=>beep(1046.5,.4,'sawtooth'),i*200))}
     }
 
-    // ==== UI helpers ====
+    // Helpers UI
     function updateRoundsDisplay(){
-      const c=document.getElementById('roundsDisplay');
-      c.innerHTML='';
+      const c=document.getElementById('roundsDisplay'); c.innerHTML='';
       const hist=[...gameHistory].slice(0,60);
-      if(hist.length===0){ c.innerHTML='<div style="opacity:.5;padding:20px;text-align:center;grid-column:1/-1;">Sin datos</div>'; return; }
-      hist.forEach((round,idx)=>{
-        const div=document.createElement('div');
-        div.className=`round-item ${round.type.toLowerCase()}`;
-        div.innerHTML=`<div class="round-num">#${60-idx}</div><div>${round.multiplier.toFixed(2)}x</div>`;
-        div.title=new Date(round.ts).toLocaleTimeString();
-        c.appendChild(div);
-      });
+      if(hist.length===0){c.innerHTML='<div style="opacity:.5;padding:20px;text-align:center;grid-column:1/-1;">Sin datos</div>';return;}
+      hist.forEach((r,i)=>{const d=document.createElement('div'); d.className=`round-item ${r.type.toLowerCase()}`; d.innerHTML=`<div class="round-num">#${60-i}</div><div>${r.multiplier.toFixed(2)}x</div>`; d.title=new Date(r.ts).toLocaleTimeString(); c.appendChild(d);});
     }
-    function updateConnectionStatus(t){ document.getElementById('connectionStatus').textContent=t; }
-    function showAlert(msg,type){ const a=document.getElementById('alertBox'); a.className='alert '+type; a.innerHTML=msg; }
+    function updateConnectionStatus(t){document.getElementById('connectionStatus').textContent=t}
+    function showAlert(msg,type){const a=document.getElementById('alertBox'); a.className='alert '+type; a.innerHTML=msg}
 
-    // ==== Normalización robusta ====
-    function normalizeEntry(item, key, fallbackTs){
-      const numFromAny = (x)=>{
-        if (x == null) return NaN;
-        if (typeof x === 'number') return x;
-        if (typeof x === 'string') return parseFloat(x.replace(/x/i,''));
-        if (typeof x === 'object'){
-          const cand = x.multiplier ?? x.crash ?? x.final ?? x.value ?? x.x ?? x.m ?? x.payout ?? x.result;
-          if (cand != null) return numFromAny(cand);
-          if (x.data) return numFromAny(x.data);
+    // Normalización de entradas
+    function normalizeEntry(item,key,fallbackTs){
+      const num=(x)=>{
+        if(x==null) return NaN;
+        if(typeof x==='number') return x;
+        if(typeof x==='string') return parseFloat(x.replace(/x/i,''));
+        if(typeof x==='object'){
+          const c=x.multiplier??x.crash??x.final??x.value??x.x??x.m??x.payout??x.result;
+          if(c!=null) return num(c);
+          if(x.data) return num(x.data);
         }
         return NaN;
       };
-      const mult = numFromAny(item);
-      if (!Number.isFinite(mult) || mult < 1.0) return null;
-
-      const tsRaw = (typeof item === 'object' && item) ? (item.ts ?? item.time ?? item.t ?? item.timestamp) : undefined;
-      const ts = Number(tsRaw ?? key ?? fallbackTs) || fallbackTs;
-
-      return { multiplier: mult, ts, type: classifyMultiplier(mult) };
+      const mult=num(item);
+      if(!Number.isFinite(mult)||mult<1.0) return null;
+      const tsRaw=(typeof item==='object'&&item)?(item.ts??item.time??item.t??item.timestamp):undefined;
+      const ts=Number(tsRaw??key??fallbackTs)||fallbackTs;
+      return {multiplier:mult, ts, type:classifyMultiplier(mult)};
     }
     function processData(raw){
-      const now = Date.now();
-      let entries = [];
-      if (Array.isArray(raw)){
-        entries = raw.map((it,idx)=>normalizeEntry(it, idx, now-idx)).filter(Boolean);
-      } else if (raw && typeof raw === 'object'){
-        const keys = Object.keys(raw);
-        entries = keys.map((k,idx)=>normalizeEntry(raw[k], k, now-idx)).filter(Boolean);
-      } else {
-        const solo = normalizeEntry(raw, '0', now);
-        if (solo) entries = [solo];
-      }
-      entries.sort((a,b)=>b.ts - a.ts);
-      gameHistory = entries.slice(0,200);
-      updateRoundsDisplay();
-      drawChart();
-      console.log('✅ Normalizados:', gameHistory.length, gameHistory[0] ? `ej: ${gameHistory[0].multiplier.toFixed(2)}x` : '');
+      const now=Date.now(); let entries=[];
+      if(Array.isArray(raw)){ entries=raw.map((it,i)=>normalizeEntry(it,i,now-i)).filter(Boolean);
+      } else if(raw&&typeof raw==='object'){ const ks=Object.keys(raw); entries=ks.map((k,i)=>normalizeEntry(raw[k],k,now-i)).filter(Boolean);
+      } else { const solo=normalizeEntry(raw,'0',now); if(solo) entries=[solo]; }
+      entries.sort((a,b)=>b.ts-a.ts); gameHistory=entries.slice(0,200);
+      updateRoundsDisplay(); drawChart();
     }
+    function classifyMultiplier(m){m=parseFloat(m); if(m>=1.00&&m<=1.04)return'INSTALOSS'; if(m>=10)return'ULTRA'; if(m>=5)return'ALTO'; if(m>=1.70)return'MEDIO'; return'BAJO'}
 
-    // ==== Clasificador ====
-    function classifyMultiplier(mult){
-      mult=parseFloat(mult);
-      if (mult>=1.00 && mult<=1.04) return 'INSTALOSS';
-      else if (mult>=10.00) return 'ULTRA';
-      else if (mult>=5.00) return 'ALTO';
-      else if (mult>=1.70) return 'MEDIO';
-      return 'BAJO';
-    }
+    // Refs
+    const sessionRef  = ref(db,'shared/session');
+    const signalsRef  = ref(db,'shared/signals');
+    const currentRef  = ref(db,'current/signal');
+    const devicesRef  = ref(db,'connected_devices');
 
-    // ==== Firebase listeners (sesión, señales, dispositivo) ====
-    const sessionRef = ref(db, 'shared/session');
-    onValue(sessionRef, (snap)=>{ if(snap.exists()) updateUIFromShared(snap.val()); });
-
-    const signalsRef = ref(db, 'shared/signals');
-    onValue(signalsRef, (snap)=>{ if(snap.exists()) updateSignalsFromShared(snap.val()); });
-
-    const currentSignalRef = ref(db, 'current/signal');
-    onValue(currentSignalRef, (snap)=>{ if(snap.exists()) displaySharedSignal(snap.val()); else clearSignalDisplay(); });
-
-    const devicesRef = ref(db, 'connected_devices');
-    onValue(devicesRef, (snap)=>{ if(snap.exists()){ const count=Object.keys(snap.val()).length; document.getElementById('devicesConnected').textContent=count; }});
+    // Sesión & tablas
+    onValue(sessionRef,(s)=>{if(s.exists())updateUIFromShared(s.val())});
+    onValue(signalsRef,(s)=>{if(s.exists())updateSignalsFromShared(s.val())});
+    onValue(currentRef,(s)=>{if(s.exists())displaySharedSignal(s.val()); else clearSignalDisplay()});
+    onValue(devicesRef,(s)=>{if(s.exists()){document.getElementById('devicesConnected').textContent=Object.keys(s.val()).length}});
 
     async function registerDevice(){
-      const deviceRef = ref(db, `connected_devices/${DEVICE_ID}`);
-      await set(deviceRef, { name: DEVICE_NAME, connectedAt: Date.now() });
-      onDisconnect(deviceRef).remove();
+      const dref=ref(db,`connected_devices/${DEVICE_ID}`);
+      await set(dref,{name:DEVICE_NAME,connectedAt:Date.now()});
+      onDisconnect(dref).remove();
     }
     async function checkIfMaster(){
-      const s=await get(ref(db,'shared/session'));
-      if(!s.exists()||!s.val().active){ isMaster=true; console.log('👑 MAESTRO'); } else { isMaster=false; console.log('📱 ESCLAVO'); }
+      const s=await get(sessionRef);
+      const d=await get(devicesRef);
+      const devCount = d.exists()?Object.keys(d.val()).length:0;
+      if(!s.exists() || !s.val().active || devCount<=1){ isMaster=true; console.log('👑 MAESTRO'); }
+      else { isMaster=false; console.log('📱 ESCLAVO'); }
     }
 
+    // Start/Stop/Reset
     async function startSession(){
       await registerDevice();
       await checkIfMaster();
-      if (isMaster){
-        await set(ref(db,'shared/session'),{
-          active:true,totalRounds:0,sessionRounds:0,totalSignals:0,hits:0,misses:0,lastSignalTime:0
-        });
-        await set(ref(db,'shared/signals'),{});
-        await remove(ref(db,'current/signal'));
-        await findAndConnect();
+
+      // Si no hay sesión activa o tomamos control, inicializa
+      const s=await get(sessionRef);
+      if(!s.exists() || !s.val().active || isMaster){
+        await set(sessionRef,{active:true,totalRounds:0,sessionRounds:0,totalSignals:0,hits:0,misses:0,lastSignalTime:0});
+        await set(signalsRef,{});
+        await remove(currentRef);
       }
-      document.getElementById('btnStart').disabled = true;
-      document.getElementById('btnStop').disabled = false;
+
+      // 🔑 CONECTAR FEED SIEMPRE (maestro y esclavo)
+      await findAndConnect();
+
+      document.getElementById('btnStart').disabled=true;
+      document.getElementById('btnStop').disabled=false;
       updateConnectionStatus('🟢 ON');
-      showAlert(isMaster ? '👑 <strong>MAESTRO</strong>' : '📱 <strong>ESCLAVO</strong>', 'success');
+      showAlert(isMaster ? '👑 <strong>MAESTRO</strong>' : '📱 <strong>ESCLAVO</strong> (escuchando feed)', 'success');
     }
     async function stopSession(){
-      if (isMaster){ await update(ref(db,'shared/session'),{active:false}); }
+      if(isMaster){ await update(sessionRef,{active:false}); }
       await remove(ref(db,`connected_devices/${DEVICE_ID}`));
-      document.getElementById('btnStart').disabled = false;
-      document.getElementById('btnStop').disabled = true;
-      updateConnectionStatus('⚪ OFF');
-      showAlert('⏹️ Detenido', 'warning');
+      document.getElementById('btnStart').disabled=false;
+      document.getElementById('btnStop').disabled=true;
+      updateConnectionStatus('⚪ OFF'); showAlert('⏹️ Detenido','warning');
     }
     async function resetSession(){
-      if (!confirm('¿Resetear?')) return;
+      if(!confirm('¿Resetear?')) return;
       await stopSession();
-      await set(ref(db,'shared/session'),{});
-      await set(ref(db,'shared/signals'),{});
-      await remove(ref(db,'current/signal'));
-      showAlert('🔄 Reset', 'success');
+      await set(sessionRef,{});
+      await set(signalsRef,{});
+      await remove(currentRef);
+      showAlert('🔄 Reset','success');
     }
-    document.getElementById('btnStart').addEventListener('click', startSession);
-    document.getElementById('btnStop').addEventListener('click', stopSession);
-    document.getElementById('btnReset').addEventListener('click', resetSession);
+    document.getElementById('btnStart').addEventListener('click',startSession);
+    document.getElementById('btnStop').addEventListener('click',stopSession);
+    document.getElementById('btnReset').addEventListener('click',resetSession);
 
-    // ==== Descubrimiento de feed y listeners de datos ====
+    // Conexión al feed
     async function findAndConnect(){
-      for (const path of possiblePaths){
+      for(const path of possiblePaths){
         try{
-          const testRef = ref(db, path);
-          const snap = await get(testRef);
-          if (snap.exists()){
-            console.log('✅ Feed encontrado:', '/'+path,
-              '| tipo =', typeof snap.val(),
-              '| keys =', (snap.val() && typeof snap.val()==='object') ? Object.keys(snap.val()).length : 'n/a');
+          const t=await get(ref(db,path));
+          if(t.exists()){
+            console.log('✅ Feed:', '/'+path);
             listenToPath(path);
             return;
           }
-        }catch(e){
-          console.error('❌ Error probando', path, e);
-        }
+        }catch(e){console.error('❌',path,e)}
       }
-      console.warn('⚠️ No se encontró un feed válido en ninguno de los paths.');
+      console.warn('⚠️ No se encontró un feed válido');
     }
-
     function listenToPath(path){
-      const dataRef = ref(db, path);
-
-      // Estado completo
-      onValue(dataRef, (snapshot)=>{
-        if (!snapshot.exists()) return;
-        const raw = snapshot.val();
-        console.log('📦 onValue:', '/'+path, 'tipo=', typeof raw);
-        processData(raw);
-        afterNewData();
-      }, (err)=>{ console.error('🚫 onValue error', err?.code, err?.message); });
-
-      // Entradas incrementales (si es lista push)
-      onChildAdded(dataRef, (child)=>{
-        const k = child.key;
-        const v = child.val();
-        const normalized = normalizeEntry(v, k, Date.now());
-        if (normalized){
-          if (!gameHistory.length || normalized.ts > gameHistory[0].ts){
-            gameHistory.unshift(normalized);
-            gameHistory = gameHistory.slice(0, 200);
-            updateRoundsDisplay();
-            drawChart();
-            afterNewData();
-          }
-        }
-      }, (err)=>{ console.error('🚫 onChildAdded error', err?.code, err?.message); });
+      const dataRef=ref(db,path);
+      onValue(dataRef,(snap)=>{ if(!snap.exists())return; processData(snap.val()); afterNewData(); });
+      onChildAdded(dataRef,(child)=>{ const k=child.key,v=child.val(); const n=normalizeEntry(v,k,Date.now()); if(n){ if(!gameHistory.length||n.ts>gameHistory[0].ts){ gameHistory.unshift(n); gameHistory=gameHistory.slice(0,200); updateRoundsDisplay(); drawChart(); afterNewData(); } }});
     }
 
     async function afterNewData(){
-      if (gameHistory.length === 0) return;
-      const latest = gameHistory[0];
-      if (latest.ts === lastProcessedTimestamp) return;
-      lastProcessedTimestamp = latest.ts;
+      if(gameHistory.length===0) return;
+      const latest=gameHistory[0];
+      if(latest.ts===lastProcessedTimestamp) return;
+      lastProcessedTimestamp=latest.ts;
 
-      const sSnap = await get(ref(db,'shared/session'));
-      if (sSnap.exists()){
-        const session = sSnap.val();
-        const newRounds = (session.sessionRounds || 0) + 1;
-        await update(ref(db,'shared/session'),{
-          totalRounds:(session.totalRounds||0)+1,
-          sessionRounds: Math.min(newRounds, CONFIG.SESSION_SIZE)
+      const s=await get(sessionRef);
+      if(s.exists()){
+        const sess=s.val();
+        const newRounds=(sess.sessionRounds||0)+1;
+        await update(sessionRef,{
+          totalRounds:(sess.totalRounds||0)+1,
+          sessionRounds:Math.min(newRounds,CONFIG.SESSION_SIZE)
         });
       }
-
       await checkPendingSignal(latest.multiplier);
 
-      const ss = await get(ref(db,'shared/session'));
-      if (ss.exists() && (ss.val().sessionRounds || 0) >= CONFIG.MIN_DATA_POINTS){
+      const ss=await get(sessionRef);
+      if(ss.exists() && (ss.val().sessionRounds||0) >= CONFIG.MIN_DATA_POINTS){
         analyzeAndEmit();
       }
     }
 
-    // ==== Señal pendiente (hit/miss) ====
+    // Hit/Miss
     async function checkPendingSignal(actualCrash){
-      const curSnap=await get(ref(db,'current/signal'));
-      if(!curSnap.exists()) return;
-      const pending=curSnap.val();
+      const cur=await get(currentRef);
+      if(!cur.exists()) return;
+      const pending=cur.val();
       if(pending.checked) return;
 
       const targetMin=pending.target*0.92;
       const hit=actualCrash>=targetMin;
 
-      const sSnap=await get(ref(db,'shared/session'));
-      const session=sSnap.val()||{};
-      await update(ref(db,'shared/session'),{
-        hits:(session.hits||0)+(hit?1:0),
-        misses:(session.misses||0)+(hit?0:1)
-      });
-      await update(ref(db,`shared/signals/${pending.id}`),{
-        actualCrash:actualCrash, hit:hit, checked:true
-      });
-      await remove(ref(db,'current/signal'));
+      const s=await get(sessionRef);
+      const sess=s.val()||{};
+      await update(sessionRef,{hits:(sess.hits||0)+(hit?1:0),misses:(sess.misses||0)+(hit?0:1)});
+      await update(ref(db,`shared/signals/${pending.id}`),{actualCrash:actualCrash,hit:hit,checked:true});
+      await remove(currentRef);
 
-      showAlert(hit?`✅ ${pending.target.toFixed(2)}x → ${actualCrash.toFixed(2)}x`
-                    :`❌ ${pending.target.toFixed(2)}x → ${actualCrash.toFixed(2)}x`,
-                hit?'success':'warning');
+      showAlert(hit?`✅ ${pending.target.toFixed(2)}x → ${actualCrash.toFixed(2)}x`:`❌ ${pending.target.toFixed(2)}x → ${actualCrash.toFixed(2)}x`,hit?'success':'warning');
     }
 
-    // ==== Lógica NUEVA de señales (sin límites por tipo) ====
+    // Lógica NUEVA (sin límites)
     async function analyzeAndEmit(){
-      if (!isMaster) return;
-      if (gameHistory.length < CONFIG.MIN_DATA_POINTS) return;
+      if(!isMaster) return;
+      if(gameHistory.length<CONFIG.MIN_DATA_POINTS) return;
 
-      const sSnap=await get(ref(db,'shared/session'));
-      const session=sSnap.exists()?sSnap.val():{};
+      const s=await get(sessionRef);
+      const sess=s.exists()?s.val():{};
       const now=Date.now();
-      const timeSince=now-(session.lastSignalTime||0);
-      if (timeSince < CONFIG.SIGNAL_COOLDOWN) return;
+      const timeSince=now-(sess.lastSignalTime||0);
+      if(timeSince<CONFIG.SIGNAL_COOLDOWN) return;
 
-      const cur=await get(ref(db,'current/signal'));
-      if (cur.exists()) return;
+      const cur=await get(currentRef);
+      if(cur.exists()) return;
 
-      const last10=gameHistory.slice(0,10),
-            last5 =gameHistory.slice(0,5),
-            last3 =gameHistory.slice(0,3);
-
+      const last10=gameHistory.slice(0,10), last5=gameHistory.slice(0,5), last3=gameHistory.slice(0,3);
       const instaloss3=last3.filter(r=>r.type==='INSTALOSS').length;
       const high3    =last3.filter(r=>r.type==='ALTO'||r.type==='ULTRA').length;
-
       const lowStreak=(()=>{let c=0; for(const r of gameHistory){ if(r.type==='BAJO'||r.type==='INSTALOSS') c++; else break; } return c;})();
-
       const avg=(arr)=>arr.reduce((s,r)=>s+r.multiplier,0)/(arr.length||1);
       const avg3=avg(last3), avg5=avg(last5), avg10=avg(last10);
 
-      // Protección
-      if (high3>=1) return;
-      if (instaloss3>=2) return;
-      if (avg5<1.20 && last5.filter(r=>r.type==='INSTALOSS').length>=2) return;
+      if(high3>=1) return;
+      if(instaloss3>=2) return;
+      if(avg5<1.20 && last5.filter(r=>r.type==='INSTALOSS').length>=2) return;
 
-      let signal=null, id='signal'+now;
+      let signal=null; const id='signal'+now;
 
-      // 1.70x
-      if (!signal){
-        if (lowStreak>=4 && avg5>2.2 && instaloss3===0){
-          signal={id, timestamp:now, target:1.75, confidence:88, type:'🎯 1.70x', color:'green', soundType:'170', category:'170', reason:`Racha baja limpia (${lowStreak}) sin trampas`, checked:false};
-        } else if ( last5.filter(r=>r.type==='INSTALOSS').length===1 && last5.filter(r=>r.type==='BAJO').length>=3 && avg5>2.0 && instaloss3===0 ){
-          signal={id, timestamp:now, target:1.78, confidence:85, type:'🎯 1.70x', color:'green', soundType:'170', category:'170', reason:'Bajos frecuentes, sin trampas', checked:false};
-        } else if ( avg10>2.1 && last10.filter(r=>r.type==='BAJO').length>=6 && avg3>1.70 && instaloss3===0 ){
-          signal={id, timestamp:now, target:1.80, confidence:84, type:'🎯 1.70x', color:'green', soundType:'170', category:'170', reason:'Promedio alto, tendencia limpia', checked:false};
+      if(!signal){
+        if(lowStreak>=4 && avg5>2.2 && instaloss3===0){
+          signal={id,timestamp:now,target:1.75,confidence:88,type:'🎯 1.70x',color:'green',soundType:'170',category:'170',reason:`Racha baja limpia (${lowStreak}) sin trampas`,checked:false};
+        }else if(last5.filter(r=>r.type==='INSTALOSS').length===1 && last5.filter(r=>r.type==='BAJO').length>=3 && avg5>2.0 && instaloss3===0){
+          signal={id,timestamp:now,target:1.78,confidence:85,type:'🎯 1.70x',color:'green',soundType:'170',category:'170',reason:'Bajos frecuentes, sin trampas',checked:false};
+        }else if(avg10>2.1 && last10.filter(r=>r.type==='BAJO').length>=6 && avg3>1.70 && instaloss3===0){
+          signal={id,timestamp:now,target:1.80,confidence:84,type:'🎯 1.70x',color:'green',soundType:'170',category:'170',reason:'Promedio alto, tendencia limpia',checked:false};
+        }
+      }
+      if(!signal){
+        if(last10.filter(r=>r.type==='INSTALOSS').length===2 && last5.filter(r=>r.type==='INSTALOSS').length===1 && last5.filter(r=>r.type==='ALTO'||r.type==='ULTRA').length===0 && avg10>2.3 && lowStreak>=3){
+          signal={id,timestamp:now,target:2.80,confidence:82,type:'🌟 3x+',color:'gold',soundType:'3x',category:'3x',reason:'Patrón espaciado, sin altos',checked:false};
+        }else if(lowStreak>=6 && avg10>2.0 && last5.filter(r=>r.type==='ALTO'||r.type==='ULTRA').length===0 && instaloss3===0){
+          signal={id,timestamp:now,target:3.00,confidence:79,type:'🌟 3x+',color:'gold',soundType:'3x',category:'3x',reason:'Racha baja extensa, sin trampas',checked:false};
+        }
+      }
+      if(!signal){
+        if(last10.filter(r=>r.type==='INSTALOSS').length>=3 && last5.filter(r=>r.type==='INSTALOSS').length===1 && last5.filter(r=>r.type==='ALTO'||r.type==='ULTRA').length===0 && avg10<2 && lowStreak>=7){
+          signal={id,timestamp:now,target:9.00,confidence:75,type:'💎 10x+',color:'purple',soundType:'10x',category:'10x',reason:'Patrón ultra raro',checked:false};
         }
       }
 
-      // 3x
-      if (!signal){
-        if ( last10.filter(r=>r.type==='INSTALOSS').length===2 &&
-             last5.filter(r=>r.type==='INSTALOSS').length===1 &&
-             last5.filter(r=>r.type==='ALTO'||r.type==='ULTRA').length===0 &&
-             avg10>2.3 && lowStreak>=3 ){
-          signal={id, timestamp:now, target:2.80, confidence:82, type:'🌟 3x+', color:'gold', soundType:'3x', category:'3x', reason:'Patrón espaciado, sin altos', checked:false};
-        } else if ( lowStreak>=6 && avg10>2.0 && last5.filter(r=>r.type==='ALTO'||r.type==='ULTRA').length===0 && instaloss3===0 ){
-          signal={id, timestamp:now, target:3.00, confidence:79, type:'🌟 3x+', color:'gold', soundType:'3x', category:'3x', reason:'Racha baja extensa, sin trampas', checked:false};
-        }
-      }
-
-      // 10x
-      if (!signal){
-        if ( last10.filter(r=>r.type==='INSTALOSS').length>=3 &&
-             last5.filter(r=>r.type==='INSTALOSS').length===1 &&
-             last5.filter(r=>r.type==='ALTO'||r.type==='ULTRA').length===0 &&
-             avg10<2 && lowStreak>=7 ){
-          signal={id, timestamp:now, target:9.00, confidence:75, type:'💎 10x+', color:'purple', soundType:'10x', category:'10x', reason:'Patrón ultra raro', checked:false};
-        }
-      }
-
-      if (signal){
-        await update(ref(db,'shared/session'),{
-          totalSignals:(session.totalSignals||0)+1,
-          lastSignalTime:now
-        });
-        await set(ref(db,'current/signal'), signal);
-        await set(ref(db,`shared/signals/${signal.id}`), signal);
+      if(signal){
+        await update(sessionRef,{totalSignals:(sess.totalSignals||0)+1,lastSignalTime:now});
+        await set(currentRef,signal);
+        await set(ref(db,`shared/signals/${signal.id}`),signal);
         playSignalSound(signal.soundType);
         console.log(`🎯 SEÑAL EMITIDA: ${signal.target.toFixed(2)}x [${signal.confidence}%] - ${signal.reason}`);
       }
     }
 
-    // ==== Pintado de estado ====
+    // UI paints
     function updateUIFromShared(s){
       const p=Math.min(((s.sessionRounds||0)/CONFIG.SESSION_SIZE)*100,100);
-      document.getElementById('sessionProgress').style.width=p+'%';
-      document.getElementById('sessionProgress').textContent=`${s.sessionRounds||0}/${CONFIG.SESSION_SIZE}`;
+      const bar=document.getElementById('sessionProgress');
+      bar.style.width=p+'%'; bar.textContent=`${s.sessionRounds||0}/${CONFIG.SESSION_SIZE}`;
       document.getElementById('totalRoundsSession').textContent=s.totalRounds||0;
       const eff=s.totalSignals>0?((s.hits/s.totalSignals)*100).toFixed(0):0;
       document.getElementById('sessionEffectiveness').textContent=eff+'%';
@@ -539,33 +464,24 @@
       document.getElementById('totalMisses').textContent=s.misses||0;
     }
     function updateSignalsFromShared(data){
-      const tbody=document.getElementById('signalsTableBody');
-      tbody.innerHTML='';
+      const tbody=document.getElementById('signalsTableBody'); tbody.innerHTML='';
       const arr=Object.values(data||{}).sort((a,b)=>b.timestamp-a.timestamp);
-      if(arr.length===0){ tbody.innerHTML='<tr><td colspan="7" style="opacity:.6;padding:15px;">No hay señales</td></tr>'; return; }
-      arr.forEach((sig,i)=>{
-        const row=tbody.insertRow();
-        row.className=sig.checked?(sig.hit?'hit':'miss'):'pending';
-        row.innerHTML=`<td>${i+1}</td>
-          <td>${new Date(sig.timestamp).toLocaleTimeString('es-VE')}</td>
-          <td><strong>${sig.target.toFixed(2)}x</strong></td>
-          <td>${sig.type}</td>
-          <td>${sig.confidence}%</td>
-          <td>${sig.actualCrash?sig.actualCrash.toFixed(2)+'x':'--'}</td>
-          <td><span class="result-badge ${sig.checked?(sig.hit?'hit':'miss'):'pending'}">
-             ${sig.checked?(sig.hit?'✅':'❌'):'⏳'}
-          </span></td>`;
-      });
+      if(arr.length===0){tbody.innerHTML='<tr><td colspan="7" style="opacity:.6;padding:15px;">No hay señales</td></tr>';return;}
+      arr.forEach((s,i)=>{const r=tbody.insertRow(); r.className=s.checked?(s.hit?'hit':'miss'):'pending';
+        r.innerHTML=`<td>${i+1}</td><td>${new Date(s.timestamp).toLocaleTimeString('es-VE')}</td>
+        <td><strong>${s.target.toFixed(2)}x</strong></td><td>${s.type}</td><td>${s.confidence}%</td>
+        <td>${s.actualCrash? s.actualCrash.toFixed(2)+'x' : '--'}</td>
+        <td><span class="result-badge ${s.checked?(s.hit?'hit':'miss'):'pending'}">${s.checked?(s.hit?'✅':'❌'):'⏳'}</span></td>`;});
     }
-    function displaySharedSignal(sig){
+    function displaySharedSignal(s){
       const box=document.getElementById('signalBox');
-      document.getElementById('signalMultiplier').textContent=sig.target.toFixed(2)+'x';
-      document.getElementById('confidence').textContent=sig.confidence+'%';
-      document.getElementById('signalType').textContent=sig.type;
+      document.getElementById('signalMultiplier').textContent=s.target.toFixed(2)+'x';
+      document.getElementById('confidence').textContent=s.confidence+'%';
+      document.getElementById('signalType').textContent=s.type;
       const alertBox=document.getElementById('alertBox');
-      box.className=`signal-box ${sig.color}`;
-      alertBox.className=`alert ${sig.color==='green'?'success':sig.color==='gold'?'gold':'purple'}`;
-      alertBox.innerHTML=`<strong>🎯</strong> ${sig.type} | ${sig.reason}`;
+      box.className=`signal-box ${s.color}`;
+      alertBox.className=`alert ${s.color==='green'?'success':s.color==='gold'?'gold':'purple'}`;
+      alertBox.innerHTML=`<strong>🎯</strong> ${s.type} | ${s.reason}`;
     }
     function clearSignalDisplay(){
       const box=document.getElementById('signalBox');
@@ -575,31 +491,28 @@
       document.getElementById('signalType').textContent='Esperando...';
     }
 
-    // ==== Ticker de métricas y cooldown ====
+    // Ticker de métricas
     setInterval(async ()=>{
-      const sSnap=await get(ref(db,'shared/session'));
-      if(!sSnap.exists()) return;
-      const s=sSnap.val();
-      if (s.active && gameHistory.length>0){
+      const s=await get(sessionRef);
+      if(!s.exists()) return;
+      const sess=s.val();
+      if(sess.active && gameHistory.length>0){
         const l10=gameHistory.slice(0,Math.min(10,gameHistory.length));
         const a10=l10.reduce((sum,r)=>sum+r.multiplier,0)/l10.length || 0;
-        document.getElementById('avgLast10').textContent=(l10.length?a10.toFixed(2)+'x':'--');
+        document.getElementById('avgLast10').textContent=l10.length? a10.toFixed(2)+'x':'--';
         document.getElementById('instalossCount').textContent=l10.filter(r=>r.type==='INSTALOSS').length;
         document.getElementById('lowCount').textContent=l10.filter(r=>r.type==='BAJO').length;
         document.getElementById('highCount').textContent=l10.filter(r=>r.type==='ALTO'||r.type==='ULTRA').length;
-
         let ls=0; for(const r of gameHistory){ if(r.type==='BAJO'||r.type==='INSTALOSS') ls++; else break; }
         document.getElementById('lowStreak').textContent=ls;
-
         const l5=gameHistory.slice(0,Math.min(5,gameHistory.length));
-        const a5=l5.length?l5.reduce((sum,r)=>sum+r.multiplier,0)/l5.length:a10;
-        document.getElementById('trendIndicator').textContent=(l5.length && l10.length)?(a5<a10?'⬇️':'⬆️'):'--';
-
-        const timeSince=Date.now()-(s.lastSignalTime||0);
-        if (timeSince < CONFIG.SIGNAL_COOLDOWN){
+        const a5=l5.length? l5.reduce((s,r)=>s+r.multiplier,0)/l5.length : a10;
+        document.getElementById('trendIndicator').textContent=(l5.length&&l10.length)?(a5<a10?'⬇️':'⬆️'):'--';
+        const timeSince=Date.now()-(sess.lastSignalTime||0);
+        if(timeSince<CONFIG.SIGNAL_COOLDOWN){
           const rem=Math.ceil((CONFIG.SIGNAL_COOLDOWN-timeSince)/1000);
           document.getElementById('countdown').textContent=`Cooldown: ${rem}s`;
-        } else {
+        }else{
           document.getElementById('countdown').textContent='Listo';
         }
       }
