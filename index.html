@@ -91,36 +91,29 @@ class AviatorSystem {
         this.listo = false;
         this.rondasTotales = 0;
         this.lastKey = null;
-        this.ready = false;
+        this.bloqueado = true;
         this.iniciar();
     }
 
     iniciar() {
-        // Al iniciar, solo nos importa la clave más reciente.
         db.ref('feeds/gocho/crashes').orderByKey().limitToLast(1).once('value', snap => {
-            snap.forEach(child => {
-                this.lastKey = child.key;
-            });
-            this.historico = [];
+            snap.forEach(child => { this.lastKey = child.key; });
             this.senales = [];
-            this.listo = true;
-            this.ready = true;
-            this.rondasDesdeSenal = 0;
-            this.rondasTotales = 0;
+            this.historico = [];
+            this.rondasDesdeSenal = 0; this.rondasTotales = 0;
             this.senalesEnRacha = 0;
-            this.actualizarInterfaz();
+            this.listo = true;
             document.getElementById('syncStatus').innerHTML = '✅ Sistema listo - Analizando';
-            db.ref('feeds/gocho/crashes').on('child_added', s => this.crashNuevo(s));
+            db.ref('feeds/gocho/crashes').on('child_added', s => this.crashNuevoUltralimpio(s));
+            this.actualizarInterfaz();
         });
     }
 
-    crashNuevo(snap) {
-        // Solo responde si es una ronda NUEVA tras entrar
-        if (!this.ready || !snap || !snap.key) return;
-        if (snap.key === this.lastKey) {
-            // Primer child_added será igual al último que viste en snapshot, ignóralo.
-            this.lastKey = null;
-            return;
+    crashNuevoUltralimpio(snap) {
+        if (!this.listo || !snap || !snap.key) return;
+        if (this.bloqueado) {
+            if (snap.key === this.lastKey) return;
+            this.bloqueado = false;
         }
         let data = snap.val();
         if (!data || !data.v || !data.ts) return;
@@ -180,7 +173,7 @@ class AviatorSystem {
     generarSenal() {
         if (this.senales.length && this.senales[this.senales.length-1].resultado === 'PENDIENTE')
             return { tipo: 'ESPERANDO', msg: '⏳ Esperando resultado de la señal anterior', emoji: '⏳' };
-        if (!this.listo || !this.ready) return { tipo: 'ESPERANDO', msg:`⏳ Esperando ronda nueva`, emoji:'⏳'};
+        if (!this.listo || this.bloqueado) return { tipo: 'ESPERANDO', msg:`⏳ Esperando ronda nueva`, emoji:'⏳'};
         if (this.historico.length < 15) return { tipo:'ESPERANDO', msg:`⏳ Datos (${this.historico.length}/15)`, emoji:'⏳'};
         if (this.detectarZonaPeligrosa()) return { tipo:'BLOQUEADO', msg:'🚫 BLOQUEADO', emoji:'⚠️'};
         if (this.detectarRachaCaliente()) {
