@@ -7,7 +7,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <style>
-/* [el mismo CSS completo que siempre] */
+/* --- mismo CSS de siempre --- */
 body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,#0f0c29 0%,#302b63 50%,#24243e 100%);color:#fff;min-height:100vh;padding:14px;margin:0;}
 .container{width:100%;max-width:1200px;margin:0 auto;}
 .header{text-align:center;padding:15px 7px 11px 7px;background:rgba(255,255,255,0.07);border-radius:9px 9px 16px 16px;margin-bottom:11px;}
@@ -167,17 +167,22 @@ class AviatorSystem {
         });
         this.rondasTotales++;
         if (this.historico.length > 1000) this.historico.shift();
-        this.rondasDesdeSenal++;
-        // Solo empieza a funcionar tiempo real al recibir la PRIMERA ronda nueva
+
         if (!this.readyForRealtime && this.historico.length > this.crashesIniciales) {
             this.readyForRealtime = true;
+            this.rondasDesdeSenal = 0;
+            this.senales = [];
         }
         if (this.readyForRealtime) {
+            // Verifica y luego (SOLO aquí) genera señal si aplica (no en el render)
             this.verificarResultados();
+            let senal = this.generarSenal();
             this.actualizarInterfaz();
+            if (senal.tipo === 'ACTIVA') this.emitirBeep();
+        } else {
+            this.actualizarCrashes();
+            this.actualizarStats();
         }
-        this.actualizarCrashes();
-        this.actualizarStats();
     }
 
     categorizar(mult) {
@@ -188,6 +193,7 @@ class AviatorSystem {
     }
 
     verificarResultados() {
+        // Solo una señal pendiente a la vez
         if (!this.senales.length) return;
         let idxS = this.senales.findIndex(s => s.resultado === 'PENDIENTE' && !s.verificada && s.idxHistorico !== undefined);
         if (idxS === -1) return;
@@ -223,6 +229,10 @@ class AviatorSystem {
     }
 
     generarSenal() {
+        // Solo emite si NO hay señal pendiente, SOLO en crash nuevo
+        if (this.senales.length && this.senales[this.senales.length-1].resultado === 'PENDIENTE') {
+            return { tipo: 'ESPERANDO', msg: '⏳ Esperando resultado de la señal anterior', emoji: '⏳' };
+        }
         if (!this.listo || !this.readyForRealtime) return { tipo: 'ESPERANDO', msg: `⏳ Esperando ronda nueva`, emoji: '⏳' };
         if (this.historico.length < 15) return { tipo: 'ESPERANDO', msg: `⏳ Datos (${this.historico.length}/15)`, emoji: '⏳' };
         if (this.detectarZonaPeligrosa()) return { tipo: 'BLOQUEADO', msg: '🚫 BLOQUEADO', emoji: '⚠️' };
@@ -240,7 +250,6 @@ class AviatorSystem {
                     idxHistorico: this.historico.length-1
                 });
                 this.rondasDesdeSenal = 0; this.senalesEnRacha++;
-                this.emitirBeep();
                 return {
                     tipo: 'ACTIVA',
                     msg: `${min}x - ${max}x`,
@@ -273,7 +282,6 @@ class AviatorSystem {
                 idxHistorico: this.historico.length-1
             });
             this.rondasDesdeSenal = 0; this.senalesEnRacha = 0;
-            this.emitirBeep();
             return {
                 tipo: 'ACTIVA',
                 msg: `${min}x - ${max}x`,
@@ -296,7 +304,21 @@ class AviatorSystem {
         this.actualizarHistorial();
     }
     actualizarPanel() {
-        const senal = this.generarSenal();
+        // SOLO muestra la señal más reciente o el estado real
+        let senal = {tipo:'ESPERANDO', msg:'⏳ Esperando ronda nueva', emoji:'⏳'};
+        if (this.senales.length) {
+            const ult = this.senales[this.senales.length-1];
+            if (ult.resultado === 'PENDIENTE') senal = {tipo:'PENDIENTE', msg:'⏳ Señal pendiente', emoji:'⏳'};
+            if (ult.resultado === 'GANADA' || ult.resultado === 'PERDIDA') {
+                senal = {
+                    tipo: ult.resultado,
+                    msg: `${ult.rango.min}x - ${ult.rango.max}x`,
+                    emoji: ult.resultado === 'GANADA' ? '✅' : '❌',
+                    confidence: '',
+                    modo: ''
+                };
+            }
+        }
         const panel = document.getElementById('signalPanel');
         if (senal.tipo === 'ACTIVA') {
             panel.className = 'signal-panel hot';
