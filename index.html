@@ -158,7 +158,7 @@ body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-g
       <div style="overflow-x:auto;">
         <table class="history-table">
           <thead><tr><th>#</th><th>Hora</th><th>Target</th><th>Tipo</th><th>Conf.</th><th>Real</th><th>Estado</th></tr></thead>
-          <tbody id="signalsTableBody"><tr><td colspan="7" style="opacity:.6;padding:15px;">No hay señales</td></tr></tbody>
+        <tbody id="signalsTableBody"><tr><td colspan="7" style="opacity:.6;padding:15px;">No hay señales</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -203,9 +203,9 @@ const possiblePaths=['feeds/gocho/crashes','crashes','historial','last_final'];
 function initChart(){const canvas=document.getElementById('trendChart');const ctx=canvas.getContext('2d');canvas.width=canvas.offsetWidth;canvas.height=250;chart={canvas,ctx}}
 function calculateEMA(d,p){if(!d||!d.length)return[];const k=2/(p+1);let e=d[0];const r=[e];for(let i=1;i<d.length;i++){e=d[i]*k+e*(1-k);r.push(e)}return r}
 function calculateBollingerBands(data,period=20,stdDev=2){const b={upper:[],middle:[],lower:[]};for(let i=period-1;i<data.length;i++){const s=data.slice(i-period+1,i+1);const avg=s.reduce((a,b)=>a+b,0)/period;const v=s.reduce((sum,val)=>sum+Math.pow(val-avg,2),0)/period;const std=Math.sqrt(v);b.middle.push(avg);b.upper.push(avg+std*stdDev);b.lower.push(avg-std*stdDev)}return b}
-function drawChart(){ if(!chart||gameHistory.length<2) return; const {ctx,canvas}=chart; const w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h); const data=gameHistory.slice(0,60).reverse(); const vals=data.map(r=>r.multiplier); const max=Math.max(...vals,10), min=Math.min(...vals,0), range=(max-min)||1, step=w/((data.length-1)||1); if(chartOptions.showGrid){ctx.strokeStyle='rgba(255,255,255,.1)';ctx.lineWidth=1; for(let i=0;i<=5;i++){const y=(h/5)*i;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()} for(let i=0;i<=10;i++){const x=(w/10)*i;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke()}} if(chartOptions.showBollinger&&data.length>=20){const bands=calculateBollingerBands(vals); ctx.strokeStyle='rgba(255,100,100,.4)';ctx.beginPath(); bands.upper.forEach((v,i)=>{const x=(i+19)*step,y=h-((v-min)/range)*h; if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y)});ctx.stroke(); ctx.strokeStyle='rgba(100,100,255,.4)';ctx.beginPath(); bands.lower.forEach((v,i)=>{const x=(i+19)*step,y=h-((v-min)/range)*h; if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y)});ctx.stroke()} ctx.strokeStyle='#667eea';ctx.lineWidth=2;ctx.beginPath(); data.forEach((r,i)=>{const x=i*step,y=h-((r.multiplier-min)/range)*h; if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y)}); ctx.stroke(); data.forEach((r,i)=>{const x=i*step,y=h-((r.multiplier-min)/range)*h; let c='#4facfe'; if(r.type==='INSTALOSS')c='#f5576c'; else if(r.type==='ULTRA')c='#b06ab3'; else if(r.type==='ALTO')c='#00ff88'; ctx.fillStyle=c; ctx.beginPath(); ctx.arc(x,y,4,0,Math.PI*2); ctx.fill()}); }
+function drawChart(){ if(!chart||gameHistory.length<2) return; const {ctx,canvas}=chart; const w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h); const data=gameHistory.slice(0,60).reverse(); const vals=data.map(r=>r.multiplier); const max=Math.max(...vals,10), min=Math.min(...vals,0), range=(max-min)||1, step=w/((data.length-1)||1); if(chartOptions.showGrid){ctx.strokeStyle='rgba(255,255,255,.1)';ctx.lineWidth=1; for(let i=0;i<=5;i++){const y=(h/5)*i;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()} for(let i=0;i<=10;i++){const x=(w/10)*i;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke()}} ctx.strokeStyle='#667eea';ctx.lineWidth=2;ctx.beginPath(); data.forEach((r,i)=>{const x=i*step,y=h-((r.multiplier-min)/range)*h; if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y)}); ctx.stroke(); data.forEach((r,i)=>{const x=i*step,y=h-((r.multiplier-min)/range)*h; let c='#4facfe'; if(r.type==='INSTALOSS')c='#f5576c'; else if(r.type==='ULTRA')c='#b06ab3'; else if(r.type==='ALTO')c='#00ff88'; ctx.fillStyle=c; ctx.beginPath(); ctx.arc(x,y,4,0,Math.PI*2); ctx.fill()}); }
 
-// Watchers usando rutas con slash (según tu lógica nueva)
+// Watchers
 const sessionRef = ref(db, 'shared/session');
 onValue(sessionRef, (snap)=>{ if(snap.exists()) updateUIFromShared(snap.val()); });
 const signalsRef = ref(db, 'shared/signals');
@@ -226,31 +226,59 @@ document.getElementById('btnStart').addEventListener('click', startSession);
 document.getElementById('btnStop').addEventListener('click', stopSession);
 document.getElementById('btnReset').addEventListener('click', resetSession);
 
-async function findAndConnect(){ for(const path of possiblePaths){ try{ const testRef=ref(db,path); const snap=await get(testRef); if(snap.exists()){ console.log(`✅ /${path}`); listenToPath(path); return; } }catch(e){ console.error(`❌ ${path}`); } } }
+async function findAndConnect(){ for(const path of possiblePaths){ try{ const testRef=ref(db,path); const snap=await get(testRef); if(snap.exists()){ console.log(`✅ /${path}`); listenToPath(path); return; } }catch(e){ console.error(`❌ ${path}`, e); } } console.warn('⚠️ No se encontró un feed válido.'); }
 
-function listenToPath(path){ const dataRef=ref(db,path); onValue(dataRef,(snapshot)=>{ if(!snapshot.exists()) return; const data=snapshot.val(); processData(data); if(gameHistory.length>0){ const latest=gameHistory[0]; if(latest.ts!==lastProcessedTimestamp){ lastProcessedTimestamp=latest.ts; (async()=>{ const sSnap=await get(ref(db,'shared/session')); if(sSnap.exists()){ const session=sSnap.val(); const newRounds=(session.sessionRounds||0)+1; await update(ref(db,'shared/session'),{ totalRounds:(session.totalRounds||0)+1, sessionRounds:newRounds>=CONFIG.SESSION_SIZE?CONFIG.SESSION_SIZE:newRounds }); }
- await checkPendingSignal(latest.multiplier); setTimeout(async()=>{ const ss=await get(ref(db,'shared/session')); if(ss.exists()&&(ss.val().sessionRounds||0)>=CONFIG.MIN_DATA_POINTS){ analyzeAndEmit(); } },1000); })(); } } drawChart(); }); }
+function normalizeEntry(item, key, fallbackTs){
+  // Intenta detectar el multiplicador según distintos esquemas
+  const candidates = [
+    item?.multiplier, item?.crash, item?.final, item?.value, item?.x, item?.m, item?.payout, item?.result
+  ];
+  let mult = candidates.map(Number).find(v => Number.isFinite(v));
+  // Si es string con "x" al final, ej. "1.23x"
+  if(!Number.isFinite(mult) && typeof item === 'string'){
+    const m = parseFloat(item.replace('x',''));
+    if(Number.isFinite(m)) mult = m;
+  }
+  // Debe ser >= 1.0 para ser válido
+  if(!Number.isFinite(mult) || mult < 1.0) return null;
+  // timestamp
+  const ts = Number(item?.ts || item?.time || key) || fallbackTs;
+  return { multiplier: mult, ts, type: classifyMultiplier(mult) };
+}
 
-function processData(raw){ // espera lista de objetos {multiplier:number, ts:number}
-  const arr = Array.isArray(raw) ? raw : Object.values(raw||{});
-  // Suponemos que vienen en orden ascendente por ts; ordenamos desc para tener el más reciente primero
-  const normalized = arr
-    .map(r=>({ multiplier: parseFloat(r.multiplier||r.crash||r.value||0), ts: r.ts||r.time||Date.now() }))
-    .filter(r=>!isNaN(r.multiplier))
-    .sort((a,b)=>b.ts-a.ts)
-    .slice(0,200)
-    .map(r=>({ ...r, type: classifyMultiplier(r.multiplier) }));
-  gameHistory = normalized;
+function processData(raw){
+  const now = Date.now();
+  let entries = [];
+  if(Array.isArray(raw)){
+    entries = raw.map((it,idx)=>normalizeEntry(it, idx, now-idx)).filter(Boolean);
+  } else if (raw && typeof raw === 'object'){
+    const keys = Object.keys(raw);
+    entries = keys.map((k,idx)=>normalizeEntry(raw[k], k, now-idx)).filter(Boolean);
+  }
+  // Ordenar por ts descendente
+  entries.sort((a,b)=>b.ts-a.ts);
+  gameHistory = entries.slice(0,200);
   updateRoundsDisplay();
 }
 
+function listenToPath(path){ const dataRef=ref(db,path); onValue(dataRef,(snapshot)=>{ if(!snapshot.exists()) return; processData(snapshot.val()); const latest = gameHistory[0]; if(latest && latest.ts !== lastProcessedTimestamp){ lastProcessedTimestamp = latest.ts; (async()=>{ const sSnap=await get(ref(db,'shared/session')); if(sSnap.exists()){
+    const session=sSnap.val();
+    const newRounds=(session.sessionRounds||0)+1;
+    await update(ref(db,'shared/session'),{ totalRounds:(session.totalRounds||0)+1, sessionRounds: Math.min(newRounds, CONFIG.SESSION_SIZE) });
+  }
+  await checkPendingSignal(latest.multiplier);
+  // Analizar sólo si ya hay 60 válidas
+  const ss = await get(ref(db,'shared/session'));
+  if(ss.exists() && (ss.val().sessionRounds||0) >= CONFIG.MIN_DATA_POINTS){ analyzeAndEmit(); }
+  })(); } drawChart(); }); }
+
 function classifyMultiplier(mult){ mult=parseFloat(mult); if(mult>=1.00 && mult<=1.04) return 'INSTALOSS'; else if(mult>=10.00) return 'ULTRA'; else if(mult>=5.00) return 'ALTO'; else if(mult>=1.70) return 'MEDIO'; else return 'BAJO'; }
 
-function updateRoundsDisplay(){ const c=document.getElementById('roundsDisplay'); c.innerHTML=''; const hist=[...gameHistory].slice(0,60); hist.forEach((round,idx)=>{ const div=document.createElement('div'); div.className=`round-item ${round.type.toLowerCase()}`; div.innerHTML=`<div class="round-num">#${60-idx}</div><div>${round.multiplier.toFixed(2)}x</div>`; div.title=new Date(round.ts).toLocaleTimeString(); c.appendChild(div); }); }
+function updateRoundsDisplay(){ const c=document.getElementById('roundsDisplay'); c.innerHTML=''; const hist=[...gameHistory].slice(0,60); if(hist.length===0){ c.innerHTML='<div style="opacity:.5;padding:20px;text-align:center;grid-column:1/-1;">Sin datos</div>'; return; } hist.forEach((round,idx)=>{ const div=document.createElement('div'); div.className=`round-item ${round.type.toLowerCase()}`; div.innerHTML=`<div class="round-num">#${60-idx}</div><div>${round.multiplier.toFixed(2)}x</div>`; div.title=new Date(round.ts).toLocaleTimeString(); c.appendChild(div); }); }
 
 async function checkPendingSignal(actualCrash){ const curSnap=await get(ref(db,'current/signal')); if(!curSnap.exists()) return; const pending=curSnap.val(); if(pending.checked) return; const targetMin=pending.target*0.92; const hit=actualCrash>=targetMin; const sSnap=await get(ref(db,'shared/session')); const session=sSnap.val()||{}; await update(ref(db,'shared/session'),{ hits:(session.hits||0)+(hit?1:0), misses:(session.misses||0)+(hit?0:1)}); await update(ref(db,`shared/signals/${pending.id}`),{ actualCrash:actualCrash, hit:hit, checked:true }); await remove(ref(db,'current/signal')); showAlert(hit?`✅ ${pending.target.toFixed(2)}x → ${actualCrash.toFixed(2)}x`:`❌ ${pending.target.toFixed(2)}x → ${actualCrash.toFixed(2)}x`, hit?'success':'warning'); }
 
-// === NUEVA LÓGICA (sin límites por cantidad; empieza tras 60 rondas) ===
+// === Lógica nueva ===
 async function analyzeAndEmit(){ if(!isMaster) return; if(gameHistory.length<CONFIG.MIN_DATA_POINTS) return; const sSnap=await get(ref(db,'shared/session')); const session=sSnap.exists()?sSnap.val():{}; const now=Date.now(); const timeSince=now-(session.lastSignalTime||0); if(timeSince<CONFIG.SIGNAL_COOLDOWN) return; const cur=await get(ref(db,'current/signal')); if(cur.exists()) return; const last10=gameHistory.slice(0,10), last5=gameHistory.slice(0,5), last3=gameHistory.slice(0,3); const instaloss3=last3.filter(r=>r.type==='INSTALOSS').length; const high3=last3.filter(r=>r.type==='ALTO'||r.type==='ULTRA').length; const lowStreak=(()=>{let c=0; for(const r of gameHistory){ if(r.type==='BAJO'||r.type==='INSTALOSS') c++; else break; } return c;})(); const avg=(arr)=>arr.reduce((s,r)=>s+r.multiplier,0)/(arr.length||1); const avg3=avg(last3), avg5=avg(last5), avg10=avg(last10); if(high3>=1) return; if(instaloss3>=2) return; if(avg5<1.20 && last5.filter(r=>r.type==='INSTALOSS').length>=2) return; let signal=null; if(!signal){ if(lowStreak>=4 && avg5>2.2 && instaloss3===0){ signal={ id:'signal'+now, timestamp:now, target:1.75, confidence:88, type:'🎯 1.70x', color:'green', soundType:'170', category:'170', reason:`Racha baja limpia (${lowStreak}) sin trampas`, checked:false }; } else if ( last5.filter(r=>r.type==='INSTALOSS').length===1 && last5.filter(r=>r.type==='BAJO').length>=3 && avg5>2.0 && instaloss3===0) { signal={ id:'signal'+now, timestamp:now, target:1.78, confidence:85, type:'🎯 1.70x', color:'green', soundType:'170', category:'170', reason:'Bajos frecuentes, sin trampas', checked:false }; } else if ( avg10>2.1 && last10.filter(r=>r.type==='BAJO').length>=6 && avg3>1.70 && instaloss3===0) { signal={ id:'signal'+now, timestamp:now, target:1.80, confidence:84, type:'🎯 1.70x', color:'green', soundType:'170', category:'170', reason:'Promedio alto, tendencia limpia', checked:false }; } }
  if(!signal){ if( last10.filter(r=>r.type==='INSTALOSS').length===2 && last5.filter(r=>r.type==='INSTALOSS').length===1 && last5.filter(r=>r.type==='ALTO'||r.type==='ULTRA').length===0 && avg10>2.3 && lowStreak>=3){ signal={ id:'signal'+now, timestamp:now, target:2.80, confidence:82, type:'🌟 3x+', color:'gold', soundType:'3x', category:'3x', reason:'Patrón espaciado, sin altos', checked:false }; } else if ( lowStreak>=6 && avg10>2.0 && last5.filter(r=>r.type==='ALTO'||r.type==='ULTRA').length===0 && instaloss3===0){ signal={ id:'signal'+now, timestamp:now, target:3.00, confidence:79, type:'🌟 3x+', color:'gold', soundType:'3x', category:'3x', reason:'Racha baja extensa, sin trampas', checked:false }; } }
  if(!signal){ if( last10.filter(r=>r.type==='INSTALOSS').length>=3 && last5.filter(r=>r.type==='INSTALOSS').length===1 && last5.filter(r=>r.type==='ALTO'||r.type==='ULTRA').length===0 && avg10<2 && lowStreak>=7){ signal={ id:'signal'+now, timestamp:now, target:9.00, confidence:75, type:'💎 10x+', color:'purple', soundType:'10x', category:'10x', reason:'Patrón ultra raro', checked:false }; } }
@@ -260,16 +288,15 @@ function updateUIFromShared(s){ const p=Math.min(((s.sessionRounds||0)/CONFIG.SE
 
 function updateSignalsFromShared(data){ const tbody=document.getElementById('signalsTableBody'); tbody.innerHTML=''; const arr=Object.values(data||{}).sort((a,b)=>b.timestamp-a.timestamp); if(arr.length===0){ tbody.innerHTML='<tr><td colspan="7" style="opacity:.6;padding:15px;">No hay señales</td></tr>'; return; } arr.forEach((sig,i)=>{ const row=tbody.insertRow(); row.className=sig.checked?(sig.hit?'hit':'miss'):'pending'; row.innerHTML=`<td>${i+1}</td><td>${new Date(sig.timestamp).toLocaleTimeString('es-VE')}</td><td><strong>${sig.target.toFixed(2)}x</strong></td><td>${sig.type}</td><td>${sig.confidence}%</td><td>${sig.actualCrash?sig.actualCrash.toFixed(2)+'x':'--'}</td><td><span class="result-badge ${sig.checked?(sig.hit?'hit':'miss'):'pending'}">${sig.checked?(sig.hit?'✅':'❌'):'⏳'}</span></td>`; }); }
 
-function displaySharedSignal(sig){ const box=document.getElementById('signalBox'); const m=document.getElementById('signalMultiplier'); const c=document.getElementById('confidence'); const t=document.getElementById('signalType'); box.className=`signal-box ${sig.color}`; m.textContent=sig.target.toFixed(2)+'x'; c.textContent=sig.confidence+'%'; t.textContent=sig.type; const alertBox=document.getElementById('alertBox'); alertBox.className=`alert ${sig.color==='green'?'success':sig.color==='gold'?'gold':'purple'}`; alertBox.innerHTML=`<strong>🎯</strong> ${sig.type} | ${sig.reason}`; playSignalSound(sig.soundType); }
+function displaySharedSignal(sig){ const box=document.getElementById('signalBox'); const m=document.getElementById('signalMultiplier'); const c=document.getElementById('confidence'); const t=document.getElementById('signalType'); box.className=`signal-box ${sig.color}`; m.textContent=sig.target.toFixed(2)+'x'; c.textContent=sig.confidence+'%'; t.textContent=sig.type; const alertBox=document.getElementById('alertBox'); alertBox.className=`alert ${sig.color==='green'?'success':sig.color==='gold'?'gold':'purple'}`; alertBox.innerHTML=`<strong>🎯</strong> ${sig.type} | ${sig.reason}`; }
 function clearSignalDisplay(){ const box=document.getElementById('signalBox'); document.getElementById('signalMultiplier').textContent='--'; document.getElementById('confidence').textContent='--'; document.getElementById('signalType').textContent='Esperando...'; box.className='signal-box waiting'; }
 function updateConnectionStatus(text){ document.getElementById('connectionStatus').textContent=text; }
 function showAlert(msg,type){ const a=document.getElementById('alertBox'); a.className='alert '+type; a.innerHTML=msg; }
 
-setInterval(async()=>{ const sSnap=await get(ref(db,'shared/session')); const s=snapExists(sSnap)?sSnap.val():{}; if(s.active && gameHistory.length>0){ const l10=gameHistory.slice(0,Math.min(10,gameHistory.length)); const a10=l10.reduce((sum,r)=>sum+r.multiplier,0)/l10.length; document.getElementById('avgLast10').textContent=a10.toFixed(2)+'x'; document.getElementById('instalossCount').textContent=l10.filter(r=>r.type==='INSTALOSS').length; document.getElementById('lowCount').textContent=l10.filter(r=>r.type==='BAJO').length; document.getElementById('highCount').textContent=l10.filter(r=>r.type==='ALTO'||r.type==='ULTRA').length; let ls=0; for(const r of gameHistory){ if(r.type==='BAJO'||r.type==='INSTALOSS') ls++; else break; } document.getElementById('lowStreak').textContent=ls; const a5=gameHistory.slice(0,5).reduce((sum,r)=>sum+r.multiplier,0)/5; document.getElementById('trendIndicator').textContent=a5<a10?'⬇️':'⬆️'; const timeSince=Date.now()-(s.lastSignalTime||0); if(timeSince<CONFIG.SIGNAL_COOLDOWN){ const rem=Math.ceil((CONFIG.SIGNAL_COOLDOWN-timeSince)/1000); document.getElementById('countdown').textContent=`Cooldown: ${rem}s`; } else { document.getElementById('countdown').textContent='Listo'; } } },1000);
-function snapExists(s){ return s && s.exists && s.exists(); }
+setInterval(async()=>{ const sSnap=await get(ref(db,'shared/session')); if(!sSnap.exists()) return; const s=sSnap.val(); if(s.active && gameHistory.length>0){ const l10=gameHistory.slice(0,Math.min(10,gameHistory.length)); const a10=l10.reduce((sum,r)=>sum+r.multiplier,0)/l10.length; document.getElementById('avgLast10').textContent=(l10.length?a10.toFixed(2)+'x':'--'); document.getElementById('instalossCount').textContent=l10.filter(r=>r.type==='INSTALOSS').length; document.getElementById('lowCount').textContent=l10.filter(r=>r.type==='BAJO').length; document.getElementById('highCount').textContent=l10.filter(r=>r.type==='ALTO'||r.type==='ULTRA').length; let ls=0; for(const r of gameHistory){ if(r.type==='BAJO'||r.type==='INSTALOSS') ls++; else break; } document.getElementById('lowStreak').textContent=ls; const l5=gameHistory.slice(0,Math.min(5,gameHistory.length)); const a5=l5.length?l5.reduce((sum,r)=>sum+r.multiplier,0)/l5.length:a10; document.getElementById('trendIndicator').textContent=(l5.length && l10.length)?(a5<a10?'⬇️':'⬆️'):'--'; const timeSince=Date.now()-(s.lastSignalTime||0); if(timeSince<CONFIG.SIGNAL_COOLDOWN){ const rem=Math.ceil((CONFIG.SIGNAL_COOLDOWN-timeSince)/1000); document.getElementById('countdown').textContent=`Cooldown: ${rem}s`; } else { document.getElementById('countdown').textContent='Listo'; } } },1000);
 
 initChart();
-console.log('✅ Sistema listo - Base 60 & lógica nueva');
+console.log('✅ Sistema listo - Base 60 & lógica nueva (normalización robusta)');
 </script>
 </body>
 </html>
