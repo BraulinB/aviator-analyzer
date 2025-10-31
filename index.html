@@ -7,29 +7,70 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <style>
-/* ... el mismo css ... */
-body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,#0f0c29 0%,#302b63 50%,#24243e 100%);color:#fff;min-height:100vh;padding:14px;margin:0;}
-/*... (deja todo igual aquí abajo) ... */
+body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,#1e085a 0%,#181251 100%);color:#fff;min-height:100vh;padding:10px;margin:0;}
+.container{width:100%;max-width:1200px;margin:0 auto;}
+.header{text-align:center;padding:18px 7px 14px 7px;background:rgba(255,255,255,0.08);border-radius:12px 12px 21px 21px;margin-bottom:14px;}
+.header h1{font-size:2em;margin-bottom:5px;}
+.sync-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(20,255,20,0.12);padding:6px 15px;border-radius:10px;font-size:1.03em;}
+.crashes-section{background:rgba(255,255,255,0.07);border-radius:12px;padding:13px 15px 7px 15px;margin-bottom:10px;}
+.crashes-section h3{font-size:1.09em;margin-bottom:6px;}
+.crashes-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:3px;}
+.crash-item{padding:6px 8px;border-radius:6px;font-size:1em;font-weight:bold;border:1.5px solid rgba(255,255,255,0.18);min-width:40px;text-align:center;flex:1 0 40px;}
+.azul{background:rgba(0,212,255,0.19);border-color:#00d4ff;color:#00d4ff;}
+.verde{background:rgba(3,218,198,0.18);border-color:#03dac6;color:#03dac6;}
+.morado{background:rgba(187,134,252,0.18);border-color:#bb86fc;color:#bb86fc;}
+.fucsia{background:rgba(255,20,147,0.23);border-color:#ff1493;color:#ff1493;}
+.main-section{display:grid;grid-template-columns:2fr 1fr;gap:17px;margin-bottom:13px;}
+.signal-panel{background:linear-gradient(135deg,#0f2027 0%,#2c5364 100%);border-radius:13px;padding:23px 0;text-align:center;min-height:122px;}
+.signal-panel.blocked{background:linear-gradient(135deg,#740d0d,#3a0606);}
+.signal-panel.hot{background:linear-gradient(135deg,#2af598 0%,#009efd 100%);}
+.signal-status{font-size:1.18em;opacity:0.98;margin-bottom:10px;}
+.signal-value{font-size:2.0em;font-weight:bold;margin:13px 0;}
+.signal-confidence{font-size:1em;opacity:0.92;margin-bottom:8px;}
+.signal-mode{display:inline-block;padding:5px 13px;background:rgba(0,0,0,0.17);border-radius:10px;font-size:0.89em;}
+.stats-section{background:rgba(255,255,255,0.07);border-radius:9px;padding:12px;}
+.stats-section h3{font-size:1.08em;margin-bottom:10px;}
+.stats-grid{display:grid;grid-template-columns:1fr;gap:7px;}
+.stat-item{background:rgba(255,255,255,0.04);padding:10px;border-radius:4px;text-align:center;}
+.stat-item .value{font-size:1.4em;font-weight:bold;}
+.stat-item .label{font-size:0.87em;opacity:0.62;}
+.controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:9px;}
+button{padding:8px 17px;border:none;border-radius:7px;font-size:1em;cursor:pointer;transition:all 0.23s;}
+button.primary{background:linear-gradient(135deg,#2690ff 0%,#9e52dc 100%);color:white;}
+.history-section{background:rgba(255,255,255,0.06);border-radius:9px;padding:15px 7px;}
+.history-section h3{font-size:1.08em;margin-bottom:9px;}
+.history-list{max-height:360px;overflow-y:auto;}
+.signal-item{padding:12px;margin:7px 0;background:#14062f;border-radius:6px;border-left:4px solid #4172c2;font-size:0.99em;}
+.signal-item.ganada{border-left-color:#00fd84;background:rgba(0,253,132,0.10);}
+.signal-item.perdida{border-left-color:#fd175c;background:rgba(253,23,92,0.08);}
+.sig-header{font-weight:bold;margin-bottom:4px;}
+.sig-detail{font-size:0.99em;opacity:0.86;margin-bottom:2px;}
+.sig-result{display:inline-block;padding:3px 8px;border-radius:4px;font-weight:bold;font-size:0.92em;margin-top:5px;}
+.sig-result.ganada{background:rgba(0,255,132,0.22);color:#09e471;}
+.sig-result.perdida{background:rgba(255,0,0,0.19);color:#ff2e77;}
+.sig-result.pendiente{background:rgba(215,181,0,0.21);color:#ffe400;}
+@media (max-width:1000px){.main-section{grid-template-columns:1fr;}.signal-value{font-size:1.23em;}}
+@media (max-width:680px){body{padding:4px;}.header h1{font-size:1.13em;}}
+@media (max-width:480px){.crash-item{font-size:0.77em;min-width:31px;}}
 </style>
 </head>
 <body>
 <div class="container">
-    <!-- ... igual ... -->
     <div class="header">
-        <h1>🎯 Aviator Analyzer Pro</h1>
+        <h1>Aviator Analyzer Pro</h1>
         <div class="sync-badge"><span id="syncStatus">🔄 Cargando...</span></div>
     </div>
     <div class="crashes-section">
-        <h3>📊 Últimas Rondas Procesadas</h3>
+        <h3>Últimas Rondas Procesadas</h3>
         <div id="crashesDisplay"></div>
     </div>
     <div class="main-section">
         <div class="signal-panel waiting" id="signalPanel">
-            <div style="font-size: 1.4em;">⏳</div>
+            <div style="font-size: 1.25em;">⏳</div>
             <p style="font-size: 1em;">Cargando...</p>
         </div>
         <div class="stats-section">
-            <h3>📊 Estadísticas Totales</h3>
+            <h3>Estadísticas Totales</h3>
             <div class="stats-grid">
                 <div class="stat-item"><div class="label">Rondas Totales</div><div class="value" id="statRounds">0</div></div>
                 <div class="stat-item"><div class="label">Señales Generadas</div><div class="value" id="statSignals">0</div></div>
@@ -37,15 +78,15 @@ body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-g
                 <div class="stat-item"><div class="label">% de Aciertos</div><div class="value" id="statWinRate">--%</div></div>
             </div>
             <div class="controls">
-                <button class="primary" onclick="window.location.reload()">🔄 Reiniciar</button>
+                <button class="primary" onclick="window.location.reload()">Reiniciar</button>
             </div>
         </div>
     </div>
     <div class="history-section">
-        <h3>🎯 Historial de Señales</h3>
+        <h3>Historial de Señales</h3>
         <div id="signalList" class="history-list"><p style="opacity:.5;text-align:center;">Sin señales aún...</p></div>
     </div>
-    <footer>Aviator Analyzer Pro v8.0 - SOLO SEÑALES NUEVAS</footer>
+    <footer style="text-align:center;padding:8px 0;opacity:.49;">Aviator Analyzer Pro - solo señales nuevas y reales</footer>
 </div>
 <audio id="beep" preload="auto"><source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YYQAAACAgICA" type="audio/wav"></audio>
 <script>
@@ -125,17 +166,15 @@ class AviatorSystem {
         this.rondasTotales++;
         if (this.historico.length > 1000) this.historico.shift();
 
-        // PRIMER crash nuevo: apenas lo recibe, arranca lógica real
         if (!this.readyForRealtime && this.historico.length > this.crashesIniciales) {
             this.readyForRealtime = true;
             this.rondasDesdeSenal = 0;
             this.senales = [];
-            return; // No genera señal en la primera, sino a partir de la segunda nueva
+            return;
         }
 
-        // A partir de la segunda ronda nueva sí cuenta y evalúa señal
         if (this.readyForRealtime) {
-            this.rondasDesdeSenal++; // solo ahora cuenta rondas desde última señal
+            this.rondasDesdeSenal++;
             this.verificarResultados();
             let senal = this.generarSenal();
             if (senal.tipo === 'ACTIVA') this.emitirBeep();
@@ -288,10 +327,10 @@ class AviatorSystem {
             `;
         } else if (senal.tipo === 'BLOQUEADO') {
             panel.className = 'signal-panel blocked';
-            panel.innerHTML = `<div class="signal-status">${senal.emoji}</div><div class="signal-value" style="font-size: 1.8em;">${senal.msg}</div>`;
+            panel.innerHTML = `<div class="signal-status">${senal.emoji}</div><div class="signal-value" style="font-size: 1.7em;">${senal.msg}</div>`;
         } else {
             panel.className = 'signal-panel waiting';
-            panel.innerHTML = `<div class="signal-status">${senal.emoji}</div><div class="signal-value" style="font-size: 1.6em;">${senal.msg}</div>`;
+            panel.innerHTML = `<div class="signal-status">${senal.emoji}</div><div class="signal-value" style="font-size: 1.5em;">${senal.msg}</div>`;
         }
     }
     actualizarCrashes() {
