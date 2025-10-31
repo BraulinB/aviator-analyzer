@@ -7,86 +7,34 @@
 <meta name="theme-color" content="#0f1222" />
 <style>
   :root{
-    --bg:#0f1222;
-    --panel:#141733;
-    --panel-2:#0f1530;
-    --text:#eef2ff;
-    --muted:#9aa3b2;
-    --ok:#4ade80;
-    --warn:#f59e0b;
-    --bad:#ef4444;
-    --primary:#7c3aed;  /* morado */
-    --accent:#22d3ee;   /* cian */
-    --pink:#fb37a3;     /* fucsia */
-    --blue:#3b82f6;     /* azul */
-    --tile1:#bbf7d0;    /* card pastel */
-    --tile2:#bae6fd;
-    --tile3:#e9d5ff;
-    --tile4:#fed7e2;
-    --ring:#2dd4bf;
+    --bg:#0f1222; --panel:#141733; --panel-2:#0f1530; --text:#eef2ff; --muted:#9aa3b2;
+    --primary:#7c3aed; --accent:#22d3ee; --pink:#fb37a3; --blue:#3b82f6;
+    --tile1:#bbf7d0; --tile2:#bae6fd; --tile3:#e9d5ff; --tile4:#fed7e2;
   }
   *{box-sizing:border-box}
-  html,body{height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,"Helvetica Neue",Arial,sans-serif}
-  a{color:var(--accent);text-decoration:none}
+  html,body{height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,Arial,sans-serif}
   .wrap{max-width:1220px;margin:0 auto;padding:18px}
-  header{
-    background:linear-gradient(180deg,#171a3a 0%, #121633 100%);
-    border:1px solid rgba(255,255,255,.06);
-    border-radius:14px;
-    padding:14px 16px;
-    display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;
-  }
-  h1{font-weight:800;letter-spacing:.2px;font-size: clamp(20px, 2.3vw, 26px);}
-  h1 .brand{color:#a78bfa}
-  h1 .star{color:#60a5fa}
-  .badge{
-    display:flex;align-items:center;gap:8px;
-    background:var(--panel-2);
-    border:1px solid rgba(255,255,255,.08);
-    padding:8px 10px;border-radius:10px;
-    font-weight:600;color:#dbeafe;
-  }
+  header{background:linear-gradient(180deg,#171a3a 0%, #121633 100%);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:14px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+  h1{font-weight:800;font-size:clamp(20px,2.3vw,26px)} h1 .brand{color:#a78bfa} h1 .star{color:#60a5fa}
+  .badge{display:flex;align-items:center;gap:8px;background:var(--panel-2);border:1px solid rgba(255,255,255,.08);padding:8px 10px;border-radius:10px;font-weight:600;color:#dbeafe}
   .dot{width:10px;height:10px;border-radius:50%;display:inline-block;background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.12)}
-  .row{display:grid;grid-template-columns:1fr;gap:14px;margin-top:16px}
-  @media(min-width:980px){ .row{grid-template-columns:1fr} }
-  .card{
-    background:var(--panel);
-    border:1px solid rgba(255,255,255,.06);
-    border-radius:14px;padding:14px;
-  }
+  .card{background:var(--panel);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:14px;margin-top:16px}
   .card h2{margin:4px 0 12px 0;font-size:18px}
   .chip{display:inline-flex;align-items:center;gap:8px;background:var(--panel-2);border:1px solid rgba(255,255,255,.08);padding:8px 10px;border-radius:10px;margin-right:8px;font-weight:600;color:#c7d2fe}
-  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:10px}
-  .filters{display:flex;flex-wrap:wrap;gap:8px}
-  .btn,.btn-ghost{
-    border-radius:10px; padding:10px 14px; font-weight:800; letter-spacing:.3px; cursor:pointer;
-    border:1px solid rgba(255,255,255,.12);
-  }
-  .btn{background:linear-gradient(180deg,#3343a7 0%, #2c1d6c 100%); color:#fff}
-  .btn-ghost{background:transparent; color:#c7d2fe}
+  .btn,.btn-ghost{border-radius:10px;padding:10px 14px;font-weight:800;letter-spacing:.3px;cursor:pointer;border:1px solid rgba(255,255,255,.12)}
+  .btn{background:linear-gradient(180deg,#3343a7 0%, #2c1d6c 100%);color:#fff}
+  .btn-ghost{background:transparent;color:#c7d2fe}
   .kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:8px}
   .kpi{background:var(--panel-2);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px}
-  .kpi .n{font-size:22px;font-weight:900}
-  .kpi .l{font-size:12px;color:var(--muted)}
-  .signal-now{
-    background:linear-gradient(180deg,rgba(124,58,237,.3) 0%, rgba(34,211,238,.12) 100%);
-    border:1px dashed rgba(255,255,255,.18); padding:12px;border-radius:12px;min-height:68px;
-    display:flex;align-items:center;justify-content:space-between;gap:10px
-  }
+  .kpi .n{font-size:22px;font-weight:900}.kpi .l{font-size:12px;color:#9aa3b2}
+  .signal-now{background:linear-gradient(180deg,rgba(124,58,237,.3) 0%, rgba(34,211,238,.12) 100%);border:1px dashed rgba(255,255,255,.18);padding:12px;border-radius:12px;min-height:68px;display:flex;align-items:center;justify-content:space-between;gap:10px}
   canvas{max-width:100%;height:360px}
   .grid60{display:grid;grid-template-columns:repeat(10,1fr);gap:8px;margin-top:12px}
-  .tile{
-    border-radius:12px;padding:10px 8px;text-align:center;font-weight:800;color:#111;
-    display:flex;flex-direction:column;gap:6px; box-shadow: inset 0 -2px 0 rgba(0,0,0,.08);
-    border:1px solid rgba(0,0,0,.06)
-  }
+  .tile{border-radius:12px;padding:10px 8px;text-align:center;font-weight:800;color:#111;display:flex;flex-direction:column;gap:6px;box-shadow:inset 0 -2px 0 rgba(0,0,0,.08);border:1px solid rgba(0,0,0,.06)}
   .t1{background:var(--tile1)} .t2{background:var(--tile2)} .t3{background:var(--tile3)} .t4{background:var(--tile4)}
-  .tile small{opacity:.7;font-weight:700}
-  .muted{color:var(--muted)}
-  .table-wrap{overflow:auto}
-  table{width:100%;border-collapse:collapse}
-  th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,.06);text-align:left;font-size:14px}
-  th{color:#c7d2fe}
+  .muted{color:#9aa3b2}
+  .table-wrap{overflow:auto} table{width:100%;border-collapse:collapse}
+  th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,.06);text-align:left;font-size:14px} th{color:#c7d2fe}
   .pill{padding:6px 10px;border-radius:999px;font-weight:800;display:inline-block}
   .win{background:rgba(74,222,128,.15);color:#4ade80;border:1px solid rgba(74,222,128,.25)}
   .lose{background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.25)}
@@ -99,108 +47,78 @@
 </head>
 <body>
 <div class="wrap">
-
   <header>
     <h1>Aviator Analyzer · <span class="brand">888</span><span class="star">Star</span></h1>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <div class="badge">
-        <span class="dot" id="connDot"></span>
-        <span>Conectado automáticamente a</span>
-        <strong id="feedPath">/crashes</strong>
-      </div>
-
-      <div class="badge role-badge">
-        <span class="dot" id="roleDot" style="background:#22c55e"></span>
-        <span>Rol:</span> <strong id="roleText">--</strong>
-        <span style="opacity:.6;margin:0 .5rem;">·</span>
-        <span>Dispositivo:</span> <strong id="deviceKind">--</strong>
-        <button id="btnTakeControl" class="btn-ghost" style="margin-left:.75rem;display:none;">Tomar control</button>
-      </div>
-
-      <div class="badge">
-        <span class="dot" id="peersDot" style="background:#60a5fa"></span>
-        <span>Conectados:</span> <strong id="peers">0</strong>
-      </div>
+      <div class="badge"><span class="dot" id="connDot"></span><span>Conectado a</span><strong id="feedPath" style="margin-left:6px">/crashes</strong></div>
+      <div class="badge"><span class="dot" id="roleDot" style="background:#22c55e"></span><span>Rol:</span> <strong id="roleText">—</strong><span style="opacity:.6;margin:0 .5rem;">·</span><span>Dispositivo:</span> <strong id="deviceKind">—</strong><button id="btnTakeControl" class="btn-ghost" style="margin-left:.75rem;display:none;">Tomar control</button></div>
+      <div class="badge"><span class="dot" id="peersDot" style="background:#60a5fa"></span><span>Conectados:</span> <strong id="peers">1</strong></div>
     </div>
   </header>
 
   <section class="card">
-    <div class="toolbar">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
       <h2>Tendencia en tiempo real</h2>
-      <div class="filters">
-        <span class="chip" id="chipEma">EMA</span>
-        <span class="chip" id="chipBb">Bollinger</span>
-        <span class="chip" id="chipSR">Soporte/Resistencia</span>
-        <span class="chip" id="chipGrid">Grid</span>
+      <div>
+        <span class="chip">EMA</span>
+        <span class="chip">Bollinger</span>
+        <span class="chip">Soporte/Resistencia</span>
+        <span class="chip">Grid</span>
         <span class="chip">Tendencia: <strong id="trendLabel" style="margin-left:6px">—</strong></span>
         <span class="chip">Últimas <strong>60</strong> rondas</span>
       </div>
     </div>
     <canvas id="chart"></canvas>
-
     <div id="last60" class="grid60"></div>
   </section>
 
-  <section class="row">
-    <div class="card">
-      <h2>Sesión</h2>
-      <div class="kpi-grid">
-        <div class="kpi"><div class="n" id="kRondas">0</div><div class="l">Rondas</div></div>
-        <div class="kpi"><div class="n" id="kSenales">0</div><div class="l">Señales</div></div>
-        <div class="kpi"><div class="n" id="kHits">0</div><div class="l">Aciertos</div></div>
-        <div class="kpi"><div class="n" id="kEff">0%</div><div class="l">Efectividad</div></div>
-      </div>
-
-      <div class="toolbar" style="margin-top:10px">
-        <div style="display:flex;gap:8px">
-          <button id="btnStart" class="btn">Iniciar</button>
-          <button id="btnStop" class="btn-ghost">Detener</button>
-          <button id="btnReset" class="btn-ghost">Reset</button>
-        </div>
-        <div class="muted" id="statusTxt">Esperando…</div>
-      </div>
-
-      <div class="signal-now">
-        <div><strong>Señal actual:</strong> <span id="sigNow" class="muted">—</span></div>
-        <div id="sigNowBadge"></div>
-      </div>
+  <section class="card">
+    <h2>Sesión</h2>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="n" id="kRondas">0</div><div class="l">Rondas</div></div>
+      <div class="kpi"><div class="n" id="kSenales">0</div><div class="l">Señales</div></div>
+      <div class="kpi"><div class="n" id="kHits">0</div><div class="l">Aciertos</div></div>
+      <div class="kpi"><div class="n" id="kEff">0%</div><div class="l">Efectividad</div></div>
     </div>
 
-    <div class="card">
-      <h2>Historial de Señales <small class="muted">Tiempo real</small></h2>
-      <div class="table-wrap">
-        <table id="tbl">
-          <thead>
-            <tr>
-              <th>#</th><th>HORA</th><th>TARGET</th><th>TIPO</th><th>CONF.</th><th>REAL</th><th>ESTADO</th>
-            </tr>
-          </thead>
-          <tbody id="tbody">
-            <tr><td colspan="7" class="muted">No hay señales</td></tr>
-          </tbody>
-        </table>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;gap:10px;flex-wrap:wrap">
+      <div style="display:flex;gap:8px">
+        <button id="btnStart" class="btn">Iniciar</button>
+        <button id="btnStop" class="btn-ghost">Detener</button>
+        <button id="btnReset" class="btn-ghost">Reset</button>
       </div>
+      <div class="muted" id="statusTxt">Esperando…</div>
+    </div>
+
+    <div class="signal-now" style="margin-top:10px">
+      <div><strong>Señal actual:</strong> <span id="sigNow" class="muted">—</span></div>
+      <div id="sigNowBadge"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Historial de Señales <small class="muted">Tiempo real</small></h2>
+    <div class="table-wrap">
+      <table id="tbl">
+        <thead><tr><th>#</th><th>HORA</th><th>TARGET</th><th>TIPO</th><th>CONF.</th><th>REAL</th><th>ESTADO</th></tr></thead>
+        <tbody id="tbody"><tr><td colspan="7" class="muted">No hay señales</td></tr></tbody>
+      </table>
     </div>
   </section>
 
   <footer>Multi-dispositivo (maestro/esclavo) · Guarda sesión y señales en Firebase RTDB</footer>
 </div>
 
-<!-- Firebase + Chart.js (CDN) -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-  import { getDatabase, ref, onValue, get, set, update } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
-  // Chart.js
-  // (No ES module needed, use global)
-</script>
+<!-- Chart.js (global) -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
 
+<!-- ÚNICO módulo: aquí van las importaciones y el código -->
 <script type="module">
-/* =========================
-   CONFIGURACIÓN
-   ========================= */
+/* ===== Importaciones (en el mismo módulo) ===== */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { getDatabase, ref, onValue, get, set } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
 
-// ——— FireBase ———
+/* ===== Config ===== */
 const firebaseConfig = {
   apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
   authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
@@ -211,423 +129,138 @@ const firebaseConfig = {
   appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
   measurementId: "G-325QCBSQMH"
 };
-
-// ——— Señales por RANGO (ajústalo si lo deseas) ———
 const RANGE_CFG = {
-  bajo:      { min: 1.00, max: 1.69, cls:'range-bajo',  label:'BAJO' },
-  medio:     { min: 1.70, max: 2.99, cls:'range-medio', label:'MEDIO' },
-  alto:      { min: 3.00, max: 9.99, cls:'range-alto',  label:'ALTO' },
-  superior:  { min: 10.0, max: 999, cls:'range-superior',label:'SUPERIOR' }
+  bajo:{min:1.00,max:1.69,cls:'range-bajo',label:'BAJO'},
+  medio:{min:1.70,max:2.99,cls:'range-medio',label:'MEDIO'},
+  alto:{min:3.00,max:9.99,cls:'range-alto',label:'ALTO'},
+  superior:{min:10.0,max:999,cls:'range-superior',label:'SUPERIOR'}
 };
-
-// ——— EMA / Bollinger ———
-const EMA_PERIOD = 12;          // período para EMA
-const BB_PERIOD  = 20;          // período BB
-const BB_K       = 2;           // K desviaciones
-
-// ——— Sesión/roles ———
-const DEVICE_ID  = localStorage.getItem('AA_DEVICE_ID') || (Date.now() + '_' + Math.random().toString(36).slice(2));
-localStorage.setItem('AA_DEVICE_ID', DEVICE_ID);
-const DEVICE_NAME = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? '📱 Móvil' : '💻 PC';
-
-// ——— Paths ———
+const EMA_PERIOD=12, BB_PERIOD=20, BB_K=2;
 const DEFAULT_FEED_PATH = '/crashes';
+const DEVICE_ID=localStorage.getItem('AA_DEVICE_ID')|| (Date.now()+'_'+Math.random().toString(36).slice(2));
+localStorage.setItem('AA_DEVICE_ID',DEVICE_ID);
+const DEVICE_NAME=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)?'📱 Móvil':'💻 PC';
 
-/* =========================
-   INICIALIZACIÓN
-   ========================= */
+/* ===== Firebase ===== */
 const app = initializeApp(firebaseConfig);
-const db  = getDatabase(app);
+const db = getDatabase(app);
 
-// UI refs
-const feedPathEl = document.getElementById('feedPath');
-const connDot = document.getElementById('connDot');
-const roleDot = document.getElementById('roleDot');
-const roleEl  = document.getElementById('roleText');
-const deviceKindEl = document.getElementById('deviceKind');
-const peersEl = document.getElementById('peers');
-const btnTakeControl = document.getElementById('btnTakeControl');
+/* ===== UI refs ===== */
+const feedPathEl=document.getElementById('feedPath'), connDot=document.getElementById('connDot');
+const roleDot=document.getElementById('roleDot'), roleEl=document.getElementById('roleText');
+const deviceKindEl=document.getElementById('deviceKind'); deviceKindEl.textContent=/Móvil/.test(DEVICE_NAME)?'Móvil':'PC';
+const btnTakeControl=document.getElementById('btnTakeControl'), peersEl=document.getElementById('peers');
+const kRondas=document.getElementById('kRondas'), kSenales=document.getElementById('kSenales'), kHits=document.getElementById('kHits'), kEff=document.getElementById('kEff');
+const statusTxt=document.getElementById('statusTxt'), last60Grid=document.getElementById('last60'), sigNow=document.getElementById('sigNow'), sigNowBadge=document.getElementById('sigNowBadge');
+const tbody=document.getElementById('tbody');
 
-deviceKindEl.textContent = /Móvil/.test(DEVICE_NAME) ? 'Móvil' : 'PC';
+/* ===== Chart ===== */
+const ctx=document.getElementById('chart').getContext('2d');
+let chart=new Chart(ctx,{type:'line',data:{labels:[],datasets:[
+  {label:'Crash',data:[],borderColor:'#22d3ee',backgroundColor:'rgba(34,211,238,.15)',tension:.25,pointRadius:2},
+  {label:'EMA',data:[],borderColor:'#a78bfa',backgroundColor:'rgba(167,139,250,.12)',borderDash:[5,4],tension:.25,pointRadius:0},
+  {label:'BB Alta',data:[],borderColor:'#fb37a3',backgroundColor:'rgba(251,55,163,.08)',borderDash:[3,3],tension:.25,pointRadius:0},
+  {label:'BB Baja',data:[],borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.08)',borderDash:[3,3],tension:.25,pointRadius:0}
+]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:'#93a0b5'}},y:{ticks:{color:'#93a0b5'},suggestedMin:1,suggestedMax:10}},plugins:{legend:{labels:{color:'#c7d2fe'}}}}});
 
-// Chart
-const ctx = document.getElementById('chart').getContext('2d');
-let chart = new Chart(ctx, {
-  type:'line',
-  data:{
-    labels:[],
-    datasets:[
-      {label:'Crash', data:[], borderColor:'#22d3ee', backgroundColor:'rgba(34,211,238,.15)', tension:.25, pointRadius:2},
-      {label:'EMA', data:[], borderColor:'#a78bfa', backgroundColor:'rgba(167,139,250,.12)', borderDash:[5,4], tension:.25, pointRadius:0},
-      {label:'BB Alta', data:[], borderColor:'#fb37a3', backgroundColor:'rgba(251,55,163,.08)', borderDash:[3,3], tension:.25, pointRadius:0},
-      {label:'BB Baja', data:[], borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,.08)', borderDash:[3,3], tension:.25, pointRadius:0}
-    ]
-  },
-  options:{
-    responsive:true,
-    maintainAspectRatio:false,
-    scales:{
-      x:{ ticks:{color:'#93a0b5'} },
-      y:{ ticks:{color:'#93a0b5'}, suggestedMin:1, suggestedMax:10 }
-    },
-    plugins:{
-      legend:{labels:{color:'#c7d2fe'}},
-      tooltip:{
-        callbacks:{
-          afterBody(items){
-            const i = items[0].dataIndex;
-            const mark = signalMarkers[i];
-            if(mark){
-              return `Señal: ${mark.type} (${mark.rangeLabel}) · ${mark.hit?'✔️ GANADA':'✖️ PERDIDA'}`;
-            }
-          }
-        }
-      }
-    }
-  }
-});
-
-// Estado
-let isMaster = false;
-let allRounds = [];     // todas las rondas históricas (en esta sesión)
-let last60 = [];        // últimas 60 normalizadas
-let started = false;
-let peersCount = 1;
-let signalSeq = 0;
-let openSignal = null;  // señal pendiente de evaluar con la siguiente ronda
-const signalMarkers = []; // para tooltips en gráfica (por índice visible)
-const tbody = document.getElementById('tbody');
-
-// Audio (beep simple)
-let audioCtx;
-function beep(freq=880, ms=140){
-  try{
-    if(!audioCtx){ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    o.connect(g); g.connect(audioCtx.destination);
-    o.type='sine'; o.frequency.value=freq;
-    g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.3, audioCtx.currentTime+0.01);
-    o.start();
-    setTimeout(()=>{
-      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+0.01);
-      o.stop();
-    }, ms);
-  }catch{}
-}
-
-/* =========================
-   ROLES (MAESTRO / ESCLAVO)
-   ========================= */
-function qp(name){ const u = new URL(location.href); return u.searchParams.get(name); }
-
-const sessionRef = ref(db,'shared_session');
-
+/* ===== Roles ===== */
+function qp(n){const u=new URL(location.href);return u.searchParams.get(n)}
+const sessionRef=ref(db,'shared_session');
+let isMaster=false;
 async function ensureRole(){
-  if(qp('master')==='1'){
-    await set(sessionRef,{active:true,owner:DEVICE_ID,ownerName:DEVICE_NAME,startedAt:Date.now()});
-    setMasterUI(true);
-    return;
-  }
-  const snap = await get(sessionRef);
-  if(!snap.exists() || !snap.val().active){
-    await set(sessionRef,{active:true,owner:DEVICE_ID,ownerName:DEVICE_NAME,startedAt:Date.now()});
-    setMasterUI(true);
-  }else{
-    const sess = snap.val();
-    setMasterUI(sess.owner===DEVICE_ID);
-  }
+  if(qp('master')==='1'){await set(sessionRef,{active:true,owner:DEVICE_ID,ownerName:DEVICE_NAME,startedAt:Date.now()});setMasterUI(true);return;}
+  const s=await get(sessionRef);
+  if(!s.exists()||!s.val().active){await set(sessionRef,{active:true,owner:DEVICE_ID,ownerName:DEVICE_NAME,startedAt:Date.now()});setMasterUI(true);}
+  else{setMasterUI(s.val().owner===DEVICE_ID);}
 }
-function setMasterUI(master){
-  isMaster = master;
-  roleEl.textContent = master ? 'MAESTRO' : 'ESCLAVO';
-  roleDot.style.background = master ? '#22c55e' : '#0ea5e9';
-  btnTakeControl.style.display = master ? 'none':'inline-flex';
-}
-btnTakeControl.addEventListener('click', async ()=>{
-  await set(sessionRef,{active:true,owner:DEVICE_ID,ownerName:DEVICE_NAME,startedAt:Date.now()});
-  setMasterUI(true);
-});
+function setMasterUI(m){isMaster=m; roleEl.textContent=m?'MAESTRO':'ESCLAVO'; roleDot.style.background=m?'#22c55e':'#0ea5e9'; btnTakeControl.style.display=m?'none':'inline-flex'}
+btnTakeControl.addEventListener('click',async()=>{await set(sessionRef,{active:true,owner:DEVICE_ID,ownerName:DEVICE_NAME,startedAt:Date.now()});setMasterUI(true)});
+peersEl.textContent='1';
 
-document.getElementById('btnStop').addEventListener('click', async ()=>{
-  const snap = await get(sessionRef);
-  if(snap.exists() && snap.val().owner===DEVICE_ID){
-    await set(sessionRef,{active:false,owner:null,startedAt:null});
-  }
-  setMasterUI(false);
-});
-
-// peers (mock simple por ahora: 1 local)
-peersEl.textContent = String(peersCount);
-
-/* =========================
-   FEED: /crashes
-   ========================= */
-const FEED_PATH = DEFAULT_FEED_PATH;
-feedPathEl.textContent = FEED_PATH;
-
-const feedRef = ref(db, FEED_PATH);
-onValue(feedRef, (snap)=>{
-  connDot.style.background = '#22c55e';
-  if(!snap.exists()) return;
-  const raw = snap.val();        // objeto {id: {t|ts|time, v|value|multiplier}}
-  const norm = Object.values(raw).map(n => normalize(n)).filter(Boolean);
-  if(!norm.length) return;
-
-  // Orden ascendente por timestamp
-  norm.sort((a,b)=>a.ts-b.ts);
-
-  // Agregar a "allRounds" sólo nuevos (por ts)
-  const knownLastTs = allRounds.length ? allRounds[allRounds.length-1].ts : 0;
-  const fresh = norm.filter(x => x.ts>knownLastTs);
-  if(fresh.length){
-    allRounds.push(...fresh);
-    if(started){
-      // cada nueva ronda que llega, se evalúa señal abierta y se re-analiza
-      fresh.forEach(r => {
-        if(openSignal){ settleSignal(openSignal, r); openSignal=null; }
-        // recalcular (MAESTRO)
-        if(isMaster){ analyzeAndMaybeSignal(); }
-      });
-    }else{
-      // sin iniciar: sólo actualizar visual + base 60
-      updateVisual();
-    }
+/* ===== Feed ===== */
+feedPathEl.textContent=DEFAULT_FEED_PATH;
+const feedRef=ref(db,DEFAULT_FEED_PATH);
+let allRounds=[], last60=[], started=false, openSignal=null, signalSeq=0, stats={rounds:0,signals:0,hits:0};
+onValue(feedRef,(snap)=>{
+  connDot.style.background='#22c55e';
+  if(!snap.exists())return;
+  const norm=Object.values(snap.val()).map(n=>{const ts=Number(n.ts??n.t??n.time??0);const v=Number(n.v??n.value??n.multiplier??0);return(ts&&v)?{ts,v}:null}).filter(Boolean).sort((a,b)=>a.ts-b.ts);
+  const known=allRounds.length?allRounds[allRounds.length-1].ts:0;
+  const fresh=norm.filter(x=>x.ts>known);
+  if(!fresh.length){updateVisual();return;}
+  allRounds.push(...fresh);
+  if(started){
+    fresh.forEach(r=>{ if(openSignal){settleSignal(openSignal,r);openSignal=null;} if(isMaster){analyzeAndMaybeSignal();} });
   }else{
-    // No nuevos, pero refresca visual por si inicio
     updateVisual();
   }
-}, { onlyOnce:false });
+});
 
-function normalize(n){
-  const ts = Number(n.ts??n.t??n.time??0);
-  const v  = Number(n.v??n.value??n.multiplier??0);
-  if(!ts || !v) return null;
-  return {ts, v};
-}
+/* ===== Cálculos ===== */
+function computeEMA(values,p){if(values.length===0) return []; const k=2/(p+1); const out=[]; let ema=values[0]; for(let i=0;i<values.length;i++){ema=i===0?values[0]:(values[i]*k+ema*(1-k)); out.push(+ema.toFixed(2));} return out;}
+function computeBollinger(values,p,k){const U=[],L=[]; for(let i=0;i<values.length;i++){ if(i<p-1){U.push(null);L.push(null);continue;} const s=values.slice(i-p+1,i+1); const m=s.reduce((a,b)=>a+b,0)/s.length; const sd=Math.sqrt(s.reduce((a,b)=>a+(b-m)**2,0)/s.length); U.push(+(m+k*sd).toFixed(2)); L.push(+(m-k*sd).toFixed(2)); } return {upper:U,lower:L};}
 
-/* =========================
-   ANÁLISIS + SEÑALES
-   ========================= */
-const kRondas = document.getElementById('kRondas');
-const kSenales= document.getElementById('kSenales');
-const kHits   = document.getElementById('kHits');
-const kEff    = document.getElementById('kEff');
-const statusTxt = document.getElementById('statusTxt');
-const last60Grid = document.getElementById('last60');
-const sigNow = document.getElementById('sigNow');
-const sigNowBadge = document.getElementById('sigNowBadge');
-
-let stats = {rounds:0, signals:0, hits:0};
-
+/* ===== Visual ===== */
+function renderTiles(arr){last60Grid.innerHTML=''; const len=arr.length; for(let i=len-1;i>=0;i--){const r=arr[i]; const idx='#'+(len-i); const v=r.v.toFixed(2)+'x'; const tClass=r.v>=3?'t3':(r.v>=1.7?'t2':'t1'); const special=r.v>=10?'t4':tClass; const d=document.createElement('div'); d.className='tile '+special; d.innerHTML=`<small>${idx}</small><div style="font-size:18px;font-weight:900">${v}</div>`; last60Grid.appendChild(d);} }
 function updateVisual(){
-  // últimas 60
-  last60 = allRounds.slice(-60);
-  stats.rounds = allRounds.length;
-  kRondas.textContent = stats.rounds;
-
-  // tiles
+  last60=allRounds.slice(-60);
+  stats.rounds=allRounds.length; kRondas.textContent=stats.rounds;
   renderTiles(last60);
-
-  // Chart data
-  const labels = last60.map((r,i)=>'#'+(last60.length-i));
-  const data   = last60.map(r=>r.v);
-  const ema    = computeEMA(data, EMA_PERIOD);
-  const {upper, lower} = computeBollinger(data, BB_PERIOD, BB_K);
-
-  // guardamos markers por índice visible
-  signalMarkers.length = data.length;
-  for(let i=0;i<signalMarkers.length;i++) signalMarkers[i]=null;
-
-  chart.data.labels = labels;
-  chart.data.datasets[0].data = data;
-  chart.data.datasets[1].data = ema;
-  chart.data.datasets[2].data = upper;
-  chart.data.datasets[3].data = lower;
-  chart.update();
-
-  // tendencia básica
-  const trend = (ema.at(-1)??1) >= (ema.at(-2)??1) ? 'ALCISTA' : 'BAJISTA';
-  document.getElementById('trendLabel').textContent = trend;
+  const labels=last60.map((r,i)=>'#'+(last60.length-i));
+  const data=last60.map(r=>r.v);
+  const ema=computeEMA(data,EMA_PERIOD); const {upper,lower}=computeBollinger(data,BB_PERIOD,BB_K);
+  chart.data.labels=labels; chart.data.datasets[0].data=data; chart.data.datasets[1].data=ema; chart.data.datasets[2].data=upper; chart.data.datasets[3].data=lower; chart.update();
+  const trend=(ema.at(-1)??1)>=(ema.at(-2)??1)?'ALCISTA':'BAJISTA'; document.getElementById('trendLabel').textContent=trend;
 }
 
-function computeEMA(values, period){
-  if(values.length===0) return [];
-  const k = 2/(period+1);
-  const out = [];
-  let ema = values[0];
-  for(let i=0;i<values.length;i++){
-    ema = i===0 ? values[0] : (values[i]*k + ema*(1-k));
-    out.push(+ema.toFixed(2));
-  }
-  return out;
-}
-function computeBollinger(values, period, k){
-  const U=[], L=[];
-  for(let i=0;i<values.length;i++){
-    if(i<period-1){ U.push(null); L.push(null); continue; }
-    const slice = values.slice(i-period+1, i+1);
-    const m = slice.reduce((a,b)=>a+b,0)/slice.length;
-    const sd = Math.sqrt(slice.reduce((a,b)=>a+(b-m)**2,0)/slice.length);
-    U.push( +(m + k*sd).toFixed(2) );
-    L.push( +(m - k*sd).toFixed(2) );
-  }
-  return {upper:U, lower:L};
-}
-
-function renderTiles(arr){
-  last60Grid.innerHTML = '';
-  const len = arr.length;
-  for(let i=len-1;i>=0;i--){
-    const r = arr[i];
-    const idx = '#'+(len-i);
-    const v = r.v.toFixed(2)+'x';
-    // paleta por rango (azul/morado/rosa)
-    const tClass = r.v >= 3 ? 't3' : (r.v >=1.7 ? 't2' : 't1');
-    const special = r.v>=10 ? 't4' : tClass;
-    const div = document.createElement('div');
-    div.className = 'tile '+special;
-    div.innerHTML = `<small>${idx}</small><div style="font-size:18px;font-weight:900">${v}</div>`;
-    last60Grid.appendChild(div);
-  }
-}
-
-// Lógica de señal heurística (simple + robusta)
-// Usa EMA, posición contra BB y patrón reciente.
+/* ===== Señales ===== */
+let audioCtx;
+function beep(freq=880,ms=140){try{if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)(); const o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.connect(g); g.connect(audioCtx.destination); o.type='sine'; o.frequency.value=freq; g.gain.setValueAtTime(0.0001,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.3,audioCtx.currentTime+0.01); o.start(); setTimeout(()=>{g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+0.01); o.stop();},ms);}catch{}}
 function analyzeAndMaybeSignal(){
   if(!started) return;
-  // base de decisión con últimas 60
-  const data = last60.map(r=>r.v);
-  if(data.length<20) return;
-
-  const ema = computeEMA(data, EMA_PERIOD);
-  const bb  = computeBollinger(data, BB_PERIOD, BB_K);
-
-  const cur = data[data.length-1];
-  const e   = ema[ema.length-1] ?? cur;
-  const u   = bb.upper[bb.upper.length-1] ?? (e+1.5);
-  const l   = bb.lower[bb.lower.length-1] ?? (e-0.8);
-
-  // tendencia y volatilidad
-  const slope = e - (ema[ema.length-2] ?? e);
-  const vol   = (u - l);
-
-  // Regla simple:
-  // - si curva cae (slope<0) y actual cerca de banda baja -> buscar rebote "MEDIO"
-  // - si curva sube (slope>0) y actual entre EMA y banda alta -> buscar "ALTO"
-  // - si hay cola muy baja (cur<1.2) varias veces, proteger con BAJO
-  // - eventos outlier positivos: posibilidad de SUPERIOR (muy baja frecuencia)
-  const last10 = data.slice(-10);
-  const lowHits = last10.filter(v=>v<1.2).length;
-
-  let pick = 'medio';
+  const data=last60.map(r=>r.v); if(data.length<20) return;
+  const ema=computeEMA(data,EMA_PERIOD), bb=computeBollinger(data,BB_PERIOD,BB_K);
+  const cur=data.at(-1), e=ema.at(-1)??cur, u=bb.upper.at(-1)??(e+1.5), l=bb.lower.at(-1)??(e-0.8);
+  const slope=e-(ema.at(-2)??e), vol=(u-l), last10=data.slice(-10), lowHits=last10.filter(v=>v<1.2).length;
+  let pick='medio';
   if(slope>0 && cur>e && cur<=(u*0.9)) pick='alto';
   if(slope<0 && cur<=Math.max(l,1.1)) pick='medio';
   if(lowHits>=3) pick='bajo';
   if(cur>=5 && slope>0 && vol>3) pick='superior';
-
-  const conf = Math.max(30, Math.min(92, Math.round(
-    55 + (slope*12) + ((3-vol)*3) - (lowHits*4)
-  )));
-
-  // Emitir señal (se evalúa con la próxima ronda que llegue)
-  emitSignal(pick, conf);
+  const conf=Math.max(30,Math.min(92,Math.round(55+(slope*12)+((3-vol)*3)-(lowHits*4))));
+  emitSignal(pick,conf);
 }
-
-function emitSignal(kind, conf=50){
+function emitSignal(kind,conf=50){
   if(!isMaster) return;
   signalSeq++;
-  const cfg = RANGE_CFG[kind];
-  openSignal = {
-    id: signalSeq,
-    ts: Date.now(),
-    kind,
-    range: {min:cfg.min,max:cfg.max},
-    conf,
-    resolved:false,
-    result:null,
-    real:null
-  };
-  stats.signals++; kSenales.textContent = stats.signals;
-
-  // UI
-  sigNow.textContent = `#${openSignal.id} · Target ${cfg.min.toFixed(2)}–${cfg.max.toFixed(2)}x · Conf. ${conf}%`;
-  sigNowBadge.innerHTML = `<span class="pill ${cfg.cls}">${cfg.label}</span>`;
-  statusTxt.textContent = 'Señal emitida · esperando siguiente ronda…';
-
-  // beep
+  const cfg=RANGE_CFG[kind];
+  openSignal={id:signalSeq,ts:Date.now(),kind,range:{min:cfg.min,max:cfg.max},conf,resolved:false,result:null,real:null};
+  stats.signals++; kSenales.textContent=stats.signals;
+  sigNow.textContent=`#${openSignal.id} · Target ${cfg.min.toFixed(2)}–${cfg.max.toFixed(2)}x · Conf. ${conf}%`;
+  sigNowBadge.innerHTML=`<span class="pill ${cfg.cls}">${cfg.label}</span>`;
+  statusTxt.textContent='Señal emitida · esperando siguiente ronda…';
   beep(920,180);
 }
-
-function settleSignal(sig, nextRound){
-  const v = nextRound.v;
-  const hit = (v>=sig.range.min && v<=sig.range.max);
-  sig.resolved=true; sig.result = hit?'WIN':'LOSE'; sig.real=v;
-
-  if(hit){ stats.hits++; kHits.textContent = stats.hits; beep(1040,220); }
-  else{ beep(420,220); }
-
-  const eff = stats.signals? Math.round((stats.hits*100)/stats.signals):0;
-  kEff.textContent = eff+'%';
-
-  // marcador en la gráfica (sobre el último punto visible)
-  const idxVis = chart.data.labels.length-1;
-  signalMarkers[idxVis] = {
-    type: sig.kind.toUpperCase(),
-    rangeLabel: `${sig.range.min.toFixed(2)}–${sig.range.max.toFixed(2)}x`,
-    hit
-  };
-
-  appendRow(sig);
-  sigNow.textContent='—';
-  sigNowBadge.innerHTML='';
-  statusTxt.textContent='Listo';
-}
-
-function appendRow(sig){
-  if(tbody.children.length===1 && tbody.children[0].tagName==='TR' && tbody.children[0].children.length===1){
-    tbody.innerHTML='';
-  }
-  const cfg = RANGE_CFG[sig.kind];
-  const tr = document.createElement('tr');
-  tr.innerHTML = `
-    <td>${sig.id}</td>
-    <td>${new Date(sig.ts).toLocaleTimeString()}</td>
-    <td>${sig.range.min.toFixed(2)}–${sig.range.max.toFixed(2)}x</td>
-    <td><span class="pill ${cfg.cls}">${cfg.label}</span></td>
-    <td>${sig.conf}%</td>
-    <td>${(sig.real??0).toFixed(2)}x</td>
-    <td><span class="pill ${sig.result==='WIN'?'win':'lose'}">${sig.result}</span></td>
-  `;
+function settleSignal(sig,next){
+  const v=next.v, hit=(v>=sig.range.min && v<=sig.range.max);
+  sig.resolved=true; sig.result=hit?'WIN':'LOSE'; sig.real=v;
+  if(hit){ stats.hits++; kHits.textContent=stats.hits; beep(1040,220);} else { beep(420,220);}
+  const eff=stats.signals?Math.round((stats.hits*100)/stats.signals):0; kEff.textContent=eff+'%';
+  const tr=document.createElement('tr'); const cfg=RANGE_CFG[sig.kind];
+  tr.innerHTML=`<td>${sig.id}</td><td>${new Date(sig.ts).toLocaleTimeString()}</td><td>${sig.range.min.toFixed(2)}–${sig.range.max.toFixed(2)}x</td><td><span class="pill ${cfg.cls}">${cfg.label}</span></td><td>${sig.conf}%</td><td>${v.toFixed(2)}x</td><td><span class="pill ${hit?'win':'lose'}">${hit?'WIN':'LOSE'}</span></td>`;
+  if(tbody.children.length===1 && tbody.children[0].children.length===1) tbody.innerHTML='';
   tbody.prepend(tr);
+  sigNow.textContent='—'; sigNowBadge.innerHTML=''; statusTxt.textContent='Listo';
 }
 
-/* =========================
-   CONTROLES
-   ========================= */
-document.getElementById('btnStart').addEventListener('click', ()=>{
-  started = true;
-  statusTxt.textContent = 'Análisis en curso';
-  // al iniciar, toma base 60 y ya intenta señal (MAESTRO)
-  updateVisual();
-  if(isMaster){ analyzeAndMaybeSignal(); }
-});
-document.getElementById('btnReset').addEventListener('click', ()=>{
-  // reset sólo counters locales
-  stats = {rounds:allRounds.length, signals:0, hits:0};
-  kSenales.textContent='0'; kHits.textContent='0'; kEff.textContent='0%';
-  tbody.innerHTML = `<tr><td colspan="7" class="muted">No hay señales</td></tr>`;
-  sigNow.textContent='—'; sigNowBadge.innerHTML='';
-  openSignal=null;
-  statusTxt.textContent='Reiniciado';
-});
+/* ===== Controles ===== */
+document.getElementById('btnStart').addEventListener('click',()=>{started=true; statusTxt.textContent='Análisis en curso'; updateVisual(); if(isMaster) analyzeAndMaybeSignal();});
+document.getElementById('btnReset').addEventListener('click',()=>{stats={rounds:allRounds.length,signals:0,hits:0}; kSenales.textContent='0'; kHits.textContent='0'; kEff.textContent='0%'; tbody.innerHTML=`<tr><td colspan="7" class="muted">No hay señales</td></tr>`; sigNow.textContent='—'; sigNowBadge.innerHTML=''; openSignal=null; statusTxt.textContent='Reiniciado';});
+document.getElementById('btnStop').addEventListener('click',async()=>{await set(sessionRef,{active:false,owner:null,startedAt:null}); setMasterUI(false);});
 
-/* =========================
-   ARRANQUE
-   ========================= */
+/* ===== Arranque ===== */
 await ensureRole();
-statusTxt.textContent = 'Inicializando…';
+statusTxt.textContent='Inicializando…';
 </script>
 </body>
 </html>
