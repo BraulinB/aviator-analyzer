@@ -7,11 +7,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <style>
-body{
-    font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
-    background:linear-gradient(135deg,#0f0c29 0%,#302b63 50%,#24243e 100%);
-    color:#fff;min-height:100vh;padding:14px;margin:0;
-}
+body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,#0f0c29 0%,#302b63 50%,#24243e 100%);color:#fff;min-height:100vh;padding:14px;margin:0;}
 .container{width:100%;max-width:1200px;margin:0 auto;}
 .header{text-align:center;padding:15px 7px 11px 7px;background:rgba(255,255,255,0.07);border-radius:9px 9px 16px 16px;margin-bottom:11px;}
 .header h1{font-size:2em;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:7px;}
@@ -91,7 +87,7 @@ footer{text-align:center;padding:14px 0;margin-top:13px;opacity:0.53;font-size:1
         <h3>🎯 Historial de Señales</h3>
         <div id="signalList" class="history-list"><p style="opacity:.5;text-align:center;">Sin señales aún...</p></div>
     </div>
-    <footer>Aviator Analyzer Pro v8.0 - CORREGIDO</footer>
+    <footer>Aviator Analyzer Pro v8.0 - LIMPIO Y LISTO</footer>
 </div>
 <audio id="beep" preload="auto"><source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YYQAAACAgICA" type="audio/wav"></audio>
 <script>
@@ -117,9 +113,11 @@ class AviatorSystem {
         this.listo = false;
         this.rondasTotales = 0;
         this.childAddedListener = null;
+        this.startIndex = 0; // Solo para el rango final de aprendizaje real
 
         this.iniciar();
     }
+
     iniciar() {
         db.ref('feeds/gocho/crashes').orderByKey().limitToLast(600).once('value', snap => {
             let crashes = [];
@@ -130,17 +128,23 @@ class AviatorSystem {
                 }
             });
             crashes.sort((a, b) => a.tiempo - b.tiempo);
+            this.historico = [];
             crashes.forEach(crash => {
                 this.historico.push({
                     valor: crash.valor, tiempo: crash.tiempo,
                     categoria: this.categorizar(crash.valor), key: crash.key
                 });
             });
+            // Solo aquí: limpiar señales viejas y empezar de CERO
+            this.senales = [];
             this.rondasTotales = this.historico.length;
+            this.rondasDesdeSenal = 0;
+            this.senalesEnRacha = 0;
             this.listo = true;
-            this.actualizarInterfaz();
             document.getElementById('syncStatus').innerHTML = '✅ Sistema listo - Analizando';
+            this.actualizarInterfaz();
 
+            // Ya sólo escucha nuevos
             if (this.childAddedListener) db.ref('feeds/gocho/crashes').off('child_added', this.childAddedListener);
             this.childAddedListener = (snap) => {
                 let data = snap.val();
@@ -151,6 +155,7 @@ class AviatorSystem {
             db.ref('feeds/gocho/crashes').on('child_added', this.childAddedListener);
         });
     }
+
     agregarCrash(multiplicador, timestamp, key) {
         this.historico.push({
             valor: multiplicador,
@@ -159,17 +164,20 @@ class AviatorSystem {
             key: key
         });
         this.rondasTotales++;
+        // Solo guardamos las últimas 1000 en memoria (optimizado)
         if (this.historico.length > 1000) this.historico.shift();
         this.rondasDesdeSenal++;
         this.verificarResultados();
         this.actualizarInterfaz();
     }
+
     categorizar(mult) {
         if (mult < 1.5) return 'azul';
         if (mult >= 1.5 && mult < 2.0) return 'verde';
         if (mult >= 2.0 && mult < 10.0) return 'morado';
         return 'fucsia';
     }
+
     verificarResultados() {
         if (!this.senales.length) return;
         let idxS = this.senales.findIndex(s => s.resultado === 'PENDIENTE' && !s.verificada && s.idxHistorico !== undefined);
@@ -190,6 +198,7 @@ class AviatorSystem {
             s.verificada = true;
         }
     }
+
     detectarRachaCaliente() {
         if (this.historico.length < 8) return false;
         const ultimos8 = this.historico.slice(-8);
@@ -203,9 +212,11 @@ class AviatorSystem {
         const azules = ultimos8.filter(c => c.categoria === 'azul').length;
         return azules >= 4;
     }
+
     generarSenal() {
-        if (this.historico.length < 15) return { tipo: 'ESPERANDO', msg: `⏳ Datos (${this.historico.length}/15)`, emoji: '⏳' };
+        if (!this.listo || this.historico.length < 15) return { tipo: 'ESPERANDO', msg: `⏳ Datos (${this.historico.length}/15)`, emoji: '⏳' };
         if (this.detectarZonaPeligrosa()) return { tipo: 'BLOQUEADO', msg: '🚫 BLOQUEADO', emoji: '⚠️' };
+
         if (this.detectarRachaCaliente()) {
             if (this.rondasDesdeSenal >= 2 && this.senalesEnRacha < 5) {
                 const ultimos20 = this.historico.slice(-20);
@@ -264,10 +275,12 @@ class AviatorSystem {
         }
         return { tipo: 'ESPERANDO', msg: `⏳ ${this.rondasDesdeSenal}/5`, emoji: '⚪' };
     }
+
     emitirBeep() {
         const beep = document.getElementById('beep');
         try { beep.currentTime = 0; beep.play(); } catch(e){}
     }
+
     actualizarInterfaz() {
         this.actualizarPanel();
         this.actualizarCrashes();
