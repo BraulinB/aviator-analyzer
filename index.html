@@ -1,525 +1,526 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Sistema Aviator 1Win</title>
-  <link rel="icon" href="data:,">
-  <style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,#0f0c29 0%,#302b63 50%,#24243e 100%);color:#fff;min-height:100vh;padding:15px}
-    .container{max-width:1400px;margin:0 auto}
-    .header{text-align:center;padding:20px;background:rgba(255,255,255,.08);border-radius:15px;margin-bottom:20px;backdrop-filter:blur(10px)}
-    .header h1{font-size:2em;margin-bottom:8px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-    .sync-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(0,255,136,.2);padding:4px 10px;border-radius:15px;font-size:.7em;font-weight:700;margin-left:8px}
-    .sync-badge::before{content:'';width:8px;height:8px;background:#00ff88;border-radius:50%;animation:blink 1.5s infinite}
-    .control-bar{display:flex;gap:10px;justify-content:center;margin-bottom:20px;flex-wrap:wrap}
-    .btn{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;border:none;padding:10px 25px;border-radius:10px;font-size:.95em;font-weight:bold;cursor:pointer;transition:all .3s ease}
-    .btn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(102,126,234,.4)}
-    .btn.stop{background:linear-gradient(135deg,#ff6b6b 0%,#ee5a6f 100%)}
-    .btn:disabled{opacity:.5;cursor:not-allowed}
-    .session-bar{background:rgba(255,255,255,.05);padding:15px;border-radius:12px;margin-bottom:20px;border:2px solid rgba(102,126,234,.3)}
-    .session-title{font-size:1.1em;font-weight:bold;margin-bottom:12px;color:#667eea}
-    .device-info{background:rgba(0,0,0,.3);padding:8px 12px;border-radius:8px;margin-bottom:12px;font-size:.85em;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
-    .session-progress{display:flex;align-items:center;gap:12px;margin-bottom:12px}
-    .progress-bar{flex:1;height:18px;background:rgba(255,255,255,.1);border-radius:10px;overflow:hidden}
-    .progress-fill{height:100%;background:linear-gradient(90deg,#667eea 0%,#764ba2 100%);transition:width .3s ease;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:.75em}
-    .session-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px}
-    .session-stat{background:rgba(255,255,255,.05);padding:8px;border-radius:8px;text-align:center}
-    .session-stat-label{font-size:.75em;opacity:.7;margin-bottom:4px}
-    .session-stat-value{font-size:1.3em;font-weight:bold;color:#667eea}
-    .status-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px}
-    .status-item{background:rgba(255,255,255,.1);padding:12px;border-radius:10px;text-align:center;border:2px solid rgba(255,255,255,.1)}
-    .status-item.active{border-color:#667eea;box-shadow:0 0 20px rgba(102,126,234,.4);background:rgba(102,126,234,.15)}
-    .status-label{font-size:.75em;opacity:.7;margin-bottom:6px;text-transform:uppercase}
-    .status-value{font-size:1.6em;font-weight:bold;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-    .main-grid{display:grid;grid-template-columns:1fr;gap:20px;margin-bottom:20px}
-    @media(min-width:1024px){.main-grid{grid-template-columns:1.4fr 1fr}}
-    .panel{background:rgba(255,255,255,.08);border-radius:15px;padding:18px;backdrop-filter:blur(10px)}
-    .panel-title{font-size:1.3em;margin-bottom:15px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;border-bottom:2px solid rgba(102,126,234,.3);padding-bottom:8px}
-    .chart-container{position:relative;width:100%;height:250px;background:rgba(0,0,0,.3);border-radius:12px;overflow:hidden;margin-bottom:15px}
-    #trendChart{width:100%;height:100%}
-    .rounds-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(60px,1fr));gap:6px;margin-bottom:15px;max-height:220px;overflow-y:auto;padding:5px;background:rgba(0,0,0,.2);border-radius:10px}
-    .round-item{height:50px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;font-weight:bold;font-size:.85em}
-    .round-item .round-num{font-size:.65em;opacity:.7;margin-bottom:2px}
-    .round-item.instaloss{background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%)}
-    .round-item.bajo{background:linear-gradient(135deg,#ffeaa7 0%,#fdcb6e 100%);color:#2d3436}
-    .round-item.medio{background:linear-gradient(135deg,#4facfe 0%,#00f2fe 100%)}
-    .round-item.alto,.round-item.ultra{background:linear-gradient(135deg,#b06ab3 0%,#4568dc 100%)}
-    .signal-box{padding:25px 18px;border-radius:15px;text-align:center;margin-bottom:15px;box-shadow:0 12px 30px rgba(245,87,108,.4);border:3px solid transparent}
-    .signal-box.waiting{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%)}
-    .signal-box.green{background:linear-gradient(135deg,#4facfe 0%,#00f2fe 100%);animation:pulse 2s infinite}
-    .signal-box.gold{background:linear-gradient(135deg,#f7971e 0%,#ffd200 100%);border-color:#ffd700;animation:pulse 2s infinite}
-    .signal-box.purple{background:linear-gradient(135deg,#b06ab3 0%,#4568dc 100%);border-color:#b06ab3;animation:pulse 2s infinite}
-    @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
-    .signal-title{font-size:.85em;margin-bottom:10px;opacity:.95;text-transform:uppercase}
-    .signal-value{font-size:3.5em;font-weight:900;margin:12px 0;text-shadow:0 4px 12px rgba(0,0,0,.3)}
-    .signal-confidence{font-size:1.1em;opacity:.95;font-weight:600}
-    .signal-type{font-size:.8em;opacity:.85;margin-top:8px;padding:6px 12px;background:rgba(0,0,0,.2);border-radius:15px;display:inline-block}
-    .history-table{width:100%;border-collapse:collapse;margin-top:12px;font-size:.85em}
-    .history-table th,.history-table td{padding:8px 4px;text-align:center;border-bottom:1px solid rgba(255,255,255,.1)}
-    .history-table th{background:rgba(102,126,234,.2);font-weight:700;text-transform:uppercase;font-size:.85em}
-    .history-table tr:hover{background:rgba(255,255,255,.05)}
-    .history-table tr.hit{background:rgba(0,255,136,.1)}
-    .history-table tr.miss{background:rgba(255,107,107,.1)}
-    .result-badge{padding:3px 6px;border-radius:4px;font-weight:bold;font-size:.75em}
-    .result-badge.hit{background:#00ff88;color:#000}
-    .result-badge.miss{background:#ff6b6b;color:#fff}
-    .result-badge.pending{background:#ffd93d;color:#000}
-    .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px;margin-top:12px}
-    .stat-card{background:rgba(255,255,255,.05);padding:10px;border-radius:10px;text-align:center}
-    .stat-card-value{font-size:1.6em;font-weight:900;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-    .stat-card-label{font-size:.7em;opacity:.7;margin-top:4px;text-transform:uppercase}
-    .alert{background:rgba(245,87,108,.2);border-left:4px solid #f5576c;padding:12px;border-radius:8px;margin:12px 0;font-weight:500;font-size:.9em}
-    .alert.warning{background:rgba(253,203,110,.2);border-left-color:#fdcb6e}
-    .alert.success{background:rgba(79,172,254,.2);border-left-color:#4facfe}
-    .alert.gold{background:rgba(255,210,0,.2);border-left-color:#ffd700}
-    .alert.purple{background:rgba(176,106,179,.2);border-left-color:#b06ab3}
-    .countdown{font-size:1.2em;font-weight:900;text-align:center;margin:12px 0;background:linear-gradient(135deg,#ffeaa7 0%,#fdcb6e 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-    .live-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(245,87,108,.2);padding:4px 10px;border-radius:15px;font-size:.75em;font-weight:700;text-transform:uppercase}
-    .live-badge::before{content:'';width:8px;height:8px;background:#f5576c;border-radius:50%;animation:blink 1.5s infinite}
-    @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-    @media(max-width:768px){body{padding:8px}.header h1{font-size:1.5em}.panel{padding:12px}.rounds-grid{grid-template-columns:repeat(auto-fill,minmax(50px,1fr));gap:4px;max-height:180px}.round-item{height:42px;font-size:.75em}.signal-value{font-size:2.5em}}
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>Sistema Aviator 1Win</title>
+<link rel="icon" href="data:,">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,#0f0c29 0%,#302b63 50%,#24243e 100%);color:#fff;min-height:100vh;padding:15px}
+  .container{max-width:1400px;margin:0 auto}
+  .header{text-align:center;padding:20px;background:rgba(255,255,255,.08);border-radius:15px;margin-bottom:20px;backdrop-filter:blur(10px)}
+  .header h1{font-size:2em;margin-bottom:8px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .sync-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(0,255,136,.2);padding:4px 10px;border-radius:15px;font-size:.7em;font-weight:700;margin-left:8px}
+  .sync-badge::before{content:'';width:8px;height:8px;background:#00ff88;border-radius:50%;animation:blink 1.5s infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+  .control-bar{display:flex;gap:10px;justify-content:center;margin-bottom:20px;flex-wrap:wrap}
+  .btn{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;border:none;padding:10px 25px;border-radius:10px;font-size:.95em;font-weight:bold;cursor:pointer;transition:all .3s ease}
+  .btn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(102,126,234,.4)}
+  .btn.stop{background:linear-gradient(135deg,#ff6b6b 0%,#ee5a6f 100%)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .session-bar{background:rgba(255,255,255,.05);padding:15px;border-radius:12px;margin-bottom:20px;border:2px solid rgba(102,126,234,.3)}
+  .session-title{font-size:1.1em;font-weight:bold;margin-bottom:12px;color:#667eea}
+  .device-info{background:rgba(0,0,0,.3);padding:8px 12px;border-radius:8px;margin-bottom:12px;font-size:.85em;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+  .session-progress{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .progress-bar{flex:1;height:18px;background:rgba(255,255,255,.1);border-radius:10px;overflow:hidden}
+  .progress-fill{height:100%;background:linear-gradient(90deg,#667eea 0%,#764ba2 100%);transition:width .3s ease;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:.75em}
+  .status-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px}
+  .status-item{background:rgba(255,255,255,.1);padding:12px;border-radius:10px;text-align:center;border:2px solid rgba(255,255,255,.1)}
+  .status-item.active{border-color:#667eea;box-shadow:0 0 20px rgba(102,126,234,.4);background:rgba(102,126,234,.15)}
+  .status-label{font-size:.75em;opacity:.7;margin-bottom:6px;text-transform:uppercase}
+  .status-value{font-size:1.6em;font-weight:bold;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .panel{background:rgba(255,255,255,.08);border-radius:15px;padding:18px;backdrop-filter:blur(10px);margin-bottom:20px}
+  .panel-title{font-size:1.3em;margin-bottom:15px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;border-bottom:2px solid rgba(102,126,234,.3);padding-bottom:8px}
+  .chart-container{position:relative;width:100%;height:250px;background:rgba(0,0,0,.3);border-radius:12px;overflow:hidden;margin-bottom:15px}
+  #trendChart{width:100%;height:100%}
+  .rounds-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(60px,1fr));gap:6px;margin-bottom:15px;max-height:220px;overflow-y:auto;padding:5px;background:rgba(0,0,0,.2);border-radius:10px}
+  .round-item{height:50px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;font-weight:bold;font-size:.85em}
+  .round-item .round-num{font-size:.65em;opacity:.7;margin-bottom:2px}
+  .round-item.instaloss{background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%)}
+  .round-item.bajo{background:linear-gradient(135deg,#ffeaa7 0%,#fdcb6e 100%);color:#2d3436}
+  .round-item.medio{background:linear-gradient(135deg,#4facfe 0%,#00f2fe 100%)}
+  .round-item.alto,.round-item.ultra{background:linear-gradient(135deg,#b06ab3 0%,#4568dc 100%)}
+  .signal-box{padding:25px 18px;border-radius:15px;text-align:center;margin-bottom:15px;box-shadow:0 12px 30px rgba(245,87,108,.4);border:3px solid transparent}
+  .signal-box.waiting{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%)}
+  .signal-box.green{background:linear-gradient(135deg,#4facfe 0%,#00f2fe 100%);animation:pulse 2s infinite}
+  .signal-box.gold{background:linear-gradient(135deg,#f7971e 0%,#ffd200 100%);border-color:#ffd700;animation:pulse 2s infinite}
+  .signal-box.purple{background:linear-gradient(135deg,#b06ab3 0%,#4568dc 100%);border-color:#b06ab3;animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+  .signal-title{font-size:.85em;margin-bottom:10px;opacity:.95;text-transform:uppercase}
+  .signal-value{font-size:3.5em;font-weight:900;margin:12px 0;text-shadow:0 4px 12px rgba(0,0,0,.3)}
+  .signal-confidence{font-size:1.1em;opacity:.95;font-weight:600}
+  .signal-type{font-size:.8em;opacity:.85;margin-top:8px;padding:6px 12px;background:rgba(0,0,0,.2);border-radius:15px;display:inline-block}
+  .history-table{width:100%;border-collapse:collapse;margin-top:12px;font-size:.85em}
+  .history-table th,.history-table td{padding:8px 4px;text-align:center;border-bottom:1px solid rgba(255,255,255,.1)}
+  .history-table th{background:rgba(102,126,234,.2);font-weight:700;text-transform:uppercase;font-size:.85em}
+  .history-table tr:hover{background:rgba(255,255,255,.05)}
+  .history-table tr.hit{background:rgba(0,255,136,.1)}
+  .history-table tr.miss{background:rgba(255,107,107,.1)}
+  .result-badge{padding:3px 6px;border-radius:4px;font-weight:bold;font-size:.75em}
+  .result-badge.hit{background:#00ff88;color:#000}
+  .result-badge.miss{background:#ff6b6b;color:#fff}
+  .result-badge.pending{background:#ffd93d;color:#000}
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px;margin-top:12px}
+  .stat-card{background:rgba(255,255,255,.05);padding:10px;border-radius:10px;text-align:center}
+  .stat-card-value{font-size:1.6em;font-weight:900;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .stat-card-label{font-size:.7em;opacity:.7;margin-top:4px;text-transform:uppercase}
+  .alert{background:rgba(245,87,108,.2);border-left:4px solid #f5576c;padding:12px;border-radius:8px;margin:12px 0;font-weight:500;font-size:.9em}
+  .alert.success{background:rgba(79,172,254,.2);border-left-color:#4facfe}
+  .alert.warning{background:rgba(253,203,110,.2);border-left-color:#fdcb6e}
+  .countdown{font-size:1.2em;font-weight:900;text-align:center;margin:12px 0;background:linear-gradient(135deg,#ffeaa7 0%,#fdcb6e 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .feed-box{display:flex;gap:8px;align-items:center;margin:8px 0}
+  .feed-box input{flex:1;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.25);color:#fff;border-radius:8px;padding:8px 10px}
+</style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <h1>Sistema Aviator 1Win</h1>
-      <span class="sync-badge">SINCRONIZADO</span>
+<div class="container">
+  <div class="header">
+    <h1>Sistema Aviator 1Win</h1>
+    <span class="sync-badge">SINCRONIZADO</span>
+  </div>
+
+  <p style="opacity:.85;font-size:.95em;">Aprendizaje de Patrones • Multi-Dispositivo</p>
+  <div style="margin-top:8px;"><span class="sync-badge" style="background:rgba(245,87,108,.2);color:#fff">EN VIVO</span></div>
+
+  <div class="control-bar">
+    <button class="btn" id="btnStart">🚀 INICIAR</button>
+    <button class="btn stop" id="btnStop" disabled>⏹️ DETENER</button>
+    <button class="btn" id="btnReset">🔄 RESET</button>
+  </div>
+
+  <div class="panel">
+    <div class="session-title">🔌 Conexión al feed</div>
+    <div class="feed-box">
+      <input id="feedPathInput" placeholder="p.ej. feeds/gocho/crashes" />
+      <button class="btn" id="btnConnectFeed">Conectar</button>
     </div>
+    <div id="feedStatus" class="alert warning">Sin feed conectado.</div>
+  </div>
 
-    <p style="opacity:.85;font-size:.95em;">Aprendizaje de Patrones • Multi-Dispositivo</p>
-    <div style="margin-top:8px;"><span class="live-badge">EN VIVO</span></div>
-
-    <div class="control-bar">
-      <button class="btn" id="btnStart">🚀 INICIAR</button>
-      <button class="btn stop" id="btnStop" disabled>⏹️ DETENER</button>
-      <button class="btn" id="btnReset">🔄 RESET</button>
+  <div class="session-bar">
+    <div class="session-title">📊 SESIÓN SINCRONIZADA</div>
+    <div class="device-info">
+      <span>📱 <strong id="deviceName">--</strong></span>
+      <span>🔗 Conectados: <strong id="devicesConnected">0</strong></span>
     </div>
-
-    <div class="session-bar">
-      <div class="session-title">📊 SESIÓN SINCRONIZADA</div>
-      <div class="device-info">
-        <span>📱 <strong id="deviceName">--</strong></span>
-        <span>🔗 Conectados: <strong id="devicesConnected">0</strong></span>
-      </div>
-      <div class="session-progress">
-        <div class="progress-bar">
-          <div class="progress-fill" id="sessionProgress" style="width:0%">0/60</div>
-        </div>
-      </div>
-      <div class="session-stats">
-        <div class="session-stat"><div class="session-stat-label">Rondas</div><div class="session-stat-value" id="totalRoundsSession">0</div></div>
-        <div class="session-stat"><div class="session-stat-label">Efectividad</div><div class="session-stat-value" id="sessionEffectiveness">0%</div></div>
-      </div>
+    <div class="session-progress">
+      <div class="progress-bar"><div class="progress-fill" id="sessionProgress" style="width:0%">0/60</div></div>
     </div>
-
     <div class="status-bar">
       <div class="status-item active"><div class="status-label">Estado</div><div class="status-value" id="connectionStatus">⚪ OFF</div></div>
       <div class="status-item"><div class="status-label">Señales</div><div class="status-value" id="totalSignals">0</div></div>
       <div class="status-item"><div class="status-label">Aciertos</div><div class="status-value" id="totalHits">0</div></div>
       <div class="status-item"><div class="status-label">Fallos</div><div class="status-value" id="totalMisses">0</div></div>
     </div>
+  </div>
 
-    <div class="main-grid">
-      <div class="panel">
-        <h2 class="panel-title">📈 Gráfica de Tendencia</h2>
-        <div class="chart-container"><canvas id="trendChart"></canvas></div>
-        <h3 style="font-size:1.1em;margin-bottom:10px;">Últimas 60 Rondas</h3>
-        <div class="rounds-grid" id="roundsDisplay">
-          <div style="opacity:.5;padding:20px;text-align:center;grid-column:1/-1;">Sin datos</div>
-        </div>
-
-        <h3 style="font-size:1.1em;margin:15px 0 10px 0;">🎯 Señal Actual</h3>
-        <div class="signal-box waiting" id="signalBox">
-          <div class="signal-title">ESPERANDO</div>
-          <div class="signal-value" id="signalMultiplier">--</div>
-          <div class="signal-confidence">Confianza: <span id="confidence">--</span></div>
-          <div class="signal-type" id="signalType">Esperando...</div>
-          <div class="countdown" id="countdown">Sistema detenido</div>
-          <div class="alert success" id="alertBox"><strong>⏸️ Sistema detenido:</strong> Haz clic en "INICIAR".</div>
-        </div>
-      </div>
-
-      <div class="panel">
-        <h2 class="panel-title">🧠 Análisis IA</h2>
-        <div class="patterns-box">
-          <p id="currentPattern">--</p>
-          <div class="stats-grid">
-            <div class="stat-card"><div class="stat-card-value" id="avgLast10">--</div><div class="stat-card-label">Prom. Últ.10</div></div>
-            <div class="stat-card"><div class="stat-card-value" id="instalossCount">--</div><div class="stat-card-label">Instaloss</div></div>
-            <div class="stat-card"><div class="stat-card-value" id="lowCount">--</div><div class="stat-card-label">Bajos</div></div>
-            <div class="stat-card"><div class="stat-card-value" id="highCount">--</div><div class="stat-card-label">Altos</div></div>
-            <div class="stat-card"><div class="stat-card-value" id="lowStreak">--</div><div class="stat-card-label">Racha baja</div></div>
-            <div class="stat-card"><div class="stat-card-value" id="trendIndicator">--</div><div class="stat-card-label">Tendencia</div></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="panel">
-        <h2 class="panel-title">🎯 Historial de Señales</h2>
-        <div style="overflow-x:auto;">
-          <table class="history-table">
-            <thead><tr><th>#</th><th>Hora</th><th>Target</th><th>Tipo</th><th>Conf.</th><th>Real</th><th>Estado</th></tr></thead>
-            <tbody id="signalsTableBody"><tr><td colspan="7" style="opacity:.6;padding:15px;">No hay señales</td></tr></tbody>
-          </table>
-        </div>
-      </div>
+  <div class="panel">
+    <h2 class="panel-title">📈 Gráfica + últimas 60</h2>
+    <div class="chart-container"><canvas id="trendChart"></canvas></div>
+    <div class="rounds-grid" id="roundsDisplay">
+      <div style="opacity:.5;padding:20px;text-align:center;grid-column:1/-1;">Sin datos</div>
     </div>
   </div>
 
-  <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-    import { getDatabase, ref, onValue, onChildAdded, get, set, update, remove, onDisconnect } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+  <div class="panel">
+    <h2 class="panel-title">🎯 Señal Actual</h2>
+    <div class="signal-box waiting" id="signalBox">
+      <div class="signal-title">ESPERANDO</div>
+      <div class="signal-value" id="signalMultiplier">--</div>
+      <div class="signal-confidence">Confianza: <span id="confidence">--</span></div>
+      <div class="signal-type" id="signalType">Esperando...</div>
+      <div class="countdown" id="countdown">Sistema detenido</div>
+      <div class="alert success" id="alertBox"><strong>⏸️ Sistema detenido:</strong> Haz clic en "INICIAR".</div>
+    </div>
+  </div>
 
-    // === Parámetros ===
-    const CONFIG = { SESSION_SIZE: 60, SIGNAL_COOLDOWN: 25000, MIN_DATA_POINTS: 60 };
+  <div class="panel">
+    <h2 class="panel-title">🧠 Análisis IA</h2>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-card-value" id="avgLast10">--</div><div class="stat-card-label">Prom. Últ.10</div></div>
+      <div class="stat-card"><div class="stat-card-value" id="instalossCount">--</div><div class="stat-card-label">Instaloss</div></div>
+      <div class="stat-card"><div class="stat-card-value" id="lowCount">--</div><div class="stat-card-label">Bajos</div></div>
+      <div class="stat-card"><div class="stat-card-value" id="highCount">--</div><div class="stat-card-label">Altos</div></div>
+      <div class="stat-card"><div class="stat-card-value" id="lowStreak">--</div><div class="stat-card-label">Racha baja</div></div>
+      <div class="stat-card"><div class="stat-card-value" id="trendIndicator">--</div><div class="stat-card-label">Tendencia</div></div>
+    </div>
+  </div>
 
-    // Firebase tuya
-    const firebaseConfig = {
-      apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
-      authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
-      databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com",
-      projectId: "aviator-analyzer-b29a7",
-      storageBucket: "aviator-analyzer-b29a7.firebasestorage.app",
-      messagingSenderId: "575063626276",
-      appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
-      measurementId: "G-325QCBSQMH"
-    };
+  <div class="panel">
+    <h2 class="panel-title">📜 Historial</h2>
+    <div style="overflow-x:auto;">
+      <table class="history-table">
+        <thead><tr><th>#</th><th>Hora</th><th>Target</th><th>Tipo</th><th>Conf.</th><th>Real</th><th>Estado</th></tr></thead>
+        <tbody id="signalsTableBody"><tr><td colspan="7" style="opacity:.6;padding:15px;">No hay señales</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
 
-    console.log('🔥 Inicializando...');
-    const app = initializeApp(firebaseConfig);
-    const db  = getDatabase(app);
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+  import { getDatabase, ref, onValue, onChildAdded, get, set, update, remove, onDisconnect } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
-    // Estado
-    const DEVICE_NAME = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? '📱 Móvil' : '💻 PC';
-    const DEVICE_ID   = 'dev_' + Math.random().toString(36).slice(2,9);
-    document.getElementById('deviceName').textContent = DEVICE_NAME;
+  // -------- CONFIG --------
+  const CONFIG = { SESSION_SIZE: 60, SIGNAL_COOLDOWN: 25000, MIN_DATA_POINTS: 60 };
 
-    const possiblePaths = ['feeds/gocho/crashes','crashes','historial','last_final'];
-    let gameHistory = [];
-    let isMaster = false;
-    let lastProcessedTimestamp = 0;
+  // Tu Firebase
+  const firebaseConfig = {
+    apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
+    authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
+    databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com",
+    projectId: "aviator-analyzer-b29a7",
+    storageBucket: "aviator-analyzer-b29a7.firebasestorage.app",
+    messagingSenderId: "575063626276",
+    appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
+    measurementId: "G-325QCBSQMH"
+  };
 
-    // Chart
-    let chart=null;
-    function initChart(){const c=document.getElementById('trendChart'),ctx=c.getContext('2d');c.width=c.offsetWidth;c.height=250;chart={canvas:c,ctx}}
-    function drawChart(){
-      if(!chart||gameHistory.length<2) return;
-      const {ctx,canvas}=chart,w=canvas.width,h=canvas.height;
-      ctx.clearRect(0,0,w,h);
-      const data=gameHistory.slice(0,60).reverse();
-      const vals=data.map(r=>r.multiplier);
-      const max=Math.max(...vals,10),min=Math.min(...vals,0),range=(max-min)||1,step=w/((data.length-1)||1);
-      ctx.strokeStyle='rgba(255,255,255,.1)';ctx.lineWidth=1;
-      for(let i=0;i<=5;i++){const y=(h/5)*i;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
-      for(let i=0;i<=10;i++){const x=(w/10)*i;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke()}
-      ctx.strokeStyle='#667eea';ctx.lineWidth=2;ctx.beginPath();
-      data.forEach((r,i)=>{const x=i*step,y=h-((r.multiplier-min)/range)*h; if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y)});ctx.stroke();
-      data.forEach((r,i)=>{const x=i*step,y=h-((r.multiplier-min)/range)*h; let c='#4facfe'; if(r.type==='INSTALOSS')c='#f5576c'; else if(r.type==='ULTRA')c='#b06ab3'; else if(r.type==='ALTO')c='#00ff88'; ctx.fillStyle=c; ctx.beginPath(); ctx.arc(x,y,4,0,Math.PI*2); ctx.fill()});
-    }
+  console.log('Inicializando...');
+  const app = initializeApp(firebaseConfig);
+  const db  = getDatabase(app);
 
-    // Audio simple
-    function playSignalSound(type){
-      const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
-      const ctx=new AC(); const beep=(f,d,w='sine')=>{const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=f;o.type=w;g.gain.setValueAtTime(.5,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.01,ctx.currentTime+d);o.start();o.stop(ctx.currentTime+d)};
-      if(type==='170')beep(523.25,.8,'sine'); else if(type==='3x'){[0,1,2].forEach(i=>setTimeout(()=>beep(784,.4,'square'),i*200))} else if(type==='10x'){[0,1,2,3].forEach(i=>setTimeout(()=>beep(1046.5,.4,'sawtooth'),i*200))}
-    }
+  // Estado básico
+  const DEVICE_NAME = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? '📱 Móvil' : '💻 PC';
+  const DEVICE_ID   = 'dev_' + Math.random().toString(36).slice(2,9);
+  document.getElementById('deviceName').textContent = DEVICE_NAME;
+  let isMaster = false;
+  let gameHistory = [];
+  let lastProcessedTs = 0;
 
-    // Helpers UI
-    function updateRoundsDisplay(){
-      const c=document.getElementById('roundsDisplay'); c.innerHTML='';
-      const hist=[...gameHistory].slice(0,60);
-      if(hist.length===0){c.innerHTML='<div style="opacity:.5;padding:20px;text-align:center;grid-column:1/-1;">Sin datos</div>';return;}
-      hist.forEach((r,i)=>{const d=document.createElement('div'); d.className=`round-item ${r.type.toLowerCase()}`; d.innerHTML=`<div class="round-num">#${60-i}</div><div>${r.multiplier.toFixed(2)}x</div>`; d.title=new Date(r.ts).toLocaleTimeString(); c.appendChild(d);});
-    }
-    function updateConnectionStatus(t){document.getElementById('connectionStatus').textContent=t}
-    function showAlert(msg,type){const a=document.getElementById('alertBox'); a.className='alert '+type; a.innerHTML=msg}
+  // UI helpers
+  function setFeedStatus(msg, ok=false){ const el=document.getElementById('feedStatus'); el.className='alert '+(ok?'success':'warning'); el.innerHTML=msg; }
+  function updateConnectionStatus(t){document.getElementById('connectionStatus').textContent=t}
+  function showAlert(message, type){const a=document.getElementById('alertBox'); a.className='alert '+type; a.innerHTML=message}
 
-    // Normalización de entradas
-    function normalizeEntry(item,key,fallbackTs){
-      const num=(x)=>{
-        if(x==null) return NaN;
-        if(typeof x==='number') return x;
-        if(typeof x==='string') return parseFloat(x.replace(/x/i,''));
-        if(typeof x==='object'){
-          const c=x.multiplier??x.crash??x.final??x.value??x.x??x.m??x.payout??x.result;
-          if(c!=null) return num(c);
-          if(x.data) return num(x.data);
-        }
-        return NaN;
-      };
-      const mult=num(item);
-      if(!Number.isFinite(mult)||mult<1.0) return null;
-      const tsRaw=(typeof item==='object'&&item)?(item.ts??item.time??item.t??item.timestamp):undefined;
-      const ts=Number(tsRaw??key??fallbackTs)||fallbackTs;
-      return {multiplier:mult, ts, type:classifyMultiplier(mult)};
-    }
-    function processData(raw){
-      const now=Date.now(); let entries=[];
-      if(Array.isArray(raw)){ entries=raw.map((it,i)=>normalizeEntry(it,i,now-i)).filter(Boolean);
-      } else if(raw&&typeof raw==='object'){ const ks=Object.keys(raw); entries=ks.map((k,i)=>normalizeEntry(raw[k],k,now-i)).filter(Boolean);
-      } else { const solo=normalizeEntry(raw,'0',now); if(solo) entries=[solo]; }
-      entries.sort((a,b)=>b.ts-a.ts); gameHistory=entries.slice(0,200);
-      updateRoundsDisplay(); drawChart();
-    }
-    function classifyMultiplier(m){m=parseFloat(m); if(m>=1.00&&m<=1.04)return'INSTALOSS'; if(m>=10)return'ULTRA'; if(m>=5)return'ALTO'; if(m>=1.70)return'MEDIO'; return'BAJO'}
+  // Chart
+  let chart=null;
+  function initChart(){const c=document.getElementById('trendChart'),ctx=c.getContext('2d'); c.width=c.offsetWidth; c.height=250; chart={canvas:c,ctx};}
+  function drawChart(){
+    if(!chart||gameHistory.length<2) return;
+    const {ctx,canvas}=chart,w=canvas.width,h=canvas.height;
+    ctx.clearRect(0,0,w,h);
+    const data=gameHistory.slice(0,60).reverse(), vals=data.map(r=>r.multiplier);
+    const max=Math.max(...vals,10), min=Math.min(...vals,0), range=(max-min)||1, step=w/((data.length-1)||1);
+    ctx.strokeStyle='rgba(255,255,255,.1)'; ctx.lineWidth=1;
+    for(let i=0;i<=5;i++){const y=(h/5)*i; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke();}
+    for(let i=0;i<=10;i++){const x=(w/10)*i; ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke();}
+    ctx.strokeStyle='#667eea'; ctx.lineWidth=2; ctx.beginPath();
+    data.forEach((r,i)=>{const x=i*step,y=h-((r.multiplier-min)/range)*h; if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y)}); ctx.stroke();
+    data.forEach((r,i)=>{const x=i*step,y=h-((r.multiplier-min)/range)*h; let c='#4facfe'; if(r.type==='INSTALOSS')c='#f5576c'; else if(r.type==='ULTRA')c='#b06ab3'; else if(r.type==='ALTO')c='#00ff88'; ctx.fillStyle=c; ctx.beginPath(); ctx.arc(x,y,4,0,Math.PI*2); ctx.fill(); });
+  }
+  function classify(m){m=parseFloat(m); if(m>=1.00&&m<=1.04)return'INSTALOSS'; if(m>=10)return'ULTRA'; if(m>=5)return'ALTO'; if(m>=1.70)return'MEDIO'; return'BAJO'}
+  function updateRounds(){
+    const c=document.getElementById('roundsDisplay'); c.innerHTML='';
+    const hist=[...gameHistory].slice(0,60);
+    if(hist.length===0){c.innerHTML='<div style="opacity:.5;padding:20px;text-align:center;grid-column:1/-1;">Sin datos</div>';return;}
+    hist.forEach((r,i)=>{const d=document.createElement('div'); d.className=`round-item ${r.type.toLowerCase()}`; d.innerHTML=`<div class="round-num">#${60-i}</div><div>${r.multiplier.toFixed(2)}x</div>`; d.title=new Date(r.ts).toLocaleTimeString(); c.appendChild(d);});
+  }
 
-    // Refs
-    const sessionRef  = ref(db,'shared/session');
-    const signalsRef  = ref(db,'shared/signals');
-    const currentRef  = ref(db,'current/signal');
-    const devicesRef  = ref(db,'connected_devices');
-
-    // Sesión & tablas
-    onValue(sessionRef,(s)=>{if(s.exists())updateUIFromShared(s.val())});
-    onValue(signalsRef,(s)=>{if(s.exists())updateSignalsFromShared(s.val())});
-    onValue(currentRef,(s)=>{if(s.exists())displaySharedSignal(s.val()); else clearSignalDisplay()});
-    onValue(devicesRef,(s)=>{if(s.exists()){document.getElementById('devicesConnected').textContent=Object.keys(s.val()).length}});
-
-    async function registerDevice(){
-      const dref=ref(db,`connected_devices/${DEVICE_ID}`);
-      await set(dref,{name:DEVICE_NAME,connectedAt:Date.now()});
-      onDisconnect(dref).remove();
-    }
-    async function checkIfMaster(){
-      const s=await get(sessionRef);
-      const d=await get(devicesRef);
-      const devCount = d.exists()?Object.keys(d.val()).length:0;
-      if(!s.exists() || !s.val().active || devCount<=1){ isMaster=true; console.log('👑 MAESTRO'); }
-      else { isMaster=false; console.log('📱 ESCLAVO'); }
-    }
-
-    // Start/Stop/Reset
-    async function startSession(){
-      await registerDevice();
-      await checkIfMaster();
-
-      // Si no hay sesión activa o tomamos control, inicializa
-      const s=await get(sessionRef);
-      if(!s.exists() || !s.val().active || isMaster){
-        await set(sessionRef,{active:true,totalRounds:0,sessionRounds:0,totalSignals:0,hits:0,misses:0,lastSignalTime:0});
-        await set(signalsRef,{});
-        await remove(currentRef);
+  // Normalizador robusto
+  function norm(item,key,fallbackTs){
+    const num=(x)=>{
+      if(x==null) return NaN;
+      if(typeof x==='number') return x;
+      if(typeof x==='string') return parseFloat(x.replace(/x/i,''));
+      if(typeof x==='object'){
+        const c=x.multiplier??x.crash??x.final??x.value??x.x??x.m??x.payout??x.result;
+        if(c!=null) return num(c);
+        if(x.data) return num(x.data);
       }
+      return NaN;
+    };
+    const mult=num(item); if(!Number.isFinite(mult)||mult<1.0) return null;
+    const tsRaw=(typeof item==='object'&&item)?(item.ts??item.time??item.t??item.timestamp):undefined;
+    const ts=Number(tsRaw??key??fallbackTs)||fallbackTs;
+    return {multiplier:mult, ts, type:classify(mult)};
+  }
+  function processRaw(raw){
+    const now=Date.now(); let entries=[];
+    if(Array.isArray(raw)){entries=raw.map((it,i)=>norm(it,i,now-i)).filter(Boolean);}
+    else if(raw&&typeof raw==='object'){entries=Object.keys(raw).map((k,i)=>norm(raw[k],k,now-i)).filter(Boolean);}
+    else {const solo=norm(raw,'0',now); if(solo) entries=[solo];}
+    entries.sort((a,b)=>b.ts-a.ts); gameHistory=entries.slice(0,200);
+    updateRounds(); drawChart();
+  }
 
-      // 🔑 CONECTAR FEED SIEMPRE (maestro y esclavo)
-      await findAndConnect();
+  // Firebase refs
+  const sessionRef = ref(db,'shared/session');
+  const signalsRef = ref(db,'shared/signals');
+  const currentRef = ref(db,'current/signal');
+  const devicesRef = ref(db,'connected_devices');
 
-      document.getElementById('btnStart').disabled=true;
-      document.getElementById('btnStop').disabled=false;
-      updateConnectionStatus('🟢 ON');
-      showAlert(isMaster ? '👑 <strong>MAESTRO</strong>' : '📱 <strong>ESCLAVO</strong> (escuchando feed)', 'success');
-    }
-    async function stopSession(){
-      if(isMaster){ await update(sessionRef,{active:false}); }
-      await remove(ref(db,`connected_devices/${DEVICE_ID}`));
-      document.getElementById('btnStart').disabled=false;
-      document.getElementById('btnStop').disabled=true;
-      updateConnectionStatus('⚪ OFF'); showAlert('⏹️ Detenido','warning');
-    }
-    async function resetSession(){
-      if(!confirm('¿Resetear?')) return;
-      await stopSession();
-      await set(sessionRef,{});
+  onValue(sessionRef,(s)=>{if(s.exists())paintSession(s.val())});
+  onValue(signalsRef,(s)=>{if(s.exists())paintSignals(s.val())});
+  onValue(currentRef,(s)=>{if(s.exists())paintCurrent(s.val()); else clearCurrent()});
+  onValue(devicesRef,(s)=>{if(s.exists())document.getElementById('devicesConnected').textContent=Object.keys(s.val()).length});
+
+  async function registerDevice(){
+    const dref=ref(db,`connected_devices/${DEVICE_ID}`);
+    await set(dref,{name:DEVICE_NAME,connectedAt:Date.now()});
+    onDisconnect(dref).remove();
+  }
+  async function decideRole(){
+    const s=await get(sessionRef); const d=await get(devicesRef);
+    const n=d.exists()?Object.keys(d.val()).length:0;
+    isMaster=!s.exists() || !s.val().active || n<=1;
+    console.log(isMaster?'MAESTRO':'ESCLAVO');
+  }
+
+  document.getElementById('btnStart').addEventListener('click', start);
+  document.getElementById('btnStop').addEventListener('click', stop);
+  document.getElementById('btnReset').addEventListener('click', resetAll);
+  document.getElementById('btnConnectFeed').addEventListener('click', ()=> {
+    const p=document.getElementById('feedPathInput').value.trim();
+    if(p) manualConnect(p);
+  });
+
+  async function start(){
+    await registerDevice();
+    await decideRole();
+
+    const s=await get(sessionRef);
+    if(!s.exists() || !s.val().active || isMaster){
+      await set(sessionRef,{active:true,totalRounds:0,sessionRounds:0,totalSignals:0,hits:0,misses:0,lastSignalTime:0});
       await set(signalsRef,{});
       await remove(currentRef);
-      showAlert('🔄 Reset','success');
-    }
-    document.getElementById('btnStart').addEventListener('click',startSession);
-    document.getElementById('btnStop').addEventListener('click',stopSession);
-    document.getElementById('btnReset').addEventListener('click',resetSession);
-
-    // Conexión al feed
-    async function findAndConnect(){
-      for(const path of possiblePaths){
-        try{
-          const t=await get(ref(db,path));
-          if(t.exists()){
-            console.log('✅ Feed:', '/'+path);
-            listenToPath(path);
-            return;
-          }
-        }catch(e){console.error('❌',path,e)}
-      }
-      console.warn('⚠️ No se encontró un feed válido');
-    }
-    function listenToPath(path){
-      const dataRef=ref(db,path);
-      onValue(dataRef,(snap)=>{ if(!snap.exists())return; processData(snap.val()); afterNewData(); });
-      onChildAdded(dataRef,(child)=>{ const k=child.key,v=child.val(); const n=normalizeEntry(v,k,Date.now()); if(n){ if(!gameHistory.length||n.ts>gameHistory[0].ts){ gameHistory.unshift(n); gameHistory=gameHistory.slice(0,200); updateRoundsDisplay(); drawChart(); afterNewData(); } }});
     }
 
-    async function afterNewData(){
-      if(gameHistory.length===0) return;
-      const latest=gameHistory[0];
-      if(latest.ts===lastProcessedTimestamp) return;
-      lastProcessedTimestamp=latest.ts;
+    // Autodescubrimiento + hash + input
+    const fromHash = (location.hash||'').replace(/^#\/?/,'');
+    if(fromHash){ manualConnect(fromHash); }
+    else { autoConnect(); }
 
-      const s=await get(sessionRef);
-      if(s.exists()){
-        const sess=s.val();
-        const newRounds=(sess.sessionRounds||0)+1;
-        await update(sessionRef,{
-          totalRounds:(sess.totalRounds||0)+1,
-          sessionRounds:Math.min(newRounds,CONFIG.SESSION_SIZE)
-        });
-      }
-      await checkPendingSignal(latest.multiplier);
+    document.getElementById('btnStart').disabled=true;
+    document.getElementById('btnStop').disabled=false;
+    updateConnectionStatus('🟢 ON');
+    showAlert(isMaster?'👑 <strong>MAESTRO</strong>':'📱 <strong>ESCLAVO</strong>','success');
+  }
 
-      const ss=await get(sessionRef);
-      if(ss.exists() && (ss.val().sessionRounds||0) >= CONFIG.MIN_DATA_POINTS){
-        analyzeAndEmit();
-      }
-    }
+  async function stop(){
+    if(isMaster){ await update(sessionRef,{active:false}); }
+    await remove(ref(db,`connected_devices/${DEVICE_ID}`));
+    document.getElementById('btnStart').disabled=false;
+    document.getElementById('btnStop').disabled=true;
+    updateConnectionStatus('⚪ OFF');
+    setFeedStatus('Sin feed conectado.', false);
+    showAlert('⏹️ Detenido','warning');
+  }
 
-    // Hit/Miss
-    async function checkPendingSignal(actualCrash){
-      const cur=await get(currentRef);
-      if(!cur.exists()) return;
-      const pending=cur.val();
-      if(pending.checked) return;
+  async function resetAll(){
+    if(!confirm('¿Resetear todo?')) return;
+    await stop();
+    await set(sessionRef,{});
+    await set(signalsRef,{});
+    await remove(currentRef);
+    showAlert('🔄 Reset','success');
+  }
 
-      const targetMin=pending.target*0.92;
-      const hit=actualCrash>=targetMin;
+  // Conexión al feed
+  const tryPaths=['feeds/gocho/crashes','crashes','historial','last_final'];
 
-      const s=await get(sessionRef);
-      const sess=s.val()||{};
-      await update(sessionRef,{hits:(sess.hits||0)+(hit?1:0),misses:(sess.misses||0)+(hit?0:1)});
-      await update(ref(db,`shared/signals/${pending.id}`),{actualCrash:actualCrash,hit:hit,checked:true});
-      await remove(currentRef);
-
-      showAlert(hit?`✅ ${pending.target.toFixed(2)}x → ${actualCrash.toFixed(2)}x`:`❌ ${pending.target.toFixed(2)}x → ${actualCrash.toFixed(2)}x`,hit?'success':'warning');
-    }
-
-    // Lógica NUEVA (sin límites)
-    async function analyzeAndEmit(){
-      if(!isMaster) return;
-      if(gameHistory.length<CONFIG.MIN_DATA_POINTS) return;
-
-      const s=await get(sessionRef);
-      const sess=s.exists()?s.val():{};
-      const now=Date.now();
-      const timeSince=now-(sess.lastSignalTime||0);
-      if(timeSince<CONFIG.SIGNAL_COOLDOWN) return;
-
-      const cur=await get(currentRef);
-      if(cur.exists()) return;
-
-      const last10=gameHistory.slice(0,10), last5=gameHistory.slice(0,5), last3=gameHistory.slice(0,3);
-      const instaloss3=last3.filter(r=>r.type==='INSTALOSS').length;
-      const high3    =last3.filter(r=>r.type==='ALTO'||r.type==='ULTRA').length;
-      const lowStreak=(()=>{let c=0; for(const r of gameHistory){ if(r.type==='BAJO'||r.type==='INSTALOSS') c++; else break; } return c;})();
-      const avg=(arr)=>arr.reduce((s,r)=>s+r.multiplier,0)/(arr.length||1);
-      const avg3=avg(last3), avg5=avg(last5), avg10=avg(last10);
-
-      if(high3>=1) return;
-      if(instaloss3>=2) return;
-      if(avg5<1.20 && last5.filter(r=>r.type==='INSTALOSS').length>=2) return;
-
-      let signal=null; const id='signal'+now;
-
-      if(!signal){
-        if(lowStreak>=4 && avg5>2.2 && instaloss3===0){
-          signal={id,timestamp:now,target:1.75,confidence:88,type:'🎯 1.70x',color:'green',soundType:'170',category:'170',reason:`Racha baja limpia (${lowStreak}) sin trampas`,checked:false};
-        }else if(last5.filter(r=>r.type==='INSTALOSS').length===1 && last5.filter(r=>r.type==='BAJO').length>=3 && avg5>2.0 && instaloss3===0){
-          signal={id,timestamp:now,target:1.78,confidence:85,type:'🎯 1.70x',color:'green',soundType:'170',category:'170',reason:'Bajos frecuentes, sin trampas',checked:false};
-        }else if(avg10>2.1 && last10.filter(r=>r.type==='BAJO').length>=6 && avg3>1.70 && instaloss3===0){
-          signal={id,timestamp:now,target:1.80,confidence:84,type:'🎯 1.70x',color:'green',soundType:'170',category:'170',reason:'Promedio alto, tendencia limpia',checked:false};
-        }
-      }
-      if(!signal){
-        if(last10.filter(r=>r.type==='INSTALOSS').length===2 && last5.filter(r=>r.type==='INSTALOSS').length===1 && last5.filter(r=>r.type==='ALTO'||r.type==='ULTRA').length===0 && avg10>2.3 && lowStreak>=3){
-          signal={id,timestamp:now,target:2.80,confidence:82,type:'🌟 3x+',color:'gold',soundType:'3x',category:'3x',reason:'Patrón espaciado, sin altos',checked:false};
-        }else if(lowStreak>=6 && avg10>2.0 && last5.filter(r=>r.type==='ALTO'||r.type==='ULTRA').length===0 && instaloss3===0){
-          signal={id,timestamp:now,target:3.00,confidence:79,type:'🌟 3x+',color:'gold',soundType:'3x',category:'3x',reason:'Racha baja extensa, sin trampas',checked:false};
-        }
-      }
-      if(!signal){
-        if(last10.filter(r=>r.type==='INSTALOSS').length>=3 && last5.filter(r=>r.type==='INSTALOSS').length===1 && last5.filter(r=>r.type==='ALTO'||r.type==='ULTRA').length===0 && avg10<2 && lowStreak>=7){
-          signal={id,timestamp:now,target:9.00,confidence:75,type:'💎 10x+',color:'purple',soundType:'10x',category:'10x',reason:'Patrón ultra raro',checked:false};
-        }
-      }
-
-      if(signal){
-        await update(sessionRef,{totalSignals:(sess.totalSignals||0)+1,lastSignalTime:now});
-        await set(currentRef,signal);
-        await set(ref(db,`shared/signals/${signal.id}`),signal);
-        playSignalSound(signal.soundType);
-        console.log(`🎯 SEÑAL EMITIDA: ${signal.target.toFixed(2)}x [${signal.confidence}%] - ${signal.reason}`);
+  async function autoConnect(){
+    for(const p of tryPaths){
+      try{
+        const snap=await get(ref(db,p));
+        if(!snap.exists()){ continue; }
+        const val=snap.val();
+        const hasData = (Array.isArray(val) && val.length) || (val && typeof val==='object' && Object.keys(val).length);
+        if(hasData){ listen(p); document.getElementById('feedPathInput').value=p; setFeedStatus(`Conectado a <b>/${p}</b>`, true); return; }
+      }catch(e){
+        console.warn('Error leyendo', p, e?.message||e);
       }
     }
+    setFeedStatus('No encontré ninguna ruta con datos. Escribe la ruta exacta y presiona Conectar.', false);
+  }
 
-    // UI paints
-    function updateUIFromShared(s){
-      const p=Math.min(((s.sessionRounds||0)/CONFIG.SESSION_SIZE)*100,100);
-      const bar=document.getElementById('sessionProgress');
-      bar.style.width=p+'%'; bar.textContent=`${s.sessionRounds||0}/${CONFIG.SESSION_SIZE}`;
-      document.getElementById('totalRoundsSession').textContent=s.totalRounds||0;
-      const eff=s.totalSignals>0?((s.hits/s.totalSignals)*100).toFixed(0):0;
-      document.getElementById('sessionEffectiveness').textContent=eff+'%';
-      document.getElementById('totalSignals').textContent=s.totalSignals||0;
-      document.getElementById('totalHits').textContent=s.hits||0;
-      document.getElementById('totalMisses').textContent=s.misses||0;
+  async function manualConnect(path){
+    try{
+      const r=ref(db,path);
+      const snap=await get(r);
+      if(!snap.exists()){ setFeedStatus(`La ruta <b>/${path}</b> no existe o está vacía.`, false); return; }
+      listen(path);
+      setFeedStatus(`Conectado a <b>/${path}</b>`, true);
+      location.hash = '#'+path; // para recargar directo
+    }catch(e){
+      const msg = /Permission/i.test(e?.message||'') ? 'Permisos (rules) denegados para lectura.' : (e?.message||'Error desconocido');
+      setFeedStatus(`No se pudo leer <b>/${path}</b>: ${msg}`, false);
     }
-    function updateSignalsFromShared(data){
-      const tbody=document.getElementById('signalsTableBody'); tbody.innerHTML='';
-      const arr=Object.values(data||{}).sort((a,b)=>b.timestamp-a.timestamp);
-      if(arr.length===0){tbody.innerHTML='<tr><td colspan="7" style="opacity:.6;padding:15px;">No hay señales</td></tr>';return;}
-      arr.forEach((s,i)=>{const r=tbody.insertRow(); r.className=s.checked?(s.hit?'hit':'miss'):'pending';
-        r.innerHTML=`<td>${i+1}</td><td>${new Date(s.timestamp).toLocaleTimeString('es-VE')}</td>
-        <td><strong>${s.target.toFixed(2)}x</strong></td><td>${s.type}</td><td>${s.confidence}%</td>
-        <td>${s.actualCrash? s.actualCrash.toFixed(2)+'x' : '--'}</td>
-        <td><span class="result-badge ${s.checked?(s.hit?'hit':'miss'):'pending'}">${s.checked?(s.hit?'✅':'❌'):'⏳'}</span></td>`;});
-    }
-    function displaySharedSignal(s){
-      const box=document.getElementById('signalBox');
-      document.getElementById('signalMultiplier').textContent=s.target.toFixed(2)+'x';
-      document.getElementById('confidence').textContent=s.confidence+'%';
-      document.getElementById('signalType').textContent=s.type;
-      const alertBox=document.getElementById('alertBox');
-      box.className=`signal-box ${s.color}`;
-      alertBox.className=`alert ${s.color==='green'?'success':s.color==='gold'?'gold':'purple'}`;
-      alertBox.innerHTML=`<strong>🎯</strong> ${s.type} | ${s.reason}`;
-    }
-    function clearSignalDisplay(){
-      const box=document.getElementById('signalBox');
-      box.className='signal-box waiting';
-      document.getElementById('signalMultiplier').textContent='--';
-      document.getElementById('confidence').textContent='--';
-      document.getElementById('signalType').textContent='Esperando...';
-    }
+  }
 
-    // Ticker de métricas
-    setInterval(async ()=>{
-      const s=await get(sessionRef);
-      if(!s.exists()) return;
+  function listen(path){
+    const r=ref(db,path);
+    onValue(r,(snap)=>{ if(!snap.exists()) return; processRaw(snap.val()); onNewData(); }, {onlyOnce:false});
+    onChildAdded(r,(child)=>{ const k=child.key,v=child.val(); const n=norm(v,k,Date.now()); if(n && (!gameHistory.length||n.ts>gameHistory[0].ts)){ gameHistory.unshift(n); gameHistory=gameHistory.slice(0,200); updateRounds(); drawChart(); onNewData(); }});
+  }
+
+  async function onNewData(){
+    if(gameHistory.length===0) return;
+    const latest=gameHistory[0];
+    if(latest.ts===lastProcessedTs) return;
+    lastProcessedTs=latest.ts;
+
+    const s=await get(sessionRef);
+    if(s.exists()){
       const sess=s.val();
-      if(sess.active && gameHistory.length>0){
-        const l10=gameHistory.slice(0,Math.min(10,gameHistory.length));
-        const a10=l10.reduce((sum,r)=>sum+r.multiplier,0)/l10.length || 0;
-        document.getElementById('avgLast10').textContent=l10.length? a10.toFixed(2)+'x':'--';
-        document.getElementById('instalossCount').textContent=l10.filter(r=>r.type==='INSTALOSS').length;
-        document.getElementById('lowCount').textContent=l10.filter(r=>r.type==='BAJO').length;
-        document.getElementById('highCount').textContent=l10.filter(r=>r.type==='ALTO'||r.type==='ULTRA').length;
-        let ls=0; for(const r of gameHistory){ if(r.type==='BAJO'||r.type==='INSTALOSS') ls++; else break; }
-        document.getElementById('lowStreak').textContent=ls;
-        const l5=gameHistory.slice(0,Math.min(5,gameHistory.length));
-        const a5=l5.length? l5.reduce((s,r)=>s+r.multiplier,0)/l5.length : a10;
-        document.getElementById('trendIndicator').textContent=(l5.length&&l10.length)?(a5<a10?'⬇️':'⬆️'):'--';
-        const timeSince=Date.now()-(sess.lastSignalTime||0);
-        if(timeSince<CONFIG.SIGNAL_COOLDOWN){
-          const rem=Math.ceil((CONFIG.SIGNAL_COOLDOWN-timeSince)/1000);
-          document.getElementById('countdown').textContent=`Cooldown: ${rem}s`;
-        }else{
-          document.getElementById('countdown').textContent='Listo';
-        }
-      }
-    },1000);
+      await update(sessionRef,{
+        totalRounds:(sess.totalRounds||0)+1,
+        sessionRounds: Math.min((sess.sessionRounds||0)+1, CONFIG.SESSION_SIZE)
+      });
+    }
+    await checkPending(latest.multiplier);
 
-    initChart();
-    console.log('✅ Sistema listo - Base 60 & lógica nueva (normalización robusta)');
-  </script>
+    const s2=await get(sessionRef);
+    if(s2.exists() && (s2.val().sessionRounds||0) >= CONFIG.MIN_DATA_POINTS){
+      analyzeAndEmit();
+    }
+
+    // Métricas rápidas
+    const l10=gameHistory.slice(0, Math.min(10,gameHistory.length));
+    const avg10=l10.reduce((a,b)=>a+b.multiplier,0)/(l10.length||1);
+    document.getElementById('avgLast10').textContent = l10.length? avg10.toFixed(2)+'x' : '--';
+    document.getElementById('instalossCount').textContent = l10.filter(r=>r.type==='INSTALOSS').length;
+    document.getElementById('lowCount').textContent = l10.filter(r=>r.type==='BAJO').length;
+    document.getElementById('highCount').textContent = l10.filter(r=>r.type==='ALTO'||r.type==='ULTRA').length;
+    let ls=0; for(const r of gameHistory){ if(r.type==='BAJO'||r.type==='INSTALOSS') ls++; else break; }
+    document.getElementById('lowStreak').textContent = ls;
+    const l5=gameHistory.slice(0,Math.min(5,gameHistory.length));
+    const avg5=l5.reduce((a,b)=>a+b.multiplier,0)/(l5.length||1);
+    document.getElementById('trendIndicator').textContent = (l5.length && l10.length) ? (avg5<avg10?'⬇️':'⬆️') : '--';
+  }
+
+  // Señales: hit/miss
+  async function checkPending(actual){
+    const cur=await get(currentRef);
+    if(!cur.exists()) return;
+    const pending=cur.val(); if(pending.checked) return;
+
+    const hit = actual >= pending.target*0.92;
+    const s=await get(sessionRef); const sess=s.val()||{};
+    await update(sessionRef,{hits:(sess.hits||0)+(hit?1:0),misses:(sess.misses||0)+(hit?0:1)});
+    await update(ref(db,`shared/signals/${pending.id}`),{actualCrash:actual,hit,checked:true});
+    await remove(currentRef);
+
+    showAlert(hit?`✅ ${pending.target.toFixed(2)}x → ${actual.toFixed(2)}x`:`❌ ${pending.target.toFixed(2)}x → ${actual.toFixed(2)}x`, hit?'success':'warning');
+  }
+
+  // Lógica nueva (sin límites por tipo)
+  async function analyzeAndEmit(){
+    if(!isMaster) return;
+    if(gameHistory.length<CONFIG.MIN_DATA_POINTS) return;
+
+    const s=await get(sessionRef); const sess=s.exists()?s.val():{};
+    const now=Date.now(); const since=now-(sess.lastSignalTime||0);
+    if(since<CONFIG.SIGNAL_COOLDOWN) return;
+
+    const cur=await get(currentRef); if(cur.exists()) return;
+
+    const last10=gameHistory.slice(0,10), last5=gameHistory.slice(0,5), last3=gameHistory.slice(0,3);
+    const instaloss3=last3.filter(r=>r.type==='INSTALOSS').length;
+    const high3=last3.filter(r=>r.type==='ALTO'||r.type==='ULTRA').length;
+    const lowStreak=(()=>{let c=0; for(const r of gameHistory){ if(r.type==='BAJO'||r.type==='INSTALOSS') c++; else break; } return c;})();
+    const avg=(arr)=>arr.reduce((s,r)=>s+r.multiplier,0)/(arr.length||1);
+    const avg3=avg(last3), avg5=avg(last5), avg10=avg(last10);
+
+    if(high3>=1) return;
+    if(instaloss3>=2) return;
+    if(avg5<1.20 && last5.filter(r=>r.type==='INSTALOSS').length>=2) return;
+
+    let signal=null; const id='signal'+now;
+
+    if(!signal){
+      if(lowStreak>=4 && avg5>2.2 && instaloss3===0){
+        signal={id,timestamp:now,target:1.75,confidence:88,type:'🎯 1.70x',color:'green',soundType:'170',category:'170',reason:`Racha baja limpia (${lowStreak}) sin trampas`,checked:false};
+      }else if(last5.filter(r=>r.type==='INSTALOSS').length===1 && last5.filter(r=>r.type==='BAJO').length>=3 && avg5>2.0 && instaloss3===0){
+        signal={id,timestamp:now,target:1.78,confidence:85,type:'🎯 1.70x',color:'green',soundType:'170',category:'170',reason:'Bajos frecuentes, sin trampas',checked:false};
+      }else if(avg10>2.1 && last10.filter(r=>r.type==='BAJO').length>=6 && avg3>1.70 && instaloss3===0){
+        signal={id,timestamp:now,target:1.80,confidence:84,type:'🎯 1.70x',color:'green',soundType:'170',category:'170',reason:'Promedio alto, tendencia limpia',checked:false};
+      }
+    }
+    if(!signal){
+      if(last10.filter(r=>r.type==='INSTALOSS').length===2 &&
+         last5.filter(r=>r.type==='INSTALOSS').length===1 &&
+         last5.filter(r=>r.type==='ALTO'||r.type==='ULTRA').length===0 &&
+         avg10>2.3 && lowStreak>=3){
+        signal={id,timestamp:now,target:2.80,confidence:82,type:'🌟 3x+',color:'gold',soundType:'3x',category:'3x',reason:'Patrón espaciado, sin altos',checked:false};
+      }else if(lowStreak>=6 && avg10>2.0 && last5.filter(r=>r.type==='ALTO'||r.type==='ULTRA').length===0 && instaloss3===0){
+        signal={id,timestamp:now,target:3.00,confidence:79,type:'🌟 3x+',color:'gold',soundType:'3x',category:'3x',reason:'Racha baja extensa, sin trampas',checked:false};
+      }
+    }
+    if(!signal){
+      if(last10.filter(r=>r.type==='INSTALOSS').length>=3 &&
+         last5.filter(r=>r.type==='INSTALOSS').length===1 &&
+         last5.filter(r=>r.type==='ALTO'||r.type==='ULTRA').length===0 &&
+         avg10<2 && lowStreak>=7){
+        signal={id,timestamp:now,target:9.00,confidence:75,type:'💎 10x+',color:'purple',soundType:'10x',category:'10x',reason:'Patrón ultra raro',checked:false};
+      }
+    }
+
+    if(signal){
+      await update(sessionRef,{totalSignals:(sess.totalSignals||0)+1,lastSignalTime:now});
+      await set(currentRef,signal);
+      await set(ref(db,`shared/signals/${signal.id}`),signal);
+      playSignalSound(signal.soundType);
+      console.log('SEÑAL', signal);
+    }
+  }
+
+  // Pintado de estado compartido
+  function paintSession(s){
+    const p=Math.min(((s.sessionRounds||0)/CONFIG.SESSION_SIZE)*100,100);
+    const bar=document.getElementById('sessionProgress'); bar.style.width=p+'%'; bar.textContent=`${s.sessionRounds||0}/${CONFIG.SESSION_SIZE}`;
+    document.getElementById('totalSignals').textContent=s.totalSignals||0;
+    document.getElementById('totalHits').textContent=s.hits||0;
+    document.getElementById('totalMisses').textContent=s.misses||0;
+    const eff=s.totalSignals>0?((s.hits/s.totalSignals)*100).toFixed(0):0;
+    document.getElementById('avgLast10'); document.getElementById('trendIndicator');
+    document.getElementById('countdown');
+    document.getElementById('sessionProgress');
+    document.getElementById('sessionEffectiveness')?.textContent; // (opcional si no existe)
+  }
+  function paintSignals(data){
+    const tbody=document.getElementById('signalsTableBody'); tbody.innerHTML='';
+    const arr=Object.values(data||{}).sort((a,b)=>b.timestamp-a.timestamp);
+    if(arr.length===0){tbody.innerHTML='<tr><td colspan="7" style="opacity:.6;padding:15px;">No hay señales</td></tr>';return;}
+    arr.forEach((s,i)=>{const row=tbody.insertRow(); row.className=s.checked?(s.hit?'hit':'miss'):'pending';
+      row.innerHTML=`<td>${i+1}</td><td>${new Date(s.timestamp).toLocaleTimeString('es-VE')}</td>
+      <td><strong>${s.target.toFixed(2)}x</strong></td><td>${s.type}</td><td>${s.confidence}%</td>
+      <td>${s.actualCrash? s.actualCrash.toFixed(2)+'x':'--'}</td>
+      <td><span class="result-badge ${s.checked?(s.hit?'hit':'miss'):'pending'}">${s.checked?(s.hit?'✅':'❌'):'⏳'}</span></td>`;
+    });
+  }
+  function paintCurrent(s){
+    const box=document.getElementById('signalBox'), alert=document.getElementById('alertBox');
+    box.className=`signal-box ${s.color}`;
+    document.getElementById('signalMultiplier').textContent=s.target.toFixed(2)+'x';
+    document.getElementById('confidence').textContent=s.confidence+'%';
+    document.getElementById('signalType').textContent=s.type;
+    alert.className='alert '+(s.color==='green'?'success':s.color==='gold'?'warning':'warning');
+    alert.innerHTML=`<strong>🎯</strong> ${s.type} | ${s.reason}`;
+  }
+  function clearCurrent(){
+    const box=document.getElementById('signalBox'); box.className='signal-box waiting';
+    document.getElementById('signalMultiplier').textContent='--';
+    document.getElementById('confidence').textContent='--';
+    document.getElementById('signalType').textContent='Esperando...';
+  }
+
+  // Ticker cooldown
+  setInterval(async ()=>{
+    const s=await get(sessionRef); if(!s.exists()) return;
+    const sess=s.val(); const time=Date.now()-(sess.lastSignalTime||0);
+    if(time<CONFIG.SIGNAL_COOLDOWN){
+      const rem=Math.ceil((CONFIG.SIGNAL_COOLDOWN-time)/1000);
+      document.getElementById('countdown').textContent='Cooldown: '+rem+'s';
+    } else {
+      document.getElementById('countdown').textContent='Listo';
+    }
+  },1000);
+
+  // Init
+  initChart();
+  updateConnectionStatus('⚪ OFF');
+</script>
 </body>
 </html>
