@@ -1,266 +1,481 @@
 <!doctype html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aviator Analyzer · 888Star</title>
-<meta name="theme-color" content="#0f1222" />
-<style>
-  :root{
-    --bg:#0f1222; --panel:#141733; --panel-2:#0f1530; --text:#eef2ff; --muted:#9aa3b2;
-    --primary:#7c3aed; --accent:#22d3ee; --pink:#fb37a3; --blue:#3b82f6;
-    --tile1:#bbf7d0; --tile2:#bae6fd; --tile3:#e9d5ff; --tile4:#fed7e2;
-  }
-  *{box-sizing:border-box}
-  html,body{height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,Arial,sans-serif}
-  .wrap{max-width:1220px;margin:0 auto;padding:18px}
-  header{background:linear-gradient(180deg,#171a3a 0%, #121633 100%);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:14px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
-  h1{font-weight:800;font-size:clamp(20px,2.3vw,26px)} h1 .brand{color:#a78bfa} h1 .star{color:#60a5fa}
-  .badge{display:flex;align-items:center;gap:8px;background:var(--panel-2);border:1px solid rgba(255,255,255,.08);padding:8px 10px;border-radius:10px;font-weight:600;color:#dbeafe}
-  .dot{width:10px;height:10px;border-radius:50%;display:inline-block;background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.12)}
-  .card{background:var(--panel);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:14px;margin-top:16px}
-  .card h2{margin:4px 0 12px 0;font-size:18px}
-  .chip{display:inline-flex;align-items:center;gap:8px;background:var(--panel-2);border:1px solid rgba(255,255,255,.08);padding:8px 10px;border-radius:10px;margin-right:8px;font-weight:600;color:#c7d2fe}
-  .btn,.btn-ghost{border-radius:10px;padding:10px 14px;font-weight:800;letter-spacing:.3px;cursor:pointer;border:1px solid rgba(255,255,255,.12)}
-  .btn{background:linear-gradient(180deg,#3343a7 0%, #2c1d6c 100%);color:#fff}
-  .btn-ghost{background:transparent;color:#c7d2fe}
-  .kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:8px}
-  .kpi{background:var(--panel-2);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px}
-  .kpi .n{font-size:22px;font-weight:900}.kpi .l{font-size:12px;color:#9aa3b2}
-  .signal-now{background:linear-gradient(180deg,rgba(124,58,237,.3) 0%, rgba(34,211,238,.12) 100%);border:1px dashed rgba(255,255,255,.18);padding:12px;border-radius:12px;min-height:68px;display:flex;align-items:center;justify-content:space-between;gap:10px}
-  canvas{max-width:100%;height:360px}
-  .grid60{display:grid;grid-template-columns:repeat(10,1fr);gap:8px;margin-top:12px}
-  .tile{border-radius:12px;padding:10px 8px;text-align:center;font-weight:800;color:#111;display:flex;flex-direction:column;gap:6px;box-shadow:inset 0 -2px 0 rgba(0,0,0,.08);border:1px solid rgba(0,0,0,.06)}
-  .t1{background:var(--tile1)} .t2{background:var(--tile2)} .t3{background:var(--tile3)} .t4{background:var(--tile4)}
-  .muted{color:#9aa3b2}
-  .table-wrap{overflow:auto} table{width:100%;border-collapse:collapse}
-  th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,.06);text-align:left;font-size:14px} th{color:#c7d2fe}
-  .pill{padding:6px 10px;border-radius:999px;font-weight:800;display:inline-block}
-  .win{background:rgba(74,222,128,.15);color:#4ade80;border:1px solid rgba(74,222,128,.25)}
-  .lose{background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.25)}
-  .range-bajo{background:rgba(59,130,246,.15);color:#93c5fd;border:1px solid rgba(147,197,253,.25)}
-  .range-medio{background:rgba(124,58,237,.15);color:#c4b5fd;border:1px solid rgba(196,181,253,.25)}
-  .range-alto{background:rgba(236,72,153,.15);color:#f9a8d4;border:1px solid rgba(249,168,212,.25)}
-  .range-superior{background:rgba(34,211,238,.15);color:#99f6e4;border:1px solid rgba(153,246,228,.25)}
-  footer{opacity:.6;text-align:center;margin:16px 0}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Aviator Analyzer · 888Star</title>
+
+  <!-- Favicon (evita 404) -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='24' fill='%2323274a'/%3E%3Cpath d='M22 86c30-12 54-40 84-44-26 10-38 42-84 44Z' fill='%23a78bfa'/%3E%3Cpath d='M18 70c32-8 58-26 92-30-28 6-46 34-92 30Z' fill='%238b5cf6'/%3E%3Ccircle cx='96' cy='40' r='6' fill='%23f472b6'/%3E%3C/svg%3E">
+
+  <style>
+    :root{
+      --bg:#0f1225;
+      --panel:#171a34;
+      --muted:#7b82a8;
+      --ink:#e8e9ff;
+      --accent:#8b5cf6; /* morado */
+      --accent-2:#3b82f6; /* azul */
+      --accent-3:#f472b6; /* fucsia */
+      --ok:#10b981; --bad:#ef4444; --warn:#f59e0b;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;background:radial-gradient(1200px 700px at 20% -10%,#1a1f46 0,#0f1225 60%) no-repeat fixed;
+      color:var(--ink); font:500 16px/1.45 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial;
+    }
+    .wrap{max-width:1160px;margin-inline:auto;padding:16px}
+    .row{display:flex;gap:16px;flex-wrap:wrap}
+    .card{
+      background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.00) 40%) , var(--panel);
+      border:1px solid rgba(255,255,255,.06);
+      border-radius:16px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.25);
+    }
+    .badge{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:#121530;border:1px solid rgba(255,255,255,.06);color:#c7cbff;font-size:13px}
+    .dot{width:8px;height:8px;border-radius:50%}
+    h1{font-weight:800;letter-spacing:.2px;margin:0 0 8px;font-size:28px}
+    h2{font-size:18px;margin:0 0 12px;color:#cfd1ff}
+    .muted{color:var(--muted)}
+    button{
+      appearance:none;border:0; padding:10px 14px;border-radius:12px;
+      color:#fff; background:linear-gradient(180deg,var(--accent),#6d28d9); cursor:pointer; font-weight:700
+    }
+    button.secondary{background:#11162f;color:#d6d8ff;border:1px solid rgba(255,255,255,.08)}
+    button.ghost{background:transparent;border:1px dashed rgba(255,255,255,.18);color:#b9bdf7}
+    .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+    .kpi{background:#0f132e;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:12px;text-align:center}
+    .kpi .v{font-size:28px;font-weight:800}
+    canvas{width:100%;height:320px;display:block}
+    .grid60{display:grid;grid-template-columns:repeat(10,1fr);gap:8px}
+    .pill{
+      border-radius:12px;padding:10px 8px;text-align:center;font-weight:800;
+      background:#111630;border:1px solid rgba(255,255,255,.06)
+    }
+    .pill small{display:block;font-weight:700;color:#9aa3d6}
+    .c-1{background:rgba(139,92,246,.15);border-color:rgba(139,92,246,.35)}
+    .c-2{background:rgba(59,130,246,.15);border-color:rgba(59,130,246,.35)}
+    .c-3{background:rgba(244,114,182,.15);border-color:rgba(244,114,182,.35)}
+    table{width:100%;border-collapse:separate;border-spacing:0 8px}
+    th,td{padding:10px 12px;background:#0f132e;border:1px solid rgba(255,255,255,.06)}
+    th{color:#cfd1ff;text-align:left;font-size:13px}
+    td{font-size:14px}
+    tr td:first-child, tr th:first-child{border-top-left-radius:10px;border-bottom-left-radius:10px}
+    tr td:last-child, tr th:last-child{border-top-right-radius:10px;border-bottom-right-radius:10px}
+    .ok{color:var(--ok)} .bad{color:var(--bad)} .warn{color:var(--warn)}
+    @media (max-width: 900px){
+      .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .grid60{grid-template-columns:repeat(6,1fr)}
+    }
+    @media (max-width: 560px){
+      .grid60{grid-template-columns:repeat(5,1fr)}
+      button{width:100%}
+    }
+  </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>Aviator Analyzer · <span class="brand">888</span><span class="star">Star</span></h1>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <div class="badge"><span class="dot" id="connDot"></span><span>Conectado a</span><strong id="feedPath" style="margin-left:6px">/crashes</strong></div>
-      <div class="badge"><span class="dot" id="roleDot" style="background:#22c55e"></span><span>Rol:</span> <strong id="roleText">—</strong><span style="opacity:.6;margin:0 .5rem;">·</span><span>Dispositivo:</span> <strong id="deviceKind">—</strong><button id="btnTakeControl" class="btn-ghost" style="margin-left:.75rem;display:none;">Tomar control</button></div>
-      <div class="badge"><span class="dot" id="peersDot" style="background:#60a5fa"></span><span>Conectados:</span> <strong id="peers">1</strong></div>
-    </div>
-  </header>
-
-  <section class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-      <h2>Tendencia en tiempo real</h2>
+  <div class="wrap">
+    <div class="row" style="align-items:center;justify-content:space-between">
       <div>
-        <span class="chip">EMA</span>
-        <span class="chip">Bollinger</span>
-        <span class="chip">Soporte/Resistencia</span>
-        <span class="chip">Grid</span>
-        <span class="chip">Tendencia: <strong id="trendLabel" style="margin-left:6px">—</strong></span>
-        <span class="chip">Últimas <strong>60</strong> rondas</span>
+        <h1>Aviator Analyzer · <span style="color:var(--accent-3)">888</span><span style="color:var(--accent-2)">Star</span></h1>
+        <div id="connBadge" class="badge"><span class="dot" style="background:#10b981"></span> Conectado automáticamente a <b>/crashes</b></div>
+      </div>
+      <div class="badge"><span class="dot" style="background:#10b981"></span> Rol: <b id="role">MAESTRO</b> · Dispositivo: <b>PC</b></div>
+    </div>
+
+    <!-- Tendencia -->
+    <div class="card" style="margin-top:16px">
+      <div class="row" style="align-items:center;justify-content:space-between">
+        <h2>Tendencia en tiempo real</h2>
+        <div class="badge">Tendencia: <b id="tendencia">–</b> · Últimas <b>60</b> rondas</div>
+      </div>
+      <div style="position:relative">
+        <canvas id="trend"></canvas>
+      </div>
+
+      <div class="row" style="margin-top:12px">
+        <div class="badge">EMA</div>
+        <div class="badge">Bollinger</div>
+        <div class="badge">Soporte/Resistencia</div>
+        <div class="badge">Grid</div>
       </div>
     </div>
-    <canvas id="chart"></canvas>
-    <div id="last60" class="grid60"></div>
-  </section>
 
-  <section class="card">
-    <h2>Sesión</h2>
-    <div class="kpi-grid">
-      <div class="kpi"><div class="n" id="kRondas">0</div><div class="l">Rondas</div></div>
-      <div class="kpi"><div class="n" id="kSenales">0</div><div class="l">Señales</div></div>
-      <div class="kpi"><div class="n" id="kHits">0</div><div class="l">Aciertos</div></div>
-      <div class="kpi"><div class="n" id="kEff">0%</div><div class="l">Efectividad</div></div>
+    <!-- Últimas 60 -->
+    <div class="card" style="margin-top:16px">
+      <h2>Últimas 60 rondas</h2>
+      <div id="grid60" class="grid60"></div>
     </div>
 
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;gap:10px;flex-wrap:wrap">
-      <div style="display:flex;gap:8px">
-        <button id="btnStart" class="btn">Iniciar</button>
-        <button id="btnStop" class="btn-ghost">Detener</button>
-        <button id="btnReset" class="btn-ghost">Reset</button>
+    <!-- Sesión -->
+    <div class="card" style="margin-top:16px">
+      <h2>Sesión</h2>
+      <div class="kpis">
+        <div class="kpi"><div class="v" id="kRondas">0</div><div class="muted">Rondas</div></div>
+        <div class="kpi"><div class="v" id="kSignals">0</div><div class="muted">Señales</div></div>
+        <div class="kpi"><div class="v" id="kWins">0</div><div class="muted">Aciertos</div></div>
+        <div class="kpi"><div class="v" id="kEff">0%</div><div class="muted">Efectividad</div></div>
       </div>
-      <div class="muted" id="statusTxt">Esperando…</div>
+      <div class="row" style="margin-top:12px;gap:8px">
+        <button id="btnStart">Iniciar</button>
+        <button id="btnStop" class="secondary">Detener</button>
+        <button id="btnReset" class="ghost">Reset</button>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <div class="muted">Señal actual:</div>
+        <div id="liveSignal" style="font-size:20px;font-weight:800;margin-top:4px">—</div>
+      </div>
     </div>
 
-    <div class="signal-now" style="margin-top:10px">
-      <div><strong>Señal actual:</strong> <span id="sigNow" class="muted">—</span></div>
-      <div id="sigNowBadge"></div>
+    <!-- Historial de señales -->
+    <div class="card" style="margin-top:16px">
+      <div class="row" style="align-items:center;justify-content:space-between">
+        <h2>Historial de Señales <span class="muted">· Tiempo real</span></h2>
+      </div>
+      <div style="overflow:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>HORA</th><th>TARGET</th><th>TIPO</th><th>CONF.</th><th>REAL</th><th>ESTADO</th>
+            </tr>
+          </thead>
+          <tbody id="tbl"></tbody>
+        </table>
+      </div>
     </div>
-  </section>
 
-  <section class="card">
-    <h2>Historial de Señales <small class="muted">Tiempo real</small></h2>
-    <div class="table-wrap">
-      <table id="tbl">
-        <thead><tr><th>#</th><th>HORA</th><th>TARGET</th><th>TIPO</th><th>CONF.</th><th>REAL</th><th>ESTADO</th></tr></thead>
-        <tbody id="tbody"><tr><td colspan="7" class="muted">No hay señales</td></tr></tbody>
-      </table>
+    <div class="muted" style="text-align:center;margin:22px 0 8px">
+      Multi-dispositivo (maestro/esclavo) · Guarda sesión y señales en Firebase RTDB
     </div>
-  </section>
+  </div>
 
-  <footer>Multi-dispositivo (maestro/esclavo) · Guarda sesión y señales en Firebase RTDB</footer>
-</div>
+  <!-- Sonido simple para señal -->
+  <audio id="beep" preload="auto">
+    <source src="data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQAA" type="audio/mp3">
+  </audio>
 
-<!-- Chart.js (global) -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+  <!-- Firebase compat (NO modular, así no falla en GitHub Pages) -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database-compat.js"></script>
 
-<!-- ÚNICO módulo: aquí van las importaciones y el código -->
-<script type="module">
-/* ===== Importaciones (en el mismo módulo) ===== */
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import { getDatabase, ref, onValue, get, set } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
+  <script>
+  /* =============================
+     CONFIGURACIÓN
+  ==============================*/
+  // Cambia los rangos si quieres otra lógica de señal
+  const RANGES = [
+    { name: "BAJO",     min: 1.01, max: 1.59, color: "c-2" },
+    { name: "MEDIO",    min: 1.60, max: 2.99, color: "c-1" },
+    { name: "ALTO",     min: 3.00, max: 9.99, color: "c-3" },
+    { name: "ÉPICO",    min: 10.0, max: 9999, color: "c-3" },
+  ];
+  const WINDOW_EMA = 12;           // para EMA
+  const BOLL_WINDOW = 20;          // para bandas
+  const BOLL_MULT = 2;
 
-/* ===== Config ===== */
-const firebaseConfig = {
-  apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
-  authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
-  databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com",
-  projectId: "aviator-analyzer-b29a7",
-  storageBucket: "aviator-analyzer-b29a7.firebasestorage.app",
-  messagingSenderId: "575063626276",
-  appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
-  measurementId: "G-325QCBSQMH"
-};
-const RANGE_CFG = {
-  bajo:{min:1.00,max:1.69,cls:'range-bajo',label:'BAJO'},
-  medio:{min:1.70,max:2.99,cls:'range-medio',label:'MEDIO'},
-  alto:{min:3.00,max:9.99,cls:'range-alto',label:'ALTO'},
-  superior:{min:10.0,max:999,cls:'range-superior',label:'SUPERIOR'}
-};
-const EMA_PERIOD=12, BB_PERIOD=20, BB_K=2;
-const DEFAULT_FEED_PATH = '/crashes';
-const DEVICE_ID=localStorage.getItem('AA_DEVICE_ID')|| (Date.now()+'_'+Math.random().toString(36).slice(2));
-localStorage.setItem('AA_DEVICE_ID',DEVICE_ID);
-const DEVICE_NAME=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)?'📱 Móvil':'💻 PC';
+  // Tu Firebase (dejé el que compartiste)
+  const firebaseConfig = {
+    apiKey: "AIzaSyDuEnNg5XutDF3Ka90o6GFKTazBLR9NnSs",
+    authDomain: "aviator-analyzer-b29a7.firebaseapp.com",
+    databaseURL: "https://aviator-analyzer-b29a7-default-rtdb.firebaseio.com",
+    projectId: "aviator-analyzer-b29a7",
+    storageBucket: "aviator-analyzer-b29a7.firebasestorage.app",
+    messagingSenderId: "575063626276",
+    appId: "1:575063626276:web:5f640e41f0ad791d6a3eb1",
+    measurementId: "G-325QCBSQMH"
+  };
 
-/* ===== Firebase ===== */
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+  /* =============================
+     ESTADO
+  ==============================*/
+  let app, db, refCrashes;
+  let rounds = [];          // buffer con la historia (crece)
+  let last60 = [];          // ventana deslizante 60
+  let started = false;
+  let kRondas=0, kSignals=0, kWins=0;
 
-/* ===== UI refs ===== */
-const feedPathEl=document.getElementById('feedPath'), connDot=document.getElementById('connDot');
-const roleDot=document.getElementById('roleDot'), roleEl=document.getElementById('roleText');
-const deviceKindEl=document.getElementById('deviceKind'); deviceKindEl.textContent=/Móvil/.test(DEVICE_NAME)?'Móvil':'PC';
-const btnTakeControl=document.getElementById('btnTakeControl'), peersEl=document.getElementById('peers');
-const kRondas=document.getElementById('kRondas'), kSenales=document.getElementById('kSenales'), kHits=document.getElementById('kHits'), kEff=document.getElementById('kEff');
-const statusTxt=document.getElementById('statusTxt'), last60Grid=document.getElementById('last60'), sigNow=document.getElementById('sigNow'), sigNowBadge=document.getElementById('sigNowBadge');
-const tbody=document.getElementById('tbody');
+  let rafQueued = false;    // para throttle de render
+  const tbl = document.getElementById('tbl');
+  const el60 = document.getElementById('grid60');
+  const liveSignal = document.getElementById('liveSignal');
+  const beep = document.getElementById('beep');
 
-/* ===== Chart ===== */
-const ctx=document.getElementById('chart').getContext('2d');
-let chart=new Chart(ctx,{type:'line',data:{labels:[],datasets:[
-  {label:'Crash',data:[],borderColor:'#22d3ee',backgroundColor:'rgba(34,211,238,.15)',tension:.25,pointRadius:2},
-  {label:'EMA',data:[],borderColor:'#a78bfa',backgroundColor:'rgba(167,139,250,.12)',borderDash:[5,4],tension:.25,pointRadius:0},
-  {label:'BB Alta',data:[],borderColor:'#fb37a3',backgroundColor:'rgba(251,55,163,.08)',borderDash:[3,3],tension:.25,pointRadius:0},
-  {label:'BB Baja',data:[],borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.08)',borderDash:[3,3],tension:.25,pointRadius:0}
-]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:'#93a0b5'}},y:{ticks:{color:'#93a0b5'},suggestedMin:1,suggestedMax:10}},plugins:{legend:{labels:{color:'#c7d2fe'}}}}});
+  /* =============================
+     UTILS
+  ==============================*/
+  const fmt = v => Number(v).toFixed(2) + "x";
+  const tsToTime = ts => new Date(Number(ts)).toLocaleTimeString();
 
-/* ===== Roles ===== */
-function qp(n){const u=new URL(location.href);return u.searchParams.get(n)}
-const sessionRef=ref(db,'shared_session');
-let isMaster=false;
-async function ensureRole(){
-  if(qp('master')==='1'){await set(sessionRef,{active:true,owner:DEVICE_ID,ownerName:DEVICE_NAME,startedAt:Date.now()});setMasterUI(true);return;}
-  const s=await get(sessionRef);
-  if(!s.exists()||!s.val().active){await set(sessionRef,{active:true,owner:DEVICE_ID,ownerName:DEVICE_NAME,startedAt:Date.now()});setMasterUI(true);}
-  else{setMasterUI(s.val().owner===DEVICE_ID);}
-}
-function setMasterUI(m){isMaster=m; roleEl.textContent=m?'MAESTRO':'ESCLAVO'; roleDot.style.background=m?'#22c55e':'#0ea5e9'; btnTakeControl.style.display=m?'none':'inline-flex'}
-btnTakeControl.addEventListener('click',async()=>{await set(sessionRef,{active:true,owner:DEVICE_ID,ownerName:DEVICE_NAME,startedAt:Date.now()});setMasterUI(true)});
-peersEl.textContent='1';
-
-/* ===== Feed ===== */
-feedPathEl.textContent=DEFAULT_FEED_PATH;
-const feedRef=ref(db,DEFAULT_FEED_PATH);
-let allRounds=[], last60=[], started=false, openSignal=null, signalSeq=0, stats={rounds:0,signals:0,hits:0};
-onValue(feedRef,(snap)=>{
-  connDot.style.background='#22c55e';
-  if(!snap.exists())return;
-  const norm=Object.values(snap.val()).map(n=>{const ts=Number(n.ts??n.t??n.time??0);const v=Number(n.v??n.value??n.multiplier??0);return(ts&&v)?{ts,v}:null}).filter(Boolean).sort((a,b)=>a.ts-b.ts);
-  const known=allRounds.length?allRounds[allRounds.length-1].ts:0;
-  const fresh=norm.filter(x=>x.ts>known);
-  if(!fresh.length){updateVisual();return;}
-  allRounds.push(...fresh);
-  if(started){
-    fresh.forEach(r=>{ if(openSignal){settleSignal(openSignal,r);openSignal=null;} if(isMaster){analyzeAndMaybeSignal();} });
-  }else{
-    updateVisual();
+  // Normaliza item desde RTDB
+  function normalizeItem(key, obj){
+    // Soporta {t, value} o {ts, v} o value string
+    let ts = obj.ts ?? obj.t ?? null;
+    let v  = obj.v  ?? obj.value ?? obj;
+    v = Number(v);
+    if(!ts){ ts = Date.now(); } // fallback
+    return { id: key, ts: Number(ts), v };
   }
-});
 
-/* ===== Cálculos ===== */
-function computeEMA(values,p){if(values.length===0) return []; const k=2/(p+1); const out=[]; let ema=values[0]; for(let i=0;i<values.length;i++){ema=i===0?values[0]:(values[i]*k+ema*(1-k)); out.push(+ema.toFixed(2));} return out;}
-function computeBollinger(values,p,k){const U=[],L=[]; for(let i=0;i<values.length;i++){ if(i<p-1){U.push(null);L.push(null);continue;} const s=values.slice(i-p+1,i+1); const m=s.reduce((a,b)=>a+b,0)/s.length; const sd=Math.sqrt(s.reduce((a,b)=>a+(b-m)**2,0)/s.length); U.push(+(m+k*sd).toFixed(2)); L.push(+(m-k*sd).toFixed(2)); } return {upper:U,lower:L};}
+  function ema(data, period){
+    if(data.length === 0) return [];
+    const k = 2/(period+1);
+    const out = [];
+    let prev = data[0];
+    for(let i=0;i<data.length;i++){
+      const v = data[i];
+      prev = i===0 ? v : v*k + prev*(1-k);
+      out.push(prev);
+    }
+    return out;
+  }
 
-/* ===== Visual ===== */
-function renderTiles(arr){last60Grid.innerHTML=''; const len=arr.length; for(let i=len-1;i>=0;i--){const r=arr[i]; const idx='#'+(len-i); const v=r.v.toFixed(2)+'x'; const tClass=r.v>=3?'t3':(r.v>=1.7?'t2':'t1'); const special=r.v>=10?'t4':tClass; const d=document.createElement('div'); d.className='tile '+special; d.innerHTML=`<small>${idx}</small><div style="font-size:18px;font-weight:900">${v}</div>`; last60Grid.appendChild(d);} }
-function updateVisual(){
-  last60=allRounds.slice(-60);
-  stats.rounds=allRounds.length; kRondas.textContent=stats.rounds;
-  renderTiles(last60);
-  const labels=last60.map((r,i)=>'#'+(last60.length-i));
-  const data=last60.map(r=>r.v);
-  const ema=computeEMA(data,EMA_PERIOD); const {upper,lower}=computeBollinger(data,BB_PERIOD,BB_K);
-  chart.data.labels=labels; chart.data.datasets[0].data=data; chart.data.datasets[1].data=ema; chart.data.datasets[2].data=upper; chart.data.datasets[3].data=lower; chart.update();
-  const trend=(ema.at(-1)??1)>=(ema.at(-2)??1)?'ALCISTA':'BAJISTA'; document.getElementById('trendLabel').textContent=trend;
-}
+  function mean(arr){ return arr.reduce((a,b)=>a+b,0)/arr.length }
+  function stdev(arr){
+    const m = mean(arr); const v = mean(arr.map(x => (x-m)**2)); return Math.sqrt(v);
+  }
 
-/* ===== Señales ===== */
-let audioCtx;
-function beep(freq=880,ms=140){try{if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)(); const o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.connect(g); g.connect(audioCtx.destination); o.type='sine'; o.frequency.value=freq; g.gain.setValueAtTime(0.0001,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.3,audioCtx.currentTime+0.01); o.start(); setTimeout(()=>{g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+0.01); o.stop();},ms);}catch{}}
-function analyzeAndMaybeSignal(){
-  if(!started) return;
-  const data=last60.map(r=>r.v); if(data.length<20) return;
-  const ema=computeEMA(data,EMA_PERIOD), bb=computeBollinger(data,BB_PERIOD,BB_K);
-  const cur=data.at(-1), e=ema.at(-1)??cur, u=bb.upper.at(-1)??(e+1.5), l=bb.lower.at(-1)??(e-0.8);
-  const slope=e-(ema.at(-2)??e), vol=(u-l), last10=data.slice(-10), lowHits=last10.filter(v=>v<1.2).length;
-  let pick='medio';
-  if(slope>0 && cur>e && cur<=(u*0.9)) pick='alto';
-  if(slope<0 && cur<=Math.max(l,1.1)) pick='medio';
-  if(lowHits>=3) pick='bajo';
-  if(cur>=5 && slope>0 && vol>3) pick='superior';
-  const conf=Math.max(30,Math.min(92,Math.round(55+(slope*12)+((3-vol)*3)-(lowHits*4))));
-  emitSignal(pick,conf);
-}
-function emitSignal(kind,conf=50){
-  if(!isMaster) return;
-  signalSeq++;
-  const cfg=RANGE_CFG[kind];
-  openSignal={id:signalSeq,ts:Date.now(),kind,range:{min:cfg.min,max:cfg.max},conf,resolved:false,result:null,real:null};
-  stats.signals++; kSenales.textContent=stats.signals;
-  sigNow.textContent=`#${openSignal.id} · Target ${cfg.min.toFixed(2)}–${cfg.max.toFixed(2)}x · Conf. ${conf}%`;
-  sigNowBadge.innerHTML=`<span class="pill ${cfg.cls}">${cfg.label}</span>`;
-  statusTxt.textContent='Señal emitida · esperando siguiente ronda…';
-  beep(920,180);
-}
-function settleSignal(sig,next){
-  const v=next.v, hit=(v>=sig.range.min && v<=sig.range.max);
-  sig.resolved=true; sig.result=hit?'WIN':'LOSE'; sig.real=v;
-  if(hit){ stats.hits++; kHits.textContent=stats.hits; beep(1040,220);} else { beep(420,220);}
-  const eff=stats.signals?Math.round((stats.hits*100)/stats.signals):0; kEff.textContent=eff+'%';
-  const tr=document.createElement('tr'); const cfg=RANGE_CFG[sig.kind];
-  tr.innerHTML=`<td>${sig.id}</td><td>${new Date(sig.ts).toLocaleTimeString()}</td><td>${sig.range.min.toFixed(2)}–${sig.range.max.toFixed(2)}x</td><td><span class="pill ${cfg.cls}">${cfg.label}</span></td><td>${sig.conf}%</td><td>${v.toFixed(2)}x</td><td><span class="pill ${hit?'win':'lose'}">${hit?'WIN':'LOSE'}</span></td>`;
-  if(tbody.children.length===1 && tbody.children[0].children.length===1) tbody.innerHTML='';
-  tbody.prepend(tr);
-  sigNow.textContent='—'; sigNowBadge.innerHTML=''; statusTxt.textContent='Listo';
-}
+  function computeIndicators(arr){
+    const emaArr = ema(arr, WINDOW_EMA);
+    let boll = { mid:[], up:[], low:[] };
+    for(let i=0;i<arr.length;i++){
+      const win = arr.slice(Math.max(0,i-BOLL_WINDOW+1), i+1);
+      const mid = mean(win);
+      const sd = stdev(win);
+      boll.mid.push(mid);
+      boll.up.push(mid + BOLL_MULT*sd);
+      boll.low.push(mid - BOLL_MULT*sd);
+    }
+    return { emaArr, boll };
+  }
 
-/* ===== Controles ===== */
-document.getElementById('btnStart').addEventListener('click',()=>{started=true; statusTxt.textContent='Análisis en curso'; updateVisual(); if(isMaster) analyzeAndMaybeSignal();});
-document.getElementById('btnReset').addEventListener('click',()=>{stats={rounds:allRounds.length,signals:0,hits:0}; kSenales.textContent='0'; kHits.textContent='0'; kEff.textContent='0%'; tbody.innerHTML=`<tr><td colspan="7" class="muted">No hay señales</td></tr>`; sigNow.textContent='—'; sigNowBadge.innerHTML=''; openSignal=null; statusTxt.textContent='Reiniciado';});
-document.getElementById('btnStop').addEventListener('click',async()=>{await set(sessionRef,{active:false,owner:null,startedAt:null}); setMasterUI(false);});
+  function classifyTrend(emaArr){
+    if(emaArr.length < 3) return "—";
+    const a = emaArr.at(-3), b = emaArr.at(-2), c = emaArr.at(-1);
+    const slope = (c-b) + (b-a);
+    if(slope > 0.02) return "ALCISTA";
+    if(slope < -0.02) return "BAJISTA";
+    return "LATERAL";
+  }
 
-/* ===== Arranque ===== */
-await ensureRole();
-statusTxt.textContent='Inicializando…';
-</script>
+  function detectRange(v){
+    for(const r of RANGES){
+      if(v >= r.min && v <= r.max) return r;
+    }
+    return null;
+  }
+
+  /* =============================
+     DIBUJO (canvas 2D)
+  ==============================*/
+  const canvas = document.getElementById('trend');
+  const ctx = canvas.getContext('2d');
+
+  function fitCanvas(){
+    const dpr = window.devicePixelRatio || 1;
+    const r = canvas.getBoundingClientRect();
+    canvas.width = Math.round(r.width * dpr);
+    canvas.height = Math.round(320 * dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  fitCanvas();
+  window.addEventListener('resize',()=>{ fitCanvas(); queueRender(); });
+
+  function drawSeries(series, color, width=2){
+    if(series.length < 2) return;
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    const max = Math.max(...last60, 8);
+    const min = 0.9;
+    const xStep = w / Math.max(1, series.length-1);
+
+    ctx.lineWidth = width;
+    ctx.strokeStyle = color;
+    ctx.beginPath();
+    series.forEach((v,i)=>{
+      const x = i*xStep+8;
+      const y = h - ( (v-min)/(max-min) ) * (h-12) - 6;
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+  }
+
+  function render(){
+    rafQueued = false;
+    ctx.clearRect(0,0,canvas.clientWidth,canvas.clientHeight);
+
+    if(last60.length === 0) return;
+    const {emaArr, boll} = computeIndicators(last60);
+
+    // Bollinger
+    ctx.globalAlpha = .12;
+    drawSeries(boll.up,  '#f472b6', 10);
+    drawSeries(boll.low, '#3b82f6', 10);
+    ctx.globalAlpha = 1;
+
+    // Serie cruda
+    drawSeries(last60, '#a78bfa', 2);
+
+    // EMA
+    drawSeries(emaArr, '#22d3ee', 2);
+
+    // Tendencia label:
+    document.getElementById('tendencia').textContent = classifyTrend(emaArr);
+  }
+  function queueRender(){
+    if(rafQueued) return;
+    rafQueued = true;
+    requestAnimationFrame(render);
+  }
+
+  /* =============================
+     UI helpers
+  ==============================*/
+  function refreshGrid(){
+    el60.innerHTML = "";
+    last60.slice().reverse().forEach((v,idx)=>{
+      const n = last60.length - idx;
+      const r = detectRange(v) ?? {color:""};
+      const div = document.createElement('div');
+      div.className = `pill ${r.color||""}`;
+      div.innerHTML = `<small>#${n}</small>${fmt(v)}`;
+      el60.appendChild(div);
+    });
+  }
+
+  function pushSignal(target, tipo, conf, real, estado){
+    const row = document.createElement('tr');
+    const idx = (++kSignals);
+    const time = new Date().toLocaleTimeString();
+    row.innerHTML = `
+      <td>${idx}</td>
+      <td>${time}</td>
+      <td>${fmt(target)}</td>
+      <td>${tipo}</td>
+      <td>${(conf*100|0)}%</td>
+      <td>${real ? fmt(real) : "—"}</td>
+      <td class="${estado==='WIN'?'ok':estado==='LOSE'?'bad':'warn'}">${estado||'PEND'}</td>
+    `;
+    tbl.prepend(row);
+    document.getElementById('kSignals').textContent = kSignals;
+    document.getElementById('kEff').textContent = (kSignals? Math.round((kWins/kSignals)*100):0) + "%";
+  }
+
+  function updateKPIs(){
+    document.getElementById('kRondas').textContent = kRondas;
+    document.getElementById('kWins').textContent = kWins;
+    document.getElementById('kSignals').textContent = kSignals;
+    document.getElementById('kEff').textContent = (kSignals? Math.round((kWins/kSignals)*100):0) + "%";
+  }
+
+  /* =============================
+     LÓGICA DE SEÑALES (simple y robusta)
+     - mira EMA y Bollinger
+     - decide un rango objetivo
+  ==============================*/
+  function maybeEmitSignal(){
+    if(!started) return;
+    if(last60.length < 25) return;
+
+    const {emaArr, boll} = computeIndicators(last60);
+    const trend = classifyTrend(emaArr);
+
+    // Heurística:
+    //  - si precio < banda baja y tendencia ALCISTA => buscar MEDIO/ALTO
+    //  - si precio > banda alta y tendencia BAJISTA => evitar (señal BAJO o nada)
+    //  - lateral => MEDIO
+    const v = last60.at(-1);
+    const up = boll.up.at(-1), low = boll.low.at(-1);
+
+    let objetivo = RANGES[1]; // MEDIO por defecto
+    let conf = 0.55;
+
+    if(v <= low && (trend === "ALCISTA" || trend==="LATERAL")){
+      objetivo = v < 1.6 ? RANGES[1] : RANGES[2]; // MEDIO→ALTO
+      conf = 0.65;
+    } else if(v >= up && trend === "BAJISTA"){
+      objetivo = RANGES[0]; // BAJO
+      conf = 0.60;
+    } else if(trend === "ALCISTA"){
+      objetivo = RANGES[2]; // ALTO
+      conf = 0.60;
+    }
+
+    liveSignal.textContent = `${objetivo.name} • target ${objetivo.min}–${objetivo.max}x • conf ${(conf*100|0)}%`;
+    try{ beep.currentTime = 0; beep.play().catch(()=>{});}catch(_){}
+
+    // Registramos “señal emitida”
+    pushSignal((objetivo.min+objetivo.max)/2, objetivo.name, conf, null, "PEND");
+  }
+
+  /* =============================
+     CONEXIÓN FIREBASE
+  ==============================*/
+  function connect(){
+    app = firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    refCrashes = db.ref('crashes');
+
+    // 1) Cargar últimas 60 al inicio
+    refCrashes.limitToLast(60).once('value', snap=>{
+      const obj = snap.val() || {};
+      const tmp = Object.entries(obj).map(([k,v])=>normalizeItem(k,v));
+      tmp.sort((a,b)=>a.ts-b.ts);
+      rounds.push(...tmp);
+      last60 = rounds.slice(-60).map(x=>x.v);
+      kRondas = rounds.length;
+      refreshGrid();
+      updateKPIs();
+      queueRender();
+      maybeEmitSignal();
+    });
+
+    // 2) Escuchar nuevas rondas en vivo
+    refCrashes.limitToLast(1).on('child_added', snap=>{
+      const it = normalizeItem(snap.key, snap.val());
+      // Evitar duplicados por la carga inicial
+      if(rounds.length && it.ts <= rounds.at(-1).ts) return;
+
+      rounds.push(it);
+      kRondas++;
+      last60.push(it.v);
+      if(last60.length>60) last60.shift();
+
+      refreshGrid();
+      updateKPIs();
+      queueRender();
+      maybeEmitSignal();
+    });
+  }
+
+  /* =============================
+     SESIÓN / UI
+  ==============================*/
+  document.getElementById('btnStart').addEventListener('click', ()=>{
+    started = true;
+    liveSignal.textContent = 'Analizando...';
+    maybeEmitSignal();
+  });
+  document.getElementById('btnStop').addEventListener('click', ()=>{
+    started = false;
+    liveSignal.textContent = 'Pausado';
+  });
+  document.getElementById('btnReset').addEventListener('click', ()=>{
+    // Limpia solo la sesión (no el aprendizaje)
+    started = false;
+    kSignals=0; kWins=0;
+    liveSignal.textContent = '—';
+    tbl.innerHTML = "";
+    updateKPIs();
+  });
+
+  // AUTO: si la URL trae ?master=1 cambia el rol visual; la conexión es la misma
+  (function initRole(){
+    const u = new URL(location.href);
+    const isMaster = u.searchParams.get('master') === '1';
+    document.getElementById('role').textContent = isMaster ? 'MAESTRO' : 'ESCLAVO';
+  })();
+
+  // BOOT
+  window.addEventListener('load', connect);
+  </script>
 </body>
 </html>
