@@ -206,9 +206,7 @@ const $syncBadge = document.getElementById("syncBadge");
 const $stateBadge = document.getElementById("stateBadge");
 
 /*** ================== ESTADO BÁSICO ================== ***/
-let WINDOW=[];  // últimas 60
-let LEARN=[];   // buffer largo
-let LIVE=[];    // debug
+let WINDOW=[], LEARN=[], LIVE=[];
 let lastSignal=null;
 let cooldown=0, postPinkCooldown=0;
 let sess={rounds:0,signals:0,wins:0};
@@ -218,18 +216,12 @@ const CANDIDATES=["feeds/gocho/crashes","feeds/crashes","crashes","aviator/crash
 const EMIT_BASE = 0.72;
 
 /*** ================== APRENDIZAJE PERSISTENTE ================== ***/
-const LAMBDA=0.99;          // decaimiento por ronda
-const STATE_M=12;           // top-m para Hill
-const CAL_LIMIT=120;        // últimas n señales por banda
+const LAMBDA=0.99, STATE_M=12, CAL_LIMIT=120;
 const THRESH=[1.5,1.7,2.0,2.5,3,5,10,15,30,50,100];
-
 let HIST_PATH=null, STATE_PATH=null;
-const LS = {
-  HIST:'aa_hist_sync_v4',
-  SESS:'aa_sess_v3',
-  STATE:'aa_state_v1'
-};
-let STATE = {
+const LS={ HIST:'aa_hist_sync_v4', SESS:'aa_sess_v3', STATE:'aa_state_v1' };
+
+let STATE={
   wsum:0,
   counts:Object.fromEntries(THRESH.map(t=>[String(t),0])),
   tailMax:[],
@@ -237,76 +229,102 @@ let STATE = {
 };
 let stateDirty=false, stateRounds=0;
 
+function setStateBadge(txt,ok){ $stateBadge.textContent="Aprendizaje: "+txt; if(ok){$stateBadge.classList.add('ok')} }
 function saveLocalState(){ try{localStorage.setItem(LS.STATE, JSON.stringify(STATE))}catch{} }
 function loadLocalState(){ try{return JSON.parse(localStorage.getItem(LS.STATE))||null}catch{return null} }
-function setStateBadge(txt,ok){ $stateBadge.textContent="Aprendizaje: "+txt; if(ok){$stateBadge.classList.add('ok')} }
+
+// —— SERIALIZACIÓN “safe” PARA FIREBASE (sin puntos en las llaves) ——
+function encodeCounts(counts){
+  const out={};
+  for(const k in counts){ out['k_'+String(k).replace(/\./g,'_')] = counts[k]; }
+  return out;
+}
+function decodeCounts(obj){
+  const out={};
+  for(const k in obj){
+    if(k.startsWith('k_')){
+      const orig = k.slice(2).replace(/_/g,'.'); // "1_5" -> "1.5"
+      out[orig] = obj[k];
+    }
+  }
+  return out;
+}
+function serializeState(){
+  return {
+    wsum: STATE.wsum,
+    counts: encodeCounts(STATE.counts),
+    tailMax: STATE.tailMax,
+    bandPerf: STATE.bandPerf
+  };
+}
+function hydrateState(st){
+  STATE.wsum = st.wsum || 0;
+  STATE.counts = {...STATE.counts, ...decodeCounts(st.counts||{})};
+  STATE.tailMax = Array.isArray(st.tailMax)? st.tailMax.slice(0,STATE_M) : [];
+  STATE.bandPerf = st.bandPerf || STATE.bandPerf;
+}
 
 function persistState(){
   if(!STATE_PATH){ saveLocalState(); setStateBadge('Local',false); return; }
-  db.ref(STATE_PATH).set(STATE, err=>{
-    if(err){ saveLocalState(); setStateBadge('Local',false); }
-    else   { setStateBadge('Sync ✔',true); }
-  });
+  try{
+    db.ref(STATE_PATH).set(serializeState(), err=>{
+      if(err){ saveLocalState(); setStateBadge('Local',false); }
+      else   { setStateBadge('Sync ✔',true); }
+    });
+  }catch(e){
+    saveLocalState(); setStateBadge('Local',false);
+  }
 }
 const persistStateDebounced=()=>{ if(++stateRounds%10===0 || stateDirty){ stateDirty=false; persistState(); } };
 
 function assimilateValueToState(v){
-  // decaimiento + actualización de probabilidades
   STATE.wsum = STATE.wsum*LAMBDA + 1;
   for(const t of THRESH){ const k=String(t); STATE.counts[k] = (STATE.counts[k]||0)*LAMBDA + (v>=t?1:0); }
-  // actualizar top-m para cola
-  const tm=STATE.tailMax;
   if(v>=10){
-    tm.push(v); tm.sort((a,b)=>b-a);
-    if(tm.length>STATE_M) tm.length=STATE_M;
+    const tm=STATE.tailMax; tm.push(v); tm.sort((a,b)=>b-a); if(tm.length>STATE_M) tm.length=STATE_M;
   }
   stateDirty=true; persistStateDebounced();
 }
 function bandIdFromKind(kind){ return kind==="Conservadora"?"A": kind==="Moderada"?"B": kind==="Alta"?"C":"P"; }
 function updateBandPerf(kind, win){
   const id = bandIdFromKind(kind);
-  const arr = STATE.bandPerf[id].hist;
-  arr.push(win?1:0);
+  const arr = STATE.bandPerf[id].hist; arr.push(win?1:0);
   if(arr.length>CAL_LIMIT) arr.splice(0, arr.length-CAL_LIMIT);
   stateDirty=true; persistStateDebounced();
 }
 function bandAdj(id){
-  const arr = (STATE.bandPerf[id]?.hist)||[];
-  if(arr.length<20) return 0;
-  const wr = arr.reduce((a,b)=>a+b,0)/arr.length;
-  const target = {A:0.55,B:0.52,C:0.50,P:0.35}[id]||0.5;
-  const diff = target - wr; // <0 si vamos mejor que target
-  return clamp(diff*0.12, -0.06, +0.06); // -6%..+6%
+  const arr=(STATE.bandPerf[id]?.hist)||[]; if(arr.length<20) return 0;
+  const wr=arr.reduce((a,b)=>a+b,0)/arr.length;
+  const target={A:0.55,B:0.52,C:0.50,P:0.35}[id]||0.5;
+  return Math.min(0.06, Math.max(-0.06, (target-wr)*0.12));
 }
 
 /*** ================== UTILS ================== ***/
 const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
 function nowHHMMSS(){return new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'})}
-
-// beep tras gesto
 let canBeep=false, acx=null;
 document.addEventListener('pointerdown', ()=>{ canBeep=true; try{ if(!acx) acx=new (AudioContext||webkitAudioContext)(); acx.resume(); }catch{} }, {once:true});
 function beep(f=800,ms=120){ if(!canBeep) return; try{ if(!acx) acx=new (AudioContext||webkitAudioContext)(); const o=acx.createOscillator(),g=acx.createGain(); o.type='sine'; o.frequency.value=f; o.connect(g); g.connect(acx.destination); o.start(); g.gain.setValueAtTime(.0001,acx.currentTime); g.gain.exponentialRampToValueAtTime(.2,acx.currentTime+.02); g.gain.exponentialRampToValueAtTime(.0001,acx.currentTime+ms/1000); o.stop(acx.currentTime+ms/1000+.01);}catch{} }
 function EMA(a,p){if(!a.length)return[];const k=2/(p+1);const o=[];let e=a[0];for(let i=0;i<a.length;i++){const v=a[i];e=i? v*k+e*(1-k):v;o.push(e)}return o}
 function stdev(a){if(a.length<2)return 0;const m=a.reduce((x,y)=>x+y,0)/a.length;return Math.sqrt(a.reduce((s,v)=>s+(v-m)*(v-m),0)/a.length)}
-function Bollinger(a,p=20,m=2){const up=[],dn=[];for(let i=0;i<a.length;i++){const s=a.slice(Math.max(0,i-p+1),i+1);const mean=s.reduce((x,y)=>x+y,0)/s.length;const sd=Math.sqrt(s.reduce((x,y)=>x+(y-mean)*(y-mean),0)/s.length)||0;up.push(mean+m*sd);dn.push(mean-m*sd)}return{up,dn}}
+function Bollinger(a,p=20,m=2){const up=[],dn=[];for(let i=0;i<a.length;i++){const s=a.slice(Math.max(0,i-p+1),i+1);const mean=s.reduce((x,y)=>x+y,0)/s.length;const sd=Math.sqrt(s.reduce((x,y)=>x+(y-m)*(y-m),0)/s.length)||0;up.push(mean+m*sd);dn.push(mean-m*sd)}return{up,dn}}
 function maxRun(a,pred){let best=0,cur=0;for(const v of a){if(pred(v)){cur++;best=Math.max(best,cur)}else cur=0}return best}
 const round2=x=>Math.round(x*100)/100;
 
 /*** ================== CHART ================== ***/
-const hoverLine = { id:'hoverLine', afterDatasetsDraw(chart){ const {ctx, chartArea:{top,bottom}, scales:{x}} = chart; const act = chart.tooltip?.getActiveElements?.(); if(!act||!act.length) return; const idx = act[0].index; const xPos = x.getPixelForValue(idx); ctx.save(); ctx.beginPath(); ctx.moveTo(xPos, top); ctx.lineTo(xPos, bottom); ctx.setLineDash([5,5]); ctx.strokeStyle = '#4ade80aa'; ctx.lineWidth = 1; ctx.stroke(); ctx.restore(); } };
-const ctxC = document.getElementById("chart").getContext("2d");
-const chart = new Chart(ctxC,{ type:"line", data:{labels:[],datasets:[
-  {label:"Valor", data:[], borderColor:"#5fc9ff", pointRadius:0, tension:.25, borderWidth:2,
-   segment:{ borderColor: c=> (c.p1.parsed.y>=10 ? "#ff86d1" : (c.p1.parsed.y>=2 ? "#b18cff" : "#5fc9ff")) }},
-  {label:"EMA(12)", data:[], borderColor:"#f25fc1", borderDash:[6,4], pointRadius:0, tension:.25, borderWidth:1.5},
-  {label:"BB↑", data:[], borderColor:"#7c5cff66", pointRadius:0, borderWidth:1, tension:.25},
-  {label:"BB↓", data:[], borderColor:"#7c5cff66", pointRadius:0, borderWidth:1, tension:.25},
-  {label:"1.50", data:[], borderColor:"#4ade8099", borderDash:[8,6], pointRadius:0, tension:0, borderWidth:1},
-  {label:"2.50", data:[], borderColor:"#4ade8099", borderDash:[8,6], pointRadius:0, tension:0, borderWidth:1},
-  {label:"3.00", data:[], borderColor:"#4ade8099", borderDash:[8,6], pointRadius:0, tension:0, borderWidth:1},
-  {label:"5.00", data:[], borderColor:"#4ade8099", borderDash:[8,6], pointRadius:0, tension:0, borderWidth:1},
-]}, options:{ responsive:true,maintainAspectRatio:false, interaction:{mode:'index',intersect:false}, plugins:{legend:{display:false}, tooltip:{backgroundColor:'#0b1330',borderColor:'#3b4766',borderWidth:1,displayColors:false,callbacks:{ label:(c)=>` ${c.dataset.label}: ${(+c.parsed.y).toFixed(2)}x`}}}, scales:{x:{ticks:{color:"#a7add9"},grid:{color:"#223"}}, y:{ticks:{color:"#a7add9"},grid:{color:"#1a2344"},beginAtZero:true}}}, plugins:[hoverLine]});
+const hoverLine={id:'hoverLine',afterDatasetsDraw(chart){const {ctx,chartArea:{top,bottom},scales:{x}}=chart;const act=chart.tooltip?.getActiveElements?.();if(!act||!act.length)return;const idx=act[0].index;const xPos=x.getPixelForValue(idx);ctx.save();ctx.beginPath();ctx.moveTo(xPos,top);ctx.lineTo(xPos,bottom);ctx.setLineDash([5,5]);ctx.strokeStyle='#4ade80aa';ctx.lineWidth=1;ctx.stroke();ctx.restore();}};
+const ctxC=document.getElementById("chart").getContext("2d");
+const chart=new Chart(ctxC,{type:"line",data:{labels:[],datasets:[
+  {label:"Valor",data:[],borderColor:"#5fc9ff",pointRadius:0,tension:.25,borderWidth:2,
+   segment:{borderColor:c=>(c.p1.parsed.y>=10?"#ff86d1":(c.p1.parsed.y>=2?"#b18cff":"#5fc9ff"))}},
+  {label:"EMA(12)",data:[],borderColor:"#f25fc1",borderDash:[6,4],pointRadius:0,tension:.25,borderWidth:1.5},
+  {label:"BB↑",data:[],borderColor:"#7c5cff66",pointRadius:0,borderWidth:1,tension:.25},
+  {label:"BB↓",data:[],borderColor:"#7c5cff66",pointRadius:0,borderWidth:1,tension:.25},
+  {label:"1.50",data:[],borderColor:"#4ade8099",borderDash:[8,6],pointRadius:0,tension:0,borderWidth:1},
+  {label:"2.50",data:[],borderColor:"#4ade8099",borderDash:[8,6],pointRadius:0,tension:0,borderWidth:1},
+  {label:"3.00",data:[],borderColor:"#4ade8099",borderDash:[8,6],pointRadius:0,tension:0,borderWidth:1},
+  {label:"5.00",data:[],borderColor:"#4ade8099",borderDash:[8,6],pointRadius:0,tension:0,borderWidth:1},
+]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{backgroundColor:'#0b1330',borderColor:'#3b4766',borderWidth:1,displayColors:false,callbacks:{label:(c)=>` ${c.dataset.label}: ${(+c.parsed.y).toFixed(2)}x`}}},scales:{x:{ticks:{color:"#a7add9"},grid:{color:"#223"}},y:{ticks:{color:"#a7add9"},grid:{color:"#1a2344"},beginAtZero:true}}},plugins:[hoverLine]});
 function updateChart(){
   const vals=WINDOW.map(x=>x.v); const ema=EMA(vals,12); const bb=Bollinger(vals,20);
   chart.data.labels=WINDOW.map((_,i)=>"#"+(i+1));
@@ -360,18 +378,11 @@ function updateTopHistoryReal(real,estado,reason){
 /*** ================== SESIÓN ================== ***/
 function refreshSession(){ $sessRounds.textContent=sess.rounds; $sessSignals.textContent=sess.signals; $sessWins.textContent=sess.wins; $sessEff.textContent=(sess.signals?(sess.wins/sess.signals*100).toFixed(0):0)+"%"; try{localStorage.setItem(LS.SESS,JSON.stringify(sess))}catch{} }
 
-/*** ================== LÓGICA AVANZADA ================== ***/
+/*** ================== LÓGICA (igual que antes) ================== ***/
 function sigmoid(x){return 1/(1+Math.exp(-x));}
-function probsFromState(){ const P={}; if(STATE.wsum<=0) return P; for(const t of THRESH){ const k=String(t); P[t]=STATE.counts[k]/STATE.wsum; } return P; }
-function hillAlphaUnion(){
-  const tail = [...STATE.tailMax, ...LEARN.map(x=>x.v).filter(v=>v>=10)].sort((a,b)=>b-a).slice(0,STATE_M);
-  if(tail.length<3) return 2.0; const xm=tail[tail.length-1]; const logs=tail.map(x=>Math.log(x/xm)); const H=logs.reduce((a,b)=>a+b,0)/logs.length; return H>0?1/H:2.0;
-}
-function weightedTailProbsLocal(vals,lambda=0.99){
-  let w=1,sumW=0; const counts=Object.fromEntries(THRESH.map(t=>[t,0]));
-  for(let i=vals.length-1;i>=0;i--){ const v=vals[i]; for(const t of THRESH){ if(v>=t) counts[t]+=w; } sumW+=w; w*=lambda; }
-  const P={}; for(const t of THRESH){ P[t]= sumW? counts[t]/sumW : 0; } return P;
-}
+function probsFromState(){ const P={}; if(STATE.wsum<=0) return P; for(const t of THRESH){ const k=String(t); P[t]=(STATE.counts[k]||0)/STATE.wsum; } return P; }
+function hillAlphaUnion(){ const tail=[...STATE.tailMax, ...LEARN.map(x=>x.v).filter(v=>v>=10)].sort((a,b)=>b-a).slice(0,STATE_M); if(tail.length<3) return 2.0; const xm=tail[tail.length-1]; const logs=tail.map(x=>Math.log(x/xm)); const H=logs.reduce((a,b)=>a+b,0)/logs.length; return H>0?1/H:2.0; }
+function weightedTailProbsLocal(vals,lambda=0.99){ let w=1,sumW=0; const counts=Object.fromEntries(THRESH.map(t=>[t,0])); for(let i=vals.length-1;i>=0;i--){ const v=vals[i]; for(const t of THRESH){ if(v>=t) counts[t]+=w; } sumW+=w; w*=lambda; } const P={}; for(const t of THRESH){ P[t]= sumW? counts[t]/sumW : 0; } return P; }
 
 function features(vals){
   const ema12=EMA(vals,12); const slope=ema12.length>3?ema12.at(-1)-ema12.at(-3):0;
@@ -383,68 +394,33 @@ function features(vals){
   let belowBB=0; for(let i=Math.max(0,n-6);i<n;i++){ if(vals[i]<bb.dn[i]) belowBB++; }
   const mom=last-(vals.at(-4)??last);
   const bbPos=(last-bb.dn.at(-1))/Math.max(0.0001,(bb.up.at(-1)-bb.dn.at(-1)));
-  // Mezcla persistente (40%) + local (60%)
   const P_local=weightedTailProbsLocal(LEARN.map(x=>x.v),0.99);
   const P_state=probsFromState();
-  const P={}; for(const t of THRESH){ P[t]=(0.60*(P_local[t]??0) + 0.40*(P_state[t]??0)); }
+  const P={}; for(const t of THRESH){ P[t]=(0.60*(P_local[t]||0) + 0.40*(P_state[t]||0)); }
   const alpha=hillAlphaUnion();
   return {ema12,slope,bb,last,v8,v10,v20,countGE2,countLT2,runBlue,runDeep,pinkIn6,pinkIn20,purpleIn20,belowBB,mom,bbPos,P,alpha};
 }
 function isDrain(f){ return ((f.pinkIn20>=2||f.purpleIn20>=11)&&(f.countLT2>=6||f.runBlue>=4)&&f.slope<-0.02); }
 function isBlueStreak(f){ return f.runBlue>=6||f.countLT2>=7; }
-
-function dynamicLowRange(f){
-  const zSlope=f.slope/0.06, zMom=f.mom/1.2, zBb=(f.bbPos-0.5)/0.25;
-  const penal=(f.runDeep?0.2:0)+(f.countLT2>=6?0.1:0);
-  let a=clamp(1.45+0.35*sigmoid(1.2*zSlope+0.8*zMom+0.6*zBb),1.45,1.90);
-  let w=clamp(0.18+0.12*clamp(stdev(f.v8)-1.0,-1,1)-0.08*penal,0.12,0.30);
-  const lo=round2(a), hi=round2(a+w); return {id:"A",min:lo,max:hi,label:`${lo}–${hi}`};
-}
-function dynamicMidRange(f){
-  const zSlope=f.slope/0.06, zMom=f.mom/1.2, penal=(f.runDeep?0.3:0);
-  let a=clamp(2.10+0.50*sigmoid(1.1*zSlope+0.7*zMom-0.5*penal),2.10,2.80);
-  let w=clamp(0.40+0.20*clamp(stdev(f.v8)-1.0,-1,1)-0.10*penal,0.30,0.70);
-  const lo=round2(a), hi=round2(a+w); return {id:"B",min:lo,max:hi,label:`${lo}–${hi}`};
-}
-function pickPinkBands(f){
-  const P=f.P, alpha=f.alpha;
-  const okBase=(P[10]||0)>=0.12 && f.slope>0;
-  const strong=(P[30]||0)>=0.02 && alpha<=1.6;
-  const c=[]; if(okBase) c.push({id:"P",min:10,max:15,label:"10–15"});
-  if(okBase&&strong) c.push({id:"P",min:15,max:30,label:"15–30"});
-  if(strong&&(P[50]||0)>=0.01) c.push({id:"P",min:30,max:50,label:"30–50"});
-  if(alpha<=1.4&&(P[100]||0)>=0.005) c.push({id:"P",min:50,max:100,label:"50–100"});
-  return c;
-}
-function regime(f){
-  if(isDrain(f)) return {state:"DRAIN",reason:"Drenaje tras bonanza"};
-  if(isBlueStreak(f)) return {state:"RISKY",reason:"Racha azul larga"};
-  if(postPinkCooldown>0) return {state:"COOLDOWN",reason:"Post-Rosa: cooldown"};
-  return {state:"OK",reason:"OK"};
-}
-
+function dynamicLowRange(f){ const zSlope=f.slope/0.06, zMom=f.mom/1.2, zBb=(f.bbPos-0.5)/0.25; const penal=(f.runDeep?0.2:0)+(f.countLT2>=6?0.1:0); let a=clamp(1.45+0.35*sigmoid(1.2*zSlope+0.8*zMom+0.6*zBb),1.45,1.90); let w=clamp(0.18+0.12*clamp(stdev(f.v8)-1.0,-1,1)-0.08*penal,0.12,0.30); const lo=round2(a), hi=round2(a+w); return {id:"A",min:lo,max:hi,label:`${lo}–${hi}`}; }
+function dynamicMidRange(f){ const zSlope=f.slope/0.06, zMom=f.mom/1.2, penal=(f.runDeep?0.3:0); let a=clamp(2.10+0.50*sigmoid(1.1*zSlope+0.7*zMom-0.5*penal),2.10,2.80); let w=clamp(0.40+0.20*clamp(stdev(f.v8)-1.0,-1,1)-0.10*penal,0.30,0.70); const lo=round2(a), hi=round2(a+w); return {id:"B",min:lo,max:hi,label:`${lo}–${hi}`}; }
+function pickPinkBands(f){ const P=f.P,alpha=f.alpha; const okBase=(P[10]||0)>=0.12 && f.slope>0; const strong=(P[30]||0)>=0.02 && alpha<=1.6; const c=[]; if(okBase) c.push({id:"P",min:10,max:15,label:"10–15"}); if(okBase&&strong) c.push({id:"P",min:15,max:30,label:"15–30"}); if(strong&&(P[50]||0)>=0.01) c.push({id:"P",min:30,max:50,label:"30–50"}); if(alpha<=1.4&&(P[100]||0)>=0.005) c.push({id:"P",min:50,max:100,label:"50–100"}); return c; }
+function regime(f){ if(isDrain(f))return{state:"DRAIN",reason:"Drenaje tras bonanza"}; if(isBlueStreak(f))return{state:"RISKY",reason:"Racha azul larga"}; if(postPinkCooldown>0)return{state:"COOLDOWN",reason:"Post-Rosa: cooldown"}; return{state:"OK",reason:"OK"}; }
 function decide(vals){
   const f=features(vals), reg=regime(f);
   if(reg.state!=="OK") return {state:reg.state, signal:null, reason:reg.reason};
-
   const momentumMorado=(f.countGE2>=5 && maxRun(f.v8,v=>v>=2)>=3 && f.slope>0.02);
-  const ruptura = momentumMorado && f.last<2;
+  const ruptura=momentumMorado && f.last<2;
   const pullback=(maxRun(f.v10,v=>v<2)>=2 || f.runDeep>=1);
   const reboteConfirm=pullback && ((f.last>f.ema12.at(-1) && f.last>(f.bb.up.at(-1)+f.bb.dn.at(-1))/2 && f.slope>=-0.005) || f.last>=2);
-
   if(f.last>=10){ postPinkCooldown=Math.max(postPinkCooldown,2); }
-
-  const cands=[];
-  if(ruptura) return {state:"WAIT",signal:null,reason:"Ruptura de morado: observar pullback"};
-  if(reboteConfirm) cands.push(dynamicLowRange(f));
-  else if(momentumMorado) cands.push(dynamicMidRange(f));
+  const cands=[]; if(ruptura) return {state:"WAIT",signal:null,reason:"Ruptura de morado: observar pullback"};
+  if(reboteConfirm) cands.push(dynamicLowRange(f)); else if(momentumMorado) cands.push(dynamicMidRange(f));
   pickPinkBands(f).forEach(x=>cands.push(x));
   if(!cands.length && f.bbPos>0.45 && f.slope>-0.005) cands.push(dynamicLowRange(f));
   if(!cands.length) return {state:"WAIT",signal:null,reason:"Sin oportunidad clara"};
-
-  // scoring + EV + umbral por banda (con calibración)
   const scored=cands.map(c=>{
-    const prior = c.id==="A"?0.55: c.id==="B"?0.56: c.id==="P"?0.45:0.53;
+    const prior=c.id==="A"?0.55:c.id==="B"?0.56:c.id==="P"?0.45:0.53;
     const trendScore=clamp((f.slope+0.05)/0.1,0,1);
     const streakScore=(maxRun(f.v8,v=>v>=2)>=3?+0.25:0)+(maxRun(f.v10,v=>v<2)>=4?-0.25:0);
     const bbScore=clamp((f.bbPos-0.25)/0.5,0,1);
@@ -452,26 +428,21 @@ function decide(vals){
     const volScore=stdev(f.v8)>1.0?0.08:0;
     const pinkPenalty=(postPinkCooldown>0)?0.20:0;
     const deepBluePen=f.runDeep?0.10:0;
-    let conf= prior + 0.35*trendScore + 0.25*streakScore + 0.15*bbScore + 0.15*momentumScore + 0.10*volScore - pinkPenalty - deepBluePen;
+    let conf=prior+0.35*trendScore+0.25*streakScore+0.15*bbScore+0.15*momentumScore+0.10*volScore-pinkPenalty-deepBluePen;
     conf=clamp(conf,0,0.97);
-
     const pMin=(()=>{const k=c.min; if(k>=10){return Math.max(f.P[10]||0, Math.pow(k/10,-f.alpha)*(f.P[10]||0));} const key=Math.min(100,Math.max(1.5,Math.round(k*10)/10)); return f.P[key]||0; })();
     const utility=(c.id==="P")?1.0:(c.max<=2.0?0.7:(c.max<=3.3?0.85:0.9));
-    const EV = pMin*utility*conf;
-
-    const bandId = (c.id==="P")?"P":(c.max<=1.8?"A":(c.max<=3.3?"B":"C"));
-    const threshold = EMIT_BASE + bandAdj(bandId);
-
-    return {cand:c, conf, EV, threshold, bandId};
+    const EV=pMin*utility*conf;
+    const bandId=(c.id==="P")?"P":(c.max<=1.8?"A":(c.max<=3.3?"B":"C"));
+    const threshold=EMIT_BASE + bandAdj(bandId);
+    return {cand:c,conf,EV,threshold,bandId};
   });
-
   scored.sort((a,b)=>b.EV-a.EV);
   const pick=(Math.random()<0.10 && scored[1])?scored[1]:scored[0];
-
   if(pick.conf >= pick.threshold){
     const b=pick.cand;
-    const bandMeta = (b.id==="P")? {id:"P",label:b.label,min:b.min} : (b.max<=1.8?{id:"A",label:b.label,min:b.min}:(b.max<=3.3?{id:"B",label:b.label,min:b.min}:{id:"C",label:b.label,min:b.min}));
-    const kind = (b.id==="P")?"Rosa Alta": (bandMeta.id==="A"?"Conservadora": bandMeta.id==="B"?"Moderada":"Alta");
+    const bandMeta=(b.id==="P")?{id:"P",label:b.label,min:b.min}:(b.max<=1.8?{id:"A",label:b.label,min:b.min}:(b.max<=3.3?{id:"B",label:b.label,min:b.min}:{id:"C",label:b.label,min:b.min}));
+    const kind=(b.id==="P")?"Rosa Alta":(bandMeta.id==="A"?"Conservadora": bandMeta.id==="B"?"Moderada":"Alta");
     return {state:"SIGNAL", signal:{band:bandMeta, conf:pick.conf, kind}, reason:(b.id==="P"?"Eco de Rosa / cola pesada": momentumMorado?"Momentum morado":"Rebote tras pullback")};
   }
   return {state:"WAIT",signal:null,reason:`Candidatos sin umbral (${Math.round(pick.conf*100)}% < ${Math.round( (pick.threshold)*100)}%)`};
@@ -482,10 +453,8 @@ function maybeEmit(){
   if(WINDOW.length<30){ setBanner("warn","Cargando contexto…","Aún no hay suficientes rondas.","Esperar"); return; }
   if(cooldown>0){ setBanner("warn","Cooldown","Esperando siguiente ventana…","—"); return; }
   if(postPinkCooldown>0){ setBanner("warn","Post-Rosa","Esperando estabilización…","—"); return; }
-
   const vals=WINDOW.map(x=>x.v);
   const d=decide(vals);
-
   if(d.state==="SIGNAL"){
     const {band,conf,kind}=d.signal;
     lastSignal={ idx:WINDOW.length, band, conf, reason:d.reason, kind };
@@ -505,11 +474,10 @@ function maybeEmit(){
 }
 function evaluateIfReady(newVal){
   if(!lastSignal) return;
-  const ok = newVal >= lastSignal.band.min;
+  const ok=newVal >= lastSignal.band.min;
   if(ok) sess.wins++; refreshSession();
-  $sigState.textContent = ok?"GANADA ✅":"PERDIDA ❌";
+  $sigState.textContent= ok?"GANADA ✅":"PERDIDA ❌";
   updateTopHistoryReal(newVal.toFixed(2)+"x", ok?"Ganada":"Perdida", lastSignal.reason||"—");
-  // actualizar calibración por banda (persistente)
   updateBandPerf(lastSignal.kind, ok);
   lastSignal=null;
 }
@@ -523,29 +491,17 @@ function encodePath(p){ return (p||'').replace(/[^\w]/g,'_'); }
   if(!path){ $status.textContent="Sin datos"; return; }
   $path.textContent="/"+path; $status.classList.add("ok"); $status.textContent="Conectado ✔";
 
-  // rutas de sincronización
   HIST_PATH='analyzer/history/'+encodePath(path);
   STATE_PATH='analyzer/state/'+encodePath(path);
 
-  // cargar estado persistente si existe
+  // Cargar estado persistente (deserializando llaves seguras)
   try{
-    const snap = await db.ref(STATE_PATH).once('value');
-    if(snap.exists()){
-      const st=snap.val();
-      // saneo básico
-      if(st && typeof st.wsum==='number' && st.counts){
-        STATE.wsum = st.wsum;
-        STATE.counts = {...STATE.counts, ...st.counts};
-        STATE.tailMax = Array.isArray(st.tailMax)? st.tailMax.slice(0,STATE_M) : [];
-        STATE.bandPerf = st.bandPerf||STATE.bandPerf;
-        setStateBadge('Sync ✔',true);
-      }else{ const local=loadLocalState(); if(local){ STATE=local; setStateBadge('Local',false);} else setStateBadge('Inicial',false); }
-    }else{
-      const local=loadLocalState(); if(local){ STATE=local; setStateBadge('Local',false);} else setStateBadge('Inicial',false);
-    }
-  }catch{ const local=loadLocalState(); if(local){ STATE=local; setStateBadge('Local',false);} }
+    const snap=await db.ref(STATE_PATH).once('value');
+    if(snap.exists()){ hydrateState(snap.val()); setStateBadge('Sync ✔',true); }
+    else{ const local=loadLocalState(); if(local){ STATE=local; setStateBadge('Local',false);} else setStateBadge('Inicial',false); }
+  }catch{ const local=loadLocalState(); if(local){ STATE=local; setStateBadge('Local',false);} else setStateBadge('Inicial',false); }
 
-  // escuchar historial (no borra nada)
+  // Historial de señales (sólo lectura)
   try{
     db.ref(HIST_PATH).limitToLast(HIST_LIMIT).on('value', snap=>{
       const list=[]; snap.forEach(ch=>{ list.push(ch.val()); });
@@ -554,7 +510,7 @@ function encodePath(p){ return (p||'').replace(/[^\w]/g,'_'); }
     });
   }catch{ $syncBadge.textContent="Historial: Local"; renderLocalHistory(); }
 
-  // cargar ventana
+  // Cargar ventana inicial
   const base=await db.ref(path).limitToLast(80).once("value");
   const obj=base.val()||{};
   WINDOW=Object.entries(obj).map(([k,v])=>{
@@ -568,7 +524,7 @@ function encodePath(p){ return (p||'').replace(/[^\w]/g,'_'); }
 
   maybeEmit();
 
-  // stream en vivo
+  // Suscripción en vivo
   db.ref(path).limitToLast(1).on("child_added", snap=>{
     const raw=snap.val(); const v=(raw&&(raw.v??raw.value))??(+raw); const ts=(raw&&(raw.ts??raw.t))??Date.now();
     const it={k:snap.key,v:+v,ts:+ts};
@@ -579,10 +535,8 @@ function encodePath(p){ return (p||'').replace(/[^\w]/g,'_'); }
     LIVE.push({ts:it.ts,v:it.v}); if(LIVE.length>5) LIVE.shift();
     $log.textContent=JSON.stringify(LIVE,null,2);
 
-    // aprendizaje persistente por ronda
     assimilateValueToState(it.v);
 
-    // cooldown post-Rosa adaptativo
     if(it.v>=10) postPinkCooldown=Math.max(postPinkCooldown,2);
     if(postPinkCooldown>0){
       const last2=WINDOW.slice(-2).map(x=>x.v);
@@ -595,12 +549,10 @@ function encodePath(p){ return (p||'').replace(/[^\w]/g,'_'); }
     if(cooldown>0) cooldown--;
     if(postPinkCooldown>0) postPinkCooldown--;
 
-    // evaluar señal emitida
     evaluateIfReady(it.v);
 
     paintChips(); updateChart(); $learnCount.textContent=LEARN.length;
 
-    // intentar nueva señal
     maybeEmit();
   });
 })();
@@ -613,7 +565,6 @@ document.getElementById("btnReset").addEventListener("click",()=>{
   setBanner("warn","Reiniciado","Esperando nuevo contexto…","—");
 });
 document.getElementById("btnClearHist").addEventListener("click",()=>{
-  // Esto SÓLO borra historial si tú lo confirmas; no afecta aprendizaje ni borra solo.
   if(!confirm("¿Borrar SOLO el historial de señales? El aprendizaje NO se toca.")) return;
   if(HIST_PATH){ try{ db.ref(HIST_PATH).set(null,()=>{});}catch{} }
   localStorage.removeItem(LS.HIST); renderLocalHistory();
