@@ -155,7 +155,6 @@ canvas{width:100%;height:320px;max-height:360px}
     </div>
   </div>
 
-  <!-- NUEVO: Estadísticas (sobre lo visible / exportar para todo) -->
   <div class="card" style="margin-top:12px">
     <div class="row" style="justify-content:space-between;align-items:center">
       <h2 style="margin:0;font-size:16px">Estadísticas rápidas</h2>
@@ -234,6 +233,7 @@ const $statsRanges = document.getElementById("statsRanges");
 /*** ================== ESTADO BÁSICO ================== ***/
 let WINDOW=[], LEARN=[], LIVE=[];
 let lastSignal=null;
+let PENDING_UID=null;        // <<==== NUEVO: UID de la fila pendiente
 let cooldown=0, postPinkCooldown=0;
 let sess={rounds:0,signals:0,wins:0};
 
@@ -260,53 +260,18 @@ function saveLocalState(){ try{localStorage.setItem(LS.STATE, JSON.stringify(STA
 function loadLocalState(){ try{return JSON.parse(localStorage.getItem(LS.STATE))||null}catch{return null} }
 
 // —— SERIALIZACIÓN “safe” PARA FIREBASE (sin puntos en las llaves) ——
-function encodeCounts(counts){
-  const out={};
-  for(const k in counts){ out['k_'+String(k).replace(/\./g,'_')] = counts[k]; }
-  return out;
-}
-function decodeCounts(obj){
-  const out={};
-  for(const k in obj){
-    if(k.startsWith('k_')){
-      const orig = k.slice(2).replace(/_/g,'.'); // "1_5" -> "1.5"
-      out[orig] = obj[k];
-    }
-  }
-  return out;
-}
-function serializeState(){
-  return {
-    wsum: STATE.wsum,
-    counts: encodeCounts(STATE.counts),
-    tailMax: STATE.tailMax,
-    bandPerf: STATE.bandPerf
-  };
-}
-function hydrateState(st){
-  STATE.wsum = st.wsum || 0;
-  STATE.counts = {...STATE.counts, ...decodeCounts(st.counts||{})};
-  STATE.tailMax = Array.isArray(st.tailMax)? st.tailMax.slice(0,STATE_M) : [];
-  STATE.bandPerf = st.bandPerf || STATE.bandPerf;
-}
+function encodeCounts(counts){ const out={}; for(const k in counts){ out['k_'+String(k).replace(/\./g,'_')] = counts[k]; } return out; }
+function decodeCounts(obj){ const out={}; for(const k in obj){ if(k.startsWith('k_')){ const orig = k.slice(2).replace(/_/g,'.'); out[orig] = obj[k]; } } return out; }
+function serializeState(){ return { wsum: STATE.wsum, counts: encodeCounts(STATE.counts), tailMax: STATE.tailMax, bandPerf: STATE.bandPerf }; }
+function hydrateState(st){ STATE.wsum = st.wsum || 0; STATE.counts = {...STATE.counts, ...decodeCounts(st.counts||{})}; STATE.tailMax = Array.isArray(st.tailMax)? st.tailMax.slice(0,STATE_M) : []; STATE.bandPerf = st.bandPerf || STATE.bandPerf; }
 
 function persistState(){
   if(!STATE_PATH){ saveLocalState(); setStateBadge('Local',false); return; }
-  try{
-    db.ref(STATE_PATH).set(serializeState(), err=>{
-      if(err){ saveLocalState(); setStateBadge('Local',false); }
-      else   { setStateBadge('Sync ✔',true); }
-    });
-  }catch(e){
-    saveLocalState(); setStateBadge('Local',false);
-  }
+  try{ db.ref(STATE_PATH).set(serializeState(), err=>{ if(err){ saveLocalState(); setStateBadge('Local',false);} else{ setStateBadge('Sync ✔',true);} }); }
+  catch(e){ saveLocalState(); setStateBadge('Local',false); }
 }
 let lastPersist=0;
-function persistStateDebounced(){
-  const now=Date.now();
-  if(!stateDirty) return;
-  if(now-lastPersist>5000 || (++stateRounds%25===0)){ stateDirty=false; lastPersist=now; persistState(); }
-}
+function persistStateDebounced(){ const now=Date.now(); if(!stateDirty) return; if(now-lastPersist>5000 || (++stateRounds%25===0)){ stateDirty=false; lastPersist=now; persistState(); } }
 
 function assimilateValueToState(v){
   STATE.wsum = STATE.wsum*LAMBDA + 1;
@@ -315,18 +280,8 @@ function assimilateValueToState(v){
   stateDirty=true; persistStateDebounced();
 }
 function bandIdFromKind(kind){ return kind==="Conservadora"?"A": kind==="Moderada"?"B": kind==="Alta"?"C":"P"; }
-function updateBandPerf(kind, win){
-  const id = bandIdFromKind(kind);
-  const arr = STATE.bandPerf[id].hist; arr.push(win?1:0);
-  if(arr.length>CAL_LIMIT) arr.splice(0, arr.length-CAL_LIMIT);
-  stateDirty=true; persistStateDebounced();
-}
-function bandAdj(id){
-  const arr=(STATE.bandPerf[id]?.hist)||[]; if(arr.length<20) return 0;
-  const wr=arr.reduce((a,b)=>a+b,0)/arr.length;
-  const target={A:0.55,B:0.52,C:0.50,P:0.35}[id]||0.5;
-  return Math.min(0.06, Math.max(-0.06, (target-wr)*0.12));
-}
+function updateBandPerf(kind, win){ const id = bandIdFromKind(kind); const arr = STATE.bandPerf[id].hist; arr.push(win?1:0); if(arr.length>CAL_LIMIT) arr.splice(0, arr.length-CAL_LIMIT); stateDirty=true; persistStateDebounced(); }
+function bandAdj(id){ const arr=(STATE.bandPerf[id]?.hist)||[]; if(arr.length<20) return 0; const wr=arr.reduce((a,b)=>a+b,0)/arr.length; const target={A:0.55,B:0.52,C:0.50,P:0.35}[id]||0.5; return Math.min(0.06, Math.max(-0.06, (target-wr)*0.12)); }
 
 /*** ================== UTILS ================== ***/
 const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
@@ -336,17 +291,7 @@ document.addEventListener('pointerdown', ()=>{ canBeep=true; try{ if(!acx) acx=n
 function beep(f=800,ms=120){ if(!canBeep) return; try{ if(!acx) acx=new (AudioContext||webkitAudioContext)(); const o=acx.createOscillator(),g=acx.createGain(); o.type='sine'; o.frequency.value=f; o.connect(g); g.connect(acx.destination); o.start(); g.gain.setValueAtTime(.0001,acx.currentTime); g.gain.exponentialRampToValueAtTime(.2,acx.currentTime+.02); g.gain.exponentialRampToValueAtTime(.0001,acx.currentTime+ms/1000); o.stop(acx.currentTime+ms/1000+.01);}catch{} }
 function EMA(a,p){if(!a.length)return[];const k=2/(p+1);const o=[];let e=a[0];for(let i=0;i<a.length;i++){const v=a[i];e=i? v*k+e*(1-k):v;o.push(e)}return o}
 function stdev(a){if(a.length<2)return 0;const m=a.reduce((x,y)=>x+y,0)/a.length;return Math.sqrt(a.reduce((s,v)=>s+(v-m)*(v-m),0)/a.length)}
-// FIX BOLLINGER
-function Bollinger(a,p=20,k=2){
-  const up=[],dn=[];
-  for(let i=0;i<a.length;i++){
-    const s=a.slice(Math.max(0,i-p+1),i+1);
-    const mean=s.reduce((x,y)=>x+y,0)/s.length;
-    const sd=Math.sqrt(s.reduce((x,y)=>x+(y-mean)*(y-mean),0)/s.length)||0;
-    up.push(mean+k*sd); dn.push(mean-k*sd);
-  }
-  return{up,dn}
-}
+function Bollinger(a,p=20,k=2){ const up=[],dn=[]; for(let i=0;i<a.length;i++){ const s=a.slice(Math.max(0,i-p+1),i+1); const mean=s.reduce((x,y)=>x+y,0)/s.length; const sd=Math.sqrt(s.reduce((x,y)=>x+(y-mean)*(y-mean),0)/s.length)||0; up.push(mean+k*sd); dn.push(mean-k*sd); } return{up,dn} }
 function maxRun(a,pred){let best=0,cur=0;for(const v of a){if(pred(v)){cur++;best=Math.max(best,cur)}else cur=0}return best}
 const round2=x=>Math.round(x*100)/100;
 
@@ -354,8 +299,7 @@ const round2=x=>Math.round(x*100)/100;
 const hoverLine={id:'hoverLine',afterDatasetsDraw(chart){const {ctx,chartArea:{top,bottom},scales:{x}}=chart;const act=chart.tooltip?.getActiveElements?.();if(!act||!act.length)return;const idx=act[0].index;const xPos=x.getPixelForValue(idx);ctx.save();ctx.beginPath();ctx.moveTo(xPos,top);ctx.lineTo(xPos,bottom);ctx.setLineDash([5,5]);ctx.strokeStyle='#4ade80aa';ctx.lineWidth=1;ctx.stroke();ctx.restore();}};
 const ctxC=document.getElementById("chart").getContext("2d");
 const chart=new Chart(ctxC,{type:"line",data:{labels:[],datasets:[
-  {label:"Valor",data:[],borderColor:"#5fc9ff",pointRadius:0,tension:.25,borderWidth:2,
-   segment:{borderColor:c=>(c.p1.parsed.y>=10?"#ff86d1":(c.p1.parsed.y>=2?"#b18cff":"#5fc9ff"))}},
+  {label:"Valor",data:[],borderColor:"#5fc9ff",pointRadius:0,tension:.25,borderWidth:2,segment:{borderColor:c=>(c.p1.parsed.y>=10?"#ff86d1":(c.p1.parsed.y>=2?"#b18cff":"#5fc9ff"))}},
   {label:"EMA(12)",data:[],borderColor:"#f25fc1",borderDash:[6,4],pointRadius:0,tension:.25,borderWidth:1.5},
   {label:"BB↑",data:[],borderColor:"#7c5cff66",pointRadius:0,borderWidth:1,tension:.25},
   {label:"BB↓",data:[],borderColor:"#7c5cff66",pointRadius:0,borderWidth:1,tension:.25},
@@ -395,19 +339,24 @@ let rtWritesOk=false, RT_LAST_KEY=null;
 let HIST_ALL_VIEW=[]; // para estadísticas
 function badgeClassFrom(r){ const id=(r&&r.band&&typeof r.band==='object')?r.band.id:r.band; return id==='P'?'P':(id==='B'?'B':(id==='C'?'C':'A')); }
 function safe(v,d){return (v===undefined||v===null)?d:v;}
+
+// === NUEVO: fila con data-uid / data-rtkey para apuntar exactamente a la pendiente
 function toHistRow(r, idxOverride=null){
   const badge=badgeClassFrom(r); const tipo=safe(r.kind,"Automática"); const lbl=safe(r.label,"—");
   const conf=Math.max(0,Math.min(97,Math.round((r.conf||0)*100))); const real=safe(r.real,"—");
   const est=safe(r.estado,"Pendiente"); const raz=safe(r.reason,"—");
   const tr=document.createElement("tr");
+  if(r.uid) tr.dataset.uid = r.uid;
+  if(r._rtkey) tr.dataset.rtkey = r._rtkey;
   tr.innerHTML=`<td>${idxOverride ?? safe(r.idx,'')}</td><td>${safe(r.time,'')}</td><td><span class="badge ${badge}">${lbl}</span></td><td>${tipo}</td><td>${conf}%</td><td>${real}</td><td>${est}</td><td class="small">${raz}</td>`;
   return tr;
 }
+
 function renderRemoteHistory(list){
   $tbody.innerHTML="";
   if(!list.length){$tbody.innerHTML='<tr><td colspan="8" class="small">No hay señales</td></tr>'; HIST_ALL_VIEW=[]; renderStats(); return;}
   list.sort((a,b)=>a.ts-b.ts); const tail=list.slice(-HIST_LIMIT);
-  HIST_ALL_VIEW=tail.slice(); // para estadísticas
+  HIST_ALL_VIEW=tail.slice();
   for(let i=tail.length-1;i>=0;i--){const r=tail[i]; const idx=list.length-(tail.length-1-i); $tbody.appendChild(toHistRow(r,idx));}
   renderStats();
 }
@@ -430,10 +379,18 @@ function pushHistoryRow(r){
     const row={...r,ts:Date.now()}; db.ref(HIST_PATH+'/'+key).set(row,(err)=>{ if(err){rtWritesOk=false;$syncBadge.textContent="Historial: Local"; let a=loadLocalHist(); a.unshift(row); saveLocalHist(a);} else{rtWritesOk=true;$syncBadge.textContent="Historial: Sync ✔";}});
   }catch(e){ let a=loadLocalHist(); a.unshift({...r,ts:Date.now()}); saveLocalHist(a); rtWritesOk=false;$syncBadge.textContent="Historial: Local";}
 }
+
+// === NUEVO: actualizar la fila correcta usando uid/rtkey (ya no a ciegas la primera)
 function updateTopHistoryReal(real,estado,reason){
-  const top=$tbody.firstElementChild; if(top){ top.children[5].textContent=real; top.children[6].textContent=estado; if(reason) top.children[7].textContent=reason; }
-  // actualizar en HIST_ALL_VIEW
-  if(HIST_ALL_VIEW.length){ HIST_ALL_VIEW[0].real=real; HIST_ALL_VIEW[0].estado=estado; if(reason) HIST_ALL_VIEW[0].reason=reason; renderStats(); }
+  let tr=null;
+  if(PENDING_UID) tr = $tbody.querySelector(`tr[data-uid="${PENDING_UID}"]`);
+  if(!tr && RT_LAST_KEY) tr = $tbody.querySelector(`tr[data-rtkey="${RT_LAST_KEY}"]`);
+  if(!tr) tr = $tbody.firstElementChild; // fallback
+  if(tr){
+    tr.children[5].textContent=real;
+    tr.children[6].textContent=estado;
+    if(reason) tr.children[7].textContent=reason;
+  }
   if(HIST_PATH&&RT_LAST_KEY){ try{db.ref(HIST_PATH+'/'+RT_LAST_KEY).update({real,estado,reason});}catch{} }
   else{ const arr=loadLocalHist(); if(arr.length){arr[0].real=real;arr[0].estado=estado;arr[0].reason=reason; saveLocalHist(arr);} }
 }
@@ -441,32 +398,22 @@ function updateTopHistoryReal(real,estado,reason){
 /*** ================== SESIÓN ================== ***/
 function refreshSession(){ $sessRounds.textContent=sess.rounds; $sessSignals.textContent=sess.signals; $sessWins.textContent=sess.wins; $sessEff.textContent=(sess.signals?(sess.wins/sess.signals*100).toFixed(0):0)+"%"; try{localStorage.setItem(LS.SESS,JSON.stringify(sess))}catch{} }
 
-/*** ================== LÓGICA (mejorada) ================== ***/
+/*** ================== LÓGICA (la misma que te entregué antes) ================== ***/
 function sigmoid(x){return 1/(1+Math.exp(-x));}
 function probsFromState(){ const P={}; if(STATE.wsum<=0) return P; for(const t of THRESH){ const k=String(t); P[t]=(STATE.counts[k]||0)/STATE.wsum; } return P; }
 function hillAlphaUnion(){ const tail=[...STATE.tailMax, ...LEARN.map(x=>x.v).filter(v=>v>=10)].sort((a,b)=>b-a).slice(0,STATE_M); if(tail.length<3) return 2.0; const xm=tail[tail.length-1]; const logs=tail.map(x=>Math.log(x/xm)); const H=logs.reduce((a,b)=>a+b,0)/logs.length; return H>0?1/H:2.0; }
 function weightedTailProbsLocal(vals,lambda=0.99){ let w=1,sumW=0; const counts=Object.fromEntries(THRESH.map(t=>[t,0])); for(let i=vals.length-1;i>=0;i--){ const v=vals[i]; for(const t of THRESH){ if(v>=t) counts[t]+=w; } sumW+=w; w*=lambda; } const P={}; for(const t of THRESH){ P[t]= sumW? counts[t]/sumW : 0; } return P; }
-
-// Interpolación pMin (evita ceros entre umbrales discretos)
-function pAtOrAbove(t, P){
-  let lo=THRESH[0], hi=THRESH[THRESH.length-1];
-  for(const th of THRESH){ if(th<=t) lo=th; if(th>=t){ hi=th; break; } }
-  if(lo===hi) return P[lo]||0;
-  const w=(t-lo)/(hi-lo);
-  return (1-w)*(P[lo]||0)+ w*(P[hi]||0);
-}
+function pAtOrAbove(t, P){ let lo=THRESH[0], hi=THRESH[THRESH.length-1]; for(const th of THRESH){ if(th<=t) lo=th; if(th>=t){ hi=th; break; } } if(lo===hi) return P[lo]||0; const w=(t-lo)/(hi-lo); return (1-w)*(P[lo]||0)+ w*(P[hi]||0); }
 
 function features(vals){
   const ema12=EMA(vals,12); const slope=ema12.length>3?ema12.at(-1)-ema12.at(-3):0;
-  const bb=Bollinger(vals,20); const n=vals.length; const last=vals.at(-1)||0;
+  const bb=Bollinger(vals,20); const last=vals.at(-1)||0;
   const v8=vals.slice(-8), v10=vals.slice(-10), v20=vals.slice(-20), v40=vals.slice(-40), v60=vals.slice(-60);
 
-  // contadores existentes
   const countGE2=v8.filter(v=>v>=2).length, countLT2=v10.filter(v=>v<2).length;
   const runBlue=maxRun(v10,v=>v<2.0), runDeep=maxRun(v10,v=>v<=1.20);
   const pinkIn6=vals.slice(-6).some(v=>v>=10), pinkIn20=v20.filter(v=>v>=10).length, purpleIn20=v20.filter(v=>v>=2&&v<10).length;
 
-  // NUEVOS: densidades y volatilidad
   const purple8  = v8.filter(v => v>=2 && v<10).length;
   const purple20 = v20.filter(v => v>=2 && v<10).length;
   const p2_density_8  = purple8 / Math.max(1, v8.length);
@@ -480,34 +427,24 @@ function features(vals){
   const pinkIn60 = v60.filter(v => v>=10).length;
   const p30_recent = v20.filter(v => v>=30).length;
 
-  // posición BB y momentum
   const mom=last-(vals.at(-4)??last);
   const bbPos=(last-bb.dn.at(-1))/Math.max(0.0001,(bb.up.at(-1)-bb.dn.at(-1)));
 
-  // probabilidades combinadas
   const P_local=weightedTailProbsLocal(LEARN.map(x=>x.v),0.99);
   const P_state=probsFromState();
   const P={}; for(const t of THRESH){ P[t]=(0.60*(P_local[t]||0) + 0.40*(P_state[t]||0)); }
 
-  // “calor” de cola y ventana rosa
-  const tailHeat =
-    (pinkIn40>=1 ? 0.18 : 0) +
-    (pinkIn60>=2 ? 0.10 : 0) +
-    (purpleRun8>=3 ? 0.06 : 0) +
-    (p2_density_8>=0.40 ? 0.04 : 0) +
-    (sdRatio>=1.30 ? 0.04 : 0);
-
+  const tailHeat = (pinkIn40>=1 ? 0.18 : 0) + (pinkIn60>=2 ? 0.10 : 0) + (purpleRun8>=3 ? 0.06 : 0) + (p2_density_8>=0.40 ? 0.04 : 0) + (sdRatio>=1.30 ? 0.04 : 0);
   const alpha=hillAlphaUnion();
 
   return {ema12,slope,bb,last,v8,v10,v20,countGE2,countLT2,runBlue,runDeep,pinkIn6,pinkIn20,purpleIn20,
           purple8,purple20,p2_density_8,p2_density_20,purpleRun8,sd8,sd20,sdRatio,
-          pinkIn40,pinkIn60,p30_recent,belowBB:0,mom,bbPos,P,alpha,tailHeat};
+          pinkIn40,pinkIn60,p30_recent,mom,bbPos,P,alpha,tailHeat};
 }
 
 function isDrain(f){ return ((f.pinkIn20>=2||f.purpleIn20>=11)&&(f.countLT2>=6||f.runBlue>=4)&&f.slope<-0.02); }
 function isBlueStreak(f){ return f.runBlue>=6||f.countLT2>=7; }
 
-// Bandas dinámicas clásicas
 function dynamicLowRange(f){
   const zSlope=f.slope/0.06, zMom=f.mom/1.2, zBb=(f.bbPos-0.5)/0.25;
   const penal=(f.runDeep?0.2:0)+(f.countLT2>=6?0.1:0);
@@ -523,22 +460,16 @@ function dynamicMidRange(f){
   const lo=round2(a), hi=round2(a+w);
   return {id:"B",min:lo,max:hi,label:`${lo}–${hi}`};
 }
-
-// NUEVO: escalera “Alta” por tramos (3–4, 4–5, 5–6, 6–7)
 function highLadderRanges(f){
   const out=[];
   const tMorada = (f.purpleRun8>=3 || f.p2_density_8>=0.40) && f.slope>-0.005;
   if(!(tMorada || (f.sdRatio>=1.25 && f.p2_density_20>=0.30))) return out;
-
-  // base alta
   if(f.slope>-0.005 && f.sdRatio>=1.15){ out.push({id:"C",min:3.0,max:4.0,label:"3–4"}); }
   if(f.slope>=0 && f.sdRatio>=1.20){ out.push({id:"C",min:4.0,max:5.0,label:"4–5"}); }
   if(f.sdRatio>=1.25 && f.purpleRun8>=3){ out.push({id:"C",min:5.0,max:6.0,label:"5–6"}); }
   if(f.sdRatio>=1.32 && (f.tailHeat>=0.12 || f.purpleRun8>=4)){ out.push({id:"C",min:6.0,max:7.0,label:"6–7"}); }
   return out;
 }
-
-// Rosa contextual (10–15, 15–30, 30–50, 50–100)
 function pickPinkBands(f){
   const P=f.P, alpha=f.alpha;
   const baseOk = ((P[10]||0)>=0.02 && f.slope>-0.005) || (f.tailHeat>=0.18);
@@ -552,57 +483,37 @@ function pickPinkBands(f){
   if(alpha<=1.4 && (P[100]||0)>=0.003) c.push({id:"P",min:50,max:100,label:"50–100"});
   return c;
 }
-
 function regime(f){
   if(isDrain(f))return{state:"DRAIN",reason:"Drenaje tras bonanza"};
   if(isBlueStreak(f))return{state:"RISKY",reason:"Racha azul larga"};
   if(postPinkCooldown>0)return{state:"COOLDOWN",reason:"Post-Rosa: cooldown"};
   return{state:"OK",reason:"OK"};
 }
-
 function decide(vals, regOverride=null){
   const f=features(vals), reg=regOverride || regime(f);
-
-  // momentum morado y patrones base existentes
   const momentumMorado=(f.countGE2>=5 && maxRun(f.v8,v=>v>=2)>=3 && f.slope>0.02);
   const ruptura=momentumMorado && f.last<2;
   const pullback=(maxRun(f.v10,v=>v<2)>=2 || f.runDeep>=1);
   const reboteConfirm=pullback && ((f.last>f.ema12.at(-1) && f.last>(f.bb.up.at(-1)+f.bb.dn.at(-1))/2 && f.slope>=-0.005) || f.last>=2);
-
   if(f.last>=10){ postPinkCooldown=Math.max(postPinkCooldown,2); }
-
-  // Estado
   if(reg.state==="DRAIN") return {state:"BLOCK",signal:null,reason:reg.reason};
   if(reg.state==="COOLDOWN") return {state:"COOLDOWN",signal:null,reason:reg.reason};
   const cands=[];
-
   if(reg.state==="RISKY"){
-    // En rachas azules largas: SOLO Rosa si el bloque está caliente
-    if(f.tailHeat>=0.18 && f.sdRatio>=1.30){
-      pickPinkBands(f).forEach(x=>cands.push(x));
-    } else {
-      return {state:"WAIT",signal:null,reason:"Riesgo alto (racha azul)"};
-    }
+    if(f.tailHeat>=0.18 && f.sdRatio>=1.30){ pickPinkBands(f).forEach(x=>cands.push(x)); }
+    else { return {state:"WAIT",signal:null,reason:"Riesgo alto (racha azul)"}; }
   } else {
     if(ruptura) return {state:"WAIT",signal:null,reason:"Ruptura de morado: observar pullback"};
     if(reboteConfirm) cands.push(dynamicLowRange(f));
     else if(momentumMorado) cands.push(dynamicMidRange(f));
-
-    // NUEVO: escalera alta por tramos
     highLadderRanges(f).forEach(x=>cands.push(x));
-
-    // Rosa contextual
     pickPinkBands(f).forEach(x=>cands.push(x));
-
-    // fallback prudente
     if(!cands.length && f.bbPos>0.45 && f.slope>-0.005) cands.push(dynamicLowRange(f));
   }
-
   if(!cands.length) return {state:"WAIT",signal:null,reason:"Sin oportunidad clara"};
 
-  // Scoring
   const scored=cands.map(c=>{
-    const prior = (c.id==="A")?0.55 : (c.id==="B")?0.56 : (c.id==="C")?0.52 : 0.45; // P:0.45
+    const prior = (c.id==="A")?0.55 : (c.id==="B")?0.56 : (c.id==="C")?0.52 : 0.45;
     const trendScore=clamp((f.slope+0.05)/0.1,0,1);
     const streakScore=(maxRun(f.v8,v=>v>=2)>=3?+0.25:0)+(maxRun(f.v10,v=>v<2)>=4?-0.25:0);
     const bbScore=clamp((f.bbPos-0.25)/0.5,0,1);
@@ -611,33 +522,22 @@ function decide(vals, regOverride=null){
     const tailScore=clamp(f.tailHeat,0,0.35);
     const pinkPenalty=(postPinkCooldown>0)?0.20:0;
     const deepBluePen=f.runDeep?0.10:0;
-
     let conf=prior+0.28*trendScore+0.18*streakScore+0.14*bbScore+0.14*momentumScore+0.10*volScore+0.16*tailScore-pinkPenalty-deepBluePen;
     conf=clamp(conf,0,0.97);
 
-    // pMin según min del rango
     let pMin=0;
-    if(c.min>=10){
-      const base=(f.P[10]||0);
-      pMin = base*Math.pow(c.min/10, -f.alpha);
-    }else{
-      pMin = pAtOrAbove(c.min, f.P);
-    }
+    if(c.min>=10){ const base=(f.P[10]||0); pMin = base*Math.pow(c.min/10, -f.alpha); }
+    else{ pMin = pAtOrAbove(c.min, f.P); }
 
-    // utilidad por “toma”
     let utility=0.8;
     if(c.id==="P"){ utility=1.0; }
     else if(c.id==="A"){ utility=0.70; }
     else if(c.id==="B"){ utility=0.85; }
-    else if(c.id==="C"){
-      const mx=c.max;
-      utility = mx<=4?0.82 : mx<=5?0.78 : mx<=6?0.74 : 0.70;
-    }
+    else if(c.id==="C"){ const mx=c.max; utility = mx<=4?0.82 : mx<=5?0.78 : mx<=6?0.74 : 0.70; }
 
     const EV=pMin*utility*conf;
     const bandId=(c.id==="P")?"P":(c.max<=1.8?"A":(c.max<=3.3?"B":"C"));
     const threshold=EMIT_BASE + bandAdj(bandId);
-
     return {cand:c,conf,EV,threshold,bandId};
   });
 
@@ -656,25 +556,25 @@ function decide(vals, regOverride=null){
 function maybeEmit(){
   if(WINDOW.length<30){ setBanner("warn","Cargando contexto…","Aún no hay suficientes rondas.","Esperar"); return; }
   if(cooldown>0){ setBanner("warn","Cooldown","Esperando siguiente ventana…","—"); return; }
-
-  // Cooldown post-rosa con bypass inteligente si el bloque sigue caliente
   if(postPinkCooldown>0){
-    const vals=WINDOW.map(x=>x.v);
-    const f=features(vals);
+    const vals=WINDOW.map(x=>x.v); const f=features(vals);
     const hot=(f.pinkIn40>=1 && (f.p2_density_8>=0.35 || f.sdRatio>=1.30));
     if(!hot){ setBanner("warn","Post-Rosa","Esperando estabilización…","—"); $sigState.textContent="Cooldown post-Rosa…"; return; }
-    // si está caliente, permitimos evaluar normal (penalización ya incluida en conf)
   }
-
   const vals=WINDOW.map(x=>x.v);
   const d=decide(vals);
   if(d.state==="SIGNAL"){
     const {band,conf,kind}=d.signal;
-    lastSignal={ idx:WINDOW.length, band, conf, reason:d.reason, kind };
+    // === NUEVO: UID para identificar la fila pendiente
+    const uid = 'u'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7);
+    PENDING_UID = uid;
+
+    lastSignal={ idx:WINDOW.length, band, conf, reason:d.reason, kind, uid };
     $sigTarget.textContent=band.label; $sigConf.textContent=(conf*100|0)+"%"; $sigState.textContent="EMITIDA (evalúa próxima)";
     setBanner("ok","Señal lista",`${d.reason} • conf ${(conf*100|0)}%`, `Tomar: ${band.label}`);
     beep(band.min>=3?820:(band.min>=2?720:660),150);
-    const row={ idx:++sess.signals, time: nowHHMMSS(), band: band.id, label: band.label, kind, conf, real:"—", estado:"Pendiente", reason:d.reason };
+
+    const row={ idx:++sess.signals, time: nowHHMMSS(), band: band.id, label: band.label, kind, conf, real:"—", estado:"Pendiente", reason:d.reason, uid };
     pushHistoryRow(row); refreshSession();
     cooldown=1;
   }else if(d.state==="WAIT"){
@@ -693,6 +593,7 @@ function evaluateIfReady(newVal){
   updateTopHistoryReal(newVal.toFixed(2)+"x", ok?"Ganada":"Perdida", lastSignal.reason||"—");
   updateBandPerf(lastSignal.kind, ok);
   lastSignal=null;
+  PENDING_UID=null; // <<==== limpieza del puntero a la fila
 }
 
 /*** ================== ESTADÍSTICAS ================== ***/
@@ -708,14 +609,12 @@ function renderStats(){
     const key=r.label||'?'; const e=byLabel.get(key)||{n:0,w:0};
     e.n++; if(/ganada/i.test(r.estado)) e.w++; byLabel.set(key,e);
   }
-  // bandas
   const bandsHTML = Object.entries(byBand).map(([k,v])=>{
     const acc = v.n? ((v.w/v.n*100).toFixed(0)+'%') : '—';
     return `<tr><td>${k}</td><td>${v.n}</td><td>${v.w}</td><td>${acc}</td></tr>`;
   }).join('') || '<tr><td colspan="4" class="small">—</td></tr>';
   $statsBands.innerHTML=bandsHTML;
 
-  // rangos top por frecuencia (máx 8)
   const top=[...byLabel.entries()].sort((a,b)=>b[1].n-a[1].n).slice(0,8).map(([lab,v])=>{
     const acc = v.n? ((v.w/v.n*100).toFixed(0)+'%') : '—';
     return `<tr><td>${lab}</td><td>${v.n}</td><td>${v.w}</td><td>${acc}</td></tr>`;
@@ -735,23 +634,22 @@ function encodePath(p){ return (p||'').replace(/[^\w]/g,'_'); }
   HIST_PATH='analyzer/history/'+encodePath(path);
   STATE_PATH='analyzer/state/'+encodePath(path);
 
-  // Cargar estado persistente
   try{
     const snap=await db.ref(STATE_PATH).once('value');
     if(snap.exists()){ hydrateState(snap.val()); setStateBadge('Sync ✔',true); }
     else{ const local=loadLocalState(); if(local){ STATE=local; setStateBadge('Local',false);} else setStateBadge('Inicial',false); }
   }catch{ const local=loadLocalState(); if(local){ STATE=local; setStateBadge('Local',false);} else setStateBadge('Inicial',false); }
 
-  // Historial de señales (lectura)
+  // Historial (traigo key para cada fila)
   try{
     db.ref(HIST_PATH).limitToLast(HIST_LIMIT).on('value', snap=>{
-      const list=[]; snap.forEach(ch=>{ list.push(ch.val()); });
+      const list=[];
+      snap.forEach(ch=>{ const v=ch.val(); list.push({...v, _rtkey: ch.key}); });
       if(list.length){ $syncBadge.textContent="Historial: Sync ✔"; renderRemoteHistory(list); }
       else { $syncBadge.textContent="Historial: (vacío)"; }
     });
   }catch{ $syncBadge.textContent="Historial: Local"; renderLocalHistory(); }
 
-  // Ventana inicial
   const base=await db.ref(path).limitToLast(80).once("value");
   const obj=base.val()||{};
   WINDOW=Object.entries(obj).map(([k,v])=>{
@@ -765,7 +663,6 @@ function encodePath(p){ return (p||'').replace(/[^\w]/g,'_'); }
 
   maybeEmit();
 
-  // Suscripción en vivo
   db.ref(path).limitToLast(1).on("child_added", snap=>{
     const raw=snap.val(); const v=(raw&&(raw.v??raw.value))??(+raw); const ts=(raw&&(raw.ts??raw.t))??Date.now();
     const it={k:snap.key,v:+v,ts:+ts};
@@ -801,7 +698,7 @@ function encodePath(p){ return (p||'').replace(/[^\w]/g,'_'); }
 /*** ================== CONTROLES ================== ***/
 document.getElementById("btnReset").addEventListener("click",()=>{
   sess={rounds:WINDOW.length,signals:0,wins:0}; refreshSession();
-  lastSignal=null; cooldown=0; postPinkCooldown=0;
+  lastSignal=null; PENDING_UID=null; cooldown=0; postPinkCooldown=0;
   $sigTarget.textContent="—"; $sigConf.textContent="—"; $sigState.textContent="Esperando…";
   setBanner("warn","Reiniciado","Esperando nuevo contexto…","—");
 });
