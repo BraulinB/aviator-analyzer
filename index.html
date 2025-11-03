@@ -32,7 +32,7 @@ h1{margin:0;font:700 18px/1.2 ui-sans-serif;letter-spacing:.2px}
 .banner.warn{background:linear-gradient(180deg,#2e2a12,#201f0d);border-color:#6e5c12}
 .banner.stop{background:linear-gradient(180deg,#2b1114,#1a0c0e);border-color:#7a1f27}
 
-.btn{padding:8px 12px;border-radius:10px;border:1px solid var(--bdr);background:#0f1535;color:var(--ink);cursor:pointer}
+.btn{padding:8px 12px;border-radius:10px;border:1px solid var(--bdr);background:#0f1535;color:#e9eafd;cursor:pointer}
 .btn:active{transform:translateY(1px)}
 
 .chartWrap{
@@ -233,7 +233,8 @@ const $statsRanges = document.getElementById("statsRanges");
 /*** ================== ESTADO BÁSICO ================== ***/
 let WINDOW=[], LEARN=[], LIVE=[];
 let lastSignal=null;
-let PENDING_UID=null;        // <<==== NUEVO: UID de la fila pendiente
+let PENDING_UID=null;        // Fila pendiente en DOM
+let reentryGuard=0;          // Anti-inercia Moderada/Alta sin pullback de calidad
 let cooldown=0, postPinkCooldown=0;
 let sess={rounds:0,signals:0,wins:0};
 
@@ -340,7 +341,6 @@ let HIST_ALL_VIEW=[]; // para estadísticas
 function badgeClassFrom(r){ const id=(r&&r.band&&typeof r.band==='object')?r.band.id:r.band; return id==='P'?'P':(id==='B'?'B':(id==='C'?'C':'A')); }
 function safe(v,d){return (v===undefined||v===null)?d:v;}
 
-// === NUEVO: fila con data-uid / data-rtkey para apuntar exactamente a la pendiente
 function toHistRow(r, idxOverride=null){
   const badge=badgeClassFrom(r); const tipo=safe(r.kind,"Automática"); const lbl=safe(r.label,"—");
   const conf=Math.max(0,Math.min(97,Math.round((r.conf||0)*100))); const real=safe(r.real,"—");
@@ -351,7 +351,6 @@ function toHistRow(r, idxOverride=null){
   tr.innerHTML=`<td>${idxOverride ?? safe(r.idx,'')}</td><td>${safe(r.time,'')}</td><td><span class="badge ${badge}">${lbl}</span></td><td>${tipo}</td><td>${conf}%</td><td>${real}</td><td>${est}</td><td class="small">${raz}</td>`;
   return tr;
 }
-
 function renderRemoteHistory(list){
   $tbody.innerHTML="";
   if(!list.length){$tbody.innerHTML='<tr><td colspan="8" class="small">No hay señales</td></tr>'; HIST_ALL_VIEW=[]; renderStats(); return;}
@@ -379,13 +378,11 @@ function pushHistoryRow(r){
     const row={...r,ts:Date.now()}; db.ref(HIST_PATH+'/'+key).set(row,(err)=>{ if(err){rtWritesOk=false;$syncBadge.textContent="Historial: Local"; let a=loadLocalHist(); a.unshift(row); saveLocalHist(a);} else{rtWritesOk=true;$syncBadge.textContent="Historial: Sync ✔";}});
   }catch(e){ let a=loadLocalHist(); a.unshift({...r,ts:Date.now()}); saveLocalHist(a); rtWritesOk=false;$syncBadge.textContent="Historial: Local";}
 }
-
-// === NUEVO: actualizar la fila correcta usando uid/rtkey (ya no a ciegas la primera)
 function updateTopHistoryReal(real,estado,reason){
   let tr=null;
   if(PENDING_UID) tr = $tbody.querySelector(`tr[data-uid="${PENDING_UID}"]`);
   if(!tr && RT_LAST_KEY) tr = $tbody.querySelector(`tr[data-rtkey="${RT_LAST_KEY}"]`);
-  if(!tr) tr = $tbody.firstElementChild; // fallback
+  if(!tr) tr = $tbody.firstElementChild;
   if(tr){
     tr.children[5].textContent=real;
     tr.children[6].textContent=estado;
@@ -398,7 +395,7 @@ function updateTopHistoryReal(real,estado,reason){
 /*** ================== SESIÓN ================== ***/
 function refreshSession(){ $sessRounds.textContent=sess.rounds; $sessSignals.textContent=sess.signals; $sessWins.textContent=sess.wins; $sessEff.textContent=(sess.signals?(sess.wins/sess.signals*100).toFixed(0):0)+"%"; try{localStorage.setItem(LS.SESS,JSON.stringify(sess))}catch{} }
 
-/*** ================== LÓGICA (la misma que te entregué antes) ================== ***/
+/*** ================== LÓGICA ================== ***/
 function sigmoid(x){return 1/(1+Math.exp(-x));}
 function probsFromState(){ const P={}; if(STATE.wsum<=0) return P; for(const t of THRESH){ const k=String(t); P[t]=(STATE.counts[k]||0)/STATE.wsum; } return P; }
 function hillAlphaUnion(){ const tail=[...STATE.tailMax, ...LEARN.map(x=>x.v).filter(v=>v>=10)].sort((a,b)=>b-a).slice(0,STATE_M); if(tail.length<3) return 2.0; const xm=tail[tail.length-1]; const logs=tail.map(x=>Math.log(x/xm)); const H=logs.reduce((a,b)=>a+b,0)/logs.length; return H>0?1/H:2.0; }
@@ -440,6 +437,15 @@ function features(vals){
   return {ema12,slope,bb,last,v8,v10,v20,countGE2,countLT2,runBlue,runDeep,pinkIn6,pinkIn20,purpleIn20,
           purple8,purple20,p2_density_8,p2_density_20,purpleRun8,sd8,sd20,sdRatio,
           pinkIn40,pinkIn60,p30_recent,mom,bbPos,P,alpha,tailHeat};
+}
+
+// Pullback de calidad para re-entrada (anti-inercia)
+function hasQualityPullback(f){
+  const belowEMA = f.last < f.ema12.at(-1);
+  const underBB  = f.last < f.bb.dn.at(-1);
+  const deepBlue = f.runDeep >= 1 || f.v8.some(v => v <= 1.15);
+  const lowPos   = f.bbPos <= 0.45;
+  return (underBB || (belowEMA && lowPos) || deepBlue);
 }
 
 function isDrain(f){ return ((f.pinkIn20>=2||f.purpleIn20>=11)&&(f.countLT2>=6||f.runBlue>=4)&&f.slope<-0.02); }
@@ -489,29 +495,55 @@ function regime(f){
   if(postPinkCooldown>0)return{state:"COOLDOWN",reason:"Post-Rosa: cooldown"};
   return{state:"OK",reason:"OK"};
 }
+
 function decide(vals, regOverride=null){
   const f=features(vals), reg=regOverride || regime(f);
+
+  // Señales base
   const momentumMorado=(f.countGE2>=5 && maxRun(f.v8,v=>v>=2)>=3 && f.slope>0.02);
   const ruptura=momentumMorado && f.last<2;
   const pullback=(maxRun(f.v10,v=>v<2)>=2 || f.runDeep>=1);
   const reboteConfirm=pullback && ((f.last>f.ema12.at(-1) && f.last>(f.bb.up.at(-1)+f.bb.dn.at(-1))/2 && f.slope>=-0.005) || f.last>=2);
+
   if(f.last>=10){ postPinkCooldown=Math.max(postPinkCooldown,2); }
+
+  // Anti-inercia Moderada/Alta sin pullback
+  const reLock = (reentryGuard > 0) && !hasQualityPullback(f);
+
+  // Patrón Blue-Squeeze -> Pink
+  const blueSqueeze = (f.runBlue >= 7) && (f.sdRatio >= 1.45) &&
+                      (f.v8.some(v => v <= 1.15)) && (f.alpha <= 1.9);
+
   if(reg.state==="DRAIN") return {state:"BLOCK",signal:null,reason:reg.reason};
   if(reg.state==="COOLDOWN") return {state:"COOLDOWN",signal:null,reason:reg.reason};
+
   const cands=[];
+
   if(reg.state==="RISKY"){
-    if(f.tailHeat>=0.18 && f.sdRatio>=1.30){ pickPinkBands(f).forEach(x=>cands.push(x)); }
-    else { return {state:"WAIT",signal:null,reason:"Riesgo alto (racha azul)"}; }
+    if (f.tailHeat>=0.18 && f.sdRatio>=1.30) { pickPinkBands(f).forEach(x=>cands.push(x)); }
+    else if (blueSqueeze) { cands.push({id:"P",min:10,max:15,label:"10–15",ctxBS:true}); }
+    else return {state:"WAIT",signal:null,reason:"Riesgo alto (racha azul)"};
   } else {
     if(ruptura) return {state:"WAIT",signal:null,reason:"Ruptura de morado: observar pullback"};
-    if(reboteConfirm) cands.push(dynamicLowRange(f));
-    else if(momentumMorado) cands.push(dynamicMidRange(f));
-    highLadderRanges(f).forEach(x=>cands.push(x));
-    pickPinkBands(f).forEach(x=>cands.push(x));
-    if(!cands.length && f.bbPos>0.45 && f.slope>-0.005) cands.push(dynamicLowRange(f));
+
+    if (reLock) {
+      // anti-inercia: solo A + Rosas (y Blue-Squeeze si aplica)
+      if (reboteConfirm || (f.bbPos>0.55 && f.slope>-0.005)) cands.push(dynamicLowRange(f));
+      pickPinkBands(f).forEach(x=>cands.push(x));
+      if (blueSqueeze) cands.push({id:"P",min:10,max:15,label:"10–15",ctxBS:true});
+    } else {
+      if(reboteConfirm) cands.push(dynamicLowRange(f));
+      else if(momentumMorado) cands.push(dynamicMidRange(f));
+      highLadderRanges(f).forEach(x=>cands.push(x));
+      pickPinkBands(f).forEach(x=>cands.push(x));
+      if(blueSqueeze) cands.push({id:"P",min:10,max:15,label:"10–15",ctxBS:true});
+      if(!cands.length && f.bbPos>0.45 && f.slope>-0.005) cands.push(dynamicLowRange(f));
+    }
   }
+
   if(!cands.length) return {state:"WAIT",signal:null,reason:"Sin oportunidad clara"};
 
+  // Scoring
   const scored=cands.map(c=>{
     const prior = (c.id==="A")?0.55 : (c.id==="B")?0.56 : (c.id==="C")?0.52 : 0.45;
     const trendScore=clamp((f.slope+0.05)/0.1,0,1);
@@ -522,22 +554,32 @@ function decide(vals, regOverride=null){
     const tailScore=clamp(f.tailHeat,0,0.35);
     const pinkPenalty=(postPinkCooldown>0)?0.20:0;
     const deepBluePen=f.runDeep?0.10:0;
+
     let conf=prior+0.28*trendScore+0.18*streakScore+0.14*bbScore+0.14*momentumScore+0.10*volScore+0.16*tailScore-pinkPenalty-deepBluePen;
     conf=clamp(conf,0,0.97);
 
+    // pMin según min del rango
     let pMin=0;
     if(c.min>=10){ const base=(f.P[10]||0); pMin = base*Math.pow(c.min/10, -f.alpha); }
     else{ pMin = pAtOrAbove(c.min, f.P); }
 
+    // utilidad por banda
     let utility=0.8;
     if(c.id==="P"){ utility=1.0; }
     else if(c.id==="A"){ utility=0.70; }
     else if(c.id==="B"){ utility=0.85; }
     else if(c.id==="C"){ const mx=c.max; utility = mx<=4?0.82 : mx<=5?0.78 : mx<=6?0.74 : 0.70; }
 
-    const EV=pMin*utility*conf;
     const bandId=(c.id==="P")?"P":(c.max<=1.8?"A":(c.max<=3.3?"B":"C"));
-    const threshold=EMIT_BASE + bandAdj(bandId);
+    let threshold=EMIT_BASE + bandAdj(bandId);
+
+    // Bono Blue-Squeeze SOLO para Rosa 10–15
+    if(c.ctxBS && c.id==="P" && c.min===10){
+      conf = clamp(conf + 0.03, 0, 0.97);
+      threshold = Math.max(0.66, threshold - 0.02);
+    }
+
+    const EV=pMin*utility*conf;
     return {cand:c,conf,EV,threshold,bandId};
   });
 
@@ -565,9 +607,8 @@ function maybeEmit(){
   const d=decide(vals);
   if(d.state==="SIGNAL"){
     const {band,conf,kind}=d.signal;
-    // === NUEVO: UID para identificar la fila pendiente
-    const uid = 'u'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7);
-    PENDING_UID = uid;
+    const uid='u'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7);
+    PENDING_UID=uid;
 
     lastSignal={ idx:WINDOW.length, band, conf, reason:d.reason, kind, uid };
     $sigTarget.textContent=band.label; $sigConf.textContent=(conf*100|0)+"%"; $sigState.textContent="EMITIDA (evalúa próxima)";
@@ -592,8 +633,14 @@ function evaluateIfReady(newVal){
   $sigState.textContent= ok?"GANADA ✅":"PERDIDA ❌";
   updateTopHistoryReal(newVal.toFixed(2)+"x", ok?"Ganada":"Perdida", lastSignal.reason||"—");
   updateBandPerf(lastSignal.kind, ok);
+
+  // Activar guardia 2 rondas tras Moderada/Alta para evitar re-entrada por inercia
+  if (lastSignal && (lastSignal.kind==="Moderada" || lastSignal.kind==="Alta")) {
+    reentryGuard = Math.max(reentryGuard, 2);
+  }
+
   lastSignal=null;
-  PENDING_UID=null; // <<==== limpieza del puntero a la fila
+  PENDING_UID=null;
 }
 
 /*** ================== ESTADÍSTICAS ================== ***/
@@ -640,7 +687,7 @@ function encodePath(p){ return (p||'').replace(/[^\w]/g,'_'); }
     else{ const local=loadLocalState(); if(local){ STATE=local; setStateBadge('Local',false);} else setStateBadge('Inicial',false); }
   }catch{ const local=loadLocalState(); if(local){ STATE=local; setStateBadge('Local',false);} else setStateBadge('Inicial',false); }
 
-  // Historial (traigo key para cada fila)
+  // Historial (adjuntando key por fila)
   try{
     db.ref(HIST_PATH).limitToLast(HIST_LIMIT).on('value', snap=>{
       const list=[];
@@ -686,6 +733,7 @@ function encodePath(p){ return (p||'').replace(/[^\w]/g,'_'); }
     sess.rounds++; refreshSession();
     if(cooldown>0) cooldown--;
     if(postPinkCooldown>0) postPinkCooldown--;
+    if(reentryGuard>0) reentryGuard--;   // ← anti-inercia disminuye
 
     evaluateIfReady(it.v);
 
@@ -698,7 +746,7 @@ function encodePath(p){ return (p||'').replace(/[^\w]/g,'_'); }
 /*** ================== CONTROLES ================== ***/
 document.getElementById("btnReset").addEventListener("click",()=>{
   sess={rounds:WINDOW.length,signals:0,wins:0}; refreshSession();
-  lastSignal=null; PENDING_UID=null; cooldown=0; postPinkCooldown=0;
+  lastSignal=null; PENDING_UID=null; cooldown=0; postPinkCooldown=0; reentryGuard=0;
   $sigTarget.textContent="—"; $sigConf.textContent="—"; $sigState.textContent="Esperando…";
   setBanner("warn","Reiniciado","Esperando nuevo contexto…","—");
 });
