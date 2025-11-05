@@ -233,14 +233,36 @@ const $statsRanges = document.getElementById("statsRanges");
 /*** ================== ESTADO BÁSICO ================== ***/
 let WINDOW=[], LEARN=[], LIVE=[];
 let lastSignal=null;
-let PENDING_UID=null;        // Fila pendiente en DOM
-let reentryGuard=0;          // Anti-inercia Moderada/Alta sin pullback de calidad
+let PENDING_UID=null;        // puntero a fila pendiente
+let reentryGuard=0;          // anti-inercia Moderada/Alta sin pullback
+let nonPinkCooldown=0;       // tras emitir A/B/C, 2 rondas sólo A o P
 let cooldown=0, postPinkCooldown=0;
 let sess={rounds:0,signals:0,wins:0};
 
 const HIST_LIMIT=45;
 const CANDIDATES=["feeds/gocho/crashes","feeds/crashes","crashes","aviator/crashes"];
 const EMIT_BASE = 0.72;
+
+/*** ================== MEMORIA SECUENCIAL (4-gram) ================== ***/
+const COLOR_BUF=[];                 // stream de B/P/R
+const SEQ4_COUNTS={};               // key=BBBB/BPPR/...  value={n:?, r:?}
+const colorOfVal=v=> v>=10?'R': (v>=2?'P':'B');
+function updateSeq4With(v){
+  const col=colorOfVal(v);
+  if(COLOR_BUF.length>=4){
+    const key=COLOR_BUF.slice(-4).join('');
+    const ent=SEQ4_COUNTS[key]||(SEQ4_COUNTS[key]={n:0,r:0});
+    ent.n++; if(col==='R') ent.r++;
+  }
+  COLOR_BUF.push(col);
+  if(COLOR_BUF.length>2000) COLOR_BUF.shift();
+}
+function seqProbRFromLast4(){
+  if(COLOR_BUF.length<4) return 0;
+  const key=COLOR_BUF.slice(-4).join('');
+  const ent=SEQ4_COUNTS[key]; if(!ent||ent.n<6) return 0; // mínimo datos
+  return ent.r/ent.n;
+}
 
 /*** ================== APRENDIZAJE PERSISTENTE ================== ***/
 const LAMBDA=0.99, STATE_M=12, CAL_LIMIT=120;
@@ -260,7 +282,7 @@ function setStateBadge(txt,ok){ $stateBadge.textContent="Aprendizaje: "+txt; if(
 function saveLocalState(){ try{localStorage.setItem(LS.STATE, JSON.stringify(STATE))}catch{} }
 function loadLocalState(){ try{return JSON.parse(localStorage.getItem(LS.STATE))||null}catch{return null} }
 
-// —— SERIALIZACIÓN “safe” PARA FIREBASE (sin puntos en las llaves) ——
+// —— SERIALIZACIÓN segura ——
 function encodeCounts(counts){ const out={}; for(const k in counts){ out['k_'+String(k).replace(/\./g,'_')] = counts[k]; } return out; }
 function decodeCounts(obj){ const out={}; for(const k in obj){ if(k.startsWith('k_')){ const orig = k.slice(2).replace(/_/g,'.'); out[orig] = obj[k]; } } return out; }
 function serializeState(){ return { wsum: STATE.wsum, counts: encodeCounts(STATE.counts), tailMax: STATE.tailMax, bandPerf: STATE.bandPerf }; }
@@ -497,7 +519,7 @@ function regime(f){
 }
 
 function decide(vals, regOverride=null){
-  const f=features(vals), reg=regOverride || regime(f);
+  const f=features(vals), reg=regime(f);
 
   // Señales base
   const momentumMorado=(f.countGE2>=5 && maxRun(f.v8,v=>v>=2)>=3 && f.slope>0.02);
@@ -514,6 +536,9 @@ function decide(vals, regOverride=null){
   const blueSqueeze = (f.runBlue >= 7) && (f.sdRatio >= 1.45) &&
                       (f.v8.some(v => v <= 1.15)) && (f.alpha <= 1.9);
 
+  // Probabilidad secuencial de Rosa (4-gram)
+  const seqRProb = seqProbRFromLast4();
+
   if(reg.state==="DRAIN") return {state:"BLOCK",signal:null,reason:reg.reason};
   if(reg.state==="COOLDOWN") return {state:"COOLDOWN",signal:null,reason:reg.reason};
 
@@ -527,7 +552,7 @@ function decide(vals, regOverride=null){
     if(ruptura) return {state:"WAIT",signal:null,reason:"Ruptura de morado: observar pullback"};
 
     if (reLock) {
-      // anti-inercia: solo A + Rosas (y Blue-Squeeze si aplica)
+      // anti-inercia: sólo A + Rosas (y Blue-Squeeze si aplica)
       if (reboteConfirm || (f.bbPos>0.55 && f.slope>-0.005)) cands.push(dynamicLowRange(f));
       pickPinkBands(f).forEach(x=>cands.push(x));
       if (blueSqueeze) cands.push({id:"P",min:10,max:15,label:"10–15",ctxBS:true});
@@ -538,6 +563,14 @@ function decide(vals, regOverride=null){
       pickPinkBands(f).forEach(x=>cands.push(x));
       if(blueSqueeze) cands.push({id:"P",min:10,max:15,label:"10–15",ctxBS:true});
       if(!cands.length && f.bbPos>0.45 && f.slope>-0.005) cands.push(dynamicLowRange(f));
+    }
+  }
+
+  // Cuota anti-sobreoperar: si está activa, filtrar B/C (dejamos A y P)
+  if(nonPinkCooldown>0){
+    for(let i=cands.length-1;i>=0;i--){
+      const id=cands[i].id;
+      if(id!=="A" && id!=="P") cands.splice(i,1);
     }
   }
 
@@ -563,12 +596,12 @@ function decide(vals, regOverride=null){
     if(c.min>=10){ const base=(f.P[10]||0); pMin = base*Math.pow(c.min/10, -f.alpha); }
     else{ pMin = pAtOrAbove(c.min, f.P); }
 
-    // utilidad por banda
+    // utilidad por banda (rebalance: menos peso para B/C que antes)
     let utility=0.8;
     if(c.id==="P"){ utility=1.0; }
-    else if(c.id==="A"){ utility=0.70; }
-    else if(c.id==="B"){ utility=0.85; }
-    else if(c.id==="C"){ const mx=c.max; utility = mx<=4?0.82 : mx<=5?0.78 : mx<=6?0.74 : 0.70; }
+    else if(c.id==="A"){ utility=0.72; }
+    else if(c.id==="B"){ utility=0.82; }
+    else if(c.id==="C"){ const mx=c.max; utility = mx<=4?0.80 : mx<=5?0.76 : mx<=6?0.72 : 0.68; }
 
     const bandId=(c.id==="P")?"P":(c.max<=1.8?"A":(c.max<=3.3?"B":"C"));
     let threshold=EMIT_BASE + bandAdj(bandId);
@@ -577,6 +610,16 @@ function decide(vals, regOverride=null){
     if(c.ctxBS && c.id==="P" && c.min===10){
       conf = clamp(conf + 0.03, 0, 0.97);
       threshold = Math.max(0.66, threshold - 0.02);
+    }
+
+    // Potenciar Rosa si patrón secuencial sugiere R y el bloque está caliente
+    if(c.id==="P"){
+      const boost = Math.min(0.05, 0.10*seqRProb) + (f.tailHeat>=0.22?0.02:0);
+      conf = clamp(conf + boost, 0, 0.97);
+      if(seqRProb>=0.25 && (f.tailHeat>=0.18 || blueSqueeze)) threshold = Math.max(0.66, threshold - 0.01);
+    }else{
+      // Degradar B/C si patrón favorece Rosa (evita que gane A/B/C cuando hay 20x detrás)
+      if(seqRProb>=0.25 && (f.tailHeat>=0.18 || blueSqueeze)) conf = Math.max(0, conf - 0.03);
     }
 
     const EV=pMin*utility*conf;
@@ -617,6 +660,10 @@ function maybeEmit(){
 
     const row={ idx:++sess.signals, time: nowHHMMSS(), band: band.id, label: band.label, kind, conf, real:"—", estado:"Pendiente", reason:d.reason, uid };
     pushHistoryRow(row); refreshSession();
+
+    // tras no-Rosa, aplicar cuota anti-sobreoperar
+    if(kind!=="Rosa Alta") nonPinkCooldown=Math.max(nonPinkCooldown,2);
+
     cooldown=1;
   }else if(d.state==="WAIT"){
     setBanner("warn","Sin entrada",d.reason,"—"); $sigState.textContent="Esperando…";
@@ -704,6 +751,11 @@ function encodePath(p){ return (p||'').replace(/[^\w]/g,'_'); }
     const ts =(v&&(v.ts??v.t))??Date.now();
     return {k,v:+val,ts:+ts};
   }).sort((a,b)=>a.ts-b.ts).slice(-60);
+
+  // Semilla para memoria secuencial con la ventana inicial
+  COLOR_BUF.length=0;
+  WINDOW.forEach(it=>updateSeq4With(it.v));
+
   LEARN=LEARN.concat(WINDOW).slice(-5000);
   sess.rounds=WINDOW.length; refreshSession();
   paintChips(); updateChart(); $learnCount.textContent=LEARN.length;
@@ -714,6 +766,9 @@ function encodePath(p){ return (p||'').replace(/[^\w]/g,'_'); }
     const raw=snap.val(); const v=(raw&&(raw.v??raw.value))??(+raw); const ts=(raw&&(raw.ts??raw.t))??Date.now();
     const it={k:snap.key,v:+v,ts:+ts};
     if(WINDOW.length && it.ts<=WINDOW[WINDOW.length-1].ts) return;
+
+    // actualizar memoria secuencial ANTES de añadir a WINDOW (usa últimos 4 previos)
+    updateSeq4With(it.v);
 
     WINDOW.push(it); if(WINDOW.length>60) WINDOW=WINDOW.slice(-60);
     LEARN.push(it);  if(LEARN.length>5000) LEARN.shift();
@@ -733,7 +788,8 @@ function encodePath(p){ return (p||'').replace(/[^\w]/g,'_'); }
     sess.rounds++; refreshSession();
     if(cooldown>0) cooldown--;
     if(postPinkCooldown>0) postPinkCooldown--;
-    if(reentryGuard>0) reentryGuard--;   // ← anti-inercia disminuye
+    if(reentryGuard>0) reentryGuard--;
+    if(nonPinkCooldown>0) nonPinkCooldown--;
 
     evaluateIfReady(it.v);
 
@@ -746,7 +802,7 @@ function encodePath(p){ return (p||'').replace(/[^\w]/g,'_'); }
 /*** ================== CONTROLES ================== ***/
 document.getElementById("btnReset").addEventListener("click",()=>{
   sess={rounds:WINDOW.length,signals:0,wins:0}; refreshSession();
-  lastSignal=null; PENDING_UID=null; cooldown=0; postPinkCooldown=0; reentryGuard=0;
+  lastSignal=null; PENDING_UID=null; cooldown=0; postPinkCooldown=0; reentryGuard=0; nonPinkCooldown=0;
   $sigTarget.textContent="—"; $sigConf.textContent="—"; $sigState.textContent="Esperando…";
   setBanner("warn","Reiniciado","Esperando nuevo contexto…","—");
 });
