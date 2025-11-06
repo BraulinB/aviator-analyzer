@@ -2,14 +2,14 @@
 <html lang="es">
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Aviator Analyzer • Dual (888Star / 1WIN)</title>
+<title>Aviator Analyzer • Simple Dual</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Ccircle cx='64' cy='64' r='64' fill='%23151838'/%3E%3Ctext x='50%' y='55%' dominant-baseline='middle' text-anchor='middle' font-family='Segoe UI' font-size='64' fill='%23cbd0ff'%3EA%3C/text%3E%3C/svg%3E"/>
 
 <style>
 :root{
   --bg:#0b0f1c; --panel:#11162e; --ink:#e9eafd; --muted:#9aa3d8;
   --ok:#10b981; --warn:#f59e0b; --stop:#ef4444; --bdr:#ffffff1a;
-  --blue:#7fb2ff; --purple:#b18cff; --pink:#ff86d1; --chip:#121735;
+  --blue:#7fb2ff; --purple:#b18cff; --pink:#ff86d1;
 }
 *{box-sizing:border-box}
 html,body{height:100%}
@@ -39,9 +39,9 @@ h1{margin:0;font:700 18px/1.2 ui-sans-serif;letter-spacing:.2px}
 .grid60{display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:6px;margin-top:10px}
 .chip{background:#121735;border:1px solid var(--bdr);border-radius:10px;padding:6px 6px 7px;text-align:center}
 .chip .val{font:700 13px/1 ui-sans-serif;letter-spacing:.2px}
-.chip.blue{background:#0f1b37;border-color:#1a2f66}
-.chip.purple{background:#1b1440;border-color:#352a8a}
-.chip.pink{background:#2b1230;border-color:#803565}
+.chip.blue{background:#0f1b37;border-color:#1a2f66;color:#7fb2ff}
+.chip.purple{background:#1b1440;border-color:#352a8a;color:#b18cff}
+.chip.pink{background:#2b1230;border-color:#803565;color:#ff86d1}
 
 table{width:100%;border-collapse:collapse}
 th,td{padding:8px 10px;border-bottom:1px solid var(--bdr);font-size:13px}
@@ -50,26 +50,29 @@ th{color:var(--muted);text-align:left}
 .badge.S17{background:#1b2340} .badge.S21{background:#281f4f}
 
 .note{font-size:12px;color:var(--muted)}
+.center{display:flex;align-items:center;justify-content:center}
 </style>
 
 <div class="wrap">
   <div class="hdr">
-    <h1>Aviator Analyzer • <span style="color:var(--pink)">Dual</span></h1>
+    <h1>Aviator Analyzer • <span style="color:var(--pink)">Simple Dual</span></h1>
     <div class="row" style="gap:8px;justify-content:flex-end">
-      <span id="status" class="pill">Conectando…</span>
+      <span id="status" class="pill">Desconectado</span>
       <span id="syncBadge" class="pill">Historial: —</span>
       <span id="stateBadge" class="pill">Aprendizaje: —</span>
     </div>
   </div>
 
-  <!-- Selector de sitio (ambiente) -->
-  <div class="card" style="margin-bottom:12px">
+  <!-- Selección de SITIO antes de conectar -->
+  <div id="siteCard" class="card" style="margin-bottom:12px">
     <div class="row">
       <div class="btn-group">
-        <button id="btnSite888" class="btn toggle active">Sitio: 888Star</button>
+        <button id="btnSite888" class="btn toggle">Sitio: 888Star</button>
         <button id="btnSite1WIN" class="btn toggle">Sitio: 1WIN</button>
       </div>
       <div class="row small" style="gap:10px">
+        <button id="btnConnect" class="btn">Conectar</button>
+        <span class="pill">Sitio actual: <b id="siteLbl">—</b></span>
         <span class="pill">Ruta: <b id="path">—</b></span>
         <span class="pill">Últimas: <b id="winCount">0</b></span>
         <span class="pill">Aprendidas: <b id="learnCount">0</b></span>
@@ -80,18 +83,20 @@ th{color:var(--muted);text-align:left}
 
   <div id="banner" class="banner stop" style="margin-bottom:12px">
     <div>
-      <div class="title" id="banTitle">No entrar</div>
-      <div class="sub" id="banSub">Esperando mejores condiciones.</div>
+      <div class="title" id="banTitle">No conectado</div>
+      <div class="sub" id="banSub">Selecciona un sitio y pulsa Conectar.</div>
     </div>
     <div class="pill" id="banCta">—</div>
   </div>
 
   <div class="card">
     <div class="row small" style="margin-bottom:6px">
+      <div class="btn-group">
+        <button id="btnS17" class="btn toggle active">Objetivo activo: ≥ 1.70x</button>
+        <button id="btnS21" class="btn toggle">Objetivo activo: ≥ 2.10x</button>
+      </div>
       <div class="row" style="gap:10px">
-        <span class="pill">Motores activos: <b>S17 (≥1.70) + S21 (≥2.10)</b></span>
-        <span class="pill">S17 Conf.: <b id="confS17">—</b></span>
-        <span class="pill">S21 Conf.: <b id="confS21">—</b></span>
+        <span class="pill">Confianza: <b id="sigConf">—</b></span>
         <span class="pill">Estado: <b id="sigState">Esperando…</b></span>
       </div>
       <div class="row" style="gap:8px">
@@ -103,7 +108,7 @@ th{color:var(--muted);text-align:left}
 
   <div class="card" style="margin-top:12px">
     <h2 style="margin:0 0 10px 0;font-size:16px">Historial de Señales</h2>
-    <div class="note" style="margin-bottom:10px">“Real” = valor de la ronda donde se evaluó cada señal.</div>
+    <div class="note" style="margin-bottom:10px">“Real” = valor de la ronda donde se evaluó la señal.</div>
     <div style="overflow:auto">
       <table>
         <thead><tr>
@@ -141,14 +146,21 @@ const db = firebase.database();
 
 /*** ================== UI HANDLES ================== ***/
 const $status = document.getElementById("status");
+const $siteLbl= document.getElementById("siteLbl");
 const $path   = document.getElementById("path");
 const $chips  = document.getElementById("chips");
 const $log    = document.getElementById("log");
 const $winCount = document.getElementById("winCount");
 const $learnCount = document.getElementById("learnCount");
+const $sigConf   = document.getElementById("sigConf");
 const $sigState  = document.getElementById("sigState");
 const $btnReset  = document.getElementById("btnReset");
 const $btnClearHist = document.getElementById("btnClearHist");
+const $btnS17 = document.getElementById("btnS17");
+const $btnS21 = document.getElementById("btnS21");
+const $btnSite888 = document.getElementById("btnSite888");
+const $btnSite1WIN = document.getElementById("btnSite1WIN");
+const $btnConnect  = document.getElementById("btnConnect");
 const $tbody = document.getElementById("tbody");
 const $ban = document.getElementById("banner");
 const $banTitle = document.getElementById("banTitle");
@@ -156,36 +168,29 @@ const $banSub = document.getElementById("banSub");
 const $banCta = document.getElementById("banCta");
 const $syncBadge = document.getElementById("syncBadge");
 const $stateBadge = document.getElementById("stateBadge");
-const $confS17 = document.getElementById("confS17");
-const $confS21 = document.getElementById("confS21");
-const $btnSite888 = document.getElementById("btnSite888");
-const $btnSite1WIN = document.getElementById("btnSite1WIN");
 
-/*** ================== ESTADO GLOBAL ================== ***/
-let SITE='888star'; // '888star' o '1win'
+/*** ================== ESTADO ================== ***/
+let SITE=null;             // '888star' o '1win'
 let WINDOW=[], LEARN=[], LIVE=[];
-let lastS = { S17:null, S21:null };        // señal pendiente por modo
-let uidS  = { S17:null, S21:null };        // uid de fila por modo
-let cd    = { S17:0, S21:0 };              // cooldown por modo
-let guard = { S17:0, S21:0 };              // anti-inercia por modo
-let postPinkCooldown=0;
-
-let liveRef=null;                           // suscripción activa
+let MODE='S17';            // 'S17' (≥1.70) o 'S21' (≥2.10)
+let lastSignal=null;       // señal pendiente (única)
+let lastUID=null;
+let cooldown=0, guardReentry=0, postPinkCooldown=0;
+let liveRef=null;
 
 const HIST_LIMIT=45;
 const SITE_CANDS={
-  // <<< AJUSTA AQUÍ si tu RTDB usa otras rutas por sitio >>>
+  // <<< AJUSTA estas rutas si tu RTDB expone 1WIN en otra ubicación >>>
   '888star': ["feeds/gocho/crashes","feeds/crashes","crashes","aviator/crashes"],
   '1win'   : ["feeds/1win/crashes","1win/crashes","feeds/gocho/1win","feeds/crashes","crashes"]
 };
 const TARGETS={ S17:{min:1.70,label:"≥ 1.70x"}, S21:{min:2.10,label:"≥ 2.10x"} };
-const EMIT_BASE={ S17:0.66, S21:0.72 };     // umbrales base por modo
+const EMIT_BASE={ S17:0.66, S21:0.72 };     // umbral base por modo
 
 /*** ================== APRENDIZAJE PERSISTENTE ================== ***/
 const LAMBDA=0.99, STATE_M=12;
 const THRESH=[1.5,1.7,2.0,2.1,2.5,3,5,10,15,30,50,100];
 let HIST_PATH=null, STATE_PATH=null;
-const LS={ STATE:'aa_state_v_dual' };
 
 let STATE={
   wsum:0,
@@ -194,16 +199,15 @@ let STATE={
   perf:{ '888star':{S17:{w:0,n:0}, S21:{w:0,n:0}}, '1win':{S17:{w:0,n:0}, S21:{w:0,n:0}} }
 };
 let stateDirty=false, stateRounds=0;
-
 function setStateBadge(txt,ok){ $stateBadge.textContent="Aprendizaje: "+txt; if(ok){$stateBadge.classList.add('ok')} }
-function saveLocalState(){ try{localStorage.setItem(LS.STATE, JSON.stringify(STATE))}catch{} }
-function loadLocalState(){ try{return JSON.parse(localStorage.getItem(LS.STATE))||null}catch{return null} }
+function saveLocalState(){ try{localStorage.setItem('AA_STATE_DUAL_V2', JSON.stringify(STATE))}catch{} }
+function loadLocalState(){ try{return JSON.parse(localStorage.getItem('AA_STATE_DUAL_V2'))||null}catch{return null} }
 function encodeCounts(counts){ const out={}; for(const k in counts){ out['k_'+String(k).replace(/\./g,'_')] = counts[k]; } return out; }
 function decodeCounts(obj){ const out={}; for(const k in obj){ if(k.startsWith('k_')){ const orig = k.slice(2).replace(/_/g,'.'); out[orig] = obj[k]; } } return out; }
 function serializeState(){ return { wsum:STATE.wsum, counts:encodeCounts(STATE.counts), tailMax:STATE.tailMax, perf:STATE.perf }; }
 function hydrateState(st){ STATE.wsum=st.wsum||0; STATE.counts={...STATE.counts, ...decodeCounts(st.counts||{})}; STATE.tailMax=Array.isArray(st.tailMax)? st.tailMax.slice(0,STATE_M):[]; STATE.perf=st.perf||STATE.perf; }
 function persistState(){ if(!STATE_PATH){ saveLocalState(); setStateBadge('Local',false); return; } try{ db.ref(STATE_PATH).set(serializeState(), err=>{ if(err){ saveLocalState(); setStateBadge('Local',false);} else{ setStateBadge('Sync ✔',true);} }); }catch(e){ saveLocalState(); setStateBadge('Local',false); } }
-function persistStateDebounced(){ if(++stateRounds%20===0 || stateDirty){ stateDirty=false; persistState(); } }
+function persistStateDebounced(){ if(++stateRounds%18===0 || stateDirty){ stateDirty=false; persistState(); } }
 
 function assimilateValueToState(v){
   STATE.wsum = STATE.wsum*LAMBDA + 1;
@@ -211,6 +215,9 @@ function assimilateValueToState(v){
   if(v>=10){ const tm=STATE.tailMax; tm.push(v); tm.sort((a,b)=>b-a); if(tm.length>STATE_M) tm.length=STATE_M; }
   stateDirty=true; persistStateDebounced();
 }
+function probsFromState(){ const P={}; if(STATE.wsum<=0) return P; for(const t of THRESH){ const k=String(t); P[t]=(STATE.counts[k]||0)/STATE.wsum; } return P; }
+function weightedTailProbsLocal(vals,lambda=0.99){ let w=1,sumW=0; const counts=Object.fromEntries(THRESH.map(t=>[t,0])); for(let i=vals.length-1;i>=0;i--){ const v=vals[i]; for(const t of THRESH){ if(v>=t) counts[t]+=w; } sumW+=w; w*=lambda; } const P={}; for(const t of THRESH){ P[t]= sumW? counts[t]/sumW : 0; } return P; }
+function pAtOrAbove(t, P){ let lo=THRESH[0], hi=THRESH[THRESH.length-1]; for(const th of THRESH){ if(th<=t) lo=th; if(th>=t){ hi=th; break; } } if(lo===hi) return P[lo]||0; const w=(t-lo)/(hi-lo); return (1-w)*(P[lo]||0)+ w*(P[hi]||0); }
 
 /*** ================== UTILS ================== ***/
 const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
@@ -219,20 +226,16 @@ function nowHHMMSS(){return new Date().toLocaleTimeString([], {hour:'2-digit', m
 let canBeep=false, acx=null;
 document.addEventListener('pointerdown', ()=>{ canBeep=true; try{ if(!acx) acx=new (AudioContext||webkitAudioContext)(); acx.resume(); }catch{} }, {once:true});
 function beep(f=800,ms=130){ if(!canBeep) return; try{ if(!acx) acx=new (AudioContext||webkitAudioContext)(); const o=acx.createOscillator(),g=acx.createGain(); o.type='sine'; o.frequency.value=f; o.connect(g); g.connect(acx.destination); o.start(); g.gain.setValueAtTime(.0001,acx.currentTime); g.gain.exponentialRampToValueAtTime(.2,acx.currentTime+.02); g.gain.exponentialRampToValueAtTime(.0001,acx.currentTime+ms/1000); o.stop(acx.currentTime+ms/1000+.01);}catch{} }
-function EMA(a,p){if(!a.length)return[];const k=2/(p+1);const o=[];let e=a[0];for(let i=0;i<a.length;i++){const v=a[i];e=i? v*k+e*(1-k):v;o.push(e)}return o}
-function stdev(a){if(a.length<2)return 0;const m=a.reduce((x,y)=>x+y,0)/a.length;return Math.sqrt(a.reduce((s,v)=>s+(v-m)*(v-m),0)/a.length)}
-function Bollinger(a,p=20,m=2){const up=[],dn=[];for(let i=0;i<a.length;i++){const s=a.slice(Math.max(0,i-p+1),i+1);const mean=s.reduce((x,y)=>x+y,0)/s.length;const sd=Math.sqrt(s.reduce((x,y)=>x+(y-mean)*(y-mean),0)/s.length)||0;up.push(mean+m*sd);dn.push(mean-m*sd)}return{up,dn}}
-function maxRun(a,pred){let best=0,cur=0;for(const v of a){if(pred(v)){cur++;best=Math.max(best,cur)}else cur=0}return best}
-function sigmoid(x){return 1/(1+Math.exp(-x));}
-function weightedTailProbsLocal(vals,lambda=0.99){ let w=1,sumW=0; const counts=Object.fromEntries(THRESH.map(t=>[t,0])); for(let i=vals.length-1;i>=0;i--){ const v=vals[i]; for(const t of THRESH){ if(v>=t) counts[t]+=w; } sumW+=w; w*=lambda; } const P={}; for(const t of THRESH){ P[t]= sumW? counts[t]/sumW : 0; } return P; }
-function probsFromState(){ const P={}; if(STATE.wsum<=0) return P; for(const t of THRESH){ const k=String(t); P[t]=(STATE.counts[k]||0)/STATE.wsum; } return P; }
-function pAtOrAbove(t, P){ let lo=THRESH[0], hi=THRESH[THRESH.length-1]; for(const th of THRESH){ if(th<=t) lo=th; if(th>=t){ hi=th; break; } } if(lo===hi) return P[lo]||0; const w=(t-lo)/(hi-lo); return (1-w)*(P[lo]||0)+ w*(P[hi]||0); }
 
 /*** ================== UI ================== ***/
 function setBanner(kind,title,sub,cta){ $ban.classList.remove("ok","warn","stop"); $ban.classList.add(kind); $banTitle.textContent=title; $banSub.textContent=sub; $banCta.textContent=cta||"—"; }
 function paintChips(){
   const rev=[...WINDOW.slice(-60)].reverse();
-  $chips.innerHTML=rev.map(it=>{const v=it.v;const cls=v>=10?'pink':(v>=2?'purple':'blue');const col=v>=10?'var(--pink)':(v>=2?'var(--purple)':'var(--blue)');return `<div class="chip ${cls}"><div class="val" style="color:${col}">${v.toFixed(2)}x</div></div>`}).join("");
+  $chips.innerHTML=rev.map(it=>{
+    const v=it.v, cls=v>=10?'pink':(v>=2?'purple':'blue');
+    const col=v>=10?'var(--pink)':(v>=2?'var(--purple)':'var(--blue)');
+    return `<div class="chip ${cls}"><div class="val" style="color:${col}">${v.toFixed(2)}x</div></div>`;
+  }).join("");
   $winCount.textContent=WINDOW.length;
 }
 
@@ -256,13 +259,9 @@ function renderRemoteHistory(list){
   list.sort((a,b)=>a.ts-b.ts); const tail=list.slice(-HIST_LIMIT);
   for(let i=tail.length-1;i>=0;i--){const r=tail[i]; const idx=list.length-(tail.length-1-i); $tbody.appendChild(toHistRow(r,idx));}
 }
-function loadLocalHist(){ try{return JSON.parse(localStorage.getItem('AA_DUAL_HIST_'+SITE))||[]}catch{return[]} }
-function saveLocalHist(a){ try{localStorage.setItem('AA_DUAL_HIST_'+SITE,JSON.stringify(a))}catch{} }
-function renderLocalHistory(){
-  const arr=loadLocalHist();
-  if(!arr.length){$tbody.innerHTML='<tr><td colspan="8" class="small">No hay señales</td></tr>';return;}
-  $tbody.innerHTML=""; arr.slice(0,HIST_LIMIT).forEach((r,i)=>{$tbody.appendChild(toHistRow(r,arr.length-i));});
-}
+function loadLocalHist(){ try{return JSON.parse(localStorage.getItem('AA_DUAL_V2_HIST_'+SITE))||[]}catch{return[]} }
+function saveLocalHist(a){ try{localStorage.setItem('AA_DUAL_V2_HIST_'+SITE,JSON.stringify(a))}catch{} }
+function renderLocalHistory(){ const arr=loadLocalHist(); if(!arr.length){$tbody.innerHTML='<tr><td colspan="8" class="small">No hay señales</td></tr>';return;} $tbody.innerHTML=""; arr.slice(0,HIST_LIMIT).forEach((r,i)=>{$tbody.appendChild(toHistRow(r,arr.length-i));}); }
 function pushHistoryRow(r){
   if($tbody.children.length===1&&$tbody.children[0].children.length===1)$tbody.innerHTML="";
   $tbody.prepend(toHistRow(r));
@@ -283,7 +282,12 @@ function updateTopHistoryRealByUID(uid,real,estado,reason){
   }
 }
 
-/*** ================== FEATURES & DECISIONES ================== ***/
+/*** ================== FEATURES Y DECISIÓN ================== ***/
+function EMA(a,p){if(!a.length)return[];const k=2/(p+1);const o=[];let e=a[0];for(let i=0;i<a.length;i++){const v=a[i];e=i? v*k+e*(1-k):v;o.push(e)}return o}
+function stdev(a){if(a.length<2)return 0;const m=a.reduce((x,y)=>x+y,0)/a.length;return Math.sqrt(a.reduce((s,v)=>s+(v-m)*(v-m),0)/a.length)}
+function Bollinger(a,p=20,k=2){const up=[],dn=[];for(let i=0;i<a.length;i++){const s=a.slice(Math.max(0,i-p+1),i+1);const mean=s.reduce((x,y)=>x+y,0)/s.length;const sd=Math.sqrt(s.reduce((x,y)=>x+(y-mean)*(y-mean),0)/s.length)||0;up.push(mean+k*sd);dn.push(mean-k*sd)}return{up,dn}}
+function maxRun(a,pred){let best=0,cur=0;for(const v of a){if(pred(v)){cur++;best=Math.max(best,cur)}else cur=0}return best}
+
 function features(vals){
   const ema12=EMA(vals,12);
   const last=vals.at(-1)||0;
@@ -292,8 +296,8 @@ function features(vals){
   const v8=vals.slice(-8), v10=vals.slice(-10), v20=vals.slice(-20), v40=vals.slice(-40), v60=vals.slice(-60);
   const runBlue=maxRun(v10,v=>v<2.0), runDeep=maxRun(v10,v=>v<=1.20);
   const purpleRun8=maxRun(v8,v=>v>=2 && v<10);
-  const purple8=v8.filter(v=>v>=2&&v<10).length, purple20=v20.filter(v=>v>=2&&v<10).length;
-  const sd8=stdev(v8), sd20=stdev(v20); const sdRatio= sd20? sd8/sd20 : 1;
+  const purple8=v8.filter(v=>v>=2&&v<10).length;
+  const sd8=stdev(v8), sd20=stdev(v20), sdRatio= sd20? sd8/sd20 : 1;
   const mom= last - (vals.at(-4)??last);
   const bbPos=(last-bb.dn.at(-1))/Math.max(0.0001,(bb.up.at(-1)-bb.dn.at(-1)));
   const belowEMA= last < (ema12.at(-1)||last);
@@ -303,7 +307,7 @@ function features(vals){
   const P_local=weightedTailProbsLocal(LEARN.map(x=>x.v),0.99);
   const P_state=probsFromState();
   const P={}; for(const t of THRESH){ P[t]=(0.6*(P_local[t]||0)+0.4*(P_state[t]||0)); }
-  return {ema12,last,bb,slope,runBlue,runDeep,purpleRun8,purple8,purple20,sd8,sd20,sdRatio,mom,bbPos,belowEMA,deepBlue,P,tailHeat};
+  return {ema12,last,bb,slope,runBlue,runDeep,purpleRun8,purple8,sd8,sd20,sdRatio,mom,bbPos,belowEMA,deepBlue,P,tailHeat};
 }
 function isDrain(f){ return (f.runBlue>=6 && f.slope<-0.02); }
 function hasQualityPullback(f){
@@ -311,24 +315,20 @@ function hasQualityPullback(f){
   const lowPos  = f.bbPos <= 0.45;
   return underBB || (f.belowEMA && lowPos) || f.deepBlue;
 }
-function decideFor(mode, vals){
+function decideActive(vals){
   const f=features(vals);
-  if(isDrain(f)) return {state:"BLOCK",mode,conf:0,reason:"Riesgo alto (racha azul fuerte)"};
+  if(isDrain(f)) return {state:"BLOCK",conf:0,reason:"Riesgo alto (racha azul fuerte)"};
 
-  const tgt=TARGETS[mode].min;
+  const tgt=TARGETS[MODE].min, label=TARGETS[MODE].label;
   const prior = pAtOrAbove(tgt, f.P);
 
   const pullback = hasQualityPullback(f);
   const emaUp = f.slope>0.01;
   const bounce = pullback && (f.last>=1.35) && (!f.belowEMA || emaUp);
-
-  // Detectores por modo
-  const momentumMorado = (f.purpleRun8>=3 && f.slope>0.015) || (f.purple8>=4 && f.slope>=0);
+  const momentumMorado = (f.purpleRun8>=2 && f.slope>=0) || (f.purple8>=3 && f.mom>0);
   const blueSqueeze = (f.runBlue>=7 && f.sdRatio>=1.45 && f.deepBlue);
+  const chainHot = (momentumMorado && f.sdRatio>=1.12) || (blueSqueeze && f.tailHeat>=0.10);
 
-  const chainHot = (momentumMorado && f.sdRatio>=1.15) || (blueSqueeze && f.tailHeat>=0.10);
-
-  // scoring
   const trendScore = clamp((f.slope+0.05)/0.1,0,1);
   const posScore   = clamp((f.bbPos-0.25)/0.5,0,1);
   const momScore   = clamp(f.mom/1.1,-1,1);
@@ -336,104 +336,107 @@ function decideFor(mode, vals){
   const bluePen    = (f.runBlue>=6?0.18:(f.runBlue>=4?0.10:0)) + (f.runDeep?0.06:0);
   const tailScore  = clamp(f.tailHeat,0,0.30);
 
-  // S21 exige un poco más de momentum/vol que S17
-  const extra = mode==='S21' ? 0.04 : 0;
+  const extra = MODE==='S21' ? 0.03 : 0.00;
 
   let conf = clamp(
-    0.48*prior + 0.18*trendScore + 0.15*posScore + 0.12*momScore + 0.07*volScore + 0.10*tailScore
+    0.50*prior + 0.18*trendScore + 0.14*posScore + 0.12*momScore + 0.06*volScore + 0.10*tailScore
     + (bounce?0.05:0) + (chainHot?0.03:0) + extra
     - bluePen, 0, 0.97
   );
 
-  // Anti-inercia por modo: si guard>0, pedir pullback salvo que chainHot permita encadenar
-  if(guard[mode]>0 && !pullback && !chainHot) return {state:"WAIT",mode,conf,reason:"Esperar pullback de calidad"};
+  // anti-inercia: si hay guardia y no hay pullback, exigir chainHot
+  if(guardReentry>0 && !pullback && !chainHot) return {state:"WAIT",conf,reason:"Esperar pullback de calidad"};
 
-  // umbral dinámico por desempeño del sitio/modo
-  const perf = (STATE.perf?.[SITE]?.[mode]) || {w:0,n:0};
+  // umbral dinámico por sitio/modo
+  const perf = (STATE.perf?.[SITE]?.[MODE]) || {w:0,n:0};
   const wr = perf.n? perf.w/perf.n : 0.5;
-  const base = EMIT_BASE[mode];
-  const adj = clamp(((mode==='S17'?0.55:0.52)-wr)*0.10, -0.04, 0.04);
-  const threshold = clamp(base + adj, 0.60, 0.80);
+  const base = EMIT_BASE[MODE];
+  const adj = clamp(((MODE==='S17'?0.55:0.52)-wr)*0.10, -0.04, 0.04);
+  let threshold = clamp(base + adj, 0.60, 0.80);
+  if(chainHot) threshold = Math.max(0.62, threshold-0.02); // habilitar cadenas
 
-  // Salidas
   return (conf>=threshold)
-    ? {state:"SIGNAL",mode,conf,reason: chainHot?"Cadena activa (momentum/squeeze)": (bounce?"Rebote":"Tendencia/volatilidad")}
-    : {state:"WAIT",mode,conf,reason:`Conf ${Math.round(conf*100)}% < umbral ${Math.round(threshold*100)}%`};
+    ? {state:"SIGNAL",conf,label,reason: chainHot?"Cadena activa (momentum/squeeze)": (bounce?"Rebote":"Tendencia/volatilidad")}
+    : {state:"WAIT",conf,reason:`Conf ${Math.round(conf*100)}% < umbral ${Math.round(threshold*100)}%`};
 }
 
 /*** ================== EMISIÓN / EVALUACIÓN ================== ***/
-function emitIfReady(mode){
-  if(cd[mode]>0) return;
-  const vals=WINDOW.map(x=>x.v);
-  const d=decideFor(mode, vals);
-  (mode==='S17') ? ($confS17.textContent = d.conf? (d.conf*100|0)+'%':'—') : ($confS21.textContent = d.conf? (d.conf*100|0)+'%':'—');
-
-  if(d.state==="SIGNAL"){
-    const band={id:mode,label:TARGETS[mode].label,min:TARGETS[mode].min};
-    const uid='u'+mode+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6);
-    uidS[mode]=uid;
-    lastS[mode]={ band, conf:d.conf, reason:d.reason, mode, uid };
-    $sigState.textContent="EMITIDA (evalúa próxima)";
-    setBanner("ok","Señal lista",`${mode} • ${d.reason} • conf ${(d.conf*100|0)}%`, `Tomar: ${band.label}`);
-    beep(band.min>=2.1?840:720,150);
-
-    const row={ idx: document.querySelectorAll('#tbody tr').length+1, time: nowHHMMSS(), mode, label: band.label, conf:d.conf, real:"—", estado:"Pendiente", reason:d.reason, uid, site:SITE };
-    pushHistoryRow(row);
-
-    // cooldown corto; si es cadena caliente no bloqueamos reentrada fuerte
-    cd[mode]=1; guard[mode]=2;
-  }else if(d.state==="WAIT"){
-    // silencioso; el banner lo actualiza el modo con state más alto si se quiere
-  }else if(d.state==="BLOCK"){
-    setBanner("stop","No entrar",d.reason,"Pausado");
-  }
-}
-
-function maybeEmitBoth(){
+function maybeEmit(){
+  if(!SITE){ setBanner("stop","No conectado","Selecciona sitio y pulsa Conectar","—"); return; }
   if(WINDOW.length<30){ setBanner("warn","Cargando contexto…","Aún no hay suficientes rondas.","Esperar"); return; }
-  // en post-rosa se exige enfriamiento salvo bloque caliente
+  if(cooldown>0){ setBanner("warn","Cooldown","Esperar próxima ronda…","—"); return; }
+
+  // post-rosa: sólo permitimos si hay evidencia de calor
   if(postPinkCooldown>0){
-    const vals=WINDOW.map(x=>x.v); const f=features(vals);
+    const f=features(WINDOW.map(x=>x.v));
     const hot=(f.tailHeat>=0.16 && (f.sdRatio>=1.30 || f.purpleRun8>=3));
     if(!hot){ setBanner("warn","Post-Rosa","Esperando estabilización…","—"); return; }
   }
-  emitIfReady('S17');
-  emitIfReady('S21');
+
+  const vals=WINDOW.map(x=>x.v);
+  const d=decideActive(vals);
+  $sigConf.textContent = d.conf? (d.conf*100|0)+'%':'—';
+
+  if(d.state==="SIGNAL"){
+    const band={id:MODE,label:TARGETS[MODE].label,min:TARGETS[MODE].min};
+    const uid='u'+MODE+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6);
+    lastUID=uid;
+    lastSignal={ band, conf:d.conf, reason:d.reason, mode:MODE, uid };
+
+    $sigState.textContent="EMITIDA (evalúa próxima)";
+    setBanner("ok","Señal lista",`${MODE} • ${d.reason} • conf ${(d.conf*100|0)}%`, `Tomar: ${band.label}`);
+    beep(band.min>=2.1?840:720,150);
+
+    const row={ idx: document.querySelectorAll('#tbody tr').length+1, time: nowHHMMSS(), mode:MODE, label: band.label, conf:d.conf, real:"—", estado:"Pendiente", reason:d.reason, uid, site:SITE };
+    pushHistoryRow(row);
+
+    cooldown = (d.reason.includes("Cadena activa")? 0 : 1);
+    guardReentry=2; // pide pullback si no hay cadena caliente
+  }else if(d.state==="WAIT"){
+    setBanner("warn","Sin entrada",d.reason,"—");
+    $sigState.textContent="Esperando…";
+  }else if(d.state==="BLOCK"){
+    setBanner("stop","No entrar",d.reason,"Pausado");
+    $sigState.textContent="Bloqueado";
+  }
 }
 
-function evaluateIfReadyFor(mode,newVal){
-  const sig=lastS[mode]; if(!sig) return;
-  const ok=newVal >= sig.band.min;
-  updateTopHistoryRealByUID(uidS[mode], newVal.toFixed(2)+"x", ok?"Ganada":"Perdida", sig.reason||"—");
+function evaluateIfReady(newVal){
+  if(!lastSignal) return;
+  const ok=newVal >= lastSignal.band.min;
+  updateTopHistoryRealByUID(lastUID, newVal.toFixed(2)+"x", ok?"Ganada":"Perdida", lastSignal.reason||"—");
 
-  // performance por sitio/modo
-  const perf=STATE.perf[SITE][mode];
+  // performance sitio/modo
+  const perf=STATE.perf[SITE][lastSignal.mode];
   perf.n++; if(ok) perf.w++; stateDirty=true; persistStateDebounced();
 
-  // preparar siguiente
-  lastS[mode]=null; uidS[mode]=null;
+  lastSignal=null; lastUID=null;
   $sigState.textContent= ok?"GANADA ✅":"PERDIDA ❌";
 }
 
-/*** ================== INIT / CAMBIO DE SITIO ================== ***/
-async function pickPathFor(site){ const cands=(SITE_CANDS[site]||[]).concat(SITE_CANDS['888star']||[]); for(const p of cands){ try{ const s=await db.ref(p).limitToLast(1).once("value"); if(s.exists()) return p; }catch{} } return null; }
+/*** ================== CONEXIÓN POR SITIO ================== ***/
 function encodePath(p){ return (p||'').replace(/[^\w]/g,'_'); }
-
-async function initForSite(site){
-  // cortar suscripción anterior
+async function findPathForSite(site){
+  const cands=(SITE_CANDS[site]||[]).concat(SITE_CANDS['888star']||[]);
+  for(const p of cands){ try{ const s=await db.ref(p).limitToLast(1).once("value"); if(s.exists()) return p; }catch{} }
+  return null;
+}
+async function connectSite(site){
+  // corta suscripción anterior
   try{ if(liveRef) liveRef.off(); }catch{}
   SITE=site;
+  $siteLbl.textContent = (site==='1win'?'1WIN':'888Star');
   $btnSite888.classList.toggle('active', SITE==='888star');
   $btnSite1WIN.classList.toggle('active', SITE==='1win');
 
-  const path=await pickPathFor(SITE);
-  if(!path){ $status.textContent="Sin datos"; return; }
+  const path=await findPathForSite(SITE);
+  if(!path){ setBanner("stop","Sin datos","No se encontró feed para el sitio.","—"); $status.textContent="Sin datos"; return; }
   $path.textContent="/"+path; $status.classList.add("ok"); $status.textContent="Conectado ✔";
 
-  HIST_PATH='analyzer/dual/history/'+SITE+'/'+encodePath(path);
-  STATE_PATH='analyzer/dual/state/'+SITE+'/'+encodePath(path);
+  HIST_PATH='analyzer/simpledual/history/'+SITE+'/'+encodePath(path);
+  STATE_PATH='analyzer/simpledual/state/'+SITE+'/'+encodePath(path);
 
-  // cargar estado persistente
+  // estado persistente
   try{
     const snap=await db.ref(STATE_PATH).once('value');
     if(snap.exists()){ hydrateState(snap.val()); setStateBadge('Sync ✔',true); }
@@ -457,9 +460,10 @@ async function initForSite(site){
     const ts =(v&&(v.ts??v.t))??Date.now();
     return {k,v:+val,ts:+ts};
   }).sort((a,b)=>a.ts-b.ts).slice(-60);
-  LEARN=WINDOW.slice(); LIVE=[]; lastS={S17:null,S21:null}; uidS={S17:null,S21:null}; cd={S17:0,S21:0}; guard={S17:0,S21:0};
+  LEARN=WINDOW.slice(); LIVE=[]; lastSignal=null; lastUID=null; cooldown=0; guardReentry=0; postPinkCooldown=0;
+
   paintChips(); $learnCount.textContent=LEARN.length;
-  maybeEmitBoth();
+  setBanner("warn","Conectado","Selecciona objetivo y espera señal…","—");
 
   // suscripción en vivo
   liveRef = db.ref(path).limitToLast(1);
@@ -476,41 +480,46 @@ async function initForSite(site){
     assimilateValueToState(it.v);
     if(it.v>=10) postPinkCooldown=Math.max(postPinkCooldown,2);
 
-    // bajar cooldown/guard por modo
-    if(cd.S17>0) cd.S17--;
-    if(cd.S21>0) cd.S21--;
-    if(guard.S17>0) guard.S17--;
-    if(guard.S21>0) guard.S21--;
+    if(cooldown>0) cooldown--;
+    if(guardReentry>0) guardReentry--;
 
-    evaluateIfReadyFor('S17', it.v);
-    evaluateIfReadyFor('S21', it.v);
-
+    evaluateIfReady(it.v);
     paintChips(); $learnCount.textContent=LEARN.length;
-
-    maybeEmitBoth();
+    maybeEmit();
   });
 }
 
 /*** ================== CONTROLES ================== ***/
+function setMode(m){
+  MODE=m;
+  $btnS17.classList.toggle('active', MODE==='S17');
+  $btnS21.classList.toggle('active', MODE==='S21');
+  $sigConf.textContent="—"; $sigState.textContent="Esperando…";
+  beep(MODE==='S21'?820:700,100);
+}
+$btnS17.addEventListener('click',()=>setMode('S17'));
+$btnS21.addEventListener('click',()=>setMode('S21'));
+$btnSite888.addEventListener('click',()=>{ $btnSite888.classList.add('active'); $btnSite1WIN.classList.remove('active'); SITE='888star'; $siteLbl.textContent='888Star'; });
+$btnSite1WIN.addEventListener('click',()=>{ $btnSite1WIN.classList.add('active'); $btnSite888.classList.remove('active'); SITE='1win'; $siteLbl.textContent='1WIN'; });
+$btnConnect.addEventListener('click', async ()=>{
+  if(!SITE){ alert("Selecciona un sitio (888Star o 1WIN) antes de conectar."); return; }
+  await connectSite(SITE);
+  $status.classList.add("ok"); $status.textContent="Conectado ✔";
+});
+
 document.getElementById("btnReset").addEventListener("click",()=>{
-  lastS={S17:null,S21:null}; uidS={S17:null,S21:null}; cd={S17:0,S21:0}; guard={S17:0,S21:0}; postPinkCooldown=0;
-  $confS17.textContent="—"; $confS21.textContent="—"; $sigState.textContent="Esperando…"; $banCta.textContent="—";
+  lastSignal=null; lastUID=null; cooldown=0; guardReentry=0; postPinkCooldown=0;
+  $sigConf.textContent="—"; $sigState.textContent="Esperando…"; $banCta.textContent="—";
   setBanner("warn","Reiniciado","Esperando nuevo contexto…","—");
 });
 document.getElementById("btnClearHist").addEventListener("click",()=>{
+  if(!SITE){ alert("Conéctate primero."); return; }
   if(!confirm("¿Borrar SOLO el historial de este sitio?")) return;
   if(HIST_PATH){ try{ db.ref(HIST_PATH).set(null,()=>{});}catch{} }
   renderLocalHistory();
 });
-$btnSite888.addEventListener('click',()=>initForSite('888star'));
-$btnSite1WIN.addEventListener('click',()=>initForSite('1win'));
 
-/*** ================== BOOT ================== ***/
-(async function boot(){
-  const p=await pickPathFor(SITE);
-  if(!p){ $status.textContent="Sin datos"; return; }
-  $status.classList.add('ok'); $status.textContent="Conectado ✔";
-  initForSite(SITE);
-})();
+/*** ================== ARRANQUE (sin autoconectar) ================== ***/
+setBanner("stop","No conectado","Selecciona el sitio y pulsa Conectar.","—");
 </script>
 </html>
